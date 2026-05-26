@@ -66,6 +66,8 @@ app/
   dashboard.py    Streamlit home (overview + flow/architecture diagram)
   _app_lib.py     shared brand kit + cached diagnostic/model loaders
   pages/          Diagnostic · Win model & guidance · Data & identity · Methodology
+api/            FastAPI wrapper over the engine (serves JSON to the web UI)
+web/            Next.js buyer-facing UI (Pricekeel brand), consumes api/
 brand/          Pricekeel brand kit — logo SVGs, palette, brand guide
 gtm/            Track B — design-partner sourcing, outreach, data-request spec
 data/
@@ -81,6 +83,26 @@ generated from the same `pricing/schema.py`, so a partner's CSV is a
 column-mapping exercise, not a schema redesign. Their data goes in
 `data/private/` (gitignored) and is handled under the NDA at
 `docs/legal/one-page-mutual-nda-data-addendum.md`.
+
+## Web UI (Next.js)
+
+The buyer-facing UI is a Next.js app in `web/` that reads from the FastAPI
+service in `api/`. Run both:
+
+```powershell
+# 1. the API (serves the engine as JSON)
+$env:PYTHONPATH = "."
+uvicorn api.main:app --port 8000
+
+# 2. the web UI (in another terminal), pointed at the API
+cd web
+$env:PRICEKEEL_API = "http://127.0.0.1:8000"
+npm run dev        # open http://localhost:3000
+```
+
+Streamlit (`app/`) stays as the internal, fast-iteration tool. The Next.js app
+is the polished, plain-language surface for customers. Both consume the same
+`pricing/` engine, so they never drift. See `docs/design/nextjs-ui.md`.
 
 ## Deploy
 
