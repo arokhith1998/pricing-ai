@@ -32,14 +32,33 @@ DEFAULT_CSV = ROOT / "data" / "synthetic" / "deals.csv"
 
 _CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-html, body, [class*="css"], .stMarkdown {{ font-family: 'Inter', sans-serif; }}
-.pk-word {{ font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; }}
-.pk-word .a {{ color: {BRAND['navy']}; }}
-.pk-word .b {{ color: {BRAND['teal']}; }}
-.pk-tag {{ color: {BRAND['slate']}; font-size: 0.9rem; margin-top: -4px; }}
-[data-testid="stMetricValue"] {{ font-variant-numeric: tabular-nums; }}
-.pk-mark {{ vertical-align: middle; margin-right: 10px; }}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root {{ --pk-navy:{BRAND['navy']}; --pk-teal:{BRAND['teal']}; --pk-mist:{BRAND['mist']};
+         --pk-slate:{BRAND['slate']}; }}
+html, body, [class*="css"], .stMarkdown, input, textarea, button, select {{
+    font-family:'Inter',sans-serif; }}
+h1,h2,h3,h4 {{ color:var(--pk-navy); letter-spacing:-0.3px; }}
+@keyframes pkFade {{ from {{opacity:0; transform:translateY(10px);}} to {{opacity:1; transform:none;}} }}
+.main .block-container {{ animation:pkFade .45s ease-out; padding-top:1.1rem; max-width:1200px; }}
+/* metric cards */
+[data-testid="stMetric"] {{ background:#fff; border:1px solid var(--pk-mist); border-radius:12px;
+    padding:14px 16px; box-shadow:0 1px 2px rgba(12,45,72,.05);
+    transition:transform .15s ease, box-shadow .15s ease; }}
+[data-testid="stMetric"]:hover {{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(12,45,72,.10); }}
+[data-testid="stMetricValue"] {{ font-variant-numeric:tabular-nums; font-weight:700; color:var(--pk-navy); }}
+/* bordered containers behave like cards */
+[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius:14px !important;
+    border-color:var(--pk-mist) !important; background:#fff;
+    box-shadow:0 1px 3px rgba(12,45,72,.05); transition:box-shadow .2s ease; }}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {{ box-shadow:0 8px 24px rgba(12,45,72,.09); }}
+.stButton>button {{ border-radius:10px; font-weight:600; }}
+.stTabs [aria-selected="true"] {{ color:var(--pk-teal); }}
+.pk-word {{ font-weight:800; font-size:1.55rem; letter-spacing:-0.6px; }}
+.pk-word .a {{ color:var(--pk-navy); }} .pk-word .b {{ color:var(--pk-teal); }}
+.pk-tag {{ color:var(--pk-slate); font-size:.9rem; margin-top:-4px; margin-bottom:.5rem; }}
+.pk-mark {{ vertical-align:middle; margin-right:10px; }}
+hr {{ border-color:var(--pk-mist); }}
+@media (max-width:640px) {{ .main .block-container {{ padding:1rem .8rem; }} }}
 </style>
 """
 
@@ -98,6 +117,12 @@ def get_diagnostic(csv: str, policy: float) -> dict:
 @st.cache_resource(show_spinner="Training win-probability model…")
 def get_model(csv: str):
     return model.train(ingest(csv))
+
+
+@st.cache_data(show_spinner=False)
+def get_model_leakage(csv: str) -> dict:
+    """Model-conditioned leakage, cached per CSV so the page never recomputes."""
+    return model.leakage_vs_model(get_model(csv), ingest(csv))
 
 
 @st.cache_data(show_spinner="Writing executive summary…")
