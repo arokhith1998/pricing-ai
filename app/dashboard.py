@@ -20,9 +20,16 @@ import streamlit as st
 # allow running via `streamlit run app/dashboard.py` from repo root
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pricing import metrics  # noqa: E402
+from pricing import metrics, model  # noqa: E402
 from pricing.diagnostic import run  # noqa: E402
+from pricing.ingest import ingest  # noqa: E402
 from pricing.schema import DEFAULT_POLICY_THRESHOLD  # noqa: E402
+
+
+@st.cache_resource(show_spinner="Training win-probability model…")
+def _train_model(path: str):
+    """Train once per CSV (cached). Policy threshold doesn't affect the model."""
+    return model.train(ingest(path))
 
 st.set_page_config(page_title="Discount-Leakage Diagnostic", layout="wide")
 
@@ -148,3 +155,64 @@ with st.expander("Resolved accounts & raw data"):
     st.caption(f"{ov['resolved_accounts']:,} accounts resolved from "
                f"{ov['opportunities']:,} opportunities (messy names + missing IDs).")
     st.dataframe(res["data"].head(200), hide_index=True, use_container_width=True)
+
+# --- Phase 2: win-probability & deal guidance --------------------------------
+st.divider()
+st.header("Win-probability & deal guidance")
+st.caption("Predict the next deal: P(win) from quote-time features, and the "
+           "discount that maximizes expected booked ACV. Decision support — "
+           "humans in the loop, not an autopilot.")
+
+tm = _train_model(csv_path)
+m = tm.metrics
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("ROC AUC", f"{m['auc']:.3f}", help="Discrimination on a 25% holdout.")
+m2.metric("Avg precision", f"{m['avg_precision']:.3f}",
+          help=f"Base win rate {m['base_rate']:.1%}.")
+m3.metric("Brier score", f"{m['brier']:.3f}", help="Calibration error (lower is better).")
+m4.metric("Calibration", f"{m['mean_pred']:.1%} / {m['base_rate']:.1%}",
+          help="Mean predicted vs actual win rate on holdout.")
+
+gl, gr = st.columns([2, 3])
+with gl:
+    st.subheader("Feature importance")
+    fi = model.feature_importance(tm)
+    chart = (alt.Chart(fi).mark_bar(color="#6baed6")
+             .encode(x=alt.X("gain:Q", title="Gain"),
+                     y=alt.Y("feature:N", sort="-x", title=None)))
+    st.altair_chart(chart, use_container_width=True)
+
+with gr:
+    st.subheader("Per-deal discount guidance")
+    opp_choices = list(res["top_leak_deals"]["opportunity_id"])
+    opp = st.selectbox("Opportunity (defaults to top leak deals)", opp_choices)
+    didx = res["data"].index[res["data"]["opportunity_id"] == opp][0]
+    deal = res["data"].loc[didx]
+    rec = model.recommend_discount(tm, tm.X_all.loc[[didx]], float(deal["list_acv"]))
+
+    d1, d2, d3 = st.columns(3)
+    d1.metric("Discount given", f"{rec['current_discount']:.0%}")
+    d2.metric("Recommended", f"{rec['recommended_discount']:.0%}",
+              f"{rec['recommended_discount'] - rec['current_discount']:+.0%}",
+              delta_color="off")
+    d3.metric("Expected ACV uplift", _money(rec["uplift"]),
+              help="Expected booked ACV at the recommended vs the given discount.")
+
+    curve = rec["curve"]
+    base = alt.Chart(curve).encode(x=alt.X("discount:Q", axis=alt.Axis(format="%"),
+                                           title="Discount"))
+    ev = base.mark_line(color="#2c7fb8", strokeWidth=3).encode(
+        y=alt.Y("expected_acv:Q", title="Expected ACV ($)"))
+    wp = base.mark_line(color="#d62728", strokeDash=[4, 3]).encode(
+        y=alt.Y("win_prob:Q", title="P(win)", axis=alt.Axis(format="%")))
+    rule = alt.Chart(pd.DataFrame({"d": [rec["recommended_discount"]]})).mark_rule(
+        color="#2c7fb8", strokeDash=[2, 2]).encode(x="d:Q")
+    st.altair_chart(alt.layer(ev, wp, rule).resolve_scale(y="independent"),
+                    use_container_width=True)
+    st.caption("Solid = expected ACV, dashed red = P(win), vertical line = "
+               "recommended discount. The peak sits where extra discount stops "
+               "paying for itself.")
+
+    st.markdown("**Why this prediction** (top SHAP contributions, log-odds):")
+    expl = model.explain(tm, tm.X_all.loc[[didx]]).head(6)
+    st.dataframe(expl, hide_index=True, use_container_width=True)

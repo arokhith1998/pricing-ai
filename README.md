@@ -39,7 +39,10 @@ python -m pricing.generate -n 2000 --seed 7 -o data/synthetic/deals.csv
 # 2. run the diagnostic in the terminal
 python -m pricing.diagnostic data/synthetic/deals.csv
 
-# 3. or open the dashboard
+# 3. train the win-probability model + see discount guidance (Phase 2)
+python -m pricing.model data/synthetic/deals.csv
+
+# 4. or open the dashboard (diagnostic + guidance)
 streamlit run app/dashboard.py
 ```
 
@@ -58,6 +61,7 @@ pricing/        core package
   ingest.py       load + validate + identity resolution + derived fields
   metrics.py      leakage, price realization, win-rate-by-band (unit-tested)
   diagnostic.py   orchestration + CLI report
+  model.py        Phase 2: win-probability + native SHAP + discount guidance
 app/
   dashboard.py    Streamlit demo dashboard
 gtm/            Track B — design-partner sourcing, outreach, data-request spec
@@ -79,5 +83,10 @@ column-mapping exercise, not a schema redesign. Their data goes in
 
 - **Streamlit, not Next.js** for the week-1 demo — local-first, fast. A
   customer-facing UI comes later.
-- **No ML yet** — pandas/numpy only. Win-probability (LightGBM + SHAP) is Phase 2.
+- **Phase 2 (this branch)** — win-probability via LightGBM, explained with
+  LightGBM's *native* SHAP contributions (no extra `shap` dependency), plus
+  expected-ACV discount guidance. Trained only on quote-time features (no
+  outcome leakage). Synthetic-data AUC ~0.64 with strong calibration — discrimination
+  is capped by deliberate irreducible noise; calibration + explainability are
+  what matter for guidance. Warehouse (Snowflake/Fivetran) still deferred to Phase 3.
 - **CSV, not Snowflake** — warehouse + Fivetran deferred to Phase 3.

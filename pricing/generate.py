@@ -41,6 +41,15 @@ SEGMENTS = {
 REGIONS = ["NA", "EMEA", "APAC"]
 INDUSTRIES = ["DevTools", "Data/Analytics", "FinTech", "Infra/API",
               "MarTech", "Security", "Vertical SaaS"]
+# Observable win-rate effects (logit offsets) — give the model real, learnable
+# structure beyond the discount lever. These are deliberate signal, not noise.
+INDUSTRY_WIN_EFFECT = {
+    "DevTools": 0.45, "Data/Analytics": 0.20, "FinTech": -0.15,
+    "Infra/API": 0.35, "MarTech": -0.30, "Security": 0.10,
+    "Vertical SaaS": -0.35,
+}
+REGION_WIN_EFFECT = {"NA": 0.20, "EMEA": -0.05, "APAC": -0.25}
+SEGMENT_WIN_EFFECT = {"SMB": 0.15, "MidMarket": 0.0, "Enterprise": -0.25}
 TIERS = ["Starter", "Growth", "Scale", "Enterprise"]
 VALUE_METRICS = ["hybrid", "consumption", "seats"]
 VALUE_METRIC_WEIGHTS = [0.55, 0.25, 0.20]  # ICP skews hybrid
@@ -144,6 +153,8 @@ def generate(n: int = 2000, seed: int = 7,
         competitor = bool(rng.random() < 0.42)
         qe = _quarter_end_pressure(close)
         rep_idx = rep_for_deal[i]
+        region = rng.choice(REGIONS, p=[0.55, 0.30, 0.15])
+        industry = rng.choice(INDUSTRIES)
 
         # --- discount model ------------------------------------------------
         disc = (s["base_disc"]
@@ -154,17 +165,21 @@ def generate(n: int = 2000, seed: int = 7,
         disc = float(np.clip(disc, 0.0, 0.45))
 
         # --- win model: SATURATING in discount ----------------------------
-        # deal_quality latent + competitor drag + discount with sharply
-        # diminishing returns. The lift is ~maxed by a ~10% discount, so deals
-        # discounted beyond that win at about the same rate — extra discount
-        # bought ~no incremental p(win). That gap is the leakage to surface.
+        # Observable structure (segment/region/industry) + competitor drag +
+        # discount with sharply diminishing returns + a smaller latent
+        # "quality" term (irreducible noise). The discount lift is ~maxed by a
+        # ~10% discount, so deals discounted beyond that win at about the same
+        # rate — extra discount bought ~no incremental p(win). That is leakage.
         quality = rng.normal(0, 1)
         disc_lift = 1.3 * np.tanh(disc / 0.05)     # ~saturated by ~0.10
-        logit = (-0.5
-                 + 0.9 * quality
+        logit = (-0.55
+                 + 0.55 * quality                  # latent, unobserved noise
                  - 0.8 * competitor
                  + disc_lift
-                 - 0.10 * (seg == "Enterprise"))   # enterprise harder
+                 + SEGMENT_WIN_EFFECT[seg]
+                 + REGION_WIN_EFFECT[region]
+                 + INDUSTRY_WIN_EFFECT[industry]
+                 - 0.12 * (np.log(list_acv) - 10.8))  # bigger deals slightly harder
         p_win = 1.0 / (1.0 + np.exp(-logit))
         won = bool(rng.random() < p_win)
 
@@ -212,8 +227,8 @@ def generate(n: int = 2000, seed: int = 7,
             "created_date": created.isoformat(),
             "close_date": close.isoformat(),
             "segment": seg,
-            "region": rng.choice(REGIONS, p=[0.55, 0.30, 0.15]),
-            "industry": rng.choice(INDUSTRIES),
+            "region": region,
+            "industry": industry,
             "product_tier": rng.choice(TIERS, p=[0.30, 0.34, 0.24, 0.12]),
             "value_metric": vm,
             "list_acv": list_acv,

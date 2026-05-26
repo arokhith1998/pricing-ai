@@ -4,5 +4,8 @@ numpy>=1.26
 # Dashboard
 streamlit>=1.36
 altair>=5.3
+# Phase 2 — win-probability model + native SHAP explanations
+lightgbm>=4.3
+scikit-learn>=1.4
 # Tests
 pytest>=8.0
