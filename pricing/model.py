@@ -161,6 +161,46 @@ def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
     }
 
 
+def leakage_vs_model(tm: TrainedModel, df: pd.DataFrame,
+                     grid: np.ndarray | None = None) -> dict:
+    """Model-conditioned leakage: each won deal's EV-optimal ("justified")
+    discount from its own predicted win curve, and the $ given away above it.
+
+    Unifies Phase 1 (leakage) and Phase 2 (win model): instead of a single
+    global reference discount, every deal gets a justified discount conditioned
+    on its attributes (the cross-model review's top recommendation). Still a
+    decision-support signal, not a refund figure.
+    """
+    if grid is None:
+        grid = np.round(np.arange(0.0, 0.4001, 0.01), 4)
+    won = df[df["is_won"]]
+    if won.empty:
+        return {"deals": 0, "mean_justified_discount": 0.0, "mean_actual_discount": 0.0,
+                "model_excess_won": 0.0, "deals_over_justified": 0,
+                "model_excess_pct_of_booked": 0.0}
+
+    g = len(grid)
+    X = tm.X_all.loc[won.index, tm.features]
+    rep = X.loc[X.index.repeat(g)].reset_index(drop=True)
+    rep["discount_pct"] = np.tile(grid, len(X))
+    p = tm.model.predict_proba(rep[tm.features])[:, 1].reshape(len(X), g)
+
+    list_acv = won["list_acv"].to_numpy()
+    ev = p * list_acv[:, None] * (1.0 - grid[None, :])
+    justified = grid[ev.argmax(axis=1)]
+    actual = won["discount_pct"].to_numpy()
+    excess = np.clip(actual - justified, 0.0, None) * list_acv
+    booked = float(won["booked_acv"].sum())
+    return {
+        "deals": int(len(won)),
+        "mean_justified_discount": float(justified.mean()),
+        "mean_actual_discount": float(actual.mean()),
+        "model_excess_won": float(excess.sum()),
+        "deals_over_justified": int((excess > 0).sum()),
+        "model_excess_pct_of_booked": float(excess.sum() / booked) if booked else 0.0,
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Train the win-probability model.")
     ap.add_argument("path", type=Path, help="path to a deals CSV")
@@ -194,6 +234,14 @@ def main() -> None:
               f"E[ACV] uplift ${rec['uplift']:,.0f})")
     print("\n(Guidance maximizes expected ACV on a saturating win curve; it is")
     print(" decision support for humans in the loop, not an autopilot.)")
+
+    ml = leakage_vs_model(tm, df)
+    print("\n-- Model-conditioned leakage (won deals) " + "-" * 19)
+    print(f"Mean justified discount {ml['mean_justified_discount']:.1%} vs actual "
+          f"{ml['mean_actual_discount']:.1%}. "
+          f"${ml['model_excess_won']:,.0f} given above each deal's justified "
+          f"discount across {ml['deals_over_justified']:,} deals "
+          f"({ml['model_excess_pct_of_booked']:.1%} of booked ACV).")
 
 
 if __name__ == "__main__":

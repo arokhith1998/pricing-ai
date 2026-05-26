@@ -25,6 +25,7 @@ customer (see vault/Decisions/2026-05-26-kickoff-decisions.md).
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from pricing.schema import DEFAULT_POLICY_THRESHOLD, DISCOUNT_BANDS
@@ -82,35 +83,53 @@ def win_rate_by_band(df: pd.DataFrame) -> pd.DataFrame:
     return g.reset_index().rename(columns={"index": "discount_band"})
 
 
-def reference_discount(df: pd.DataFrame, tolerance: float = 0.02) -> dict:
-    """Find the cheapest discount level that already achieves ~peak win rate.
+def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
+                       seed: int = 0, min_deals: int = 15) -> dict:
+    """Cheapest discount level that is statistically as good as the best band.
 
-    Returns the lower edge of the first band whose win rate is within
-    `tolerance` of the best band's win rate. Discount above this level is
-    candidate "excess" — it did not buy incremental win probability.
+    Win rate per band is noisy, so we bootstrap a confidence interval on each
+    band's win rate, then pick the *cheapest* band whose win rate is not
+    significantly below the peak band — its bootstrap mean clears the peak
+    band's lower CI bound. Discount above that level is candidate excess: it did
+    not buy a statistically distinguishable win-rate gain. (Replaces the earlier
+    point-estimate rule flagged by cross-model review as statistically naive.)
     """
-    bands = win_rate_by_band(df)
-    # require a minimum sample per band so a 2-deal band can't define the peak
-    eligible = bands[bands["deals"] >= 15]
-    if eligible.empty:
-        eligible = bands
-    peak_rate = float(eligible["win_rate"].max())
-    peak_band = eligible.loc[eligible["win_rate"].idxmax(), "discount_band"]
+    work = df[["discount_band", "is_won"]]
+    rng = np.random.default_rng(seed)
+    lo_q, hi_q = (1 - ci) / 2, 1 - (1 - ci) / 2
 
+    def _band_stats(threshold: int) -> dict:
+        out = {}
+        for label in _BAND_ORDER:
+            arr = work.loc[work["discount_band"] == label, "is_won"].to_numpy()
+            if len(arr) < threshold:
+                continue
+            boot = rng.choice(arr, size=(n_boot, len(arr)), replace=True).mean(axis=1)
+            out[label] = (float(arr.mean()), float(np.quantile(boot, lo_q)),
+                          float(np.quantile(boot, hi_q)), int(len(arr)))
+        return out
+
+    stats = _band_stats(min_deals) or _band_stats(1)  # relax floor if too sparse
     edges = {label: lo for lo, _hi, label in DISCOUNT_BANDS}
-    reference_threshold = edges[_BAND_ORDER[-1]]
-    reference_band = _BAND_ORDER[-1]
-    for label in _BAND_ORDER:
-        row = eligible[eligible["discount_band"] == label]
-        if not row.empty and float(row["win_rate"].iloc[0]) >= peak_rate - tolerance:
-            reference_threshold = edges[label]
+    if not stats:
+        return {"reference_threshold": 0.0, "reference_band": _BAND_ORDER[0],
+                "peak_win_rate": 0.0, "peak_band": _BAND_ORDER[0],
+                "peak_win_rate_ci": (0.0, 0.0), "band_win_rate_ci": {}}
+
+    peak_band = max(stats, key=lambda k: stats[k][0])
+    peak_mean, peak_lo, peak_hi, _ = stats[peak_band]
+    reference_band = peak_band
+    for label in _BAND_ORDER:          # cheapest band not significantly < peak
+        if label in stats and stats[label][0] >= peak_lo:
             reference_band = label
             break
     return {
-        "reference_threshold": float(reference_threshold),
+        "reference_threshold": float(edges[reference_band]),
         "reference_band": reference_band,
-        "peak_win_rate": peak_rate,
+        "peak_win_rate": peak_mean,
         "peak_band": peak_band,
+        "peak_win_rate_ci": (peak_lo, peak_hi),
+        "band_win_rate_ci": {k: (v[0], v[1], v[2]) for k, v in stats.items()},
     }
 
 

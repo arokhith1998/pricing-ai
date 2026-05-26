@@ -62,11 +62,14 @@ def test_reference_discount_finds_the_plateau():
     rows += _band_block("b20", 20, 0.22, 0.80)  # 20-25%
     df = _build(rows)
 
-    ref = metrics.reference_discount(df, tolerance=0.02)
+    ref = metrics.reference_discount(df, seed=0)
     assert ref["peak_win_rate"] == pytest.approx(0.80)
     # the 10-15% band already reaches peak, so reference threshold is its lower edge
     assert ref["reference_threshold"] == pytest.approx(0.10)
     assert ref["reference_band"] == "10-15%"
+    # bootstrap CIs are reported and bracket the point estimate
+    lo, hi = ref["peak_win_rate_ci"]
+    assert lo <= ref["peak_win_rate"] <= hi
 
 
 def test_excess_vs_reference_only_counts_discount_above_reference():

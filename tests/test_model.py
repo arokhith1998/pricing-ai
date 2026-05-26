@@ -64,6 +64,17 @@ def test_explanations_reconcile_with_prediction(trained):
     assert prob_from_contribs == pytest.approx(prob_direct, abs=1e-6)
 
 
+def test_leakage_vs_model_is_sane(trained):
+    df, tm = trained
+    ml = model.leakage_vs_model(tm, df)
+    assert ml["deals"] > 0
+    assert 0.0 <= ml["mean_justified_discount"] <= 0.40
+    assert ml["model_excess_won"] >= 0.0
+    assert 0.0 <= ml["model_excess_pct_of_booked"] < 1.0
+    # the synthetic data has real over-discounting → some model excess exists
+    assert ml["model_excess_won"] > 0.0
+
+
 def test_recommend_discount_maximizes_expected_acv(trained):
     df, tm = trained
     # pick a clearly over-discounted won deal
