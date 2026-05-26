@@ -4,6 +4,10 @@ knowledge/
 obsidian-mind/
 obsidian-skills/
 
+# --- Second brain: the user's Obsidian vault lives in its OWN private repo
+#     (pricing-ai-vault). It sits here on disk but is never tracked by this repo. ---
+vault/
+
 # --- Third-party Obsidian skill + commands copied locally (reproducible from knowledge/) ---
 .claude/skills/obsidian-second-brain/
 .claude/commands/
