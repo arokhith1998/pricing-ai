@@ -4,7 +4,7 @@ created: 2026-05-26
 updated: 2026-05-26
 tags: [framework, pricing, packaging, monetization-audit, transformation]
 status: active
-source: Ulrik (Rivera) — B2B pricing transformation & packaging practice
+source: Marcos Rivera — Pricing I/O; "Street Pricing" (SaaS packaging & monetization audits)
 ---
 
 # Rivera — Packaging Architecture

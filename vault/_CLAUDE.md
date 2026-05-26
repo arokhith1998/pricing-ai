@@ -29,7 +29,8 @@ source:   # optional
 - Wikilinks `[[like this]]`, tags `#like-this`. A `[[link]]` to a not-yet-written note is fine — it marks intent.
 
 ## Active context (update as we go)
-- Stage: pre-seed, proving the wedge. No product code yet as of 2026-05-26.
+- Stage: pre-seed, proving the wedge. **Phase 1 + 2 shipped 2026-05-26**
+  (`pricing/`, `app/`, `tests/`); pushed to private GitHub. See [[2026-05-26-track-ab-build]].
 - Wedge (CONFIRMED): retrospective discount-leakage diagnostic from CSV exports.
 - Data path: CSV/flat-file → Phases 1–2; Snowflake + Fivetran → Phase 3.
 - **Critical path = GTM.** No design partner and no real data yet ("need to source one").

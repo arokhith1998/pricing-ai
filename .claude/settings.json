@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python tools/load_vault.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
