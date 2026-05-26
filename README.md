@@ -63,7 +63,10 @@ pricing/        core package
   diagnostic.py   orchestration + CLI report
   model.py        Phase 2: win-probability + native SHAP + discount guidance
 app/
-  dashboard.py    Streamlit demo dashboard
+  dashboard.py    Streamlit home (overview + flow/architecture diagram)
+  _app_lib.py     shared brand kit + cached diagnostic/model loaders
+  pages/          Diagnostic · Win model & guidance · Data & identity · Methodology
+brand/          Pricekeel brand kit — logo SVGs, palette, brand guide
 gtm/            Track B — design-partner sourcing, outreach, data-request spec
 data/
   synthetic/      generated demo data (committed)

@@ -59,6 +59,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# --- Streamlit secrets (deploy creds; config.toml is committed) ---
+.streamlit/secrets.toml
+
 # --- Obsidian per-machine UI state (vault config is otherwise shareable) ---
 **/.obsidian/workspace.json
 # Downloaded community themes — reproducible, not source.

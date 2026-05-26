@@ -1,0 +1,10 @@
+# Pricekeel dashboard theme
+[theme]
+primaryColor = "#17B8A6"          # Waterline Teal
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F6FA"
+textColor = "#0B1727"             # Deep Ink
+font = "sans serif"
+
+[server]
+headless = true
