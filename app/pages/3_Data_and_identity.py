@@ -1,4 +1,4 @@
-"""Data & identity — how messy CRM data resolves into accounts."""
+"""Data and identity. How messy CRM data becomes clean accounts."""
 
 from __future__ import annotations
 
@@ -11,70 +11,75 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from _app_lib import (  # noqa: E402
-    assist, get_column_map, get_diagnostic, page, require_csv, sidebar_inputs,
+    assist, field_label, get_column_map, get_diagnostic, page, relabel,
+    require_csv, sidebar_inputs,
 )
 
-page("Data & identity")
+page("Data and identity")
 csv, policy = sidebar_inputs()
 require_csv(csv)
 res = get_diagnostic(csv, policy)
 df = res["data"]
 ov = res["overview"]
 
-st.subheader("Identity resolution")
-st.caption("Real CRM exports have the same account spelled several ways and "
-           "missing IDs. We normalize names (strip case, punctuation, and "
-           "corporate suffixes) and backfill a single account per entity.")
+st.subheader("Cleaning up account names")
+st.caption("Real exports spell the same company several ways and often leave the "
+           "account ID blank. We standardize the name (case, punctuation, and "
+           "company suffixes) and link every record to one account.")
 
 c1, c2, c3 = st.columns(3)
 c1.metric("Opportunities", f"{ov['opportunities']:,}")
-c2.metric("Resolved accounts", f"{ov['resolved_accounts']:,}")
-c3.metric("Rows missing account_id",
+c2.metric("Accounts after cleanup", f"{ov['resolved_accounts']:,}")
+c3.metric("Records with no account ID",
           f"{int((df['account_id'].astype(str).str.strip() == '').sum()):,}",
-          help="Resolved from the account name instead.")
+          help="Linked by company name instead.")
 
-# show a few accounts where multiple raw spellings collapsed into one entity
-st.markdown("**Examples: messy names → one resolved account**")
+st.markdown("**Examples: several spellings that became one account**")
 grp = (df.groupby("resolved_account_id")
-         .agg(resolved_account_name=("resolved_account_name", "first"),
-              raw_spellings=("account_name", lambda s: sorted(set(s.astype(str).str.strip()))),
+         .agg(account=("resolved_account_name", "first"),
+              spellings=("account_name", lambda s: sorted(set(s.astype(str).str.strip()))),
               opportunities=("opportunity_id", "count")))
-grp = grp[grp["raw_spellings"].map(len) > 1].sort_values("opportunities", ascending=False)
+grp = grp[grp["spellings"].map(len) > 1].sort_values("opportunities", ascending=False)
 if grp.empty:
     st.caption("No multi-spelling accounts in this dataset.")
 else:
     show = grp.head(12).copy()
-    show["raw_spellings"] = show["raw_spellings"].map(lambda xs: "  |  ".join(xs))
+    show["spellings"] = show["spellings"].map(lambda xs: "   |   ".join(xs))
+    show = show.rename(columns={"account": "Account", "spellings": "Spellings we merged",
+                                "opportunities": "Opportunities"})
     st.dataframe(show.reset_index(drop=True), hide_index=True, use_container_width=True)
 
-st.subheader("Onboard a new CSV — AI column mapping")
-st.caption("Upload a prospect's closed-deal export; we map their headers to our "
-           "schema so onboarding is a confirmation, not a data-engineering "
-           "project. Only column *names* are sent to the model — never data rows.")
+# --- AI column mapping -------------------------------------------------------
+st.subheader("Bring your own CSV")
+st.caption("Upload a closed-deal export and we match your columns to ours, so "
+           "getting started is a quick confirmation rather than a data project. "
+           "Only the column names are sent to the AI, never the rows of data.")
 up = st.file_uploader("Closed-deal CSV", type=["csv"])
 if up is not None:
     headers = list(pd.read_csv(up, nrows=0).columns)
-    st.write("**Detected columns:** " + ", ".join(headers))
+    st.write("**Your columns:** " + ", ".join(headers))
     if not assist.has_llm():
-        st.caption("Add `OPENAI_API_KEY` to `.env` to enable AI mapping.")
+        st.caption("Add an API key to .env to enable automatic matching.")
     else:
         try:
             mapping = get_column_map(tuple(headers))
             targets = assist.mapping_targets()
             table = pd.DataFrame([
-                {"our_field": t["field"], "required": "✓" if t["required"] else "",
-                 "their_column": mapping.get(t["field"]) or "—"}
+                {"Our field": field_label(t["field"]),
+                 "Required": "Yes" if t["required"] else "",
+                 "Your column": mapping.get(t["field"]) or "not matched"}
                 for t in targets])
             st.dataframe(table, hide_index=True, use_container_width=True)
-            missing = [t["field"] for t in targets
+            missing = [field_label(t["field"]) for t in targets
                        if t["required"] and not mapping.get(t["field"])]
             if missing:
-                st.warning(f"Required fields needing a manual match: {missing}")
+                st.warning("These required fields still need a match: "
+                           + ", ".join(missing))
             else:
-                st.success("All required fields matched — ready to run the diagnostic.")
-        except Exception as exc:
-            st.warning(f"Mapping unavailable: {exc}")
+                st.success("Every required field matched. Ready to run.")
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"Matching is unavailable right now: {exc}")
 
-st.subheader("Raw data preview")
-st.caption("The enriched table the diagnostic runs on (first 200 rows).")
-st.dataframe(df.head(200), hide_index=True, use_container_width=True)
+st.subheader("Data preview")
+st.caption("The table the diagnostic runs on (first 200 rows).")
+st.dataframe(relabel(df.head(200)), hide_index=True, use_container_width=True)

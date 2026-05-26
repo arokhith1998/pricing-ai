@@ -142,3 +142,44 @@ def money(x: float) -> str:
 
 def pct(x: float) -> str:
     return f"{x:.1%}"
+
+
+# Human-readable labels for every field we might show. No raw snake_case in UI.
+LABELS = {
+    "opportunity_id": "Opportunity ID", "account_name": "Account",
+    "resolved_account_name": "Account", "resolved_account_id": "Account ID",
+    "outcome": "Outcome", "created_date": "Created", "close_date": "Close date",
+    "segment": "Segment", "region": "Region", "industry": "Industry",
+    "product_tier": "Plan", "value_metric": "Pricing model",
+    "list_acv": "List value (annual)", "booked_acv": "Booked value (annual)",
+    "platform_fee_acv": "Platform fee (annual)", "usage_acv": "Usage value (annual)",
+    "term_months": "Term (months)", "quantity": "Quantity", "rep_id": "Rep",
+    "approved_by": "Approved by", "competitor_present": "Competitor in deal",
+    "lost_reason": "Lost reason", "discount_pct": "Discount %",
+    "price_realization": "Price realization", "discount_amount": "Discount given",
+    "win_rate": "Win rate", "discount_band": "Discount band", "deals": "Deals",
+    "won": "Won", "avg_discount": "Avg discount",
+    "excess_discount_dollars": "Excess discount", "off_policy": "Above policy",
+    "off_policy_unapproved": "Above policy, no approval",
+    "is_quarter_end": "Closed near quarter end", "is_won": "Won",
+    "quarter": "Quarter", "cycle_days": "Cycle (days)",
+    "days_to_quarter_end": "Days to quarter end",
+}
+
+
+def relabel(df):
+    """Rename a frame's columns to human-readable labels for display."""
+    return df.rename(columns={c: LABELS.get(c, c) for c in df.columns})
+
+
+def field_label(name: str) -> str:
+    return LABELS.get(name, name)
+
+
+def pretty_factors(expl_df):
+    """Turn raw SHAP contributions into a plain 'what drove this' table."""
+    d = expl_df[expl_df["feature"] != "<base>"].copy()
+    d["Factor"] = d["feature"].map(field_label)
+    d["Effect on win chance"] = d["contribution"].map(
+        lambda c: "Raises win odds" if c > 0 else "Lowers win odds")
+    return d[["Factor", "Effect on win chance"]]

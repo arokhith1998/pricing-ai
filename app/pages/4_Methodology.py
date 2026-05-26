@@ -1,4 +1,4 @@
-"""Methodology — how the numbers are computed and where they're only signals."""
+"""Methodology. How the numbers are worked out, in plain terms."""
 
 from __future__ import annotations
 
@@ -19,64 +19,65 @@ require_csv(csv)
 res = get_diagnostic(csv, policy)
 rd = res["reference_discount"]
 
-st.subheader("How we measure leakage")
+st.subheader("How we measure the leak")
 st.markdown(
-    "Everything here is computed from your closed-deal data — deterministic, "
-    "reproducible, and unit-tested. We show three lenses, weakest-claim first:"
+    "Everything here comes from your own closed deals. The math is fixed and "
+    "repeatable, and the key numbers are tested. We show three views, from the "
+    "plainest to the most useful:"
 )
 st.markdown(
-    "1. **Gross discount $** — total list-to-booked giveback on won deals. "
-    "Descriptive; not a problem by itself.\n"
-    "2. **Off-policy $** — discount given *above your policy threshold* "
-    f"(currently **{pct(policy)}**, adjustable in the sidebar). A governance lens.\n"
-    "3. **Excess vs reference $** — discount given above the level where win "
-    "rate stops improving."
+    f"1. **Total discount given.** Everything given away from list price on won "
+    f"deals. This is the full picture, not a problem by itself.\n"
+    f"2. **Above your policy.** Discount given above your policy line "
+    f"(currently {pct(policy)}, which you can change in the sidebar). This is a "
+    f"governance view.\n"
+    f"3. **Beyond the win point.** Discount given past the level where extra "
+    f"discount stops winning more deals."
 )
 
-st.subheader("The reference discount (with a confidence interval)")
+st.subheader("Finding the win point")
 ci = rd.get("peak_win_rate_ci")
 st.markdown(
-    f"Win rate per band is noisy, so we **bootstrap a confidence interval** on "
-    f"each band's win rate and pick the *cheapest* band that is not "
-    f"statistically worse than the best band. Here the win rate peaks in the "
-    f"**{rd['peak_band']}** band at **{pct(rd['peak_win_rate'])}**"
-    + (f" (90% CI {pct(ci[0])}–{pct(ci[1])})" if ci else "")
-    + f", and is already reached by **{rd['reference_band']}** — so the "
-    f"reference discount is **{pct(rd['reference_threshold'])}**."
+    f"Win rates bounce around, so we do not trust a single number. We build a "
+    f"confidence range for each discount band, then pick the cheapest discount "
+    f"that still wins about as often as the best one. Here the win rate is "
+    f"highest in the {rd['peak_band']} band at {pct(rd['peak_win_rate'])}"
+    + (f" (likely between {pct(ci[0])} and {pct(ci[1])})" if ci else "")
+    + f", and the {rd['reference_band']} band already gets there. So the win "
+    f"point is {pct(rd['reference_threshold'])}. Discount beyond that is the "
+    f"third view above."
 )
 band_ci = rd.get("band_win_rate_ci") or {}
 if band_ci:
-    st.caption("Bootstrapped win rate by band (mean, 90% CI):")
+    st.caption("Win rate by discount band, with the likely range:")
     st.dataframe(
-        {"band": list(band_ci.keys()),
-         "win_rate": [pct(v[0]) for v in band_ci.values()],
-         "ci_low": [pct(v[1]) for v in band_ci.values()],
-         "ci_high": [pct(v[2]) for v in band_ci.values()]},
+        {"Discount band": list(band_ci.keys()),
+         "Win rate": [pct(v[0]) for v in band_ci.values()],
+         "Low estimate": [pct(v[1]) for v in band_ci.values()],
+         "High estimate": [pct(v[2]) for v in band_ci.values()]},
         hide_index=True, use_container_width=True)
 
 st.warning(
-    "**The excess-vs-reference lens is correlational, not causal.** Bigger, "
-    "harder, and more competitive deals attract bigger discounts, so some "
-    "'excess' is justified. Treat it as a prioritized list of deals to "
-    "investigate — not a refund figure. The **model-conditioned** leakage on "
-    "the *Win model & guidance* page conditions on each deal's attributes and "
-    "is the more defensible number; validate the methodology with a pricing "
-    "advisor before quoting a figure to a customer."
+    "Important honesty note. The third view is a correlation, not proof of "
+    "cause. Bigger, harder, and more competitive deals tend to get bigger "
+    "discounts, so some of that discount was justified. Treat it as a list of "
+    "deals to look at, not a refund you are owed. The deal-by-deal number on "
+    "the guidance page is the more dependable one. Have a pricing advisor "
+    "sanity-check the method before you quote a figure to a customer."
 )
 
-st.subheader("The win-probability model")
+st.subheader("The prediction model")
 st.markdown(
-    "- **Leakage-free features only:** the model trains on attributes known "
-    "*at quote time* (segment, region, industry, tier, value metric, list ACV, "
-    "proposed discount, competitor, term, quarter-end). It never sees the "
-    "outcome or post-close fields — enforced by a test.\n"
-    "- **Explainable:** per-deal attributions use LightGBM's native SHAP "
-    "contributions (explainability > accuracy in enterprise).\n"
-    "- **Guidance:** for each deal we sweep the discount and recommend the "
-    "level that maximizes expected booked ACV = P(win) × list × (1 − discount). "
-    "Humans stay in the loop."
+    "- It only uses what is known when the quote goes out (segment, region, "
+    "industry, plan, pricing model, list value, the proposed discount, whether "
+    "a competitor is in the deal, the term, and timing). It never sees the "
+    "result, so it cannot cheat.\n"
+    "- Every prediction shows the top factors that pushed it up or down, so a "
+    "buyer can see why, not just what.\n"
+    "- For guidance we test each possible discount and recommend the one that "
+    "makes the most expected revenue. A person always makes the final call."
 )
 
-st.caption("Definitions: price realization = booked ÷ list (won deals). "
-           "Discount % = 1 − realization. Win rate by band = won ÷ (won + lost) "
-           "within each discount band.")
+st.caption("Definitions. Price realization is booked value divided by list "
+           "value on won deals. Discount is one minus price realization. Win "
+           "rate in a band is wins divided by total deals in that band.")
