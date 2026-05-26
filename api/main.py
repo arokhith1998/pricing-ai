@@ -46,6 +46,17 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
     }
 
 
+@app.get("/")
+def root() -> dict:
+    """Friendly landing so visiting the API root is not a bare 404."""
+    return {
+        "service": "Pricekeel API",
+        "note": "This is the data service, not the app. Open the web UI at "
+                "http://localhost:3000.",
+        "endpoints": ["/health", "/demo", "/docs"],
+    }
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "llm": assist.has_llm()}
