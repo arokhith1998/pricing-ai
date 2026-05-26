@@ -79,6 +79,23 @@ column-mapping exercise, not a schema redesign. Their data goes in
 `data/private/` (gitignored) and is handled under the NDA at
 `docs/legal/one-page-mutual-nda-data-addendum.md`.
 
+## Deploy
+
+The dashboard is a containerized Streamlit app.
+
+```bash
+docker build -t pricing-ai .
+docker run -p 8501:8501 pricing-ai     # open http://localhost:8501
+```
+
+Works on any container host (Fly.io, Render, Google Cloud Run). For a
+zero-infra demo, **Streamlit Community Cloud** runs straight from this repo —
+point it at `app/dashboard.py` with `requirements.txt`.
+
+> The container ships only the **synthetic** dataset. This is an internal /
+> demo tool: put it behind SSO before exposing it, and never bake real
+> `data/private/` data into an image or a public deployment.
+
 ## Deliberate scope choices
 
 - **Streamlit, not Next.js** for the week-1 demo — local-first, fast. A

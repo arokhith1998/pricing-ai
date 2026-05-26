@@ -57,3 +57,5 @@ Thumbs.db
 
 # --- Obsidian per-machine UI state (vault config is otherwise shareable) ---
 **/.obsidian/workspace.json
+# Downloaded community themes — reproducible, not source.
+**/.obsidian/themes/
