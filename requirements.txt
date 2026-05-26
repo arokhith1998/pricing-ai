@@ -10,5 +10,9 @@ scikit-learn>=1.4
 # LLM assist layer (narrative + CSV column mapping). Provider-swappable.
 openai>=1.40
 anthropic>=0.40
+# API (FastAPI wrapper consumed by the Next.js front end)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
 # Tests
 pytest>=8.0
