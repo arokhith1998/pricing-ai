@@ -7,5 +7,8 @@ altair>=5.3
 # Phase 2 — win-probability model + native SHAP explanations
 lightgbm>=4.3
 scikit-learn>=1.4
+# LLM assist layer (narrative + CSV column mapping). Provider-swappable.
+openai>=1.40
+anthropic>=0.40
 # Tests
 pytest>=8.0

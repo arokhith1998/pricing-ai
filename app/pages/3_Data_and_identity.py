@@ -7,10 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from _app_lib import (  # noqa: E402
-    get_diagnostic, page, require_csv, sidebar_inputs,
+    assist, get_column_map, get_diagnostic, page, require_csv, sidebar_inputs,
 )
 
 page("Data & identity")
@@ -45,6 +46,34 @@ else:
     show = grp.head(12).copy()
     show["raw_spellings"] = show["raw_spellings"].map(lambda xs: "  |  ".join(xs))
     st.dataframe(show.reset_index(drop=True), hide_index=True, use_container_width=True)
+
+st.subheader("Onboard a new CSV — AI column mapping")
+st.caption("Upload a prospect's closed-deal export; we map their headers to our "
+           "schema so onboarding is a confirmation, not a data-engineering "
+           "project. Only column *names* are sent to the model — never data rows.")
+up = st.file_uploader("Closed-deal CSV", type=["csv"])
+if up is not None:
+    headers = list(pd.read_csv(up, nrows=0).columns)
+    st.write("**Detected columns:** " + ", ".join(headers))
+    if not assist.has_llm():
+        st.caption("Add `OPENAI_API_KEY` to `.env` to enable AI mapping.")
+    else:
+        try:
+            mapping = get_column_map(tuple(headers))
+            targets = assist.mapping_targets()
+            table = pd.DataFrame([
+                {"our_field": t["field"], "required": "✓" if t["required"] else "",
+                 "their_column": mapping.get(t["field"]) or "—"}
+                for t in targets])
+            st.dataframe(table, hide_index=True, use_container_width=True)
+            missing = [t["field"] for t in targets
+                       if t["required"] and not mapping.get(t["field"])]
+            if missing:
+                st.warning(f"Required fields needing a manual match: {missing}")
+            else:
+                st.success("All required fields matched — ready to run the diagnostic.")
+        except Exception as exc:
+            st.warning(f"Mapping unavailable: {exc}")
 
 st.subheader("Raw data preview")
 st.caption("The enriched table the diagnostic runs on (first 200 rows).")

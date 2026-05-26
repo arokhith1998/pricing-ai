@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pricing import metrics, model  # noqa: E402  (re-exported for pages)
+from pricing import assist, metrics, model  # noqa: E402  (re-exported for pages)
 from pricing.diagnostic import run  # noqa: E402
 from pricing.ingest import ingest  # noqa: E402
 from pricing.schema import DEFAULT_POLICY_THRESHOLD  # noqa: E402
@@ -98,6 +98,17 @@ def get_diagnostic(csv: str, policy: float) -> dict:
 @st.cache_resource(show_spinner="Training win-probability model…")
 def get_model(csv: str):
     return model.train(ingest(csv))
+
+
+@st.cache_data(show_spinner="Writing executive summary…")
+def get_ai_summary(facts: str) -> str:
+    """Cached per unique diagnostic (facts string) so we call the LLM once."""
+    return assist._complete(assist._SUMMARY_SYSTEM, facts, max_tokens=500).strip()
+
+
+@st.cache_data(show_spinner="Mapping columns…")
+def get_column_map(headers: tuple[str, ...]) -> dict:
+    return assist.map_columns(list(headers))
 
 
 def money(x: float) -> str:
