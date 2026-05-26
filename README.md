@@ -1,0 +1,83 @@
+# Pricing Intelligence Platform
+
+System of record for pricing decisions for B2B SaaS companies on usage-based /
+hybrid models. **Wedge:** a free retrospective *discount-leakage diagnostic*
+built from a CSV of a prospect's closed deals.
+
+> Phase 1 (this repo today): CSV-only diagnostic on synthetic data. No
+> warehouse, no ML, no customer data. See
+> `vault/Decisions/2026-05-26-kickoff-decisions.md` for the 90-day plan.
+
+## What it does
+
+Given one row per closed opportunity (won + lost), it computes:
+
+- **Price realization** (booked ÷ list) overall and by segment.
+- **Win rate by discount band** — the curve that reveals whether discounting
+  actually buys wins.
+- **Leakage**, through three lenses (weakest → strongest claim):
+  1. *Gross discount $* — total list-to-booked giveback (descriptive).
+  2. *Off-policy $* — discount above the policy threshold (governance).
+  3. *Excess-vs-reference $* — discount above the level where win rate stops
+     improving. **Correlational, not causal** — a prioritized list of deals to
+     investigate, not a refund figure.
+- **Quarter-end effect**, **governance gaps** (off-policy with no approver),
+  and a **top-deals-to-investigate** list.
+
+Identity resolution collapses messy account names ("ACME, Inc." / "acme") and
+missing IDs into resolved accounts.
+
+## Quickstart
+
+```powershell
+python -m pip install -r requirements.txt
+$env:PYTHONPATH = "."          # so `pricing` is importable
+
+# 1. generate a synthetic demo dataset
+python -m pricing.generate -n 2000 --seed 7 -o data/synthetic/deals.csv
+
+# 2. run the diagnostic in the terminal
+python -m pricing.diagnostic data/synthetic/deals.csv
+
+# 3. or open the dashboard
+streamlit run app/dashboard.py
+```
+
+Run the tests (the leakage math is unit-tested — it's the trust-critical part):
+
+```powershell
+$env:PYTHONPATH = "."; python -m pytest -q
+```
+
+## Layout
+
+```
+pricing/        core package
+  schema.py       canonical deal schema — the single source of truth
+  generate.py     synthetic deal generator (realistic, with a real leak baked in)
+  ingest.py       load + validate + identity resolution + derived fields
+  metrics.py      leakage, price realization, win-rate-by-band (unit-tested)
+  diagnostic.py   orchestration + CLI report
+app/
+  dashboard.py    Streamlit demo dashboard
+gtm/            Track B — design-partner sourcing, outreach, data-request spec
+data/
+  synthetic/      generated demo data (committed)
+  private/        real customer data (gitignored — NEVER committed)
+tests/          known-answer tests for the metrics + identity layer
+```
+
+## Onboarding a real partner
+
+The synthetic data and the GTM **data-request** (`gtm/data-request.md`) are
+generated from the same `pricing/schema.py`, so a partner's CSV is a
+column-mapping exercise, not a schema redesign. Their data goes in
+`data/private/` (gitignored) and is handled under the NDA at
+`docs/legal/one-page-mutual-nda-data-addendum.md`.
+
+## Deliberate scope choices
+
+- **Streamlit, not Next.js** for the week-1 demo — local-first, fast. A
+  customer-facing UI comes later.
+- **No ML yet** — pandas/numpy only. Win-probability (LightGBM + SHAP) is Phase 2.
+- **CSV, not Snowflake** — warehouse + Fivetran deferred to Phase 3.

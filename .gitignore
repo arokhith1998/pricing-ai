@@ -1,0 +1,59 @@
+# --- Knowledge base (cloned second-brain repos; never commit into product repo) ---
+knowledge/
+# Same cloned third-party tooling, checked out at repo root.
+obsidian-mind/
+obsidian-skills/
+
+# --- Third-party Obsidian skill + commands copied locally (reproducible from knowledge/) ---
+.claude/skills/obsidian-second-brain/
+.claude/commands/
+# Per-machine Claude Code settings (permissions/env) — not shared.
+.claude/settings.local.json
+
+# --- Secrets / env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# --- Data / ML artifacts (keep large/sensitive data out of git) ---
+*.parquet
+*.duckdb
+mlruns/
+.ipynb_checkpoints/
+# Real customer data NEVER gets committed. Synthetic demo data under
+# data/synthetic/ is intentionally allowed. Keep the private/ dir tracked
+# (via .gitkeep) but ignore everything dropped into it.
+data/private/*
+!data/private/.gitkeep
+!data/synthetic/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- Obsidian per-machine UI state (vault config is otherwise shareable) ---
+**/.obsidian/workspace.json

@@ -1,0 +1,8 @@
+# Core (Phase 1 — CSV diagnostic). Open-source + local first.
+pandas>=2.2
+numpy>=1.26
+# Dashboard
+streamlit>=1.36
+altair>=5.3
+# Tests
+pytest>=8.0
