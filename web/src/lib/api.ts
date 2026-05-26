@@ -1,5 +1,7 @@
 // Client for the Pricekeel FastAPI service. Server-side base URL (no secrets).
-const API = process.env.PRICEKEEL_API ?? "http://localhost:8000";
+// Default to 127.0.0.1 (not localhost): on Windows, localhost can resolve to
+// IPv6 first and miss an IPv4-only uvicorn.
+const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 export type Diagnostic = {
   overview: {
