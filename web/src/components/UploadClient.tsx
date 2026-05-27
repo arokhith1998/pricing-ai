@@ -52,9 +52,9 @@ function Results({ d }: { d: Diagnostic }) {
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
-          label="Money beyond the win point"
+          label="Pricing upside to pursue"
           value={money(l.excess_vs_reference_won)}
-          sub={`${pct(l.excess_pct_of_booked)} of booked value`}
+          sub={`${pct(l.excess_pct_of_booked)} of booked value, discounted past the win point`}
           accent="coral"
         />
         <MetricCard

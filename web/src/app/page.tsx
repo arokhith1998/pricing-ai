@@ -58,7 +58,7 @@ export default function Landing() {
       <Reveal delay={0.05}>
         <section className="mt-10">
           <p className="text-center text-sm font-medium text-slate">
-            What discount leakage looks like in a typical book of deals
+            The pricing upside hiding in a typical book of deals
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Stat value="10–20%" label="of list price given up to discounting" />

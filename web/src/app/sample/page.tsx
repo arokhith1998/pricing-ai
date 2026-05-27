@@ -68,9 +68,9 @@ function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
             Unlock the full diagnostic
           </h2>
           <p className="mt-1 text-sm text-slate">
-            You are looking at {money(leak.excess_vs_reference_won)} discounted
-            beyond the point that wins anything. The full read-out shows exactly
-            where it goes and what to do:
+            That is {money(leak.excess_vs_reference_won)} of revenue discounted
+            past the point that wins anything — pricing upside to pursue. The
+            full read-out shows where it is and what to do:
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-ink">
             <li>• A written executive summary</li>
@@ -164,9 +164,9 @@ export default async function SamplePage() {
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
-          label="Money beyond the win point"
+          label="Pricing upside to pursue"
           value={money(l.excess_vs_reference_won)}
-          sub={`${pct(l.excess_pct_of_booked)} of booked value`}
+          sub={`${pct(l.excess_pct_of_booked)} of booked value, discounted past the win point`}
           accent="coral"
         />
         <MetricCard
