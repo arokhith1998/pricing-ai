@@ -11,8 +11,18 @@ function accessCode(): string {
   return process.env.PRICEKEEL_ACCESS_CODE ?? "";
 }
 
+/** A code is configured, so logins can succeed. */
 export function authEnabled(): boolean {
   return accessCode().length > 0;
+}
+
+/**
+ * Whether the gate is enforced. Fail closed: production ALWAYS enforces, even
+ * if PRICEKEEL_ACCESS_CODE was forgotten (then no login can succeed and the app
+ * is locked, rather than silently public). Local dev is open when no code set.
+ */
+export function gateActive(): boolean {
+  return authEnabled() || process.env.NODE_ENV === "production";
 }
 
 /** Opaque cookie token derived from the code (so we never store it in plain). */

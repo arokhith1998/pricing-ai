@@ -3,7 +3,14 @@ import { AUTH_COOKIE, authEnabled, expectedToken, isValidCode } from "@/lib/auth
 
 // POST { code } -> set the auth cookie if the code is right.
 export async function POST(req: Request) {
-  if (!authEnabled()) return Response.json({ ok: true });
+  // No code configured. In production this means the operator forgot to set
+  // PRICEKEEL_ACCESS_CODE: say so plainly rather than letting anyone in.
+  if (!authEnabled()) {
+    return Response.json(
+      { error: "Access is not configured on the server." },
+      { status: 503 },
+    );
+  }
 
   let code = "";
   try {
