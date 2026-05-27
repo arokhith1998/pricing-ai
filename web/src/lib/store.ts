@@ -10,6 +10,7 @@ export type Lead = {
   email: string;
   role_title: string;
   role_function: string;
+  consent: boolean;
 };
 
 const URL = process.env.SUPABASE_URL;

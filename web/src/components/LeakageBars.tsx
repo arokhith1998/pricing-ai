@@ -32,7 +32,7 @@ export default function LeakageBars({ leakage }: { leakage: Leakage }) {
         <div key={r.label}>
           <div className="flex items-baseline justify-between gap-4">
             <span className="text-sm font-medium text-ink">{r.label}</span>
-            <span className="tabular-nums text-sm font-semibold text-navy">
+            <span className="tabular-nums text-sm font-semibold text-fg">
               {money(r.value)}
             </span>
           </div>

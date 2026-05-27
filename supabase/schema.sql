@@ -10,6 +10,7 @@ create table if not exists leads (
   email         text not null,
   role_title    text not null,
   role_function text not null,
+  consent       boolean not null default false,  -- agreed to the privacy policy
   created_at    timestamptz not null default now()
 );
 

@@ -14,11 +14,11 @@ import {
 import type { ReferenceDiscount, WinRateBand } from "@/lib/api";
 import { pct } from "@/lib/format";
 
-const NAVY = "#0c2d48";
-const TEAL = "#17b8a6";
-const CORAL = "#f0654e";
-const MIST = "#e6edf3";
-const SLATE = "#5b6b7b";
+const NAVY = "#e9f0f8"; // win-rate line, light on dark
+const TEAL = "#2dd4bf";
+const CORAL = "#ff6b54";
+const MIST = "#1f2c43"; // grid
+const SLATE = "#8ea3bd"; // axis text
 
 type Row = {
   band: string;
@@ -32,8 +32,8 @@ function PointTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const r: Row = payload[0].payload;
   return (
-    <div className="rounded-lg border border-mist bg-white px-3 py-2 text-sm shadow-md">
-      <div className="font-semibold text-navy">{r.band} discount</div>
+    <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
+      <div className="font-semibold text-fg">{r.band} discount</div>
       <div className="text-slate">Win rate {pct(r.winRate)}</div>
       <div className="text-slate">
         {r.deals.toLocaleString()} deals, average discount {pct(r.avgDiscount)}

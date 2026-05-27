@@ -17,9 +17,9 @@ function Stat({
   sub?: string;
 }) {
   const color =
-    accent === "coral" ? "text-coral" : accent === "teal" ? "text-teal" : "text-navy";
+    accent === "coral" ? "text-coral" : accent === "teal" ? "text-teal" : "text-fg";
   return (
-    <div className="rounded-xl border border-mist bg-white p-4">
+    <div className="rounded-xl border border-mist bg-surface p-4">
       <div className="text-sm text-slate">{label}</div>
       <div className={`mt-1 text-2xl font-bold tabular-nums ${color}`}>{value}</div>
       {sub ? <div className="mt-0.5 text-xs text-slate">{sub}</div> : null}
@@ -85,7 +85,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-mist bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
         <label htmlFor="deal" className="text-sm font-medium text-slate">
           Pick a deal
         </label>
@@ -93,7 +93,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
           id="deal"
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="mt-2 w-full rounded-lg border border-mist bg-paper px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none"
+          className="mt-2 w-full rounded-lg border border-mist bg-surface-2 px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none"
         >
           {deals.map((d) => (
             <option key={d.opportunity_id} value={d.opportunity_id}>
@@ -115,9 +115,9 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
 
       {rec ? (
         <div className={`space-y-6 ${loading ? "opacity-60" : ""}`}>
-          <div className="rounded-xl border border-mist bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
             <p className="text-lg text-ink">
-              On <span className="font-semibold text-navy">{rec.account}</span>, the
+              On <span className="font-semibold text-fg">{rec.account}</span>, the
               model suggests{" "}
               {lower ? "lowering the discount to " : "a discount of "}
               <span className="font-semibold text-teal">
@@ -127,7 +127,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                 <>
                   from {pct0(rec.current_discount)}. That gives up less price while
                   barely moving the odds of winning, for about{" "}
-                  <span className="font-semibold text-navy">{money(rec.uplift)}</span>{" "}
+                  <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
                   more in expected value.
                 </>
               ) : (
@@ -157,8 +157,8 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            <div className="rounded-xl border border-mist bg-white p-5 shadow-sm lg:col-span-3">
-              <h2 className="text-lg font-semibold text-navy">
+            <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm lg:col-span-3">
+              <h2 className="text-lg font-semibold text-fg">
                 Expected value vs discount
               </h2>
               <p className="mt-1 text-sm text-slate">
@@ -174,8 +174,8 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               </div>
             </div>
 
-            <div className="rounded-xl border border-mist bg-white p-5 shadow-sm lg:col-span-2">
-              <h2 className="text-lg font-semibold text-navy">
+            <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm lg:col-span-2">
+              <h2 className="text-lg font-semibold text-fg">
                 Why, for this deal
               </h2>
               <p className="mt-1 text-sm text-slate">

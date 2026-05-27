@@ -4,18 +4,19 @@ import { saveLead } from "@/lib/store";
 
 // POST a lead -> store it -> set pk_lead, which unlocks the full sample.
 export async function POST(req: Request) {
-  let body: Record<string, string>;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const name = (body.name ?? "").trim();
-  const company = (body.company ?? "").trim();
-  const email = (body.email ?? "").trim();
-  const role_title = (body.role_title ?? "").trim();
-  const role_function = (body.role_function ?? "").trim();
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const name = str(body.name);
+  const company = str(body.company);
+  const email = str(body.email);
+  const role_title = str(body.role_title);
+  const role_function = str(body.role_function);
 
   if (!name || !company || !email || !role_title || !role_function) {
     return Response.json({ error: "Please fill in every field." }, { status: 400 });
@@ -26,9 +27,15 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  if (body.consent !== true) {
+    return Response.json(
+      { error: "Please agree to the Privacy Policy to continue." },
+      { status: 400 },
+    );
+  }
 
   try {
-    await saveLead({ name, company, email, role_title, role_function });
+    await saveLead({ name, company, email, role_title, role_function, consent: true });
   } catch {
     return Response.json({ error: "Could not save right now. Try again." }, { status: 500 });
   }

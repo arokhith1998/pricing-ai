@@ -14,17 +14,17 @@ import {
 import type { SegmentRow } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 
-const NAVY = "#0c2d48";
-const TEAL = "#17b8a6";
-const MIST = "#e6edf3";
-const SLATE = "#5b6b7b";
+const NAVY = "#5b7fa6"; // standard bars, visible on dark
+const TEAL = "#2dd4bf"; // worst-segment bar
+const MIST = "#1f2c43"; // grid
+const SLATE = "#8ea3bd"; // axis text
 
 function SegTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const r: SegmentRow = payload[0].payload;
   return (
-    <div className="rounded-lg border border-mist bg-white px-3 py-2 text-sm shadow-md">
-      <div className="font-semibold text-navy">{r.segment}</div>
+    <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
+      <div className="font-semibold text-fg">{r.segment}</div>
       <div className="text-slate">Price realization {pct(r.price_realization)}</div>
       <div className="text-slate">Average discount {pct(r.avg_discount)}</div>
       <div className="text-slate">
