@@ -7,6 +7,7 @@ Run:  uvicorn api.main:app --reload --port 8000
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -88,10 +89,18 @@ def demo(policy: float = 0.15) -> dict:
 
 @app.post("/diagnostic")
 async def diagnostic(file: UploadFile = File(...), policy: float = Form(0.15)) -> dict:
+    """Run the diagnostic on an uploaded CSV. The file is processed and then
+    deleted immediately — uploaded prospect data is never retained on disk."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
         tmp.write(await file.read())
         path = tmp.name
-    return _diagnostic_payload(path, policy)
+    try:
+        return _diagnostic_payload(path, policy)
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
 
 
 class SummaryReq(BaseModel):

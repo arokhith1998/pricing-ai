@@ -3,6 +3,9 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+// Optional: set NEXT_PUBLIC_CONTACT_EMAIL to surface a "request access" mailto.
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
+
 function KeelMark() {
   return (
     <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden>
@@ -71,10 +74,25 @@ export default function LoginPage() {
           <span className="text-teal">keel</span>
         </div>
       </div>
-      <p className="mb-6 text-sm text-slate">Enter your access code to view the demo.</p>
+      <p className="mb-6 text-sm text-slate">
+        Enter your access code to run Pricekeel on your own data.
+      </p>
       <Suspense>
         <LoginForm />
       </Suspense>
+      <p className="mt-6 max-w-sm text-center text-xs text-slate">
+        Don&apos;t have a code? {CONTACT_EMAIL ? (
+          <a
+            className="font-medium text-navy underline"
+            href={`mailto:${CONTACT_EMAIL}?subject=Pricekeel%20access%20request`}
+          >
+            Request access
+          </a>
+        ) : (
+          "Ask your Pricekeel contact"
+        )}{" "}
+        — we will sign an NDA before you share any data.
+      </p>
     </main>
   );
 }

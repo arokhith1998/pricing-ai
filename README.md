@@ -116,12 +116,21 @@ Streamlit (`app/`) stays as the internal, fast-iteration tool. The Next.js app
 is the polished, plain-language surface for customers. Both consume the same
 `pricing/` engine, so they never drift. See `docs/design/nextjs-ui.md`.
 
-### Access gate
+### Buyer funnel and gating
 
-Set `PRICEKEEL_ACCESS_CODE` to put the whole web app behind a shared access
-code (a Next.js `proxy.ts` redirects to `/login` until the code is entered). If
-the variable is unset, the app is fully public — fine for local dev, not for a
-public deployment.
+The web app is a two-tier funnel (see `docs/design/buyer-funnel.md`):
+
+- `/` — landing pitch. `/sample` — sample diagnostic: a teaser (headline
+  numbers) is public; the full read-out unlocks after a **lead form** (name,
+  company, title, role function, company email; free email domains rejected).
+- `/diagnostic`, `/guidance` — full sample results, gated by the lead.
+- `/upload` — run on your own data, gated by an **access code** issued after
+  contact / NDA. Uploaded CSVs are processed and deleted, never stored.
+
+A Next.js `proxy.ts` enforces both gates. Leads and access codes are stored in
+Supabase/Postgres in production (run `supabase/schema.sql`); without Supabase
+configured, local dev logs leads to the console and accepts codes from
+`PRICEKEEL_ACCESS_CODES`. See `web/.env.example` for all variables.
 
 ## Deploy
 
@@ -152,7 +161,9 @@ docker run -p 8000:8000 pricekeel-api          # honors $PORT on the host
 Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
 
 - `PRICEKEEL_API` = the deployed API's URL (e.g. `https://pricekeel-api.onrender.com`)
-- `PRICEKEEL_ACCESS_CODE` = a strong shared code (gates the demo; see above)
+- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` = your Supabase project (leads + access codes)
+- `PRICEKEEL_SECRET` = a long random string (derives the access cookie)
+- `NEXT_PUBLIC_CONTACT_EMAIL` = optional, surfaces a "request access" mailto
 
 The browser only ever talks to the Vercel origin; the API URL stays
 server-side. Lock down the API host too (the open CORS policy in `api/main.py`
