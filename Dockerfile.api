@@ -1,0 +1,26 @@
+# Pricekeel API (FastAPI over the pricing/ engine), consumed by the web/ UI.
+# Build:  docker build -f Dockerfile.api -t pricekeel-api .
+# Run:    docker run -p 8000:8000 pricekeel-api
+# Hosts that inject $PORT (Cloud Run, Render, Fly) are handled by the CMD below.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# libgomp1 is the OpenMP runtime LightGBM needs at import time.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Only what the service needs at runtime.
+COPY pricing/ ./pricing/
+COPY api/ ./api/
+COPY data/synthetic/ ./data/synthetic/
+
+ENV PYTHONPATH=/app PYTHONUNBUFFERED=1
+EXPOSE 8000
+
+# Shell form so ${PORT} from the host is expanded; defaults to 8000 locally.
+CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}
