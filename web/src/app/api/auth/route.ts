@@ -1,28 +1,19 @@
 import { cookies } from "next/headers";
-import { AUTH_COOKIE, authEnabled, expectedToken, isValidCode } from "@/lib/auth";
+import { ACCESS_COOKIE, accessToken } from "@/lib/auth";
+import { isValidAccessCode } from "@/lib/store";
 
-// POST { code } -> set the auth cookie if the code is right.
+// POST { code } -> set the access cookie if the code is valid (unlocks /upload).
 export async function POST(req: Request) {
-  // No code configured. In production this means the operator forgot to set
-  // PRICEKEEL_ACCESS_CODE: say so plainly rather than letting anyone in.
-  if (!authEnabled()) {
-    return Response.json(
-      { error: "Access is not configured on the server." },
-      { status: 503 },
-    );
-  }
-
   let code = "";
   try {
     ({ code } = await req.json());
   } catch {
     return Response.json({ error: "Bad request" }, { status: 400 });
   }
-  if (!isValidCode(code)) {
-    return Response.json({ error: "That access code is not right." }, { status: 401 });
+  if (!code || !(await isValidAccessCode(code))) {
+    return Response.json({ error: "That access code is not valid." }, { status: 401 });
   }
-
-  (await cookies()).set(AUTH_COOKIE, await expectedToken(), {
+  (await cookies()).set(ACCESS_COOKIE, await accessToken(), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -32,8 +23,7 @@ export async function POST(req: Request) {
   return Response.json({ ok: true });
 }
 
-// DELETE -> sign out.
 export async function DELETE() {
-  (await cookies()).delete(AUTH_COOKIE);
+  (await cookies()).delete(ACCESS_COOKIE);
   return Response.json({ ok: true });
 }

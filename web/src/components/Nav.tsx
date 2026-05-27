@@ -13,7 +13,7 @@ function KeelMark() {
 }
 
 const LINKS: [string, string][] = [
-  ["/", "Overview"],
+  ["/sample", "Overview"],
   ["/diagnostic", "Diagnostic"],
   ["/guidance", "Guidance"],
 ];

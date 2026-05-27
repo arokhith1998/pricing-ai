@@ -1,39 +1,37 @@
-// Minimal shared-access-code gate for the gated demo. Not user accounts: one
-// code, set as PRICEKEEL_ACCESS_CODE, unlocks the whole demo. If the env var is
-// unset (e.g. local dev), the gate is OFF and everything is public.
-//
-// WorkOS / SSO comes later (see docs/design/nextjs-ui.md M3+). This is the
-// "email allowlist for the demo" tier, simplified to one shared code.
+// Two-tier funnel gate (see docs/design/buyer-funnel.md):
+//  - pk_lead  : set after a valid lead form. Unlocks the full sample.
+//  - pk_access: set after a valid access code. Unlocks /upload (own data).
+// The sample is intentionally non-sensitive, so pk_lead is a presence marker.
+// pk_access is a stateless token derived from a server secret, so the proxy can
+// validate it without a DB round-trip on every request.
 
-export const AUTH_COOKIE = "pk_auth";
+export const LEAD_COOKIE = "pk_lead";
+export const ACCESS_COOKIE = "pk_access";
 
-function accessCode(): string {
-  return process.env.PRICEKEEL_ACCESS_CODE ?? "";
+// Free / personal email domains we reject for lead capture (company email only).
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "outlook.com",
+  "hotmail.com", "live.com", "msn.com", "icloud.com", "me.com", "mac.com",
+  "aol.com", "proton.me", "protonmail.com", "pm.me", "gmx.com", "mail.com",
+  "yandex.com", "zoho.com", "hey.com", "fastmail.com",
+]);
+
+export function isCompanyEmail(email: string): boolean {
+  const m = /^[^\s@]+@([^\s@]+\.[^\s@]+)$/.exec(email.trim().toLowerCase());
+  if (!m) return false;
+  return !FREE_EMAIL_DOMAINS.has(m[1]);
 }
 
-/** A code is configured, so logins can succeed. */
-export function authEnabled(): boolean {
-  return accessCode().length > 0;
+function secret(): string {
+  // Set PRICEKEEL_SECRET in production; a constant is fine for local dev.
+  return process.env.PRICEKEEL_SECRET ?? "pricekeel-dev-secret";
 }
 
-/**
- * Whether the gate is enforced. Fail closed: production ALWAYS enforces, even
- * if PRICEKEEL_ACCESS_CODE was forgotten (then no login can succeed and the app
- * is locked, rather than silently public). Local dev is open when no code set.
- */
-export function gateActive(): boolean {
-  return authEnabled() || process.env.NODE_ENV === "production";
-}
-
-/** Opaque cookie token derived from the code (so we never store it in plain). */
-export async function expectedToken(): Promise<string> {
-  const data = new TextEncoder().encode(`pricekeel:${accessCode()}`);
+/** Stateless access cookie token, derived from the server secret. */
+export async function accessToken(): Promise<string> {
+  const data = new TextEncoder().encode(`pricekeel-access:${secret()}`);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-export function isValidCode(input: string): boolean {
-  return authEnabled() && input === accessCode();
 }
