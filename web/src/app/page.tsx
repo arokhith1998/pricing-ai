@@ -1,40 +1,10 @@
 import { Suspense } from "react";
 import { getDemo, type Diagnostic } from "@/lib/api";
+import { money, pct } from "@/lib/format";
 import Summary from "@/components/Summary";
 
 // Rendered per request (it reads live data from the API), not at build time.
 export const dynamic = "force-dynamic";
-
-const money = (x: number) => `$${Math.round(x).toLocaleString()}`;
-const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-
-function KeelMark() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden>
-      <line x1="9" y1="19" x2="39" y2="19" stroke="#0c2d48" strokeWidth="3" strokeLinecap="round" />
-      <path d="M13 19 Q24 43 35 19" fill="none" stroke="#17b8a6" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Header() {
-  return (
-    <header className="border-b border-mist bg-white">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-4">
-        <KeelMark />
-        <div>
-          <div className="text-xl font-extrabold tracking-tight">
-            <span className="text-navy">Price</span>
-            <span className="text-teal">keel</span>
-          </div>
-          <div className="-mt-1 text-xs text-slate">
-            Keep your pricing on an even keel.
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 function MetricCard({
   label,
@@ -87,18 +57,15 @@ function Flow() {
 
 function ApiDown() {
   return (
-    <div className="min-h-screen">
-      <Header />
-      <main className="mx-auto max-w-6xl px-6 py-16">
-        <h1 className="text-2xl font-bold text-navy">Start the API</h1>
-        <p className="mt-2 text-slate">
-          The dashboard could not reach the Pricekeel API. Start it with:
-        </p>
-        <pre className="mt-3 rounded-lg bg-navy p-4 text-sm text-white">
-          uvicorn api.main:app --port 8000
-        </pre>
-      </main>
-    </div>
+    <main className="mx-auto max-w-6xl px-6 py-16">
+      <h1 className="text-2xl font-bold text-navy">Start the API</h1>
+      <p className="mt-2 text-slate">
+        The dashboard could not reach the Pricekeel API. Start it with:
+      </p>
+      <pre className="mt-3 rounded-lg bg-navy p-4 text-sm text-white">
+        python -m uvicorn api.main:app --port 8000
+      </pre>
+    </main>
   );
 }
 
@@ -113,9 +80,7 @@ export default async function Page() {
   const l = d.leakage;
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+    <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         <h1 className="text-2xl font-bold text-navy">
           Where the money goes, and what to do about it
         </h1>
@@ -169,7 +134,6 @@ export default async function Page() {
           <h2 className="mb-3 text-lg font-semibold text-navy">How it works</h2>
           <Flow />
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

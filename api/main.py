@@ -10,7 +10,9 @@ import json
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, UploadFile
+import numpy as np
+import pandas as pd
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -20,6 +22,22 @@ from pricing.ingest import ingest
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO_CSV = ROOT / "data" / "synthetic" / "deals.csv"
+
+# Plain-language labels for model features (design doc appendix A). The UI never
+# shows raw snake_case field names.
+FEATURE_LABELS = {
+    "segment": "Segment",
+    "region": "Region",
+    "industry": "Industry",
+    "product_tier": "Plan",
+    "value_metric": "Pricing model",
+    "list_acv": "List value (annual)",
+    "discount_pct": "Discount",
+    "term_months": "Term (months)",
+    "quantity": "Quantity",
+    "is_quarter_end": "Closed near quarter end",
+    "competitor_present": "Competitor in deal",
+}
 
 app = FastAPI(title="Pricekeel API", version="0.1.0")
 app.add_middleware(
@@ -99,3 +117,120 @@ def map_columns(req: MapReq) -> dict:
     if not assist.has_llm():
         return {"enabled": False, "mapping": {}}
     return {"enabled": True, "mapping": assist.map_columns(req.headers)}
+
+
+# --- Win-probability model + discount guidance (Phase 2 / web M2) ------------
+#
+# Training the LightGBM model takes ~1s on the demo data, so we train once and
+# cache it (keyed on the CSV's mtime). The analytics live in pricing/model.py;
+# this layer only adapts shapes and applies plain-language labels for the UI.
+
+_ENGINE: dict = {"mtime": None, "df": None, "tm": None}
+
+
+def _engine() -> tuple[pd.DataFrame, "model.TrainedModel"]:
+    """Return (ingested df, trained model), rebuilding if the CSV changed."""
+    mtime = DEMO_CSV.stat().st_mtime
+    if _ENGINE["mtime"] != mtime:
+        df = ingest(str(DEMO_CSV))
+        _ENGINE.update(mtime=mtime, df=df, tm=model.train(df))
+    return _ENGINE["df"], _ENGINE["tm"]
+
+
+@app.get("/model")
+def model_info() -> dict:
+    """Win-probability model quality + what drives it (plain labels)."""
+    _df, tm = _engine()
+    fi = model.feature_importance(tm)
+    total = float(fi["gain"].sum()) or 1.0
+    importance = [
+        {
+            "feature": r.feature,
+            "label": FEATURE_LABELS.get(r.feature, r.feature),
+            "share": float(r.gain) / total,
+        }
+        for r in fi.itertuples()
+    ]
+    return {
+        "metrics": tm.metrics,
+        "feature_importance": importance,
+        "model_leakage": model.leakage_vs_model(tm, _df),
+    }
+
+
+@app.get("/deals")
+def deals(limit: int = 40) -> dict:
+    """Candidate deals for the guidance picker (largest won deals first)."""
+    df, _tm = _engine()
+    won = df[df["is_won"]].sort_values("list_acv", ascending=False).head(limit)
+    cols = ["opportunity_id", "resolved_account_name", "segment", "industry",
+            "product_tier", "list_acv", "discount_pct", "competitor_present",
+            "is_quarter_end"]
+    return {"deals": _records(won[cols])}
+
+
+def _explain_factors(tm: "model.TrainedModel", df: pd.DataFrame, idx,
+                     top: int = 5) -> list[dict]:
+    """Top SHAP drivers for one deal, as plain 'pushed win chance up/down'."""
+    contrib = model.explain(tm, tm.X_all.loc[[idx]])
+    out = []
+    for r in contrib.itertuples():
+        if r.feature == "<base>":
+            continue
+        raw = df.loc[idx, r.feature]
+        if isinstance(raw, (bool, np.bool_)):
+            value = "Yes" if raw else "No"
+        elif r.feature == "discount_pct":
+            value = f"{float(raw):.0%}"
+        elif r.feature == "list_acv":
+            value = f"${float(raw):,.0f}"
+        else:
+            # Numeric (term, quantity) -> grouped integer; categories stay as-is.
+            try:
+                value = f"{float(raw):,.0f}"
+            except (TypeError, ValueError):
+                value = str(raw)
+        out.append({
+            "label": FEATURE_LABELS.get(r.feature, r.feature),
+            "value": value,
+            "direction": "up" if r.contribution >= 0 else "down",
+            "contribution": float(r.contribution),
+        })
+        if len(out) >= top:
+            break
+    return out
+
+
+class RecommendReq(BaseModel):
+    opportunity_id: str
+
+
+@app.post("/recommend")
+def recommend(req: RecommendReq) -> dict:
+    """Per-deal discount guidance: recommended discount, expected value, why."""
+    df, tm = _engine()
+    matches = df.index[df["opportunity_id"] == req.opportunity_id]
+    if len(matches) == 0:
+        raise HTTPException(status_code=404, detail="Unknown opportunity_id")
+    idx = matches[0]
+    list_acv = float(df.loc[idx, "list_acv"])
+    rec = model.recommend_discount(tm, tm.X_all.loc[[idx]], list_acv)
+
+    curve = rec["curve"]
+    # Win probability at the deal's actual discount, read off the same curve.
+    cur_row = curve.iloc[(curve["discount"] - rec["current_discount"]).abs().argmin()]
+    return {
+        "opportunity_id": req.opportunity_id,
+        "account": str(df.loc[idx, "resolved_account_name"]),
+        "segment": str(df.loc[idx, "segment"]),
+        "list_acv": list_acv,
+        "current_discount": rec["current_discount"],
+        "recommended_discount": rec["recommended_discount"],
+        "win_prob_at_current": float(cur_row["win_prob"]),
+        "win_prob_at_rec": rec["win_prob_at_rec"],
+        "expected_acv_at_current": rec["expected_acv_at_current"],
+        "expected_acv_at_rec": rec["expected_acv_at_rec"],
+        "uplift": rec["uplift"],
+        "top_factors": _explain_factors(tm, df, idx),
+        "curve": _records(curve),
+    }

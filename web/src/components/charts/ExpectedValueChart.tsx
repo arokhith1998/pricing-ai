@@ -1,0 +1,115 @@
+"use client";
+
+import {
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import type { CurvePoint } from "@/lib/api";
+import { money, moneyShort, pct, pct0 } from "@/lib/format";
+
+const NAVY = "#0c2d48";
+const TEAL = "#17b8a6";
+const CORAL = "#f0654e";
+const MIST = "#e6edf3";
+const SLATE = "#5b6b7b";
+
+function CurveTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const p: CurvePoint = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-mist bg-white px-3 py-2 text-sm shadow-md">
+      <div className="font-semibold text-navy">{pct0(p.discount)} discount</div>
+      <div className="text-slate">Expected value {money(p.expected_acv)}</div>
+      <div className="text-slate">Win probability {pct(p.win_prob)}</div>
+    </div>
+  );
+}
+
+export default function ExpectedValueChart({
+  curve,
+  current,
+  recommended,
+}: {
+  curve: CurvePoint[];
+  current: number;
+  recommended: number;
+}) {
+  return (
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={curve} margin={{ top: 16, right: 12, bottom: 4, left: 0 }}>
+          <CartesianGrid stroke={MIST} vertical={false} />
+          <XAxis
+            dataKey="discount"
+            type="number"
+            domain={[0, 0.4]}
+            tickFormatter={(v) => pct0(v)}
+            tick={{ fill: SLATE, fontSize: 12 }}
+            tickLine={false}
+            axisLine={{ stroke: MIST }}
+          />
+          <YAxis
+            yAxisId="acv"
+            tickFormatter={(v) => moneyShort(v)}
+            tick={{ fill: SLATE, fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            width={52}
+          />
+          <YAxis
+            yAxisId="p"
+            orientation="right"
+            domain={[0, 1]}
+            tickFormatter={(v) => pct0(v)}
+            tick={{ fill: SLATE, fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            width={40}
+          />
+          <Tooltip content={<CurveTooltip />} />
+          <ReferenceLine
+            yAxisId="acv"
+            x={current}
+            stroke={SLATE}
+            strokeDasharray="4 4"
+            label={{ value: "current", position: "top", fill: SLATE, fontSize: 12 }}
+          />
+          <ReferenceLine
+            yAxisId="acv"
+            x={recommended}
+            stroke={TEAL}
+            strokeWidth={1.5}
+            label={{ value: "best", position: "top", fill: TEAL, fontSize: 12 }}
+          />
+          <Line
+            yAxisId="acv"
+            type="monotone"
+            dataKey="expected_acv"
+            name="Expected value"
+            stroke={NAVY}
+            strokeWidth={2.5}
+            dot={false}
+            isAnimationActive={false}
+          />
+          <Line
+            yAxisId="p"
+            type="monotone"
+            dataKey="win_prob"
+            name="Win probability"
+            stroke={CORAL}
+            strokeWidth={2}
+            strokeDasharray="5 4"
+            dot={false}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

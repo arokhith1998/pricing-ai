@@ -92,7 +92,7 @@ service in `api/`. Run both:
 ```powershell
 # 1. the API (serves the engine as JSON)
 $env:PYTHONPATH = "."
-uvicorn api.main:app --port 8000
+python -m uvicorn api.main:app --port 8000   # `uvicorn ...` if it is on PATH
 
 # 2. the web UI (in another terminal), pointed at the API
 cd web
@@ -100,13 +100,34 @@ $env:PRICEKEEL_API = "http://127.0.0.1:8000"
 npm run dev        # open http://localhost:3000
 ```
 
+Three screens, all driven by the same engine through the API:
+
+- **Overview** — the five-second story (money, realization, win rate, an AI
+  executive summary).
+- **Diagnostic** — win rate vs discount, price realization by segment, the
+  leakage lenses, quarter-end effect, governance gaps, deals to investigate.
+- **Guidance** — pick a deal, see the expected-value-maximizing discount, the
+  win-probability curve, and a plain-language "why" (top factors).
+
+API endpoints: `GET /demo`, `GET /model`, `GET /deals`, `POST /recommend`,
+`POST /summary`, `POST /diagnostic`, `POST /map-columns`, `GET /health`.
+
 Streamlit (`app/`) stays as the internal, fast-iteration tool. The Next.js app
 is the polished, plain-language surface for customers. Both consume the same
 `pricing/` engine, so they never drift. See `docs/design/nextjs-ui.md`.
 
+### Access gate
+
+Set `PRICEKEEL_ACCESS_CODE` to put the whole web app behind a shared access
+code (a Next.js `proxy.ts` redirects to `/login` until the code is entered). If
+the variable is unset, the app is fully public — fine for local dev, not for a
+public deployment.
+
 ## Deploy
 
-The dashboard is a containerized Streamlit app.
+### Internal tool (Streamlit)
+
+The internal dashboard is a containerized Streamlit app.
 
 ```bash
 docker build -t pricing-ai .
@@ -116,6 +137,26 @@ docker run -p 8501:8501 pricing-ai     # open http://localhost:8501
 Works on any container host (Fly.io, Render, Google Cloud Run). For a
 zero-infra demo, **Streamlit Community Cloud** runs straight from this repo —
 point it at `app/dashboard.py` with `requirements.txt`.
+
+### Buyer-facing (Next.js + API)
+
+Two services. The API runs as a container (it carries LightGBM); the web app
+deploys to Vercel and talks to the API only server-side.
+
+```bash
+# API: build and deploy to any container host (Render, Fly, Cloud Run).
+docker build -f Dockerfile.api -t pricekeel-api .
+docker run -p 8000:8000 pricekeel-api          # honors $PORT on the host
+```
+
+Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
+
+- `PRICEKEEL_API` = the deployed API's URL (e.g. `https://pricekeel-api.onrender.com`)
+- `PRICEKEEL_ACCESS_CODE` = a strong shared code (gates the demo; see above)
+
+The browser only ever talks to the Vercel origin; the API URL stays
+server-side. Lock down the API host too (the open CORS policy in `api/main.py`
+is for local dev).
 
 > The container ships only the **synthetic** dataset. This is an internal /
 > demo tool: put it behind SSO before exposing it, and never bake real
