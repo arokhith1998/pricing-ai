@@ -19,6 +19,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
+from pricing import docs as docs_mod
+from pricing import rag as rag_mod
 from pricing.diagnostic import run
 from pricing.ingest import ingest
 
@@ -274,6 +276,95 @@ def _explain_factors(tm: "model.TrainedModel", df: pd.DataFrame, idx,
 class RecommendReq(BaseModel):
     opportunity_id: str
 
+
+# --- Ask-the-Analyst (Phase 3.0): docs + analysis + (optional) web RAG ------
+
+# In-memory chunk store keyed by session id. Dev fallback; production should
+# move to Supabase pgvector keyed to the customer.
+_DOC_STORE: dict[str, list[docs_mod.Chunk]] = {}
+
+
+@app.post("/docs/upload")
+async def docs_upload(
+    files: list[UploadFile] = File(...),
+    session_id: str = Form(""),
+) -> dict:
+    """Parse + chunk + embed uploaded documents under a session id.
+
+    Returns the session id (newly minted if the client did not send one) plus
+    a per-file summary. Documents stay in memory; they are not retained on
+    disk and only their chunks (which the customer themselves uploaded) ever
+    reach the LLM during a later /ask call.
+    """
+    import uuid
+    sid = session_id or uuid.uuid4().hex
+
+    new_chunks: list[docs_mod.Chunk] = []
+    file_info: list[dict] = []
+    for f in files:
+        data = await f.read()
+        try:
+            parsed = docs_mod.parse_and_chunk(f.filename or "doc", data)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        doc_id = uuid.uuid4().hex
+        for i, (page, text) in enumerate(parsed):
+            new_chunks.append(docs_mod.Chunk(
+                doc_id=doc_id,
+                doc_name=f.filename or "doc",
+                chunk_idx=i,
+                text=text,
+                page=page,
+            ))
+        file_info.append({"name": f.filename, "chunks": len(parsed)})
+
+    if new_chunks:
+        embs = docs_mod.embed_texts([c.text for c in new_chunks])
+        for c, e in zip(new_chunks, embs):
+            c.embedding = e
+
+    _DOC_STORE.setdefault(sid, []).extend(new_chunks)
+    return {
+        "session_id": sid,
+        "files": file_info,
+        "total_chunks": len(_DOC_STORE[sid]),
+    }
+
+
+class AskReq(BaseModel):
+    question: str
+    session_id: str | None = None
+    use_web: bool = False
+    # Optional client-supplied analysis snapshot (e.g. the JSON for an
+    # uploaded-CSV result). Defaults to the demo diagnostic on the sample.
+    analysis: dict | None = None
+
+
+@app.post("/ask")
+def ask_endpoint(req: AskReq) -> dict:
+    """RAG over analysis + uploaded docs + (optional) web search."""
+    chunks = _DOC_STORE.get(req.session_id or "", []) if req.session_id else []
+    analysis = req.analysis if req.analysis is not None else _diagnostic_payload(
+        str(DEMO_CSV), 0.15,
+    )
+    ans = rag_mod.ask(req.question, analysis, chunks, use_web=req.use_web)
+    return {
+        "text": ans.text,
+        "used_web": ans.used_web,
+        "session_id": req.session_id,
+        "citations": [
+            {
+                "kind": c.kind,
+                "title": c.title,
+                "snippet": c.snippet,
+                "detail": c.detail,
+            }
+            for c in ans.citations
+        ],
+    }
+
+
+# --- Win-probability model + discount guidance (Phase 2 / web M2) -----------
 
 @app.post("/recommend")
 def recommend(req: RecommendReq) -> dict:
