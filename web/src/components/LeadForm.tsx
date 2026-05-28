@@ -60,6 +60,11 @@ export default function LeadForm() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setF((prev) => ({ ...prev, [k]: e.target.value }));
 
+  // Two-step progressive disclosure: don't show the ARR/pricing-model selects
+  // until the four core fields are filled. Cuts the visible "wall of fields"
+  // the marketer flagged without losing qualifying data.
+  const coreReady =
+    f.name.trim() && f.company.trim() && f.role_title.trim() && f.role_function.trim();
   const ready = Object.values(f).every((v) => v.trim().length > 0) && consent;
 
   async function submit(e: React.FormEvent) {
@@ -108,34 +113,6 @@ export default function LeadForm() {
             </option>
           ))}
         </select>
-        <select
-          className={`${input} ${f.revenue_range ? "" : "text-slate"}`}
-          value={f.revenue_range}
-          onChange={set("revenue_range")}
-        >
-          <option value="" disabled>
-            Annual revenue
-          </option>
-          {ARR_RANGES.map((r) => (
-            <option key={r} value={r} className="text-ink">
-              {r}
-            </option>
-          ))}
-        </select>
-        <select
-          className={`${input} ${f.pricing_model ? "" : "text-slate"}`}
-          value={f.pricing_model}
-          onChange={set("pricing_model")}
-        >
-          <option value="" disabled>
-            Pricing model
-          </option>
-          {PRICING_MODELS.map((p) => (
-            <option key={p} value={p} className="text-ink">
-              {p}
-            </option>
-          ))}
-        </select>
       </div>
       <input
         className={input}
@@ -144,6 +121,38 @@ export default function LeadForm() {
         value={f.email}
         onChange={set("email")}
       />
+      {coreReady ? (
+        <div className="grid animate-in grid-cols-1 gap-3 sm:grid-cols-2">
+          <select
+            className={`${input} ${f.revenue_range ? "" : "text-slate"}`}
+            value={f.revenue_range}
+            onChange={set("revenue_range")}
+          >
+            <option value="" disabled>
+              Annual revenue
+            </option>
+            {ARR_RANGES.map((r) => (
+              <option key={r} value={r} className="text-ink">
+                {r}
+              </option>
+            ))}
+          </select>
+          <select
+            className={`${input} ${f.pricing_model ? "" : "text-slate"}`}
+            value={f.pricing_model}
+            onChange={set("pricing_model")}
+          >
+            <option value="" disabled>
+              Pricing model
+            </option>
+            {PRICING_MODELS.map((p) => (
+              <option key={p} value={p} className="text-ink">
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <label className="flex items-start gap-2 text-xs text-muted">
         <input
           type="checkbox"

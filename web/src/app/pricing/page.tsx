@@ -113,6 +113,10 @@ export default function PricingPage() {
             actual scoping call, not a self-serve checkout. Pick the closest fit
             and we will reply within one business day.
           </p>
+          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
+            Engagements typically start in the low five figures; we share the
+            structure on the first call.
+          </p>
         </div>
       </Reveal>
 
@@ -126,6 +130,102 @@ export default function PricingPage() {
 
       <Reveal delay={0.05}>
         <section className="mt-12 rounded-xl border border-mist bg-surface p-6">
+          <h2 className="text-lg font-semibold text-fg">
+            Why we are not a feature inside a bigger tool
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            A fair pushback in any first call. Three honest reasons we sit
+            apart from RevOps / sales-intel / CPQ.
+          </p>
+          <ul className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+            <li className="rounded-lg border border-mist bg-surface-2 p-4">
+              <div className="font-medium text-fg">
+                Every decision is logged with its math
+              </div>
+              <p className="mt-1 text-muted">
+                Defensible to finance. A CPQ field cannot tell a CFO why an
+                approval went through; our diagnostic is open code, not a black
+                box.
+              </p>
+            </li>
+            <li className="rounded-lg border border-mist bg-surface-2 p-4">
+              <div className="font-medium text-fg">
+                Deterministic and auditable methodology
+              </div>
+              <p className="mt-1 text-muted">
+                Same data, same answer, every time. An LLM-driven RevOps tool
+                cannot promise that — and a CRO will not stake a deal-desk
+                decision on output that drifts.
+              </p>
+            </li>
+            <li className="rounded-lg border border-mist bg-surface-2 p-4">
+              <div className="font-medium text-fg">
+                Margin layer is a different data model
+              </div>
+              <p className="mt-1 text-muted">
+                Active contracts, special pricing agreements, renewal terms —
+                that lives in your billing system, not your CRM. Different
+                schema, different metrics, different product.
+              </p>
+            </li>
+          </ul>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
+          <h2 className="text-lg font-semibold text-fg">
+            What CFOs ask in the first ten minutes
+          </h2>
+          <div className="mt-4 space-y-5 text-sm">
+            <div>
+              <div className="font-medium text-fg">
+                What is the proven ROI from existing customers?
+              </div>
+              <p className="mt-1 text-muted">
+                We are in design-partner mode. The first diagnostic is free and
+                under NDA. Numbers come from your own CSV; the methodology is
+                grounded in published pricing literature (Simon-Kucher
+                discount governance, Nagle on reference price, Rivera on
+                packaging architecture) and every metric is reproducible code
+                you can audit. Customer logos and ROI cases follow design
+                partner work, not the other way around.
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-fg">
+                How does this integrate with our existing systems?
+              </div>
+              <p className="mt-1 text-muted">
+                Today: a CSV or Excel export of closed deals from any CRM, and
+                an XLSX / PDF / DOCX / PPTX of any pricing policy or playbook
+                doc you want our chat to ground its answers in. Tomorrow
+                (Phase 3, "Margin Enhancement"): native connectors for
+                Salesforce, HubSpot, Stripe, Zuora, Snowflake.
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-fg">
+                What are the security and compliance measures?
+              </div>
+              <p className="mt-1 text-muted">
+                Row-level deal data is processed in memory and deleted —
+                never written to disk and never sent to a cloud LLM. The cloud
+                LLM only ever sees aggregate figures, column header names,
+                document chunks you upload, and your question, all under
+                zero-retention provider terms. Full details on{" "}
+                <a href="/privacy" className="text-teal underline">
+                  our privacy page
+                </a>{" "}
+                (final review by counsel pending).
+              </p>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
           <h2 className="text-lg font-semibold text-fg">How we scope it</h2>
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li>
