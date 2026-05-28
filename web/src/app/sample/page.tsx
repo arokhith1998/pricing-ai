@@ -25,7 +25,7 @@ function MetricCard({
 }) {
   return (
     <div
-      className={`pk-fade-in rounded-xl border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+      className={`pk-fade-in pk-card-3d rounded-xl border bg-surface p-5 shadow-sm ${
         accent === "coral" ? "pk-upside-glow border-coral/30" : "border-mist"
       }`}
     >

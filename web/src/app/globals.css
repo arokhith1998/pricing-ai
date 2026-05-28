@@ -66,18 +66,61 @@ body {
   }
 }
 
-.pk-aurora {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(40% 32% at 80% 0%, rgba(45, 212, 191, 0.18), transparent 70%),
-    radial-gradient(35% 30% at 0% 30%, rgba(255, 107, 84, 0.10), transparent 70%),
-    radial-gradient(45% 40% at 60% 100%, rgba(13, 148, 136, 0.12), transparent 70%);
-  filter: blur(40px);
-  animation: pkAurora 22s ease-in-out infinite alternate;
+/* Three scroll-parallax layers compose the aurora. Each drifts in place via
+   pkAurora; their parent <motion.div> translates Y at different rates as the
+   user scrolls. The combined effect feels 3D without WebGL. */
+.pk-aurora-layer {
+  position: absolute;
+  inset: -10% -10%;
+  filter: blur(60px);
   will-change: transform, opacity;
+}
+
+.pk-aurora-far {
+  background: radial-gradient(40% 30% at 20% 25%, rgba(13, 148, 136, 0.18), transparent 70%);
+  animation: pkAurora 26s ease-in-out infinite alternate;
+}
+
+.pk-aurora-mid {
+  background: radial-gradient(35% 32% at 80% 15%, rgba(45, 212, 191, 0.22), transparent 70%);
+  animation: pkAurora 18s ease-in-out infinite alternate-reverse;
+}
+
+.pk-aurora-near {
+  background: radial-gradient(45% 40% at 60% 90%, rgba(255, 107, 84, 0.14), transparent 70%);
+  animation: pkAurora 32s ease-in-out infinite alternate;
+}
+
+/* Nautical horizon tie-in to the "keel" theme: a faint horizontal sheen at
+   the very top of the body, evoking the waterline of the keel-mark. */
+.pk-horizon {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(45, 212, 191, 0.45) 50%,
+    transparent 100%
+  );
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* CSS-only 3D depth on cards: a tiny inward tilt on hover with perspective.
+   Lighter than a WebGL flourish, plenty of "premium" feel. */
+.pk-card-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pk-card-3d:hover {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg) scale(1.005);
+  box-shadow:
+    0 24px 50px -24px rgba(45, 212, 191, 0.25),
+    0 6px 20px -8px rgba(0, 0, 0, 0.45);
 }
 
 /* Headline-card glow: gentle coral pulse for the 'pricing upside' KPI. */
@@ -101,9 +144,15 @@ body {
    but make them instant. */
 @media (prefers-reduced-motion: reduce) {
   .pk-aurora,
+  .pk-aurora-far,
+  .pk-aurora-mid,
+  .pk-aurora-near,
   .pk-upside-glow,
   .pk-fade-in {
     animation: none !important;
+  }
+  .pk-card-3d:hover {
+    transform: none !important;
   }
 }
 
