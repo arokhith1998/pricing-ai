@@ -1,4 +1,4 @@
-// Same-origin proxy: forward an Ask-the-Analyst question to FastAPI /ask.
+// Same-origin proxy: forward an Ask-your-Pricekeel question to FastAPI /ask.
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 export async function POST(req: Request) {

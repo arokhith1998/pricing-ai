@@ -92,6 +92,42 @@ export default function Landing() {
       </Reveal>
 
       <Reveal delay={0.05}>
+        <section className="mt-12">
+          <p className="text-center text-sm font-medium text-slate">
+            Built for the stack you already run
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { name: "Salesforce", status: "csv" },
+              { name: "HubSpot", status: "csv" },
+              { name: "Stripe", status: "csv" },
+              { name: "Zuora", status: "csv" },
+              { name: "Snowflake", status: "phase3" },
+              { name: "Google Sheets", status: "csv" },
+            ].map((tool) => (
+              <div
+                key={tool.name}
+                className="flex flex-col items-center justify-center rounded-xl border border-mist bg-surface px-3 py-4 text-center"
+              >
+                <div className="text-sm font-semibold text-fg">{tool.name}</div>
+                <div
+                  className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${
+                    tool.status === "csv" ? "text-teal" : "text-amber"
+                  }`}
+                >
+                  {tool.status === "csv" ? "via CSV today" : "Phase 3 connector"}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-xs text-muted">
+            A CSV export covers every CRM and billing system today; native
+            connectors land with the Phase 3 margin layer.
+          </p>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
         <section className="mt-12 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>

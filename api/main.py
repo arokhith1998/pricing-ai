@@ -277,7 +277,7 @@ class RecommendReq(BaseModel):
     opportunity_id: str
 
 
-# --- Ask-the-Analyst (Phase 3.0): docs + analysis + (optional) web RAG ------
+# --- Ask-your-Pricekeel (Phase 3.0): docs + analysis + (optional) web RAG ------
 
 # In-memory chunk store keyed by session id. Dev fallback; production should
 # move to Supabase pgvector keyed to the customer.

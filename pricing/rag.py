@@ -1,4 +1,4 @@
-"""Ask-the-Analyst RAG pipeline.
+"""Ask-your-Pricekeel RAG pipeline.
 
 Retrieves from three sources and synthesizes with a cloud LLM (Claude / GPT):
 
@@ -58,9 +58,73 @@ def retrieve_doc_chunks(chunks: list[Chunk], query: str,
 
 
 def web_search(query: str, max_results: int = 4) -> list[dict]:
-    """Tavily web search; gracefully degrades when no API key is present."""
-    if not os.environ.get("TAVILY_API_KEY"):
+    """Web search via Perplexity (preferred) or Tavily (fallback).
+
+    Preference order:
+      1. PERPLEXITY_API_KEY -> Perplexity Sonar online (LLM-grounded answer +
+         citations baked in; one rich result the model can quote).
+      2. TAVILY_API_KEY    -> Tavily search results (n separate snippets).
+      3. Neither key       -> [] (caller treats web as unavailable).
+
+    The result list shape stays the same across providers:
+      [{"title": str, "content": str, "url": str}, ...]
+    """
+    if os.environ.get("PERPLEXITY_API_KEY"):
+        return _web_perplexity(query, max_results)
+    if os.environ.get("TAVILY_API_KEY"):
+        return _web_tavily(query, max_results)
+    return []
+
+
+def _web_perplexity(query: str, max_results: int = 4) -> list[dict]:
+    """Perplexity Sonar (LLM-grounded answer + URL citations)."""
+    try:
+        import requests  # urllib3 is already pulled in by requests deps
+        model = os.environ.get(
+            "PERPLEXITY_MODEL", "llama-3.1-sonar-small-128k-online",
+        )
+        resp = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.environ['PERPLEXITY_API_KEY']}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are doing background research for a B2B SaaS "
+                            "pricing-intelligence app. Reply with concise, "
+                            "factual paragraphs grounded in your search."
+                        ),
+                    },
+                    {"role": "user", "content": query},
+                ],
+                "max_tokens": 700,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        answer = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
+        urls = data.get("citations") or []
+        # First result = the full Perplexity answer; subsequent = its source URLs.
+        results = [{
+            "title": "Perplexity research",
+            "content": answer,
+            "url": urls[0] if urls else "",
+        }]
+        for u in urls[: max(0, max_results - 1)]:
+            results.append({"title": u, "content": "", "url": u})
+        return results
+    except Exception:  # noqa: BLE001
         return []
+
+
+def _web_tavily(query: str, max_results: int = 4) -> list[dict]:
+    """Tavily search (n separate snippets) — used when Perplexity is not set."""
     try:
         from tavily import TavilyClient
         client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
@@ -83,8 +147,9 @@ def web_search(query: str, max_results: int = 4) -> list[dict]:
 
 
 _SYSTEM = (
-    "You are Ask-the-Analyst, a precise assistant for a B2B SaaS pricing-"
-    "intelligence app called Pricekeel. Answer the user's question using ONLY "
+    "You are 'Pricekeel' — the in-product assistant for Pricekeel, a B2B SaaS "
+    "pricing-intelligence app. Reply as the product's voice (calm, direct, "
+    "finance-credible). Answer the user's question using ONLY "
     "the supplied context: the structured analysis JSON (marked [A]), the "
     "retrieved document chunks (marked [D#]) from the customer's uploaded "
     "policy / playbook / contracts, and any retrieved web results (marked "

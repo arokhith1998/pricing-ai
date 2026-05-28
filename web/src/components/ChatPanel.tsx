@@ -153,9 +153,9 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-full bg-teal px-5 py-3 text-sm font-semibold text-bg shadow-lg shadow-teal/30 transition hover:scale-[1.03] hover:shadow-xl"
-        aria-label="Open Ask the Analyst"
+        aria-label="Open Ask your Pricekeel"
       >
-        <span aria-hidden>✦</span> Ask the Analyst
+        <span aria-hidden>✦</span> Ask your Pricekeel
       </button>
 
       <AnimatePresence>
@@ -182,7 +182,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
             <header className="flex items-center justify-between border-b border-mist px-4 py-3">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-wider text-teal">
-                  Ask the Analyst
+                  Ask your Pricekeel
                 </div>
                 <div className="text-sm text-muted">
                   Grounded in your analysis{docs.length ? ", uploaded docs" : ""}
@@ -217,7 +217,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".pdf,.docx,.md,.txt"
+                  accept=".pdf,.docx,.xlsx,.pptx,.md,.txt"
                   onChange={(e) => uploadDocs(e.target.files)}
                   className="hidden"
                 />
