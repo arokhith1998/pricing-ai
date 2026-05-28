@@ -41,6 +41,16 @@ export type SegmentRow = {
   price_realization: number;
 };
 
+// A "slice" row for any dimension (segment, business_unit, product_line, ...).
+// The dimension's string value lives under the dimension's name as a key.
+export type SliceRow = {
+  deals: number;
+  list_acv: number;
+  booked_acv: number;
+  avg_discount: number;
+  price_realization: number;
+} & Record<string, string | number>;
+
 export type LeakDeal = {
   opportunity_id: string;
   resolved_account_name: string;
@@ -87,6 +97,9 @@ export type Diagnostic = {
   win_rate_by_band: WinRateBand[];
   realization_by_segment: SegmentRow[];
   top_leak_deals: LeakDeal[];
+  // Optional hierarchy: dimension name -> rows. Empty {} if no hierarchy
+  // columns are populated in the dataset.
+  hierarchy_slices: Record<string, SliceRow[]>;
 };
 
 export type ModelInfo = {

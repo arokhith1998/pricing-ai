@@ -6,6 +6,7 @@ Run:  uvicorn api.main:app --reload --port 8000
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import tempfile
@@ -17,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from pricing import assist, model  # noqa: F401  (assist used below)
+from pricing import assist, mapping, model  # noqa: F401  (assist used below)
 from pricing.diagnostic import run
 from pricing.ingest import ingest
 
@@ -62,6 +63,11 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
         "win_rate_by_band": _records(res["win_rate_by_band"]),
         "realization_by_segment": _records(res["realization_by_segment"]),
         "top_leak_deals": _records(res["top_leak_deals"]),
+        # Optional hierarchy slices: dimension -> list of {dim, deals, list_acv,
+        # booked_acv, avg_discount, price_realization}. Empty {} if none present.
+        "hierarchy_slices": {
+            dim: _records(rows) for dim, rows in res["hierarchy_slices"].items()
+        },
     }
 
 
@@ -87,12 +93,63 @@ def demo(policy: float = 0.15) -> dict:
     return _diagnostic_payload(str(DEMO_CSV), policy)
 
 
+def _read_upload(file: UploadFile, content: bytes, *, nrows: int | None = None) -> pd.DataFrame:
+    """Parse an uploaded CSV or XLSX into a string DataFrame."""
+    name = (file.filename or "").lower()
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        return pd.read_excel(
+            io.BytesIO(content), dtype=str, keep_default_na=False, nrows=nrows,
+        )
+    return pd.read_csv(
+        io.BytesIO(content), dtype=str, keep_default_na=False, nrows=nrows,
+    )
+
+
+@app.post("/map-headers")
+async def map_headers_endpoint(file: UploadFile = File(...)) -> dict:
+    """Parse an uploaded file's headers and suggest a mapping to our schema.
+
+    Sends nothing externally for layers 1-3 (synonyms / fuzzy / local
+    embeddings). The cloud LLM fallback (layer 4) only ever receives header
+    strings, never row data. We also peek at 3 sample rows for the review UI.
+    """
+    content = await file.read()
+    try:
+        df_peek = _read_upload(file, content, nrows=5)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Could not read file: {exc}")
+    headers = [str(c) for c in df_peek.columns]
+    result = mapping.map_headers(headers)
+    sample_rows = json.loads(df_peek.head(3).to_json(orient="records"))
+    return {**result, "headers": headers, "sample": sample_rows}
+
+
 @app.post("/diagnostic")
-async def diagnostic(file: UploadFile = File(...), policy: float = Form(0.15)) -> dict:
-    """Run the diagnostic on an uploaded CSV. The file is processed and then
-    deleted immediately — uploaded prospect data is never retained on disk."""
+async def diagnostic(
+    file: UploadFile = File(...),
+    policy: float = Form(0.15),
+    mapping_json: str = Form(""),
+) -> dict:
+    """Run the diagnostic on an uploaded CSV or XLSX. Optionally apply a
+    header mapping ({our_field: their_header}) before ingest. The file and
+    any temp artifacts are deleted immediately — uploaded data is never
+    retained on disk."""
+    content = await file.read()
+    try:
+        df = _read_upload(file, content)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Could not read file: {exc}")
+
+    if mapping_json:
+        try:
+            m = json.loads(mapping_json) or {}
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="mapping_json is not valid JSON")
+        rename = {h: f for f, h in m.items() if h and h in df.columns}
+        df = df.rename(columns=rename)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-        tmp.write(await file.read())
+        df.to_csv(tmp.name, index=False)
         path = tmp.name
     try:
         return _diagnostic_payload(path, policy)

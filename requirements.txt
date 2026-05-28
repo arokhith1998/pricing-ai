@@ -14,5 +14,9 @@ anthropic>=0.40
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
+# Phase 2.7 — robust ingest (mapper layers + Excel)
+rapidfuzz>=3.9
+fastembed>=0.4
+openpyxl>=3.1
 # Tests
 pytest>=8.0

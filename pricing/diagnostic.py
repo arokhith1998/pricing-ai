@@ -32,6 +32,11 @@ def run(path: str | Path,
         "rep_discipline": metrics.rep_discipline(df),
         "governance": metrics.governance_gaps(df),
         "top_leak_deals": metrics.top_leak_deals(df, policy_threshold=policy_threshold),
+        # Optional hierarchy slicing: one frame per populated dimension.
+        "hierarchy_slices": {
+            d: metrics.realization_by(df, d)
+            for d in metrics.present_hierarchy_dimensions(df)
+        },
     }
 
 
