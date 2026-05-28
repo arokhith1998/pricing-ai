@@ -56,19 +56,25 @@ export default async function GuidancePage() {
             should match reality.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-lg border border-teal/30 bg-surface-2 p-3">
+              <div className="text-sm font-medium text-teal">
+                Calibration ← lead with this
+              </div>
+              <div className="mt-1 text-xl font-bold tabular-nums text-fg">
+                {pct(m.mean_pred)} vs {pct(m.base_rate)}
+              </div>
+              <div className="text-xs text-slate">
+                predicted vs actual win rate (the only thing finance cares about)
+              </div>
+            </div>
             <div>
               <div className="text-sm text-slate">Ranking quality</div>
               <div className="text-xl font-bold tabular-nums text-fg">
                 {m.auc.toFixed(2)}
               </div>
-              <div className="text-xs text-slate">area under ROC curve</div>
-            </div>
-            <div>
-              <div className="text-sm text-slate">Calibration</div>
-              <div className="text-xl font-bold tabular-nums text-fg">
-                {pct(m.mean_pred)} vs {pct(m.base_rate)}
+              <div className="text-xs text-slate">
+                area under ROC curve · capped by irreducible noise
               </div>
-              <div className="text-xs text-slate">predicted vs actual win rate</div>
             </div>
             <div>
               <div className="text-sm text-slate">Brier score</div>
