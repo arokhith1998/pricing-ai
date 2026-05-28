@@ -88,6 +88,23 @@ export type ReferenceDiscount = {
   band_win_rate_ci: Record<string, [number, number, number]>;
 };
 
+export type PackagingSignal = {
+  dimension: string;
+  value: string;
+  price_realization: number;
+  median_realization: number;
+  gap_pp: number;
+  deals: number;
+  booked_acv: number;
+};
+
+export type TradeOrGive = {
+  deals: number;
+  dollars: number;
+  median_term_months: number;
+  off_policy_total: number;
+};
+
 export type Diagnostic = {
   overview: Overview;
   leakage: Leakage;
@@ -100,6 +117,9 @@ export type Diagnostic = {
   // Optional hierarchy: dimension name -> rows. Empty {} if no hierarchy
   // columns are populated in the dataset.
   hierarchy_slices: Record<string, SliceRow[]>;
+  // Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
+  packaging_signals: PackagingSignal[];
+  trade_or_give: TradeOrGive;
 };
 
 export type ModelInfo = {

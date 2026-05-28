@@ -73,7 +73,7 @@ def realization_by(df: pd.DataFrame, dim: str) -> pd.DataFrame:
         return pd.DataFrame(columns=[dim, "deals", "list_acv", "booked_acv",
                                      "avg_discount", "price_realization"])
     won[dim] = won[dim].astype(str).str.strip()
-    won = won[won[dim] != ""]
+    won = won[~won[dim].str.lower().isin(("", "nan", "none", "null", "na"))]
     if won.empty:
         return pd.DataFrame(columns=[dim, "deals", "list_acv", "booked_acv",
                                      "avg_discount", "price_realization"])
@@ -98,10 +98,81 @@ def present_hierarchy_dimensions(df: pd.DataFrame) -> list[str]:
     for d in HIERARCHY_DIMENSIONS:
         if d not in df.columns:
             continue
-        vals = df[d].astype(str).str.strip()
-        if vals[vals != ""].nunique() >= 2:
+        vals = df[d].astype(str).str.strip().str.lower()
+        non_missing = vals[~vals.isin(("", "nan", "none", "null", "na"))]
+        if non_missing.nunique() >= 2:
             out.append(d)
     return out
+
+
+def packaging_signals(df: pd.DataFrame, min_deals: int = 15,
+                      gap_pp: float = 5.0) -> list[dict]:
+    """Rivera's 'packaging-fence' lens.
+
+    For each segment or hierarchy dimension, flag values whose price
+    realization is materially BELOW that dimension's median. Deep discounting
+    concentrated in one value of a structural dimension often signals a
+    packaging / fence problem, not just a rep-discipline problem.
+    """
+    out: list[dict] = []
+    dims = ["segment"] + present_hierarchy_dimensions(df)
+    for dim in dims:
+        rows = realization_by(df, dim)
+        if rows.empty or len(rows) < 2:
+            continue
+        rows = rows[rows["deals"] >= min_deals]
+        if len(rows) < 2:
+            continue
+        median = float(rows["price_realization"].median())
+        for r in rows.itertuples():
+            gap = median - float(r.price_realization)
+            if gap >= gap_pp / 100.0:
+                out.append({
+                    "dimension": dim,
+                    "value": str(getattr(r, dim)),
+                    "price_realization": float(r.price_realization),
+                    "median_realization": median,
+                    "gap_pp": gap * 100.0,
+                    "deals": int(r.deals),
+                    "booked_acv": float(r.booked_acv),
+                })
+    out.sort(key=lambda x: x["gap_pp"], reverse=True)
+    return out
+
+
+def trade_or_give(df: pd.DataFrame) -> dict:
+    """Simon-Kucher 'trade, don't give' lens.
+
+    Among off-policy WON deals, how many had no trade-back recorded — i.e.
+    neither a longer-than-median contract term nor a recorded approver. A
+    policy-busting discount with neither commitment nor sign-off is the
+    quintessential 'gave it away' deal.
+    """
+    won = _won(df)
+    if won.empty or "off_policy" not in won.columns:
+        return {"deals": 0, "dollars": 0.0, "median_term_months": 0,
+                "off_policy_total": 0}
+    off = won[won["off_policy"]]
+    if off.empty:
+        return {"deals": 0, "dollars": 0.0, "median_term_months": 0,
+                "off_policy_total": 0}
+    median_term = (float(won["term_months"].median())
+                   if "term_months" in won.columns else 12.0)
+    term = (off.get("term_months", pd.Series([0] * len(off), index=off.index))
+            .fillna(0))
+    long_term = term > median_term
+    approver = (off.get("approved_by",
+                        pd.Series([""] * len(off), index=off.index))
+                .fillna("").astype(str).str.strip())
+    has_approver = approver != ""
+    no_trade = ~long_term & ~has_approver
+    no_trade_rows = off[no_trade]
+    return {
+        "deals": int(len(no_trade_rows)),
+        "dollars": float(no_trade_rows["discount_amount"].sum()),
+        "median_term_months": float(median_term),
+        "off_policy_total": int(len(off)),
+    }
 
 
 def win_rate_by_band(df: pd.DataFrame) -> pd.DataFrame:
