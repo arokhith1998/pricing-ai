@@ -66,7 +66,7 @@ function MetricCard({
 }: { label: string; value: React.ReactNode; sub?: string; accent?: "navy" | "coral" }) {
   return (
     <div
-      className={`rounded-xl border bg-surface p-5 shadow-sm ${
+      className={`pk-card-3d rounded-xl border bg-surface p-5 shadow-sm ${
         accent === "coral" ? "pk-upside-glow border-coral/30" : "border-mist"
       }`}
     >

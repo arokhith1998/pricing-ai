@@ -22,6 +22,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         <AuroraBackground />
         <ScrollProgress />
+        <div aria-hidden className="pk-horizon" />
         <Nav />
         {children}
         <Footer />
