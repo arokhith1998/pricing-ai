@@ -74,8 +74,18 @@ FIELDS: list[Field] = [
           "Customer segment: SMB | MidMarket | Enterprise.", "MidMarket"),
     Field("region", "str", False, "Sales region.", "NA"),
     Field("industry", "str", False, "Customer industry / vertical.", "FinTech"),
+    Field("business_unit", "str", False,
+          "Top-level business group (e.g. Cloud, Data, Platform). Optional; "
+          "enables BU-level slicing.", "Cloud"),
+    Field("product_line", "str", False,
+          "Product line within the business unit. Optional; enables "
+          "line-level slicing.", "Compute"),
+    Field("product_family", "str", False,
+          "Family within the product line. Optional.", "Containers"),
     Field("product_tier", "str", True,
           "Plan / package the deal was sold on.", "Growth"),
+    Field("sku", "str", False,
+          "Leaf product / SKU / part number. Optional.", "CMP-K8S-PRO"),
     Field("value_metric", "enum", True,
           "Primary value metric: seats | consumption | hybrid.", "hybrid"),
     Field("list_acv", "float", True,

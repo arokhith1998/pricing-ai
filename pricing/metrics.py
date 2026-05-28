@@ -32,6 +32,11 @@ from pricing.schema import DEFAULT_POLICY_THRESHOLD, DISCOUNT_BANDS
 
 _BAND_ORDER = [label for _, _, label in DISCOUNT_BANDS]
 
+# Optional hierarchy columns the diagnostic auto-slices by when present.
+HIERARCHY_DIMENSIONS: tuple[str, ...] = (
+    "business_unit", "product_line", "product_family", "sku",
+)
+
 
 def _won(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["is_won"]]
@@ -58,10 +63,21 @@ def overview(df: pd.DataFrame) -> dict:
     }
 
 
-def realization_by_segment(df: pd.DataFrame) -> pd.DataFrame:
-    """$-weighted price realization and discount by segment (won deals)."""
-    won = _won(df)
-    g = won.groupby("segment").agg(
+def realization_by(df: pd.DataFrame, dim: str) -> pd.DataFrame:
+    """$-weighted price realization and avg discount by any dimension (won deals).
+
+    Empty / NaN values in the dimension are filtered out before grouping.
+    """
+    won = _won(df).copy()
+    if dim not in won.columns:
+        return pd.DataFrame(columns=[dim, "deals", "list_acv", "booked_acv",
+                                     "avg_discount", "price_realization"])
+    won[dim] = won[dim].astype(str).str.strip()
+    won = won[won[dim] != ""]
+    if won.empty:
+        return pd.DataFrame(columns=[dim, "deals", "list_acv", "booked_acv",
+                                     "avg_discount", "price_realization"])
+    g = won.groupby(dim).agg(
         deals=("opportunity_id", "count"),
         list_acv=("list_acv", "sum"),
         booked_acv=("booked_acv", "sum"),
@@ -69,6 +85,23 @@ def realization_by_segment(df: pd.DataFrame) -> pd.DataFrame:
     )
     g["price_realization"] = g["booked_acv"] / g["list_acv"]
     return g.reset_index().sort_values("booked_acv", ascending=False)
+
+
+def realization_by_segment(df: pd.DataFrame) -> pd.DataFrame:
+    """$-weighted price realization and discount by segment (won deals)."""
+    return realization_by(df, "segment")
+
+
+def present_hierarchy_dimensions(df: pd.DataFrame) -> list[str]:
+    """Optional hierarchy columns populated with ≥2 distinct non-empty values."""
+    out = []
+    for d in HIERARCHY_DIMENSIONS:
+        if d not in df.columns:
+            continue
+        vals = df[d].astype(str).str.strip()
+        if vals[vals != ""].nunique() >= 2:
+            out.append(d)
+    return out
 
 
 def win_rate_by_band(df: pd.DataFrame) -> pd.DataFrame:
@@ -229,8 +262,10 @@ def top_leak_deals(df: pd.DataFrame, n: int = 15,
     won["excess_discount_dollars"] = (
         (won["discount_pct"] - rt).clip(lower=0.0) * won["list_acv"]
     )
-    cols = ["opportunity_id", "resolved_account_name", "segment", "rep_id",
-            "list_acv", "booked_acv", "discount_pct", "competitor_present",
-            "is_quarter_end", "off_policy_unapproved", "excess_discount_dollars"]
+    cols = ["opportunity_id", "resolved_account_name", "segment",
+            "business_unit", "product_line", "product_family", "sku",
+            "rep_id", "list_acv", "booked_acv", "discount_pct",
+            "competitor_present", "is_quarter_end", "off_policy_unapproved",
+            "excess_discount_dollars"]
     cols = [c for c in cols if c in won.columns]
     return won.sort_values("excess_discount_dollars", ascending=False).head(n)[cols]

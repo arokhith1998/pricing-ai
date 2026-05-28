@@ -77,6 +77,26 @@ export default async function DiagnosticPage() {
         </Card>
       </Reveal>
 
+      {Object.entries(d.hierarchy_slices).map(([dim, rows]) => {
+        const labels: Record<string, string> = {
+          business_unit: "business unit",
+          product_line: "product line",
+          product_family: "product family",
+          sku: "SKU",
+        };
+        const label = labels[dim] ?? dim;
+        return (
+          <Reveal key={dim} delay={0.05}>
+            <Card
+              title={`Price realization by ${label}`}
+              subtitle={`Same lens, sliced by ${label}. The lowest bar is where price erodes most.`}
+            >
+              <SegmentChart rows={rows} dimKey={dim} />
+            </Card>
+          </Reveal>
+        );
+      })}
+
       <Reveal delay={0.05}>
         <Card
           title="Where the money goes"

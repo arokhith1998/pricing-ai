@@ -51,6 +51,14 @@ INDUSTRY_WIN_EFFECT = {
 REGION_WIN_EFFECT = {"NA": 0.20, "EMEA": -0.05, "APAC": -0.25}
 SEGMENT_WIN_EFFECT = {"SMB": 0.15, "MidMarket": 0.0, "Enterprise": -0.25}
 TIERS = ["Starter", "Growth", "Scale", "Enterprise"]
+# Optional hierarchy. Two levels populated (BU + line) so the diagnostic has
+# something to slice; family/sku stay empty (engine skips dimensions with no
+# spread).
+BUSINESS_UNITS: dict[str, list[str]] = {
+    "Cloud":    ["Compute", "Storage"],
+    "Data":     ["Warehouse", "Streaming"],
+    "Platform": ["Identity", "Observability"],
+}
 VALUE_METRICS = ["hybrid", "consumption", "seats"]
 VALUE_METRIC_WEIGHTS = [0.55, 0.25, 0.20]  # ICP skews hybrid
 LOST_REASONS = ["price", "product", "no_decision", "competitor", "timing"]
@@ -114,6 +122,10 @@ def generate(n: int = 2000, seed: int = 7,
              end: date = date(2025, 6, 30)) -> pd.DataFrame:
     """Generate `n` closed opportunities between `start` and `end`."""
     rng = np.random.default_rng(seed)
+    # Independent stream for OPTIONAL hierarchy fields so adding/removing them
+    # never shifts the main RNG sequence (keeps the pinned dataset + model
+    # tests stable).
+    rng_hier = np.random.default_rng(seed + 1)
 
     # A pool of accounts (fewer than deals → repeat business → identity work).
     max_cores = len(_NAME_STEMS) * len(_NAME_QUALIFIERS)
@@ -219,6 +231,9 @@ def generate(n: int = 2000, seed: int = 7,
         acct = acct_for_deal[i]
         account_id = acct_ids[acct] if rng.random() > 0.35 else ""
 
+        bu = rng_hier.choice(list(BUSINESS_UNITS))
+        line = rng_hier.choice(BUSINESS_UNITS[bu])
+
         rows.append({
             "opportunity_id": f"OPP-{i:05d}",
             "account_id": account_id,
@@ -229,7 +244,11 @@ def generate(n: int = 2000, seed: int = 7,
             "segment": seg,
             "region": region,
             "industry": industry,
+            "business_unit": bu,
+            "product_line": line,
+            "product_family": "",
             "product_tier": rng.choice(TIERS, p=[0.30, 0.34, 0.24, 0.12]),
+            "sku": "",
             "value_metric": vm,
             "list_acv": list_acv,
             "booked_acv": booked_acv,
