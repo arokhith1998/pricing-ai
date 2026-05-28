@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import AuroraBackground from "@/components/AuroraBackground";
+import ScrollProgress from "@/components/ScrollProgress";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
@@ -18,6 +20,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} antialiased`}>
       <body className="min-h-screen font-sans">
+        <AuroraBackground />
+        <ScrollProgress />
         <Nav />
         {children}
         <Footer />

@@ -3,6 +3,8 @@ import { pct } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
 import GuidanceClient from "@/components/GuidanceClient";
+import PageGuide from "@/components/PageGuide";
+import NextStep from "@/components/NextStep";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,19 @@ export default async function GuidancePage() {
           model learns from your closed deals, using only what is known at quote
           time. It is decision support for a human, not an autopilot.
         </p>
+      </Reveal>
+
+      <Reveal delay={0.04}>
+        <PageGuide
+          eyebrow="Reading this page"
+          title="One deal at a time. Pick from the dropdown to switch."
+          body="The model uses only features known at quote time and is trained without outcome leakage. The recommendation maximizes expected value: P(win) × list × (1 − discount)."
+          bullets={[
+            "The headline says what to give and what it is worth — current vs recommended discount, expected value gain.",
+            "Top factors say WHY this deal looks more or less winnable, in plain language.",
+            "Model quality (ranking + calibration) is at the bottom for the analyst.",
+          ]}
+        />
       </Reveal>
 
       <Reveal delay={0.05}>
@@ -71,6 +86,14 @@ export default async function GuidancePage() {
             </div>
           </div>
         </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <NextStep
+          href="/upload"
+          title="Run it on your data"
+          body="Upload a CSV or Excel of your closed deals. Mapping is local; data is processed in memory and not stored."
+        />
       </Reveal>
     </main>
   );

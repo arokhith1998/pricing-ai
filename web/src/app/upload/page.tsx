@@ -1,4 +1,5 @@
 import UploadClient from "@/components/UploadClient";
+import PageGuide from "@/components/PageGuide";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +25,21 @@ export default function UploadPage() {
       <div>
         <h1 className="text-2xl font-bold text-fg">Run it on your data</h1>
         <p className="mt-1 max-w-2xl text-slate">
-          Export a CSV of your closed opportunities (won and lost). It is
-          processed in memory to produce your diagnostic and is not stored.
+          Export a CSV or Excel of your closed opportunities (won and lost). It
+          is processed in memory to produce your diagnostic and is not stored.
         </p>
       </div>
+
+      <PageGuide
+        eyebrow="Three steps"
+        title="Choose file → confirm mapping → see results."
+        body="We map your column names to our schema locally — a synonyms dictionary, fuzzy matching, and a small on-device embedding model. The cloud LLM is only a last-resort fallback for headers nothing else resolves, and even then only header strings are sent. Row data never leaves the server."
+        bullets={[
+          "Step 1: pick a CSV or .xlsx export of your closed opportunities.",
+          "Step 2: review the suggested mapping; override anything that looks wrong.",
+          "Step 3: run; results are the same diagnostic you saw on the sample, on your numbers.",
+        ]}
+      />
 
       <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -5,6 +5,8 @@ import ApiError from "@/components/ApiError";
 import WinRateChart from "@/components/charts/WinRateChart";
 import SegmentChart from "@/components/charts/SegmentChart";
 import LeakageBars from "@/components/LeakageBars";
+import PageGuide from "@/components/PageGuide";
+import NextStep from "@/components/NextStep";
 
 // Reads live data from the API on every request.
 export const dynamic = "force-dynamic";
@@ -54,6 +56,20 @@ export default async function DiagnosticPage() {
           Where discount turns into wins, and where it just gives money away.
           Everything here is measured from your closed deals.
         </p>
+      </Reveal>
+
+      <Reveal delay={0.04}>
+        <PageGuide
+          eyebrow="Reading this report"
+          title="Find your win point first; the rest is its consequence."
+          body="The very first chart is the most important. Find the discount band where win rate stops climbing — that is your win point. Everything below uses it as a lens."
+          bullets={[
+            "Win rate vs discount — the curve, with confidence band and the win point marked in coral.",
+            "Realization by segment / BU / product line — where price erodes most.",
+            "Packaging signal and trade-or-give — framework-grounded callouts (Rivera, Simon-Kucher) worth a deal-desk meeting.",
+            "Deals to look at first — your prioritized investigate list, not a refund figure.",
+          ]}
+        />
       </Reveal>
 
       <Reveal delay={0.05}>
@@ -240,6 +256,14 @@ export default async function DiagnosticPage() {
             </table>
           </div>
         </Card>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <NextStep
+          href="/guidance"
+          title="Guidance"
+          body="Pick a single deal and see the discount that maximizes expected value, with a plain-language why."
+        />
       </Reveal>
     </main>
   );
