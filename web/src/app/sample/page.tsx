@@ -8,6 +8,7 @@ import Summary from "@/components/Summary";
 import ApiError from "@/components/ApiError";
 import LeadForm from "@/components/LeadForm";
 import CountUp from "@/components/CountUp";
+import PageGuide from "@/components/PageGuide";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,11 @@ function MetricCard({
   accent?: "navy" | "coral";
 }) {
   return (
-    <div className="pk-fade-in rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div
+      className={`pk-fade-in rounded-xl border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+        accent === "coral" ? "pk-upside-glow border-coral/30" : "border-mist"
+      }`}
+    >
       <div className="text-sm text-slate">{label}</div>
       <div
         className={`mt-1 text-3xl font-bold tabular-nums ${accent === "coral" ? "text-coral" : "text-fg"}`}
@@ -91,6 +96,16 @@ function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
 function FullSample() {
   return (
     <>
+      <PageGuide
+        title="A worked example. Focus on the coral upside number first."
+        body="We ran the diagnostic on a 2,000-deal synthetic book so you can see the shape of the analysis before sending your own data. Read the cards above, skim the summary, then open the Diagnostic or Guidance tabs for the deep view."
+        bullets={[
+          "The coral 'Pricing upside to pursue' card is the headline number worth a meeting.",
+          "The Diagnostic tab shows where it concentrates by segment, BU, and product line.",
+          "The Guidance tab picks a single deal and recommends a discount with a plain why.",
+        ]}
+      />
+
       <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
         <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
         <Suspense
@@ -160,22 +175,22 @@ export default async function SamplePage() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Booked value (annual)"
-          value={<CountUp to={o.booked_acv_won} format={money} />}
+          value={<CountUp to={o.booked_acv_won} format="money" />}
         />
         <MetricCard
           label="Price realization"
-          value={<CountUp to={o.price_realization_won} format={pct} />}
+          value={<CountUp to={o.price_realization_won} format="pct" />}
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
           label="Pricing upside to pursue"
-          value={<CountUp to={l.excess_vs_reference_won} format={money} />}
+          value={<CountUp to={l.excess_vs_reference_won} format="money" />}
           sub={`${pct(l.excess_pct_of_booked)} of booked value, discounted past the win point`}
           accent="coral"
         />
         <MetricCard
           label="Win rate"
-          value={<CountUp to={o.win_rate} format={pct} />}
+          value={<CountUp to={o.win_rate} format="pct" />}
           sub={`${o.won.toLocaleString()} won, ${o.lost.toLocaleString()} lost`}
         />
       </section>
