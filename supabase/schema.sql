@@ -10,6 +10,12 @@ create table if not exists leads (
   email         text not null,
   role_title    text not null,
   role_function text not null,
+  -- Qualifying + attribution (launch-readiness):
+  revenue_range  text not null default '',
+  pricing_model  text not null default '',
+  utm_source     text not null default '',
+  utm_medium     text not null default '',
+  utm_campaign   text not null default '',
   consent       boolean not null default false,  -- agreed to the privacy policy
   created_at    timestamptz not null default now()
 );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ROLE_FUNCTIONS = [
   "Pricing",
@@ -13,21 +13,52 @@ const ROLE_FUNCTIONS = [
   "Other",
 ];
 
+const ARR_RANGES = [
+  "<$10M",
+  "$10M–$50M",
+  "$50M–$200M",
+  "$200M+",
+];
+
+const PRICING_MODELS = [
+  "Seats / per-user",
+  "Usage / consumption",
+  "Hybrid (platform + usage)",
+  "Other",
+];
+
 export default function LeadForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [f, setF] = useState({
     name: "",
     company: "",
     role_title: "",
     role_function: "",
     email: "",
+    revenue_range: "",
+    pricing_model: "",
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
 
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setF((prev) => ({ ...prev, [k]: e.target.value }));
+  // Capture UTM tags from the URL once on mount; the API stores them with the
+  // lead so LinkedIn / blog / outbound attribution actually works.
+  const [utm, setUtm] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const out: Record<string, string> = {};
+    for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
+      const v = params.get(k);
+      if (v) out[k] = v;
+    }
+    if (Object.keys(out).length) setUtm(out);
+  }, [params]);
+
+  const set =
+    (k: keyof typeof f) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setF((prev) => ({ ...prev, [k]: e.target.value }));
 
   const ready = Object.values(f).every((v) => v.trim().length > 0) && consent;
 
@@ -38,10 +69,10 @@ export default function LeadForm() {
     const res = await fetch("/api/lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...f, consent }),
+      body: JSON.stringify({ ...f, consent, utm }),
     });
     if (res.ok) {
-      router.refresh(); // re-render the server component; pk_lead now unlocks it
+      router.refresh();
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error || "Something went wrong.");
@@ -74,6 +105,34 @@ export default function LeadForm() {
           {ROLE_FUNCTIONS.map((r) => (
             <option key={r} value={r} className="text-ink">
               {r}
+            </option>
+          ))}
+        </select>
+        <select
+          className={`${input} ${f.revenue_range ? "" : "text-slate"}`}
+          value={f.revenue_range}
+          onChange={set("revenue_range")}
+        >
+          <option value="" disabled>
+            Annual revenue
+          </option>
+          {ARR_RANGES.map((r) => (
+            <option key={r} value={r} className="text-ink">
+              {r}
+            </option>
+          ))}
+        </select>
+        <select
+          className={`${input} ${f.pricing_model ? "" : "text-slate"}`}
+          value={f.pricing_model}
+          onChange={set("pricing_model")}
+        >
+          <option value="" disabled>
+            Pricing model
+          </option>
+          {PRICING_MODELS.map((p) => (
+            <option key={p} value={p} className="text-ink">
+              {p}
             </option>
           ))}
         </select>
