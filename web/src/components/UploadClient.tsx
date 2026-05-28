@@ -6,6 +6,7 @@ import { money, pct } from "@/lib/format";
 import WinRateChart from "@/components/charts/WinRateChart";
 import SegmentChart from "@/components/charts/SegmentChart";
 import LeakageBars from "@/components/LeakageBars";
+import CountUp from "@/components/CountUp";
 
 // --- shape ------------------------------------------------------------------
 
@@ -62,7 +63,7 @@ const CONF_COLOR: Record<Confidence, string> = {
 
 function MetricCard({
   label, value, sub, accent,
-}: { label: string; value: string; sub?: string; accent?: "navy" | "coral" }) {
+}: { label: string; value: React.ReactNode; sub?: string; accent?: "navy" | "coral" }) {
   return (
     <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
       <div className="text-sm text-muted">{label}</div>
@@ -90,21 +91,24 @@ function Results({ d }: { d: Diagnostic }) {
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Booked value (annual)" value={money(o.booked_acv_won)} />
+        <MetricCard
+          label="Booked value (annual)"
+          value={<CountUp to={o.booked_acv_won} format={money} />}
+        />
         <MetricCard
           label="Price realization"
-          value={pct(o.price_realization_won)}
+          value={<CountUp to={o.price_realization_won} format={pct} />}
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
           label="Pricing upside to pursue"
-          value={money(l.excess_vs_reference_won)}
+          value={<CountUp to={l.excess_vs_reference_won} format={money} />}
           sub={`${pct(l.excess_pct_of_booked)} of booked value, past the win point`}
           accent="coral"
         />
         <MetricCard
           label="Win rate"
-          value={pct(o.win_rate)}
+          value={<CountUp to={o.win_rate} format={pct} />}
           sub={`${o.won.toLocaleString()} won, ${o.lost.toLocaleString()} lost`}
         />
       </section>
