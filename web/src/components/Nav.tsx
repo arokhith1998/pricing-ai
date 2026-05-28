@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 
 function KeelMark() {
   return (
@@ -43,13 +44,24 @@ export default function Nav() {
               <Link
                 key={href}
                 href={href}
-                className={`rounded-lg px-3 py-2 transition ${
-                  active
-                    ? "bg-navy text-white"
-                    : "text-slate hover:bg-mist hover:text-fg"
+                className={`relative rounded-lg px-3 py-2 transition ${
+                  !active ? "hover:bg-mist" : ""
                 }`}
               >
-                {label}
+                {active ? (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-0 rounded-lg bg-navy"
+                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                  />
+                ) : null}
+                <span
+                  className={`relative ${
+                    active ? "text-white" : "text-slate hover:text-fg"
+                  }`}
+                >
+                  {label}
+                </span>
               </Link>
             );
           })}

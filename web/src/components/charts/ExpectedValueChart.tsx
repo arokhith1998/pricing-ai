@@ -43,7 +43,7 @@ export default function ExpectedValueChart({
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={curve} margin={{ top: 16, right: 12, bottom: 4, left: 0 }}>
+        <ComposedChart data={curve} margin={{ top: 28, right: 12, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={MIST} vertical={false} />
           <XAxis
             dataKey="discount"
