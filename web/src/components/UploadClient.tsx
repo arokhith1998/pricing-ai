@@ -133,6 +133,49 @@ function Results({ d }: { d: Diagnostic }) {
         ) : null;
       })}
 
+      {d.packaging_signals?.length ? (
+        <Card title="Packaging signal">
+          <ul className="space-y-2 text-sm">
+            {d.packaging_signals.slice(0, 5).map((s) => (
+              <li
+                key={`${s.dimension}:${s.value}`}
+                className="flex items-baseline justify-between gap-3 border-b border-mist/60 pb-2 last:border-0 last:pb-0"
+              >
+                <span>
+                  <span className="font-medium text-fg">{s.value}</span>{" "}
+                  <span className="text-muted">({s.dimension.replace("_", " ")})</span>
+                </span>
+                <span className="tabular-nums text-muted">
+                  realization{" "}
+                  <span className="font-semibold text-coral">{pct(s.price_realization)}</span>
+                  {" vs median "}{pct(s.median_realization)}{" "}
+                  <span className="text-xs">({s.gap_pp.toFixed(1)} pp, {s.deals.toLocaleString()} deals)</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      {d.trade_or_give?.deals > 0 ? (
+        <Card title="Trade-for-discount gap">
+          <p className="text-ink">
+            <span className="font-semibold text-coral">
+              {d.trade_or_give.deals.toLocaleString()}
+            </span>{" "}
+            off-policy won deals had neither a longer-than-median term
+            ({d.trade_or_give.median_term_months} months) nor a recorded approver.
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Total discount on those:{" "}
+            <span className="font-semibold text-fg">
+              {money(d.trade_or_give.dollars)}
+            </span>
+            , out of {d.trade_or_give.off_policy_total.toLocaleString()} off-policy wins.
+          </p>
+        </Card>
+      ) : null}
+
       <Card title="Where the money goes">
         <LeakageBars leakage={l} />
       </Card>

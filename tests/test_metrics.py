@@ -111,3 +111,60 @@ def test_overview_counts_and_realization():
     assert ov["win_rate"] == pytest.approx(0.5)
     # realization is computed on WON business only
     assert ov["price_realization_won"] == pytest.approx(0.80)
+
+
+def test_packaging_signal_flags_lagging_segment():
+    """Rivera lens: a segment whose realization sits materially below the
+    cross-segment median should be flagged as a packaging signal."""
+    rows = []
+    # Three segments of 4 won deals each, with realizations ~90, ~85, ~70%
+    for i, (seg, real) in enumerate([("A", 0.90), ("B", 0.85), ("C", 0.70)]):
+        for j in range(4):
+            rows.append(dict(
+                opportunity_id=f"O{seg}-{j}", account_id=f"AC-{seg}-{j}",
+                account_name=f"AC-{seg}-{j}", outcome="closed_won",
+                list_acv=100_000.0, booked_acv=100_000.0 * real,
+                segment=seg,
+            ))
+    df = _build(rows)
+    sigs = metrics.packaging_signals(df, min_deals=3, gap_pp=5.0)
+    # C is the laggard — must be flagged. A is above the median, must NOT be.
+    flagged_values = {s["value"] for s in sigs if s["dimension"] == "segment"}
+    assert "C" in flagged_values
+    assert "A" not in flagged_values
+
+
+def test_trade_or_give_counts_off_policy_with_no_concession():
+    """Simon-Kucher lens: off-policy won deals lacking BOTH a longer-than-
+    median term AND a recorded approver are 'gave it away' deals."""
+    rows = [
+        # Reference deals to set the median term at 12.
+        dict(opportunity_id="R1", account_id="R", account_name="R",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=95_000.0,
+             term_months=12, approved_by=""),
+        dict(opportunity_id="R2", account_id="R", account_name="R",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=95_000.0,
+             term_months=12, approved_by=""),
+        # Off-policy (25% discount):
+        # 1) long term, no approver -> traded
+        dict(opportunity_id="X1", account_id="X1", account_name="X1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=36, approved_by=""),
+        # 2) short term, approver -> traded
+        dict(opportunity_id="X2", account_id="X2", account_name="X2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by="MGR-01"),
+        # 3 & 4) short term, no approver -> NOT traded (these are the "gave it away" ones)
+        dict(opportunity_id="X3", account_id="X3", account_name="X3",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by=""),
+        dict(opportunity_id="X4", account_id="X4", account_name="X4",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=70_000.0,
+             term_months=12, approved_by=""),
+    ]
+    df = _build(rows)
+    res = metrics.trade_or_give(df)
+    assert res["deals"] == 2
+    # Dollars discounted on the no-trade deals = 25k + 30k = 55k
+    assert res["dollars"] == pytest.approx(55_000.0)
+    assert res["off_policy_total"] == 4

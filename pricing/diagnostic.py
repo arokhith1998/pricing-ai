@@ -37,6 +37,9 @@ def run(path: str | Path,
             d: metrics.realization_by(df, d)
             for d in metrics.present_hierarchy_dimensions(df)
         },
+        # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
+        "packaging_signals": metrics.packaging_signals(df),
+        "trade_or_give": metrics.trade_or_give(df),
     }
 
 

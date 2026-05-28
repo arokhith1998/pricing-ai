@@ -68,6 +68,9 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
         "hierarchy_slices": {
             dim: _records(rows) for dim, rows in res["hierarchy_slices"].items()
         },
+        # Framework-grounded follow-on signals.
+        "packaging_signals": res["packaging_signals"],
+        "trade_or_give": res["trade_or_give"],
     }
 
 
@@ -96,7 +99,8 @@ def demo(policy: float = 0.15) -> dict:
 def _read_upload(file: UploadFile, content: bytes, *, nrows: int | None = None) -> pd.DataFrame:
     """Parse an uploaded CSV or XLSX into a string DataFrame."""
     name = (file.filename or "").lower()
-    if name.endswith(".xlsx") or name.endswith(".xls"):
+    # .xlsx only: legacy .xls (xlrd) has had macro / CVE issues; skip it.
+    if name.endswith(".xlsx"):
         return pd.read_excel(
             io.BytesIO(content), dtype=str, keep_default_na=False, nrows=nrows,
         )
