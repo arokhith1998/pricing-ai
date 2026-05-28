@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
+import RoiCalculator from "@/components/RoiCalculator";
+import FounderStrip from "@/components/FounderStrip";
 
 // Static marketing landing — no API dependency, so it always loads fast.
 export const dynamic = "force-static";
@@ -93,6 +95,12 @@ export default function Landing() {
 
       <Reveal delay={0.05}>
         <section className="mt-12">
+          <RoiCalculator />
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section className="mt-12">
           <p className="text-center text-sm font-medium text-slate">
             Built for the stack you already run
           </p>
@@ -144,6 +152,12 @@ export default function Landing() {
             </div>
             <span className="shrink-0 text-3xl">📈</span>
           </div>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section className="mt-12">
+          <FounderStrip />
         </section>
       </Reveal>
 

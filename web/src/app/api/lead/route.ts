@@ -17,8 +17,18 @@ export async function POST(req: Request) {
   const email = str(body.email);
   const role_title = str(body.role_title);
   const role_function = str(body.role_function);
+  const revenue_range = str(body.revenue_range);
+  const pricing_model = str(body.pricing_model);
+  // UTM is optional — only stored if it came in on the URL.
+  const utmRaw = (body.utm && typeof body.utm === "object" ? body.utm : {}) as Record<string, unknown>;
+  const utm: Record<string, string> = {};
+  for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
+    const v = str(utmRaw[k]);
+    if (v) utm[k] = v;
+  }
 
-  if (!name || !company || !email || !role_title || !role_function) {
+  if (!name || !company || !email || !role_title || !role_function ||
+      !revenue_range || !pricing_model) {
     return Response.json({ error: "Please fill in every field." }, { status: 400 });
   }
   if (!isCompanyEmail(email)) {
@@ -35,7 +45,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    await saveLead({ name, company, email, role_title, role_function, consent: true });
+    await saveLead({
+      name, company, email, role_title, role_function,
+      revenue_range, pricing_model,
+      utm_source: utm.utm_source || "",
+      utm_medium: utm.utm_medium || "",
+      utm_campaign: utm.utm_campaign || "",
+      consent: true,
+    });
   } catch {
     return Response.json({ error: "Could not save right now. Try again." }, { status: 500 });
   }

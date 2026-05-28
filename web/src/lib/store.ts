@@ -10,6 +10,12 @@ export type Lead = {
   email: string;
   role_title: string;
   role_function: string;
+  // Phase: launch-readiness — qualifying + attribution fields.
+  revenue_range: string;
+  pricing_model: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
   consent: boolean;
 };
 
