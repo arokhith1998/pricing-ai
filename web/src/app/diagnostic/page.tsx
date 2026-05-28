@@ -7,6 +7,7 @@ import SegmentChart from "@/components/charts/SegmentChart";
 import LeakageBars from "@/components/LeakageBars";
 import PageGuide from "@/components/PageGuide";
 import NextStep from "@/components/NextStep";
+import ChatPanel from "@/components/ChatPanel";
 
 // Reads live data from the API on every request.
 export const dynamic = "force-dynamic";
@@ -265,6 +266,8 @@ export default async function DiagnosticPage() {
           body="Pick a single deal and see the discount that maximizes expected value, with a plain-language why."
         />
       </Reveal>
+
+      <ChatPanel analysis={d} />
     </main>
   );
 }
