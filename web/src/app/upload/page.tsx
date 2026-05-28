@@ -22,20 +22,20 @@ export default function UploadPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
       <div>
-        <h1 className="text-2xl font-bold text-navy">Run it on your data</h1>
+        <h1 className="text-2xl font-bold text-fg">Run it on your data</h1>
         <p className="mt-1 max-w-2xl text-slate">
           Export a CSV of your closed opportunities (won and lost). It is
           processed in memory to produce your diagnostic and is not stored.
         </p>
       </div>
 
-      <section className="rounded-xl border border-mist bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold text-navy">The template we expect</h2>
+          <h2 className="text-lg font-semibold text-fg">The template we expect</h2>
           <a
             href="/pricekeel-template.csv"
             download
-            className="text-sm font-medium text-navy underline"
+            className="text-sm font-medium text-fg underline"
           >
             Download CSV template
           </a>
@@ -55,7 +55,7 @@ export default function UploadPage() {
             <tbody>
               {REQUIRED.map(([col, desc]) => (
                 <tr key={col} className="border-b border-mist/60">
-                  <td className="py-2 pr-4 font-mono text-xs text-navy">{col}</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-fg">{col}</td>
                   <td className="py-2 text-slate">{desc}</td>
                 </tr>
               ))}

@@ -19,8 +19,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-mist bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-navy">{title}</h2>
+    <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-fg">{title}</h2>
       {subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}
       <div className="mt-4">{children}</div>
     </section>
@@ -49,7 +49,7 @@ export default async function DiagnosticPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
       <Reveal>
-        <h1 className="text-2xl font-bold text-navy">Diagnostic</h1>
+        <h1 className="text-2xl font-bold text-fg">Diagnostic</h1>
         <p className="mt-1 max-w-2xl text-slate">
           Where discount turns into wins, and where it just gives money away.
           Everything here is measured from your closed deals.
@@ -142,7 +142,7 @@ export default async function DiagnosticPage() {
               <tbody>
                 {d.top_leak_deals.slice(0, 8).map((row) => (
                   <tr key={row.opportunity_id} className="border-b border-mist/60">
-                    <td className="py-2 pr-4 font-medium text-navy">
+                    <td className="py-2 pr-4 font-medium text-fg">
                       {row.resolved_account_name}
                     </td>
                     <td className="py-2 pr-4 text-slate">{row.segment}</td>

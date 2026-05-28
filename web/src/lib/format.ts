@@ -13,3 +13,12 @@ export const moneyShort = (x: number) => {
 export const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
 
 export const pct0 = (x: number) => `${Math.round(x * 100)}%`;
+
+/** "2026-05-27" -> "May 27, 2026" (UTC, locale-stable). */
+export const fmtDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });

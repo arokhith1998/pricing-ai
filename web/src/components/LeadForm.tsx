@@ -24,11 +24,12 @@ export default function LeadForm() {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF((prev) => ({ ...prev, [k]: e.target.value }));
 
-  const ready = Object.values(f).every((v) => v.trim().length > 0);
+  const ready = Object.values(f).every((v) => v.trim().length > 0) && consent;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +38,7 @@ export default function LeadForm() {
     const res = await fetch("/api/lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(f),
+      body: JSON.stringify({ ...f, consent }),
     });
     if (res.ok) {
       router.refresh(); // re-render the server component; pk_lead now unlocks it
@@ -49,7 +50,7 @@ export default function LeadForm() {
   }
 
   const input =
-    "w-full rounded-lg border border-mist bg-white px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none";
+    "w-full rounded-lg border border-mist bg-surface px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none";
 
   return (
     <form onSubmit={submit} className="space-y-3">
@@ -84,6 +85,21 @@ export default function LeadForm() {
         value={f.email}
         onChange={set("email")}
       />
+      <label className="flex items-start gap-2 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-teal"
+        />
+        <span>
+          I agree to the{" "}
+          <a href="/privacy" target="_blank" className="text-teal underline">
+            Privacy Policy
+          </a>{" "}
+          and to being contacted about my results.
+        </span>
+      </label>
       {error ? <p className="text-sm text-coral">{error}</p> : null}
       <button
         type="submit"

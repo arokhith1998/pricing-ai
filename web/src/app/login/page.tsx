@@ -9,8 +9,8 @@ const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 function KeelMark() {
   return (
     <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden>
-      <line x1="9" y1="19" x2="39" y2="19" stroke="#0c2d48" strokeWidth="3" strokeLinecap="round" />
-      <path d="M13 19 Q24 43 35 19" fill="none" stroke="#17b8a6" strokeWidth="4" strokeLinecap="round" />
+      <line x1="9" y1="19" x2="39" y2="19" stroke="#e9f0f8" strokeWidth="3" strokeLinecap="round" />
+      <path d="M13 19 Q24 43 35 19" fill="none" stroke="#2dd4bf" strokeWidth="4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -50,7 +50,7 @@ function LoginForm() {
         onChange={(e) => setCode(e.target.value)}
         placeholder="Access code"
         autoFocus
-        className="w-full rounded-lg border border-mist bg-white px-3 py-2 text-ink focus:border-teal focus:outline-none"
+        className="w-full rounded-lg border border-mist bg-surface px-3 py-2 text-ink focus:border-teal focus:outline-none"
       />
       {error ? <p className="text-sm text-coral">{error}</p> : null}
       <button
@@ -70,7 +70,7 @@ export default function LoginPage() {
       <div className="mb-2 flex items-center gap-3">
         <KeelMark />
         <div className="text-2xl font-extrabold tracking-tight">
-          <span className="text-navy">Price</span>
+          <span className="text-fg">Price</span>
           <span className="text-teal">keel</span>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
       <p className="mt-6 max-w-sm text-center text-xs text-slate">
         Don&apos;t have a code? {CONTACT_EMAIL ? (
           <a
-            className="font-medium text-navy underline"
+            className="font-medium text-fg underline"
             href={`mailto:${CONTACT_EMAIL}?subject=Pricekeel%20access%20request`}
           >
             Request access

@@ -13,18 +13,18 @@ import {
 import type { CurvePoint } from "@/lib/api";
 import { money, moneyShort, pct, pct0 } from "@/lib/format";
 
-const NAVY = "#0c2d48";
-const TEAL = "#17b8a6";
-const CORAL = "#f0654e";
-const MIST = "#e6edf3";
-const SLATE = "#5b6b7b";
+const NAVY = "#e9f0f8"; // expected-value line, light on dark
+const TEAL = "#2dd4bf";
+const CORAL = "#ff6b54";
+const MIST = "#1f2c43"; // grid
+const SLATE = "#8ea3bd"; // axis text
 
 function CurveTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const p: CurvePoint = payload[0].payload;
   return (
-    <div className="rounded-lg border border-mist bg-white px-3 py-2 text-sm shadow-md">
-      <div className="font-semibold text-navy">{pct0(p.discount)} discount</div>
+    <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
+      <div className="font-semibold text-fg">{pct0(p.discount)} discount</div>
       <div className="text-slate">Expected value {money(p.expected_acv)}</div>
       <div className="text-slate">Win probability {pct(p.win_prob)}</div>
     </div>

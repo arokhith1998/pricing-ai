@@ -19,10 +19,10 @@ function MetricCard({
   accent?: "navy" | "coral";
 }) {
   return (
-    <div className="rounded-xl border border-mist bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
       <div className="text-sm text-slate">{label}</div>
       <div
-        className={`mt-1 text-3xl font-bold tabular-nums ${accent === "coral" ? "text-coral" : "text-navy"}`}
+        className={`mt-1 text-3xl font-bold tabular-nums ${accent === "coral" ? "text-coral" : "text-fg"}`}
       >
         {value}
       </div>
@@ -33,8 +33,8 @@ function MetricCard({
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-mist bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-navy">{title}</h2>
+    <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-fg">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -94,7 +94,7 @@ function Results({ d }: { d: Diagnostic }) {
               <tbody>
                 {d.top_leak_deals.slice(0, 8).map((r) => (
                   <tr key={r.opportunity_id} className="border-b border-mist/60">
-                    <td className="py-2 pr-4 font-medium text-navy">{r.resolved_account_name}</td>
+                    <td className="py-2 pr-4 font-medium text-fg">{r.resolved_account_name}</td>
                     <td className="py-2 pr-4 text-slate">{r.segment}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{money(r.list_acv)}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{pct(r.discount_pct)}</td>
@@ -140,7 +140,7 @@ export default function UploadClient() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-mist bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="file"
@@ -149,7 +149,7 @@ export default function UploadClient() {
               setFile(e.target.files?.[0] ?? null);
               setRes(null);
             }}
-            className="text-sm text-slate file:mr-3 file:rounded-lg file:border-0 file:bg-mist file:px-4 file:py-2 file:text-sm file:font-medium file:text-navy"
+            className="text-sm text-slate file:mr-3 file:rounded-lg file:border-0 file:bg-mist file:px-4 file:py-2 file:text-sm file:font-medium file:text-fg"
           />
           <button
             onClick={run}

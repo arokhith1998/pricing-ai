@@ -22,10 +22,10 @@ function MetricCard({
   accent?: "navy" | "coral";
 }) {
   return (
-    <div className="pk-fade-in rounded-xl border border-mist bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div className="pk-fade-in rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="text-sm text-slate">{label}</div>
       <div
-        className={`mt-1 text-3xl font-bold tabular-nums ${accent === "coral" ? "text-coral" : "text-navy"}`}
+        className={`mt-1 text-3xl font-bold tabular-nums ${accent === "coral" ? "text-coral" : "text-fg"}`}
       >
         {value}
       </div>
@@ -48,8 +48,8 @@ function Flow() {
     <div className="flex flex-wrap items-center gap-2">
       {STEPS.map(([title, sub], i) => (
         <div key={title} className="flex items-center gap-2">
-          <div className="rounded-lg border border-mist bg-white px-3 py-2">
-            <div className="text-sm font-semibold text-navy">{title}</div>
+          <div className="rounded-lg border border-mist bg-surface px-3 py-2">
+            <div className="text-sm font-semibold text-fg">{title}</div>
             <div className="text-xs text-slate">{sub}</div>
           </div>
           {i < STEPS.length - 1 ? <span className="text-slate">&rarr;</span> : null}
@@ -61,10 +61,10 @@ function Flow() {
 
 function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
   return (
-    <section className="rounded-xl border border-mist bg-white p-6 shadow-sm">
+    <section className="rounded-xl border border-mist bg-surface p-6 shadow-sm">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="text-lg font-semibold text-navy">
+          <h2 className="text-lg font-semibold text-fg">
             Unlock the full diagnostic
           </h2>
           <p className="mt-1 text-sm text-slate">
@@ -79,7 +79,7 @@ function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
             <li>• Per-deal discount guidance with a plain &ldquo;why&rdquo;</li>
           </ul>
         </div>
-        <div className="rounded-lg bg-paper p-4">
+        <div className="rounded-lg bg-surface-2 p-4">
           <LeadForm />
         </div>
       </div>
@@ -90,8 +90,8 @@ function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
 function FullSample() {
   return (
     <>
-      <section className="rounded-xl border border-mist bg-white p-5 shadow-sm">
-        <h2 className="mb-2 text-lg font-semibold text-navy">Executive summary</h2>
+      <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+        <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
         <Suspense
           fallback={
             <p className="animate-pulse text-sm text-slate">Writing the summary&hellip;</p>
@@ -104,9 +104,9 @@ function FullSample() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link
           href="/diagnostic"
-          className="rounded-xl border border-mist bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
+          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
         >
-          <div className="text-lg font-semibold text-navy">Diagnostic →</div>
+          <div className="text-lg font-semibold text-fg">Diagnostic →</div>
           <p className="mt-1 text-sm text-slate">
             Win rate vs discount, leakage lenses, quarter-end, governance, and the
             deals to look at first.
@@ -114,9 +114,9 @@ function FullSample() {
         </Link>
         <Link
           href="/guidance"
-          className="rounded-xl border border-mist bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
+          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
         >
-          <div className="text-lg font-semibold text-navy">Guidance →</div>
+          <div className="text-lg font-semibold text-fg">Guidance →</div>
           <p className="mt-1 text-sm text-slate">
             Pick a deal and see the discount that maximizes expected value, with a
             plain-language why.
@@ -125,7 +125,7 @@ function FullSample() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-navy">How it works</h2>
+        <h2 className="mb-3 text-lg font-semibold text-fg">How it works</h2>
         <Flow />
       </section>
     </>
@@ -148,7 +148,7 @@ export default async function SamplePage() {
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
       <div>
         <p className="text-sm font-medium text-teal">Sample data</p>
-        <h1 className="text-2xl font-bold text-navy">
+        <h1 className="text-2xl font-bold text-fg">
           Where the money goes, and what to do about it
         </h1>
         <p className="mt-1 text-slate">

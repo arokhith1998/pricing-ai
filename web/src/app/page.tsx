@@ -6,8 +6,8 @@ export const dynamic = "force-static";
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-xl border border-mist bg-white p-5 text-center shadow-sm">
-      <div className="text-3xl font-extrabold tabular-nums text-navy">{value}</div>
+    <div className="rounded-xl border border-mist bg-surface p-5 text-center shadow-sm">
+      <div className="text-3xl font-extrabold tabular-nums text-fg">{value}</div>
       <div className="mt-1 text-sm text-slate">{label}</div>
     </div>
   );
@@ -15,8 +15,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function Capability({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-mist bg-white p-5 shadow-sm">
-      <h3 className="font-semibold text-navy">{title}</h3>
+    <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+      <h3 className="font-semibold text-fg">{title}</h3>
       <p className="mt-1 text-sm text-slate">{body}</p>
     </div>
   );
@@ -30,7 +30,7 @@ export default function Landing() {
           <p className="text-sm font-semibold uppercase tracking-wide text-teal">
             Pricing intelligence for usage-based B2B SaaS
           </p>
-          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-extrabold tracking-tight text-navy sm:text-5xl">
+          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
             Stop giving away price that wins you nothing.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
@@ -47,7 +47,7 @@ export default function Landing() {
             </Link>
             <Link
               href="/upload"
-              className="rounded-lg border border-mist bg-white px-5 py-3 font-medium text-navy transition hover:border-teal"
+              className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
               Run it on your data
             </Link>
@@ -73,7 +73,7 @@ export default function Landing() {
 
       <Reveal delay={0.05}>
         <section className="mt-12">
-          <h2 className="text-center text-xl font-bold text-navy">What it does</h2>
+          <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
             <Capability
               title="Find the leakage"
@@ -92,8 +92,28 @@ export default function Landing() {
       </Reveal>
 
       <Reveal delay={0.05}>
-        <section className="mt-12 rounded-xl border border-mist bg-white p-6 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-navy">See it on your own deals</h2>
+        <section className="mt-12 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span className="rounded-full border border-teal/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal">
+                Final phase · coming soon
+              </span>
+              <h2 className="mt-2 text-xl font-bold text-fg">Margin Enhancement</h2>
+              <p className="mt-1 max-w-2xl text-sm text-muted">
+                Next, Pricekeel connects to your contracts and CRM to find margin
+                across the whole book: special pricing agreements, fixed
+                discounts, renewal uplift left on the table, and price-floor
+                breaches. From a retrospective diagnostic to a live margin engine.
+              </p>
+            </div>
+            <span className="shrink-0 text-3xl">📈</span>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <section className="mt-8 rounded-xl border border-mist bg-surface p-6 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-fg">See it on your own deals</h2>
           <p className="mx-auto mt-1 max-w-xl text-sm text-slate">
             Export a CSV of your closed opportunities and get your own diagnostic.
             Your data is processed to produce the analysis and is not stored. If
@@ -108,7 +128,7 @@ export default function Landing() {
             </Link>
             <Link
               href="/upload"
-              className="rounded-lg border border-mist bg-white px-5 py-3 font-medium text-navy transition hover:border-teal"
+              className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
               Upload your CSV
             </Link>
