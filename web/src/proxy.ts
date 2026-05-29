@@ -23,8 +23,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Full sample results: require a captured lead.
-  if (pathname.startsWith("/diagnostic") || pathname.startsWith("/guidance")) {
+  // Full sample results + competitor watch: require a captured lead.
+  if (
+    pathname.startsWith("/diagnostic") ||
+    pathname.startsWith("/guidance") ||
+    pathname.startsWith("/competitor-watch")
+  ) {
     if (request.cookies.get(LEAD_COOKIE)?.value) return NextResponse.next();
     const url = request.nextUrl.clone();
     url.pathname = "/sample";
