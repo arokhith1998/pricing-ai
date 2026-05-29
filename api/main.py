@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
 from pricing import copilot as copilot_mod
 from pricing import docs as docs_mod
+from pricing import matching as matching_mod
 from pricing import rag as rag_mod
 from pricing.diagnostic import run
 from pricing.ingest import ingest
@@ -425,6 +426,46 @@ def copilot_decisions(session_id: str) -> dict:
         "session_id": session_id,
         "decisions": [d.to_dict() for d in copilot_mod.decisions_for(session_id)],
     }
+
+
+# --- Product Matching v1: your pricing page vs your named competitors ------
+# Customer enters their own pricing-page URL + up to ~8 competitor URLs.
+# We fetch each page once (cached), extract structured plans via the LLM in
+# JSON-mode, and match competitor plans to the customer's plans with an
+# embedding+fuzzy scorer. NOT a market-wide scraper — only the customer's
+# named competitors.
+
+class CompareReq(BaseModel):
+    my_url: str
+    competitor_urls: list[str] = []
+
+
+@app.post("/matching/competitor")
+def matching_competitor(req: dict) -> dict:
+    """Extract structured plans from a single competitor pricing URL.
+
+    Useful as a one-shot probe so the UI can show 'we found 3 plans on
+    this URL' before the user commits to a full comparison.
+    """
+    url = (req.get("url") or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing url")
+    vendor, plans = matching_mod.extract_plans_from_url(url)
+    return {
+        "url": url,
+        "vendor": vendor,
+        "plans": [p.to_dict() for p in plans],
+    }
+
+
+@app.post("/matching/compare")
+def matching_compare(req: CompareReq) -> dict:
+    """End-to-end comparison: customer's pricing page vs N competitor pages."""
+    if not req.my_url.strip():
+        raise HTTPException(status_code=400, detail="Missing my_url")
+    competitor_urls = [u.strip() for u in req.competitor_urls if u and u.strip()]
+    comp = matching_mod.compare(req.my_url.strip(), competitor_urls)
+    return comp.to_dict()
 
 
 # --- Win-probability model + discount guidance (Phase 2 / web M2) -----------

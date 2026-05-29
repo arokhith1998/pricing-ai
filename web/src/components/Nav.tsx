@@ -17,6 +17,7 @@ const LINKS: [string, string][] = [
   ["/sample", "Overview"],
   ["/diagnostic", "Diagnostic"],
   ["/guidance", "Guidance"],
+  ["/competitor-watch", "Competitor watch"],
 ];
 
 export default function Nav() {
