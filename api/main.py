@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
+from pricing import copilot as copilot_mod
 from pricing import docs as docs_mod
 from pricing import rag as rag_mod
 from pricing.diagnostic import run
@@ -361,6 +362,68 @@ def ask_endpoint(req: AskReq) -> dict:
             }
             for c in ans.citations
         ],
+    }
+
+
+# --- Copilot v2: canonical questions + structured opportunities -------------
+# The copilot turns the analysis into a ranked list of Opportunity objects
+# (revenue impact + confidence + evidence) and asks the LLM to narrate them.
+# Every dollar figure is deterministic; the LLM never invents numbers.
+
+class CanonicalReq(BaseModel):
+    qid: str
+    session_id: str | None = None
+    analysis: dict | None = None
+    min_impact_usd: float = 0.0
+
+
+@app.get("/copilot/canonical")
+def copilot_canonical_list() -> dict:
+    """The six canonical questions the UI surfaces as chips."""
+    return {"questions": copilot_mod.CANONICAL_QUESTIONS}
+
+
+@app.post("/copilot/canonical")
+def copilot_canonical(req: CanonicalReq) -> dict:
+    """Deterministic opportunities + LLM narrative for one canonical question."""
+    analysis = req.analysis if req.analysis is not None else _diagnostic_payload(
+        str(DEMO_CSV), 0.15,
+    )
+    ans = copilot_mod.answer_canonical(
+        req.qid, analysis, min_impact_usd=req.min_impact_usd,
+    )
+    # Auto-log every surfaced set so the decision log always reflects what
+    # the user actually saw (accept / reject can come later via /copilot/log).
+    if req.session_id:
+        copilot_mod.log_decision(
+            req.session_id, req.qid,
+            surfaced=[o.id for o in ans.opportunities],
+        )
+    return ans.to_dict()
+
+
+class DecisionLogReq(BaseModel):
+    session_id: str
+    qid: str
+    accepted: list[str] = []
+    rejected: list[str] = []
+    note: str = ""
+
+
+@app.post("/copilot/log")
+def copilot_log(req: DecisionLogReq) -> dict:
+    d = copilot_mod.log_decision(
+        req.session_id, req.qid,
+        accepted=req.accepted, rejected=req.rejected, note=req.note,
+    )
+    return {"logged": True, "decision": d.to_dict()}
+
+
+@app.get("/copilot/decisions")
+def copilot_decisions(session_id: str) -> dict:
+    return {
+        "session_id": session_id,
+        "decisions": [d.to_dict() for d in copilot_mod.decisions_for(session_id)],
     }
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Diagnostic } from "@/lib/api";
 
@@ -11,17 +11,129 @@ type Citation = {
   detail: string;
 };
 
+type Evidence = { type: string; value: string; source: string };
+type Opportunity = {
+  id: string;
+  kind: string;
+  scope: string;
+  current: string;
+  recommended: string;
+  revenue_impact_usd: number;
+  confidence: number;
+  evidence: Evidence[];
+  methodology: string;
+};
+type CanonicalQ = { id: string; label: string; hint: string };
+
 type Message =
   | { role: "user"; text: string }
-  | { role: "assistant"; text: string; citations: Citation[]; usedWeb: boolean };
+  | { role: "assistant"; text: string; citations: Citation[]; usedWeb: boolean }
+  | {
+      role: "copilot";
+      qid: string;
+      text: string;
+      opportunities: Opportunity[];
+      decisions: Record<string, "accepted" | "rejected" | "pending">;
+    };
 
 type UploadedDoc = { name: string; chunks: number };
 
-const SAMPLE_QUESTIONS = [
-  "What does our policy say about discounts over 20%?",
-  "Which deals look like packaging-fence problems, and why?",
-  "What concessions should I ask for at 25% discount?",
-];
+function fmtMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+function OpportunityCard({
+  opp,
+  verdict,
+  onAccept,
+  onReject,
+}: {
+  opp: Opportunity;
+  verdict: "accepted" | "rejected" | "pending";
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const conf = Math.round(opp.confidence * 100);
+  const accent =
+    opp.kind === "raise_price"
+      ? "border-teal/40"
+      : opp.kind === "governance"
+        ? "border-coral/40"
+        : opp.kind === "investigate"
+          ? "border-mist"
+          : "border-teal/30";
+  return (
+    <div
+      className={`rounded-xl border ${accent} bg-surface p-3 ${
+        verdict === "rejected" ? "opacity-50" : ""
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted">
+          {opp.scope}
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-lg font-bold tabular-nums text-fg">
+            {fmtMoney(opp.revenue_impact_usd)}
+          </div>
+          <div className="text-[10px] text-muted">est. annual impact</div>
+        </div>
+      </div>
+      <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-ink">
+        <div>
+          <span className="text-muted">Now:</span> {opp.current}
+        </div>
+        <div>
+          <span className="text-muted">Move:</span> {opp.recommended}
+        </div>
+      </div>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-[11px] text-muted hover:text-fg">
+          {opp.evidence.length} pieces of evidence · {conf}% confidence ·{" "}
+          {opp.methodology}
+        </summary>
+        <ul className="mt-1 space-y-0.5 pl-3 text-[11px] text-muted">
+          {opp.evidence.map((e, i) => (
+            <li key={i}>
+              <span className="text-teal">[A]</span> {e.value}{" "}
+              <span className="text-mist">· {e.source}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+        {verdict === "pending" ? (
+          <>
+            <button
+              onClick={onReject}
+              className="rounded border border-mist bg-surface-2 px-2 py-1 text-muted hover:border-coral hover:text-coral"
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={onAccept}
+              className="rounded bg-teal px-3 py-1 font-medium text-bg hover:scale-[1.02]"
+            >
+              Accept
+            </button>
+          </>
+        ) : (
+          <span
+            className={`ml-auto rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+              verdict === "accepted"
+                ? "border border-teal text-teal"
+                : "border border-mist text-muted"
+            }`}
+          >
+            {verdict}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CitationChip({ c, n }: { c: Citation; n: number }) {
   const color =
@@ -50,6 +162,90 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
   const [useWeb, setUseWeb] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [canonicalQs, setCanonicalQs] = useState<CanonicalQ[]>([]);
+
+  // Pull the six canonical questions once when the panel first opens.
+  useEffect(() => {
+    if (!open || canonicalQs.length > 0) return;
+    fetch("/api/copilot?action=canonical")
+      .then((r) => (r.ok ? r.json() : { questions: [] }))
+      .then((d) => setCanonicalQs((d.questions as CanonicalQ[]) ?? []))
+      .catch(() => {});
+  }, [open, canonicalQs.length]);
+
+  async function askCanonical(qid: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "canonical",
+          qid,
+          session_id: sessionId,
+          analysis,
+          min_impact_usd: 0,
+        }),
+      });
+      if (!r.ok) {
+        const b = await r.json().catch(() => ({}));
+        throw new Error(b.error || "Copilot failed.");
+      }
+      const data = await r.json();
+      const label =
+        canonicalQs.find((q) => q.id === qid)?.label ?? qid;
+      const decisions: Record<string, "pending"> = {};
+      for (const o of data.opportunities ?? []) decisions[o.id] = "pending";
+      setMessages((m) => [
+        ...m,
+        { role: "user", text: label },
+        {
+          role: "copilot",
+          qid,
+          text: data.text || "",
+          opportunities: data.opportunities ?? [],
+          decisions,
+        },
+      ]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Copilot failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function logOppDecision(
+    msgIndex: number,
+    qid: string,
+    oppId: string,
+    verdict: "accepted" | "rejected",
+  ) {
+    // Optimistic UI: flip the badge first; persist after.
+    setMessages((m) =>
+      m.map((msg, i) =>
+        i === msgIndex && msg.role === "copilot"
+          ? { ...msg, decisions: { ...msg.decisions, [oppId]: verdict } }
+          : msg,
+      ),
+    );
+    if (!sessionId) return; // logging is server-side per-session
+    try {
+      await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "log",
+          session_id: sessionId,
+          qid,
+          accepted: verdict === "accepted" ? [oppId] : [],
+          rejected: verdict === "rejected" ? [oppId] : [],
+        }),
+      });
+    } catch {
+      // Swallow — the UI verdict already reflects the user's intent.
+    }
+  }
 
   async function uploadDocs(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -237,45 +433,99 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
             {/* Conversation */}
             <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {messages.length === 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="text-sm text-muted">
-                    Ask anything about your analysis or the documents you have
-                    uploaded. Every claim cites a source: [A] analysis, [D#]
-                    document chunks, [W#] web.
+                    Pick a canonical question — every answer is grounded in
+                    your analysis with a deterministic dollar impact estimate
+                    and the math written out. Decisions you take are logged.
                   </p>
                   <div className="space-y-1.5">
-                    {SAMPLE_QUESTIONS.map((q) => (
+                    {(canonicalQs.length > 0
+                      ? canonicalQs.map((q) => ({ label: q.label, hint: q.hint, qid: q.id }))
+                      : []
+                    ).map((q) => (
                       <button
-                        key={q}
-                        onClick={() => ask(q)}
+                        key={q.qid}
+                        onClick={() => askCanonical(q.qid)}
                         disabled={busy}
-                        className="block w-full rounded-lg border border-mist bg-surface-2 px-3 py-2 text-left text-xs text-fg hover:border-teal"
+                        className="group block w-full rounded-lg border border-mist bg-surface-2 px-3 py-2 text-left hover:border-teal"
                       >
-                        {q}
+                        <div className="text-sm font-medium text-fg group-hover:text-teal">
+                          {q.label}
+                        </div>
+                        <div className="text-[11px] text-muted">{q.hint}</div>
                       </button>
                     ))}
                   </div>
+                  <p className="pt-2 text-[11px] text-muted">
+                    Or ask anything in free-form below — those answers use the
+                    RAG pipeline (analysis + your uploaded docs + optional web).
+                  </p>
                 </div>
               ) : null}
 
-              {messages.map((m, i) =>
-                m.role === "user" ? (
-                  <div key={i} className="flex justify-end">
-                    <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-navy px-3 py-2 text-sm text-white">
-                      {m.text}
+              {messages.map((m, i) => {
+                if (m.role === "user") {
+                  return (
+                    <div key={i} className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-navy px-3 py-2 text-sm text-white">
+                        {m.text}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div key={i} className="flex flex-col gap-1">
-                    <div className="max-w-[95%] rounded-2xl rounded-bl-sm border border-mist bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink">
-                      {renderAssistantText(m)}
+                  );
+                }
+                if (m.role === "assistant") {
+                  return (
+                    <div key={i} className="flex flex-col gap-1">
+                      <div className="max-w-[95%] rounded-2xl rounded-bl-sm border border-mist bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink">
+                        {renderAssistantText(m)}
+                      </div>
+                      {m.usedWeb ? (
+                        <span className="text-[10px] text-muted">
+                          web search was used
+                        </span>
+                      ) : null}
                     </div>
-                    {m.usedWeb ? (
-                      <span className="text-[10px] text-muted">web search was used</span>
+                  );
+                }
+                // copilot message
+                return (
+                  <div key={i} className="flex flex-col gap-2">
+                    {m.text ? (
+                      <div className="max-w-[95%] rounded-2xl rounded-bl-sm border border-teal/30 bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink">
+                        {m.text}
+                      </div>
                     ) : null}
+                    {m.opportunities.length === 0 ? (
+                      <div className="rounded-lg border border-mist bg-surface-2 px-3 py-2 text-xs text-muted">
+                        No opportunities cleared the deterministic threshold
+                        for this question. Try the free-form composer below
+                        or upload your own CSV in /upload for a richer answer.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {m.opportunities.map((o) => (
+                          <OpportunityCard
+                            key={o.id}
+                            opp={o}
+                            verdict={m.decisions[o.id] ?? "pending"}
+                            onAccept={() =>
+                              logOppDecision(i, m.qid, o.id, "accepted")
+                            }
+                            onReject={() =>
+                              logOppDecision(i, m.qid, o.id, "rejected")
+                            }
+                          />
+                        ))}
+                        <div className="text-[10px] text-muted">
+                          Decisions are logged with their math. Defensible to
+                          finance.
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ),
-              )}
+                );
+              })}
 
               {busy ? (
                 <div className="text-xs text-muted">Thinking…</div>
