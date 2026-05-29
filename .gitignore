@@ -20,6 +20,12 @@ vault/
 !.env.example
 *.pem
 *.key
+# Founder-only credential / password notes — must never land in this repo.
+*[Pp]assword*.txt
+*[Pp]assword*.md
+secrets/
+# Local panel-run logs (verbatim LLM output; full transcripts live in vault).
+panel-*.log
 
 # --- Python ---
 __pycache__/
