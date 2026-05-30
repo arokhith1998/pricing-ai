@@ -2,15 +2,19 @@ import Link from "next/link";
 import Reveal from "@/components/Reveal";
 import RoiCalculator from "@/components/RoiCalculator";
 import FounderStrip from "@/components/FounderStrip";
+import DiagnosticPreview from "@/components/DiagnosticPreview";
+import MethodologyStrip from "@/components/MethodologyStrip";
+import TrustStrip from "@/components/TrustStrip";
 
 // Static marketing landing — no API dependency, so it always loads fast.
 export const dynamic = "force-static";
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
   return (
     <div className="rounded-xl border border-mist bg-surface p-5 text-center shadow-sm">
       <div className="text-3xl font-extrabold tabular-nums text-fg">{value}</div>
       <div className="mt-1 text-sm text-slate">{label}</div>
+      {sub ? <div className="mt-1 text-xs text-muted">{sub}</div> : null}
     </div>
   );
 }
@@ -27,14 +31,20 @@ function Capability({ title, body }: { title: string; body: string }) {
 export default function Landing() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
+      {/* 1. Hero ------------------------------------------------------------ */}
       <Reveal>
         <section className="py-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-teal">
-            Pricing intelligence for usage-based B2B SaaS
-          </p>
-          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
+          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
             Stop giving away price that wins you nothing.
           </h1>
+          {/* Audience chip — promoted from micro-eyebrow into a substantive
+              subhead so the 'who is this for' answer is immediate. */}
+          <div className="mt-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-surface px-3 py-1 text-xs font-semibold text-teal">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />
+              For VP Pricing teams at $10–100M ARR usage-based B2B SaaS
+            </span>
+          </div>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
             Pricekeel reads your closed deals and shows where discounting buys
             wins, where it just gives money away, and the discount that earns the
@@ -47,36 +57,69 @@ export default function Landing() {
             >
               Try it on sample data
             </Link>
+            {/* Demoted to text-link weight per the audit — the gated path
+                should not compete visually with the demo path. */}
             <Link
               href="/upload"
-              className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
+              className="text-sm font-medium text-muted underline-offset-4 hover:text-teal hover:underline"
             >
-              Run it on your data
+              Or run it on your own CSV →
             </Link>
           </div>
         </section>
       </Reveal>
 
+      {/* 2. Product preview (NEW) ------------------------------------------ */}
       <Reveal delay={0.05}>
-        <section className="mt-10">
-          <p className="text-center text-sm font-medium text-slate">
-            The pricing upside hiding in a typical book of deals
+        <section className="mt-12">
+          <DiagnosticPreview />
+        </section>
+      </Reveal>
+
+      {/* 3. ROI calculator — promoted to position 3 ------------------------ */}
+      <Reveal delay={0.05}>
+        <section className="mt-14">
+          <RoiCalculator />
+        </section>
+      </Reveal>
+
+      {/* 4. Live sample numbers (replaces generic industry stats) --------- */}
+      <Reveal delay={0.05}>
+        <section className="mt-14">
+          <p className="text-center text-xs font-semibold uppercase tracking-wider text-teal">
+            What Pricekeel surfaced on the bundled sample
           </p>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat value="10–20%" label="of list price given up to discounting" />
-            <Stat value="~17%" label="of booked value discounted past the point that wins anything" />
-            <Stat value="1 in 4" label="off-policy deals closed with no recorded approver" />
+          <h2 className="mt-2 text-center text-xl font-bold text-fg">
+            2,000 closed deals → three numbers a CFO can act on
+          </h2>
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Stat
+              value="$67.1M"
+              label="Booked value (won)"
+              sub="1,215 won / 785 lost · win rate 60.8%"
+            />
+            <Stat
+              value="$11.2M"
+              label="Pricing upside to pursue"
+              sub="16.7% of booked, past the win point"
+            />
+            <Stat
+              value="81.4%"
+              label="Price realization"
+              sub="avg discount 13.8%"
+            />
           </div>
-          <p className="mt-2 text-center text-xs text-slate">
-            Figures from the bundled sample. Your numbers come from your own data.
+          <p className="mt-3 text-center text-xs text-muted">
+            Live figures from the bundled sample. Your numbers come from your CSV.
           </p>
         </section>
       </Reveal>
 
+      {/* 5. What it does — 4 cards (Defend the decision is new) ----------- */}
       <Reveal delay={0.05}>
-        <section className="mt-12">
+        <section className="mt-14">
           <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Capability
               title="Find the leakage"
               body="Price realization, win rate by discount band, and three views of discount leakage from a plain description to the strongest claim worth acting on."
@@ -89,18 +132,24 @@ export default function Landing() {
               title="Guide the next discount"
               body="A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why."
             />
+            <Capability
+              title="Defend the decision"
+              body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal — no LLM-invented numbers."
+            />
           </div>
         </section>
       </Reveal>
 
+      {/* 6. Methodology credibility (NEW) ---------------------------------- */}
       <Reveal delay={0.05}>
-        <section className="mt-12">
-          <RoiCalculator />
+        <section className="mt-14">
+          <MethodologyStrip />
         </section>
       </Reveal>
 
+      {/* 7. Stack strip — unchanged --------------------------------------- */}
       <Reveal delay={0.05}>
-        <section className="mt-12">
+        <section className="mt-14">
           <p className="text-center text-sm font-medium text-slate">
             Built for the stack you already run
           </p>
@@ -135,8 +184,9 @@ export default function Landing() {
         </section>
       </Reveal>
 
+      {/* 8. Margin Enhancement teaser — kept ------------------------------ */}
       <Reveal delay={0.05}>
-        <section className="mt-12 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
+        <section className="mt-14 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span className="rounded-full border border-teal/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal">
@@ -155,14 +205,23 @@ export default function Landing() {
         </section>
       </Reveal>
 
+      {/* 9. Founder strip — placeholder until real bio + headshot land --- */}
       <Reveal delay={0.05}>
-        <section className="mt-12">
+        <section className="mt-14">
           <FounderStrip />
         </section>
       </Reveal>
 
+      {/* 10. Trust strip (NEW) -------------------------------------------- */}
       <Reveal delay={0.05}>
-        <section className="mt-8 rounded-xl border border-mist bg-surface p-6 text-center shadow-sm">
+        <section className="mt-10">
+          <TrustStrip />
+        </section>
+      </Reveal>
+
+      {/* 11. Final CTA — kept --------------------------------------------- */}
+      <Reveal delay={0.05}>
+        <section className="mt-10 rounded-xl border border-mist bg-surface p-6 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-fg">See it on your own deals</h2>
           <p className="mx-auto mt-1 max-w-xl text-sm text-slate">
             Export a CSV of your closed opportunities and get your own diagnostic.
