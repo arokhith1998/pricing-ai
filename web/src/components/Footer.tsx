@@ -20,6 +20,9 @@ export default function Footer() {
           <Link href="/blog" className="hover:text-fg">
             Blog
           </Link>
+          <Link href="/brand" className="hover:text-fg">
+            Brand
+          </Link>
           <Link href="/trust" className="hover:text-fg">
             Trust
           </Link>
