@@ -195,28 +195,31 @@ def test_pricing_position_reported_unknown_when_a_price_is_missing():
     assert pro.price_delta_pct is None
 
 
-# --- fetch cache (no network needed; monkeypatch requests.get) ---------------
+# --- fetch cache (no network needed; monkeypatch safe_get) -----------------
+#
+# We stub matching.safe_get instead of requests.get. Since adding the SSRF
+# guard (2026-05-30), `fetch_pricing_page` and `_robots_for` both flow
+# through `safe_get` — which resolves the hostname before any HTTP request,
+# so the old `example.test`/`blocked.test` fixtures would now fail at DNS.
+# Patching the public boundary keeps the tests fast and offline.
 
-class _FakeResp:
-    def __init__(self, body: bytes, status: int = 200):
-        self.content = body
-        self.encoding = "utf-8"
-        self.status_code = status
-        self.text = body.decode("utf-8", errors="replace")
-    def raise_for_status(self):
-        return None
+from pricing._safe_fetch import SafeResponse
+
+
+def _fake_safe(body: bytes, status: int = 200) -> SafeResponse:
+    return SafeResponse(status_code=status, url="https://example.test/", content=body, encoding="utf-8")
 
 
 def test_fetch_pricing_page_caches_within_ttl(monkeypatch):
     page_calls = {"n": 0}
 
-    def fake_get(url, **kwargs):
+    def fake_safe_get(url, **kwargs):
         # Don't count robots.txt fetches toward page-cache assertion.
         if not url.endswith("/robots.txt"):
             page_calls["n"] += 1
-        return _FakeResp(b"<html><body>Plans: Free, Pro</body></html>")
+        return _fake_safe(b"<html><body>Plans: Free, Pro</body></html>")
 
-    monkeypatch.setattr(matching.requests, "get", fake_get)
+    monkeypatch.setattr(matching, "safe_get", fake_safe_get)
     matching._FETCH_CACHE.clear()
     matching._ROBOTS_CACHE.clear()
 
@@ -230,11 +233,11 @@ def test_fetch_pricing_page_caches_within_ttl(monkeypatch):
 def test_fetch_pricing_page_refetches_after_ttl(monkeypatch):
     calls = {"n": 0}
 
-    def fake_get(url, **kwargs):
+    def fake_safe_get(url, **kwargs):
         calls["n"] += 1
-        return _FakeResp(b"<p>hello</p>")
+        return _fake_safe(b"<p>hello</p>")
 
-    monkeypatch.setattr(matching.requests, "get", fake_get)
+    monkeypatch.setattr(matching, "safe_get", fake_safe_get)
     matching._FETCH_CACHE.clear()
     matching._ROBOTS_CACHE.clear()
 
@@ -246,23 +249,14 @@ def test_fetch_pricing_page_refetches_after_ttl(monkeypatch):
 
 # --- IP-risk hardening (robots.txt + kill-switch) ---------------------------
 
-class _RobotsResp:
-    """robots.txt response that disallows everything for our UA."""
-    def __init__(self, body: str, status: int = 200):
-        self.text = body
-        self.status_code = status
-    def raise_for_status(self):
-        if self.status_code >= 400:
-            raise matching.requests.RequestException("robots fetch failed")
-
 
 def test_fetch_blocked_by_robots_txt(monkeypatch):
-    def fake_get(url, **kwargs):
+    def fake_safe_get(url, **kwargs):
         if url.endswith("/robots.txt"):
-            return _RobotsResp("User-agent: *\nDisallow: /pricing\n")
-        return _FakeResp(b"<p>should never reach</p>")
+            return _fake_safe(b"User-agent: *\nDisallow: /pricing\n")
+        return _fake_safe(b"<p>should never reach</p>")
 
-    monkeypatch.setattr(matching.requests, "get", fake_get)
+    monkeypatch.setattr(matching, "safe_get", fake_safe_get)
     matching._FETCH_CACHE.clear()
     matching._ROBOTS_CACHE.clear()
 
@@ -272,12 +266,12 @@ def test_fetch_blocked_by_robots_txt(monkeypatch):
 
 
 def test_fetch_allowed_when_no_robots_txt(monkeypatch):
-    def fake_get(url, **kwargs):
+    def fake_safe_get(url, **kwargs):
         if url.endswith("/robots.txt"):
-            return _RobotsResp("", status=404)
-        return _FakeResp(b"<p>ok</p>")
+            return _fake_safe(b"", status=404)
+        return _fake_safe(b"<p>ok</p>")
 
-    monkeypatch.setattr(matching.requests, "get", fake_get)
+    monkeypatch.setattr(matching, "safe_get", fake_safe_get)
     matching._FETCH_CACHE.clear()
     matching._ROBOTS_CACHE.clear()
 

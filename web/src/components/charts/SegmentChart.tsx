@@ -19,9 +19,19 @@ const TEAL = "#2dd4bf"; // worst-segment bar
 const MIST = "#1f2c43"; // grid
 const SLATE = "#8ea3bd"; // axis text
 
-function SegTooltip({ active, payload, dimKey }: any) {
+// Minimal shape we use from Recharts' Tooltip `content` callback.
+// Recharts' own type marks both `payload` and `payload[i].payload` as
+// optional — mirror that or TS rejects the spread at the call site.
+type TooltipProps<T> = {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: T }>;
+  dimKey?: string;
+};
+
+function SegTooltip({ active, payload, dimKey = "segment" }: TooltipProps<SliceRow>) {
   if (!active || !payload?.length) return null;
-  const r: SliceRow = payload[0].payload;
+  const r = payload[0].payload;
+  if (!r) return null;
   return (
     <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
       <div className="font-semibold text-fg">{String(r[dimKey])}</div>

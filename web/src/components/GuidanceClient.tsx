@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Deal, Recommendation } from "@/lib/api";
-import { money, pct, pct0 } from "@/lib/format";
+import { money, pct0 } from "@/lib/format";
 import ExpectedValueChart from "@/components/charts/ExpectedValueChart";
 
 function Stat({
@@ -63,6 +63,13 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
   useEffect(() => {
     if (!selected) return;
     let cancelled = false;
+    // Synchronizing UI state with the fetch about to start. The new
+    // react-hooks/set-state-in-effect rule (React 19) fires on the first
+    // setState; the cancellation flag below is the unmount-safety the rule
+    // worries about. Both setStates share the same justification, but the
+    // linter only flags the first — the eslint-disable for setError(false)
+    // would itself become "unused directive" and re-trigger lint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(false);
     fetch("/api/recommend", {

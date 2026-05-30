@@ -1,7 +1,14 @@
 // Same-origin proxy: forward an Ask-your-Pricekeel question to FastAPI /ask.
+import { requireLead } from "@/lib/gate";
+
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 export async function POST(req: Request) {
+  // Chat answers are demo-gated. (For Phase-3 docs/RAG calls the upstream
+  // /ask handler itself can re-check ACCESS_COOKIE; the cookie is forwarded.)
+  const denied = await requireLead();
+  if (denied) return denied;
+
   let body: unknown;
   try {
     body = await req.json();

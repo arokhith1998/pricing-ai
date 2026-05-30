@@ -1,8 +1,13 @@
 import { getRecommendation } from "@/lib/api";
+import { requireLead } from "@/lib/gate";
 
 // Same-origin proxy to the FastAPI /recommend endpoint. Keeps the API base URL
 // server-side (PRICEKEEL_API), so the browser only ever talks to this origin.
 export async function POST(req: Request) {
+  // /guidance is demo-gated; this is the API it calls.
+  const denied = await requireLead();
+  if (denied) return denied;
+
   let opportunity_id: string;
   try {
     ({ opportunity_id } = await req.json());
