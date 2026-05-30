@@ -10,7 +10,7 @@ export default function Footer() {
           <span className="font-semibold text-teal">keel</span>
           <span className="ml-2">© {year}</span>
         </div>
-        <nav className="flex items-center gap-5">
+        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <Link href="/sample" className="hover:text-fg">
             Sample
           </Link>
@@ -20,8 +20,20 @@ export default function Footer() {
           <Link href="/blog" className="hover:text-fg">
             Blog
           </Link>
+          <Link href="/trust" className="hover:text-fg">
+            Trust
+          </Link>
           <Link href="/privacy" className="hover:text-fg">
             Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-fg">
+            Terms
+          </Link>
+          <Link href="/subprocessors" className="hover:text-fg">
+            Subprocessors
+          </Link>
+          <Link href="/licenses" className="hover:text-fg">
+            Licenses
           </Link>
           <Link href="/upload" className="hover:text-fg">
             Your data
