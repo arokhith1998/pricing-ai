@@ -63,7 +63,23 @@ function OpportunityCard({
         ? "border-coral/40"
         : opp.kind === "investigate"
           ? "border-mist"
-          : "border-teal/30";
+          : opp.kind === "defended"
+            ? "border-teal/50 bg-surface-2"
+            : "border-teal/30";
+
+  // Label the headline number honestly. Per the 2026-05-30 expert review
+  // (which read pricing/copilot.py:154 directly): every dollar figure is
+  // "pricing upside to investigate", NOT a guaranteed savings claim. The
+  // defended card is the exception — that one is reportage of actual
+  // booked value, so it labels accordingly.
+  const isDefended = opp.kind === "defended";
+  const headlineLabel = isDefended
+    ? "defended booked value"
+    : "pricing upside to investigate";
+  const footnote = isDefended
+    ? "Reportage: actual booked value where discount ≤ reference."
+    : "Investigate, not guaranteed savings.";
+
   return (
     <div
       className={`rounded-xl border ${accent} bg-surface p-3 ${
@@ -75,10 +91,14 @@ function OpportunityCard({
           {opp.scope}
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-lg font-bold tabular-nums text-fg">
+          <div
+            className={`text-lg font-bold tabular-nums ${
+              isDefended ? "text-teal" : "text-fg"
+            }`}
+          >
             {fmtMoney(opp.revenue_impact_usd)}
           </div>
-          <div className="text-[10px] text-muted">est. annual impact</div>
+          <div className="text-[10px] text-muted">{headlineLabel}</div>
         </div>
       </div>
       <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-ink">
@@ -103,34 +123,43 @@ function OpportunityCard({
           ))}
         </ul>
       </details>
-      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-        {verdict === "pending" ? (
-          <>
-            <button
-              onClick={onReject}
-              className="rounded border border-mist bg-surface-2 px-2 py-1 text-muted hover:border-coral hover:text-coral"
-            >
-              Dismiss
-            </button>
-            <button
-              onClick={onAccept}
-              className="rounded bg-teal px-3 py-1 font-medium text-bg hover:scale-[1.02]"
-            >
-              Accept
-            </button>
-          </>
-        ) : (
-          <span
-            className={`ml-auto rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-              verdict === "accepted"
-                ? "border border-teal text-teal"
-                : "border border-mist text-muted"
-            }`}
-          >
-            {verdict}
-          </span>
-        )}
+      <div className="mt-1 text-[10px] italic text-muted">
+        {footnote}{" "}
+        <a href="/trust" className="underline hover:text-fg">
+          Methodology
+        </a>
       </div>
+      {/* The defended card is informational; no accept/dismiss. */}
+      {isDefended ? null : (
+        <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+          {verdict === "pending" ? (
+            <>
+              <button
+                onClick={onReject}
+                className="rounded border border-mist bg-surface-2 px-2 py-1 text-muted hover:border-coral hover:text-coral"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={onAccept}
+                className="rounded bg-teal px-3 py-1 font-medium text-bg hover:scale-[1.02]"
+              >
+                Accept
+              </button>
+            </>
+          ) : (
+            <span
+              className={`ml-auto rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                verdict === "accepted"
+                  ? "border border-teal text-teal"
+                  : "border border-mist text-muted"
+              }`}
+            >
+              {verdict}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

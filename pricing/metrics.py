@@ -266,6 +266,49 @@ def leakage(df: pd.DataFrame,
     }
 
 
+def defended_vs_investigate(df: pd.DataFrame,
+                            policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+                            ) -> dict:
+    """Sales-friendly split of won deals: discount earned vs discount worth investigating.
+
+    The expert-review framing (2026-05-30): "We help reps stop giving discount
+    where it does not change win probability, AND defend the discounts that do."
+    The leakage lenses tell only the second half of that story. This function
+    surfaces both sides so sales sees the work the discounting actually earned.
+
+    Split rule (deliberately conservative):
+      - DEFENDED  : won deals where discount_pct <= reference_threshold
+                    (sat in or below the band where win rate had room to
+                    move; the discount plausibly bought the win)
+      - INVESTIGATE: won deals where discount_pct > reference_threshold
+                    (gave more discount than the win curve required — these
+                    are the deals worth a retrospective review)
+
+    Returns booked-value totals + deal counts for each bucket. Pure function,
+    no LLM, no assumed "recovery rate" — just the split.
+    """
+    won = _won(df)
+    if won.empty:
+        return {"reference_threshold": 0.0,
+                "defended_value": 0.0, "defended_deals": 0,
+                "investigate_value": 0.0, "investigate_deals": 0,
+                "defended_pct_of_booked": 0.0}
+    ref = reference_discount(df)
+    rt = float(ref["reference_threshold"])
+    defended_mask = won["discount_pct"] <= rt
+    defended_value = float(won.loc[defended_mask, "booked_acv"].sum())
+    investigate_value = float(won.loc[~defended_mask, "booked_acv"].sum())
+    booked_total = defended_value + investigate_value
+    return {
+        "reference_threshold": rt,
+        "defended_value": defended_value,
+        "defended_deals": int(defended_mask.sum()),
+        "investigate_value": investigate_value,
+        "investigate_deals": int((~defended_mask).sum()),
+        "defended_pct_of_booked": (defended_value / booked_total) if booked_total else 0.0,
+    }
+
+
 def quarter_end_effect(df: pd.DataFrame) -> dict:
     """Compare discounting in the quarter-end window vs the rest (won deals)."""
     won = _won(df)

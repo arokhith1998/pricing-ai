@@ -27,6 +27,14 @@ def _base_analysis() -> dict:
             "deals_above_reference": 612,
             "excess_pct_of_booked": 0.08,
         },
+        "defended_vs_investigate": {
+            "reference_threshold": 0.09,
+            "defended_value": 48_000_000.0,
+            "defended_deals": 603,
+            "investigate_value": 12_000_000.0,
+            "investigate_deals": 612,
+            "defended_pct_of_booked": 0.80,
+        },
         "governance": {"off_policy_no_approver": 87},
         "quarter_end": {"qe_deals": 240, "qe_avg_discount": 0.18,
                         "rest_avg_discount": 0.13, "lift": 0.05,
@@ -117,9 +125,13 @@ def test_opportunities_sorted_by_impact_descending():
     opps = copilot.opportunities(_base_analysis())
     impacts = [o.revenue_impact_usd for o in opps]
     assert impacts == sorted(impacts, reverse=True)
-    # Highest should be excess leakage at $1.92M
-    assert opps[0].kind == "reduce_leakage"
-    assert opps[0].revenue_impact_usd > 1_500_000
+    # Top-by-magnitude is the defended-wins reportage ($48M booked) — it sorts
+    # above the leakage opportunities by dollar size, which is correct: a
+    # buyer asking 'biggest number first' should see what their discounting
+    # bought before what it leaked. The leakage-kind opp still appears next.
+    assert opps[0].kind == "defended"
+    leakage_opps = [o for o in opps if o.kind == "reduce_leakage"]
+    assert leakage_opps and leakage_opps[0].revenue_impact_usd > 1_500_000
 
 
 def test_opportunities_min_impact_filter():
@@ -164,3 +176,29 @@ def test_canonical_questions_have_six_entries_with_required_keys():
     assert len(copilot.CANONICAL_QUESTIONS) == 6
     for q in copilot.CANONICAL_QUESTIONS:
         assert {"id", "label", "hint"} <= set(q.keys())
+
+
+# --- defended-wins extractor (sales-friendly framing per 2026-05-30 review) -
+
+def test_defended_wins_extractor_emits_with_reportage_framing():
+    o = copilot._opp_defended_wins(_base_analysis())
+    assert o is not None
+    assert o.kind == "defended"
+    # revenue_impact_usd is the defended VALUE itself — not a savings claim.
+    assert o.revenue_impact_usd == 48_000_000.0
+    # Recommendation should not say "save" or "recover" — it's reportage.
+    rec = o.recommended.lower()
+    assert "keep doing this" in rec or "defend" in rec
+    assert "save" not in rec and "recover" not in rec
+
+
+def test_defended_wins_returns_none_when_no_defended_value():
+    a = _base_analysis()
+    a["defended_vs_investigate"]["defended_value"] = 0
+    assert copilot._opp_defended_wins(a) is None
+
+
+def test_opportunities_includes_defended_card():
+    pool = copilot.opportunities(_base_analysis())
+    kinds = [o.kind for o in pool]
+    assert "defended" in kinds, "defended-wins extractor must appear in the pool"

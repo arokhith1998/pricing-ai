@@ -139,6 +139,48 @@ def _safe(d: dict, *keys, default=0.0):
 # Opportunity extractors — pure functions of the analysis dict
 
 
+def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
+    """Informational, sales-friendly companion to the leakage opportunities.
+
+    Surfaces the booked value where the discount sat at-or-below the reference
+    threshold — i.e. the discounting that plausibly bought the wins. No
+    "recovery rate" assumption is applied; this is reportage, not a refund
+    claim. Treat this as the sales-readout balance to the leakage list.
+    """
+    dvi = analysis.get("defended_vs_investigate") or {}
+    defended = float(dvi.get("defended_value") or 0)
+    if defended <= 0:
+        return None
+    defended_n = int(dvi.get("defended_deals") or 0)
+    investigate = float(dvi.get("investigate_value") or 0)
+    investigate_n = int(dvi.get("investigate_deals") or 0)
+    rt = float(dvi.get("reference_threshold") or 0)
+    pct = float(dvi.get("defended_pct_of_booked") or 0)
+    return Opportunity(
+        id=_new_id("defended"),
+        kind="defended",
+        scope="Won deals where the discount earned the win",
+        current=f"{_pct(pct)} of booked value — {defended_n:,} deals at discount ≤ {_pct(rt)}",
+        recommended=(
+            "Sales: keep doing this. These discounts sat at or below the win-curve "
+            "reference; trim only where the curve says you would have won anyway."
+        ),
+        # revenue_impact_usd here is the *defended* booked value, NOT a savings
+        # claim. The UI labels it accordingly ("defended value", not "upside").
+        revenue_impact_usd=defended,
+        confidence=0.90,  # high — it is reportage of historical fact
+        evidence=[
+            Evidence("realization",
+                     f"{_money(defended)} booked at discount ≤ {_pct(rt)}",
+                     "defended_vs_investigate.defended_value"),
+            Evidence("leakage",
+                     f"{_money(investigate)} ({investigate_n:,} deals) above reference — see investigate list",
+                     "defended_vs_investigate.investigate_value"),
+        ],
+        methodology="Win-curve reference (Nagle) — discount at or below the band where win rate plateaus",
+    )
+
+
 def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
     """Excess vs reference: the headline leakage. Always recommend trimming."""
     lk = analysis.get("leakage") or {}
@@ -390,6 +432,7 @@ def opportunities(analysis: dict, *, min_impact_usd: float = 0.0) -> list[Opport
     """
     pool: list[Opportunity] = []
     for opp in (
+        _opp_defended_wins(analysis),
         _opp_excess_leakage(analysis),
         _opp_off_policy(analysis),
         _opp_quarter_end(analysis),

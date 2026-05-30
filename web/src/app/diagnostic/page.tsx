@@ -8,6 +8,7 @@ import LeakageBars from "@/components/LeakageBars";
 import PageGuide from "@/components/PageGuide";
 import NextStep from "@/components/NextStep";
 import ChatPanel from "@/components/ChatPanel";
+import NextActionsBlock from "@/components/NextActionsBlock";
 
 // Reads live data from the API on every request.
 export const dynamic = "force-dynamic";
@@ -257,6 +258,14 @@ export default async function DiagnosticPage() {
             </table>
           </div>
         </Card>
+      </Reveal>
+
+      {/* What to do with this readout — three concrete actions tied to
+          numbers above. Per the 2026-05-30 review: a CFO's third question
+          is always "what decision do I make differently?". This block
+          answers it explicitly. */}
+      <Reveal delay={0.05}>
+        <NextActionsBlock analysis={d} />
       </Reveal>
 
       <Reveal delay={0.05}>
