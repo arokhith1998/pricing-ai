@@ -1,0 +1,29 @@
+<!-- Pricekeel horizontal lockup — mark + wordmark.
+     For the website header, deck title bars, email signatures, footer of
+     printed reports, and the OG image. 240×64 base canvas, 4:1 aspect.
+     Inter is the wordmark face (matches site type system). "Price" sits in
+     neutral fg; "keel" lifts in teal — the same colour treatment as Nav.tsx.
+     Spacing: mark + 18px gutter + wordmark, baseline-aligned to keel apex. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 240 64"
+     width="240" height="64"
+     role="img" aria-label="Pricekeel">
+  <title>Pricekeel</title>
+  <!-- Mark (waterline + keel) — same geometry as logo-mark.svg -->
+  <g>
+    <line x1="10" y1="26" x2="54" y2="26"
+          stroke="#e9f0f8" stroke-width="3"
+          stroke-linecap="round" opacity="0.88" />
+    <path d="M 14 26 Q 34 60 50 26"
+          fill="none" stroke="#2dd4bf"
+          stroke-width="5"
+          stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <!-- Wordmark (Inter ExtraBold, -1% letter-spacing) -->
+  <text x="78" y="42"
+        font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+        font-weight="800"
+        font-size="32"
+        letter-spacing="-0.5"
+        fill="#e9f0f8">Price<tspan fill="#2dd4bf">keel</tspan></text>
+</svg>

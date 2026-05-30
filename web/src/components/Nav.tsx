@@ -4,11 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 
+// Brand mark — keeps the source-of-truth geometry inline so the nav stays
+// crisp at any zoom, while the same geometry also lives at /brand/logo-mark.svg
+// for downloads, social avatars, and external use.
 function KeelMark() {
   return (
-    <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden>
-      <line x1="9" y1="19" x2="39" y2="19" stroke="#e9f0f8" strokeWidth="3" strokeLinecap="round" />
-      <path d="M13 19 Q24 43 35 19" fill="none" stroke="#2dd4bf" strokeWidth="4" strokeLinecap="round" />
+    <svg width="34" height="34" viewBox="0 0 64 64" aria-label="Pricekeel">
+      <line
+        x1="10" y1="26" x2="54" y2="26"
+        stroke="#e9f0f8" strokeWidth="3"
+        strokeLinecap="round" opacity="0.88"
+      />
+      <path
+        d="M 14 26 Q 34 60 50 26"
+        fill="none" stroke="#2dd4bf"
+        strokeWidth="5"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
     </svg>
   );
 }

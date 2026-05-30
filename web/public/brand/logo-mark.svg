@@ -1,0 +1,27 @@
+<!-- Pricekeel mark — the keel beneath the waterline.
+     64x64 viewBox · safe for favicon (16px) up through Open Graph (1200px).
+     Two strokes: a quiet horizontal waterline (#e9f0f8 fg) and a confident
+     teal keel curve (#2dd4bf). The keel apex sits 4 units past the visual
+     centre to read as forward motion rather than static symmetry.
+     Transparent background so the mark composes on any surface. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64"
+     width="64" height="64"
+     role="img" aria-label="Pricekeel">
+  <title>Pricekeel</title>
+  <!-- Waterline -->
+  <line
+    x1="10" y1="26" x2="54" y2="26"
+    stroke="#e9f0f8"
+    stroke-width="3"
+    stroke-linecap="round"
+    opacity="0.88" />
+  <!-- Keel (slightly asymmetric apex at x=34 for forward feel) -->
+  <path
+    d="M 14 26 Q 34 60 50 26"
+    fill="none"
+    stroke="#2dd4bf"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round" />
+</svg>
