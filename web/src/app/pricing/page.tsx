@@ -108,9 +108,9 @@ export default function PricingPage() {
             Built for the conversation, not the credit card.
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted">
-            We sell into pricing teams at $10–100M ARR B2B SaaS — that means an
-            actual scoping call, not a self-serve checkout. Pick the closest fit
-            and we will reply within one business day.
+            We sell into pricing teams at $10 to 100M ARR B2B SaaS. That means
+            an actual scoping call, not a self-serve checkout. Pick the closest
+            fit and we will reply within one business day.
           </p>
           <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
             Engagements typically start in the low five figures; we share the
@@ -153,7 +153,7 @@ export default function PricingPage() {
               </div>
               <p className="mt-1 text-muted">
                 Same data, same answer, every time. An LLM-driven RevOps tool
-                cannot promise that — and a CRO will not stake a deal-desk
+                cannot promise that, and a CRO will not stake a deal-desk
                 decision on output that drifts.
               </p>
             </li>
@@ -162,7 +162,7 @@ export default function PricingPage() {
                 Margin layer is a different data model
               </div>
               <p className="mt-1 text-muted">
-                Active contracts, special pricing agreements, renewal terms —
+                Active contracts, special pricing agreements, renewal terms:
                 that lives in your billing system, not your CRM. Different
                 schema, different metrics, different product.
               </p>
@@ -208,7 +208,7 @@ export default function PricingPage() {
                 What are the security and compliance measures?
               </div>
               <p className="mt-1 text-muted">
-                Row-level deal data is processed in memory and deleted —
+                Row-level deal data is processed in memory and deleted. It is
                 never written to disk and never sent to a cloud LLM. The cloud
                 LLM only ever sees aggregate figures, column header names,
                 document chunks you upload, and your question, all under
@@ -229,7 +229,7 @@ export default function PricingPage() {
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li>
               <span className="font-medium text-fg">Diagnostic</span> is a fixed
-              one-time engagement — a few hours of your time to send the export
+              one-time engagement: a few hours of your time to send the export
               and review the read-out together.
             </li>
             <li>
@@ -239,7 +239,7 @@ export default function PricingPage() {
             </li>
             <li>
               <span className="font-medium text-fg">Margin Enhancement</span> is
-              custom — connector scope, contract data shape, and benchmark
+              custom; connector scope, contract data shape, and benchmark
               participation drive the number.
             </li>
           </ul>

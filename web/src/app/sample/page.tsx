@@ -125,7 +125,7 @@ function LeadGate({
           </h2>
           <p className="mt-1 text-sm text-slate">
             That is {money(leak.excess_vs_reference_won)} of revenue discounted
-            past the point that wins anything — pricing upside to pursue. The
+            past the point that wins anything: pricing upside to pursue. The
             full read-out shows where it is and what to do:
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-ink">

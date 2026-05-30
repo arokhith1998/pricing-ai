@@ -7,7 +7,7 @@ const ITEMS: { title: string; body: string }[] = [
   {
     title: "Executive summary",
     body:
-      "A one-page written narrative your CFO can read in two minutes — booked value, price realization, win point, the headline upside, the top three deals to investigate. Plain English, no jargon.",
+      "A one-page written narrative your CFO can read in two minutes: booked value, price realization, win point, the headline upside, the top three deals to investigate. Plain English, no jargon.",
   },
   {
     title: "Win-curve report",

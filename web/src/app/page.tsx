@@ -44,7 +44,7 @@ export default function Landing() {
           <div className="mt-4 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-surface px-3 py-1 text-xs font-semibold text-teal">
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />
-              For VP Pricing teams at $10–100M ARR usage-based B2B SaaS
+              For VP Pricing teams at $10 to 100M ARR usage-based B2B SaaS
             </span>
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
@@ -143,7 +143,7 @@ export default function Landing() {
             />
             <Capability
               title="Defend the decision"
-              body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal — no LLM-invented numbers."
+              body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers."
             />
           </div>
         </section>

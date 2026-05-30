@@ -53,7 +53,7 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
         Three actions a Head of Pricing can take this week
       </h2>
       <p className="mt-1 max-w-2xl text-sm text-muted">
-        These are the moves the analysis above supports — each tied to a
+        These are the moves the analysis above supports, each tied to a
         number on the page. Pricekeel is decision support, not autopilot;
         the call still belongs to your team.
       </p>
@@ -103,7 +103,7 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
 
       <p className="mt-4 text-[11px] italic text-muted">
         Every figure here traces to a key in this analysis. Numbers are
-        pricing upside to investigate, not guaranteed savings — see{" "}
+        pricing upside to investigate, not guaranteed savings. See{" "}
         <a className="underline hover:text-fg" href="/trust">
           methodology
         </a>

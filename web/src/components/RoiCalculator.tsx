@@ -101,7 +101,7 @@ export default function RoiCalculator() {
           </div>
           <div className="mt-1 text-sm text-muted">
             ≈ {pct(pctOfArr)} of booked value, past the 5% reference. To pursue,
-            not a refund — your real number plus the deal-level list comes from
+            not a refund. Your real number plus the deal-level list comes from
             the diagnostic on your CSV.
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 md:justify-start">
