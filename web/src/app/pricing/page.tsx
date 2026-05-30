@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import Reveal from "@/components/Reveal";
 
@@ -200,7 +199,7 @@ export default function PricingPage() {
                 Today: a CSV or Excel export of closed deals from any CRM, and
                 an XLSX / PDF / DOCX / PPTX of any pricing policy or playbook
                 doc you want our chat to ground its answers in. Tomorrow
-                (Phase 3, "Margin Enhancement"): native connectors for
+                (Phase 3, &ldquo;Margin Enhancement&rdquo;): native connectors for
                 Salesforce, HubSpot, Stripe, Zuora, Snowflake.
               </p>
             </div>

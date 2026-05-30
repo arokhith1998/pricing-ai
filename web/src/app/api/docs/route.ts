@@ -1,7 +1,13 @@
 // Same-origin proxy: forward document uploads to FastAPI /docs/upload.
+import { requireAccess } from "@/lib/gate";
+
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 export async function POST(req: Request) {
+  // Doc parsing runs on the caller's files — access-code tier.
+  const denied = await requireAccess();
+  if (denied) return denied;
+
   let form: FormData;
   try {
     form = await req.formData();

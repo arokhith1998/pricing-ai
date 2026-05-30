@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getPost, renderMarkdown } from "@/lib/blog";
 import { fmtDate } from "@/lib/format";
@@ -27,9 +28,9 @@ export default async function PostPage({
   const html = renderMarkdown(post.body);
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
-      <a href="/blog" className="text-sm text-teal hover:underline">
+      <Link href="/blog" className="text-sm text-teal hover:underline">
         ← Blog
-      </a>
+      </Link>
       <h1 className="mt-3 text-3xl font-bold leading-tight text-fg">{post.title}</h1>
       <div className="mt-2 text-sm text-muted">
         {fmtDate(post.date)} · {post.author}

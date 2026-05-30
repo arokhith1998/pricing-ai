@@ -2,9 +2,15 @@
 // return its mapping suggestion. Only the file (which never leaves the server)
 // and column-name strings are processed; row data is not sent externally
 // beyond what /map-headers itself sends (and that is header strings only).
+import { requireAccess } from "@/lib/gate";
+
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 export async function POST(req: Request) {
+  // Header-mapping accepts an uploaded file — same access tier as /upload.
+  const denied = await requireAccess();
+  if (denied) return denied;
+
   let form: FormData;
   try {
     form = await req.formData();

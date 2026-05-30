@@ -5,6 +5,8 @@
 //   POST {action:"canonical", ...}    → ask a canonical question; returns
 //                                       narrative + structured opportunities
 //   POST {action:"log", ...}          → record accept / reject on opportunities
+import { requireLead } from "@/lib/gate";
+
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
 async function forwardJson(url: string, init: RequestInit) {
@@ -21,6 +23,10 @@ async function forwardJson(url: string, init: RequestInit) {
 }
 
 export async function GET(req: Request) {
+  // Copilot reads (canonical questions, decision log) are demo-gated.
+  const denied = await requireLead();
+  if (denied) return denied;
+
   const url = new URL(req.url);
   const action = url.searchParams.get("action") || "canonical";
   if (action === "decisions") {
@@ -32,6 +38,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Copilot question + decision-log writes are demo-gated.
+  const denied = await requireLead();
+  if (denied) return denied;
+
   let body: { action?: string } & Record<string, unknown>;
   try {
     body = (await req.json()) as typeof body;

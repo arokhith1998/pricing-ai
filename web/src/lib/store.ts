@@ -3,6 +3,7 @@
 // fallback (in-memory leads, env-list access codes) so local build/verify is
 // not blocked. See docs/design/buyer-funnel.md for the schema.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { notifyLeadCaptured } from "@/lib/notify";
 
 export type Lead = {
   name: string;
@@ -40,11 +41,13 @@ export async function saveLead(lead: Lead): Promise<void> {
   const c = client();
   if (!c) {
     memLeads.push(lead);
-    console.log("[lead captured]", lead.company, lead.email);
-    return;
+  } else {
+    const { error } = await c.from("leads").insert(lead);
+    if (error) throw new Error(error.message);
   }
-  const { error } = await c.from("leads").insert(lead);
-  if (error) throw new Error(error.message);
+  // Best-effort alert (Resend email or Slack/Zapier webhook, set by env).
+  // Failure here never blocks the lead capture.
+  await notifyLeadCaptured(lead);
 }
 
 export async function isValidAccessCode(code: string): Promise<boolean> {

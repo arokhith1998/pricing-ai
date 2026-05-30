@@ -28,9 +28,18 @@ type Row = {
   avgDiscount: number;
 };
 
-function PointTooltip({ active, payload }: any) {
+// Minimal shape we use from Recharts' Tooltip `content` callback; their
+// own generics are messy enough that a narrow local type is cleaner.
+// Both `payload` and `payload[i].payload` are optional in Recharts' shape.
+type TooltipProps<T> = {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: T }>;
+};
+
+function PointTooltip({ active, payload }: TooltipProps<Row>) {
   if (!active || !payload?.length) return null;
-  const r: Row = payload[0].payload;
+  const r = payload[0].payload;
+  if (!r) return null;
   return (
     <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
       <div className="font-semibold text-fg">{r.band} discount</div>

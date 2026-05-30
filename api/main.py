@@ -46,8 +46,35 @@ FEATURE_LABELS = {
 }
 
 app = FastAPI(title="Pricekeel API", version="0.1.0")
+
+# CORS: lock to known origins in production. Local dev wide-open is fine
+# because uvicorn is only reachable from the dev machine; production must
+# only accept calls from our own web tier. Set PRICEKEEL_CORS_ORIGINS as a
+# comma-separated list to override; leave blank for the safe default below.
+_DEFAULT_ORIGINS = [
+    "https://www.pricekeel.com",
+    "https://pricekeel.com",
+    "https://pricekeel.vercel.app",
+]
+_dev_mode = os.environ.get("PRICEKEEL_ENV", "dev").lower() == "dev"
+_origin_env = os.environ.get("PRICEKEEL_CORS_ORIGINS", "").strip()
+if _origin_env:
+    _origins = [o.strip() for o in _origin_env.split(",") if o.strip()]
+    _origin_regex = None
+elif _dev_mode:
+    _origins = ["*"]
+    _origin_regex = None
+else:
+    _origins = _DEFAULT_ORIGINS
+    # Vercel preview deployments — match `pricekeel-*-arokhith1998s-projects.vercel.app`.
+    _origin_regex = r"^https://pricekeel-[a-z0-9]+-arokhith1998s-projects\.vercel\.app$"
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_origin_regex=_origin_regex,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    allow_credentials=False,
 )
 
 
@@ -283,7 +310,66 @@ class RecommendReq(BaseModel):
 
 # In-memory chunk store keyed by session id. Dev fallback; production should
 # move to Supabase pgvector keyed to the customer.
-_DOC_STORE: dict[str, list[docs_mod.Chunk]] = {}
+#
+# This dict is the single piece of process-lifetime state in the API. Without
+# any cap it grows on every upload until OOM. Hardening (per the 2026-05-30
+# launch-readiness review): per-session chunk cap, total-session cap, TTL,
+# and lazy expiry on every read/write. None of this is a substitute for
+# moving to Supabase pgvector, but it removes the foot-gun for soft launch.
+
+import time as _time
+
+_DOC_STORE: dict[str, tuple[float, list[docs_mod.Chunk]]] = {}
+_DOC_STORE_MAX_SESSIONS = int(os.environ.get("PRICEKEEL_DOC_MAX_SESSIONS", "500"))
+_DOC_STORE_MAX_CHUNKS_PER_SESSION = int(
+    os.environ.get("PRICEKEEL_DOC_MAX_CHUNKS_PER_SESSION", "2000"),
+)
+_DOC_STORE_TTL_SECONDS = int(
+    os.environ.get("PRICEKEEL_DOC_TTL_SECONDS", str(60 * 60 * 4)),  # 4h
+)
+
+
+def _doc_store_expire_old(now: float | None = None) -> None:
+    """Drop sessions older than TTL. O(n) — fine at the cap of 500 sessions."""
+    now = now if now is not None else _time.time()
+    cutoff = now - _DOC_STORE_TTL_SECONDS
+    for sid in [s for s, (ts, _) in _DOC_STORE.items() if ts < cutoff]:
+        del _DOC_STORE[sid]
+
+
+def _doc_store_get(sid: str) -> list[docs_mod.Chunk]:
+    _doc_store_expire_old()
+    entry = _DOC_STORE.get(sid)
+    return entry[1] if entry else []
+
+
+def _doc_store_append(sid: str, new_chunks: list[docs_mod.Chunk]) -> int:
+    """Append chunks to a session; enforce per-session and global caps.
+
+    Returns the post-append chunk count. Raises HTTPException(429) if the
+    cap is exceeded; raises HTTPException(503) if we are at session capacity
+    and this is a *new* session id.
+    """
+    _doc_store_expire_old()
+    existing = _DOC_STORE.get(sid)
+    if existing is None and len(_DOC_STORE) >= _DOC_STORE_MAX_SESSIONS:
+        raise HTTPException(
+            status_code=503,
+            detail="Document store is at session capacity; please retry later.",
+        )
+    existing_chunks = existing[1] if existing else []
+    if len(existing_chunks) + len(new_chunks) > _DOC_STORE_MAX_CHUNKS_PER_SESSION:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"This session would exceed the chunk cap "
+                f"({_DOC_STORE_MAX_CHUNKS_PER_SESSION}). Start a new session "
+                "or drop fewer files."
+            ),
+        )
+    merged = existing_chunks + new_chunks
+    _DOC_STORE[sid] = (_time.time(), merged)
+    return len(merged)
 
 
 @app.post("/docs/upload")
@@ -325,11 +411,11 @@ async def docs_upload(
         for c, e in zip(new_chunks, embs):
             c.embedding = e
 
-    _DOC_STORE.setdefault(sid, []).extend(new_chunks)
+    total = _doc_store_append(sid, new_chunks)
     return {
         "session_id": sid,
         "files": file_info,
-        "total_chunks": len(_DOC_STORE[sid]),
+        "total_chunks": total,
     }
 
 
@@ -345,7 +431,7 @@ class AskReq(BaseModel):
 @app.post("/ask")
 def ask_endpoint(req: AskReq) -> dict:
     """RAG over analysis + uploaded docs + (optional) web search."""
-    chunks = _DOC_STORE.get(req.session_id or "", []) if req.session_id else []
+    chunks = _doc_store_get(req.session_id) if req.session_id else []
     analysis = req.analysis if req.analysis is not None else _diagnostic_payload(
         str(DEMO_CSV), 0.15,
     )

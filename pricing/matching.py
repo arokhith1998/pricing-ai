@@ -45,6 +45,7 @@ import requests
 from rapidfuzz import fuzz
 
 from pricing import assist
+from pricing._safe_fetch import UnsafeFetchError, safe_get
 from pricing.docs import embed_texts
 
 # ---------------------------------------------------------------------------
@@ -176,18 +177,22 @@ def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
     try:
         rp = urllib.robotparser.RobotFileParser()
         rp.set_url(f"{origin}/robots.txt")
-        # urllib's default read() can hang; use requests with a short timeout.
-        resp = requests.get(
+        # Use the SSRF-hardened fetcher — robots.txt has the same risk
+        # profile as the pricing page itself (an attacker could give us a
+        # competitor URL whose origin resolves to a private IP).
+        resp = safe_get(
             f"{origin}/robots.txt",
-            headers={"User-Agent": _USER_AGENT},
             timeout=8,
+            user_agent=_USER_AGENT,
+            max_bytes=64_000,
         )
         if resp.status_code >= 400:
             # No robots.txt → unrestricted by convention.
             rp = None
         else:
-            rp.parse(resp.text.splitlines())
-    except requests.RequestException:
+            text = resp.content.decode(resp.encoding or "utf-8", errors="replace")
+            rp.parse(text.splitlines())
+    except (requests.RequestException, UnsafeFetchError):
         rp = None
     _ROBOTS_CACHE[origin] = (now, rp)
     return rp
@@ -238,16 +243,21 @@ def fetch_pricing_page(url: str, *, ttl_seconds: int = _FETCH_TTL_SECONDS) -> st
     if cached and (now - cached[0]) < ttl_seconds:
         return cached[1]
 
-    resp = requests.get(
-        url,
-        headers={"User-Agent": _USER_AGENT, "Accept": "text/html,*/*;q=0.8"},
-        timeout=15,
-        allow_redirects=True,
-    )
-    resp.raise_for_status()
-    body = resp.content[:_FETCH_MAX_BYTES].decode(
-        resp.encoding or "utf-8", errors="replace",
-    )
+    # SSRF defense — DNS resolution + private-IP check + redirect cap.
+    # Translate unsafe fetches into FetchBlocked so the caller's existing
+    # error handling kicks in.
+    try:
+        resp = safe_get(
+            url,
+            timeout=15,
+            user_agent=_USER_AGENT,
+            max_bytes=_FETCH_MAX_BYTES,
+        )
+    except UnsafeFetchError as exc:
+        raise FetchBlocked(url, f"SSRF guard: {exc}") from exc
+    if resp.status_code >= 400:
+        raise requests.HTTPError(f"{resp.status_code} for {url}")
+    body = resp.content.decode(resp.encoding or "utf-8", errors="replace")
     text = _strip_html(body)
     # Trim further to the first ~30K chars (LLM context economics).
     if len(text) > 30_000:

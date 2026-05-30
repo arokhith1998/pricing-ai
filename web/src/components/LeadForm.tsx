@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const ROLE_FUNCTIONS = [
@@ -46,16 +46,16 @@ export default function LeadForm({ next }: { next?: string } = {}) {
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
 
-  // Capture UTM tags from the URL once on mount; the API stores them with the
-  // lead so LinkedIn / blog / outbound attribution actually works.
-  const [utm, setUtm] = useState<Record<string, string>>({});
-  useEffect(() => {
+  // Capture UTM tags from the URL; the API stores them with the lead so
+  // LinkedIn / blog / outbound attribution actually works. Derived from the
+  // URL on every render (no setState-in-effect; React 19 lints it).
+  const utm = useMemo<Record<string, string>>(() => {
     const out: Record<string, string> = {};
     for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
       const v = params.get(k);
       if (v) out[k] = v;
     }
-    if (Object.keys(out).length) setUtm(out);
+    return out;
   }, [params]);
 
   const set =

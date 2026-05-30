@@ -19,9 +19,17 @@ const CORAL = "#ff6b54";
 const MIST = "#1f2c43"; // grid
 const SLATE = "#8ea3bd"; // axis text
 
-function CurveTooltip({ active, payload }: any) {
+// Minimal shape we use from Recharts' Tooltip `content` callback.
+// Both `payload` and `payload[i].payload` are optional in Recharts' shape.
+type TooltipProps<T> = {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: T }>;
+};
+
+function CurveTooltip({ active, payload }: TooltipProps<CurvePoint>) {
   if (!active || !payload?.length) return null;
-  const p: CurvePoint = payload[0].payload;
+  const p = payload[0].payload;
+  if (!p) return null;
   return (
     <div className="rounded-lg border border-mist bg-surface px-3 py-2 text-sm shadow-md">
       <div className="font-semibold text-fg">{pct0(p.discount)} discount</div>
