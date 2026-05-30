@@ -45,7 +45,7 @@ const SUBPROCESSORS: Sub[] = [
   {
     name: "OpenAI",
     purpose:
-      "LLM provider — narrative summaries, column-mapper fallback, copilot answers, plan extraction",
+      "LLM provider for narrative summaries, column-mapper fallback, copilot answers, plan extraction",
     region: "United States",
     dataCategory:
       "Aggregate analysis figures, column header names, uploaded document chunks, user questions, public pricing-page text",
@@ -138,7 +138,7 @@ export default function SubprocessorsPage() {
         <p>
           When you use the Competitor Watch feature, Pricekeel fetches the
           competitor pricing URLs you enter. The operators of those pages
-          are <em>not</em> Pricekeel subprocessors — they are third-party
+          are <em>not</em> Pricekeel subprocessors; they are third-party
           publishers from whom Pricekeel retrieves publicly accessible
           content on your behalf. Pricekeel honors <code>robots.txt</code>
           and operates a kill-switch list for any host that asks us to

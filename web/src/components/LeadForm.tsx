@@ -15,8 +15,8 @@ const ROLE_FUNCTIONS = [
 
 const ARR_RANGES = [
   "<$10M",
-  "$10M–$50M",
-  "$50M–$200M",
+  "$10M to $50M",
+  "$50M to $200M",
   "$200M+",
 ];
 

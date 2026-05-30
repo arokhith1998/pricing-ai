@@ -41,7 +41,7 @@ type Comparison = {
 };
 
 function fmtMoney(v: number | null): string {
-  if (v === null || !isFinite(v)) return "—";
+  if (v === null || !isFinite(v)) return "n/a";
   if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`;
   return `$${v.toFixed(0)}`;
 }
@@ -84,7 +84,7 @@ function PlanCard({ p, accent = "border-mist" }: { p: Plan; accent?: string }) {
       <div className="flex items-baseline justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-            {p.vendor || "—"}
+            {p.vendor || "Unknown vendor"}
           </div>
           <div className="text-base font-bold text-fg">{p.name}</div>
         </div>
@@ -168,7 +168,7 @@ export default function CompetitorWatchPage() {
         <p className="mt-1 max-w-3xl text-slate">
           Drop your pricing page URL and up to eight competitor pricing pages.
           We extract structured plans from each, match yours against theirs,
-          and tell you where you are above or below market — feature by
+          and tell you where you are above or below market, feature by
           feature.
         </p>
         <p className="mt-1 max-w-3xl text-xs text-muted">
@@ -305,7 +305,7 @@ export default function CompetitorWatchPage() {
                             We have, they do not
                           </div>
                           {m.features_only_mine.length === 0 ? (
-                            <div className="mt-1 text-muted">—</div>
+                            <div className="mt-1 text-muted">None</div>
                           ) : (
                             <ul className="mt-1 space-y-0.5">
                               {m.features_only_mine.map((f, j) => (
@@ -321,7 +321,7 @@ export default function CompetitorWatchPage() {
                             They have, we do not
                           </div>
                           {m.features_only_theirs.length === 0 ? (
-                            <div className="mt-1 text-muted">—</div>
+                            <div className="mt-1 text-muted">None</div>
                           ) : (
                             <ul className="mt-1 space-y-0.5">
                               {m.features_only_theirs.map((f, j) => (

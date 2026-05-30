@@ -36,7 +36,7 @@ export default async function GuidancePage() {
           title="One deal at a time. Pick from the dropdown to switch."
           body="The model uses only features known at quote time and is trained without outcome leakage. The recommendation maximizes expected value: P(win) × list × (1 − discount)."
           bullets={[
-            "The headline says what to give and what it is worth — current vs recommended discount, expected value gain.",
+            "The headline says what to give and what it is worth: current vs recommended discount, expected value gain.",
             "Top factors say WHY this deal looks more or less winnable, in plain language.",
             "Model quality (ranking + calibration) is at the bottom for the analyst.",
           ]}

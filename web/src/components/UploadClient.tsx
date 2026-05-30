@@ -278,8 +278,9 @@ function MappingReview({
     <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
       <h2 className="text-lg font-semibold text-fg">Review the column mapping</h2>
       <p className="mt-1 text-sm text-muted">
-        We matched your headers to our schema (locally — synonyms, fuzzy, and a
-        small on-device embedding model). Required fields are marked with{" "}
+        We matched your headers to our schema locally, using synonyms, fuzzy
+        matching, and a small on-device embedding model. Required fields are
+        marked with{" "}
         <span className="text-coral">*</span>. Override anything that looks
         wrong before running the diagnostic.
       </p>
@@ -312,7 +313,7 @@ function MappingReview({
                       onChange={(e) => setField(field, e.target.value || null)}
                       className="w-full rounded-lg border border-mist bg-surface-2 px-2 py-1.5 text-sm text-fg focus:border-teal focus:outline-none"
                     >
-                      <option value="">— none —</option>
+                      <option value="">(none)</option>
                       {map.headers.map((h) => {
                         const taken = claimedBy[h] && claimedBy[h] !== field;
                         return (
@@ -330,7 +331,7 @@ function MappingReview({
                         {map.used[current] ? ` · ${map.used[current]}` : ""}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted">—</span>
+                      <span className="text-xs text-muted">·</span>
                     )}
                   </td>
                   <td className="py-2 pr-4 text-xs text-muted font-mono">{sampleVal(current)}</td>

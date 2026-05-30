@@ -39,7 +39,7 @@ export default function UploadPage() {
       <PageGuide
         eyebrow="Three steps"
         title="Choose file → confirm mapping → see results."
-        body="We map your column names to our schema locally — a synonyms dictionary, fuzzy matching, and a small on-device embedding model. The cloud LLM is only a last-resort fallback for headers nothing else resolves, and even then only header strings are sent. Row data never leaves the server."
+        body="We map your column names to our schema locally, using a synonyms dictionary, fuzzy matching, and a small on-device embedding model. The cloud LLM is only a last-resort fallback for headers nothing else resolves, and even then only header strings are sent. Row data never leaves the server."
         bullets={[
           "Step 1: pick a CSV or .xlsx export of your closed opportunities.",
           "Step 2: review the suggested mapping; override anything that looks wrong.",

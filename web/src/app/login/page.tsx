@@ -90,8 +90,8 @@ export default function LoginPage() {
           </a>
         ) : (
           "Ask your Pricekeel contact"
-        )}{" "}
-        — we will sign an NDA before you share any data.
+        )}
+        . We will sign an NDA before you share any data.
       </p>
     </main>
   );

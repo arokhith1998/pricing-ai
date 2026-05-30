@@ -38,7 +38,7 @@ export default function UploadPrivacyCallout() {
               <span className="text-teal">·</span>{" "}
               <span className="text-ink">Row-level data does not leave the server.</span>{" "}
               Our cloud LLM only ever sees aggregate figures and your column
-              header names — not the values in your rows.
+              header names, not the values in your rows.
             </li>
             <li>
               <span className="text-teal">·</span>{" "}
