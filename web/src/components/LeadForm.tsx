@@ -27,7 +27,10 @@ const PRICING_MODELS = [
   "Other",
 ];
 
-export default function LeadForm() {
+// `next` is the route to send the user to after a successful submit. /sample
+// passes it when proxy.ts redirected here with ?unlock=<route>, so the user
+// lands on the page they originally clicked instead of staring at /sample.
+export default function LeadForm({ next }: { next?: string } = {}) {
   const router = useRouter();
   const params = useSearchParams();
   const [f, setF] = useState({
@@ -77,7 +80,14 @@ export default function LeadForm() {
       body: JSON.stringify({ ...f, consent, utm }),
     });
     if (res.ok) {
-      router.refresh();
+      // If proxy.ts bounced us to /sample with ?unlock=<route>, send the
+      // user back to that route now that the pk_lead cookie is set. Falls
+      // back to refresh() so the on-page sample expands in place.
+      if (next) {
+        router.push(next);
+      } else {
+        router.refresh();
+      }
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error || "Something went wrong.");

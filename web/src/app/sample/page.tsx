@@ -65,7 +65,57 @@ function Flow() {
   );
 }
 
-function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
+// Whitelist of routes that proxy.ts can attach as `?unlock=`. Anything else
+// is treated as no requested path so we never bounce a user to a route the
+// gate doesn't actually cover.
+const UNLOCK_TARGETS: Record<string, string> = {
+  diagnostic: "/diagnostic",
+  guidance: "/guidance",
+  "competitor-watch": "/competitor-watch",
+};
+
+function unlockLabel(slug: string): string {
+  if (slug === "competitor-watch") return "Competitor watch";
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+function UnlockBanner({ unlock }: { unlock: string }) {
+  const label = unlockLabel(unlock);
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="rounded-xl border border-teal/50 bg-teal/5 px-5 py-4"
+    >
+      <div className="flex items-start gap-3">
+        <span aria-hidden className="mt-0.5 text-teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+        <div className="min-w-0 text-sm">
+          <div className="font-semibold text-fg">
+            <span className="text-teal">{label}</span> is gated behind one form
+          </div>
+          <p className="mt-0.5 text-muted">
+            Fill the unlock form below (company email, ~20 seconds). We will
+            open <span className="font-medium text-ink">{UNLOCK_TARGETS[unlock]}</span>{" "}
+            automatically the moment you submit.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LeadGate({
+  leak,
+  unlock,
+}: {
+  leak: Diagnostic["leakage"];
+  unlock?: string;
+}) {
   return (
     <section className="rounded-xl border border-mist bg-surface p-6 shadow-sm">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -86,7 +136,7 @@ function LeadGate({ leak }: { leak: Diagnostic["leakage"] }) {
           </ul>
         </div>
         <div className="rounded-lg bg-surface-2 p-4">
-          <LeadForm />
+          <LeadForm next={unlock ? UNLOCK_TARGETS[unlock] : undefined} />
         </div>
       </div>
     </section>
@@ -148,8 +198,20 @@ function FullSample() {
   );
 }
 
-export default async function SamplePage() {
+export default async function SamplePage({
+  searchParams,
+}: {
+  // Next 16 (App Router): searchParams is async. proxy.ts attaches
+  // ?unlock=<diagnostic|guidance|competitor-watch> when it redirects a
+  // gated route here; we surface that as a banner + redirect-on-success.
+  searchParams: Promise<{ unlock?: string }>;
+}) {
   const unlocked = Boolean((await cookies()).get(LEAD_COOKIE)?.value);
+  const { unlock } = await searchParams;
+  const validUnlock =
+    unlock && Object.prototype.hasOwnProperty.call(UNLOCK_TARGETS, unlock)
+      ? unlock
+      : undefined;
 
   let d: Diagnostic;
   try {
@@ -162,6 +224,7 @@ export default async function SamplePage() {
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+      {!unlocked && validUnlock ? <UnlockBanner unlock={validUnlock} /> : null}
       <div>
         <p className="text-sm font-medium text-teal">Sample data</p>
         <h1 className="text-2xl font-bold text-fg">
