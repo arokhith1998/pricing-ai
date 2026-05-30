@@ -9,7 +9,7 @@ import Link from "next/link";
 const NAME = "Adhithya Bhaskar";
 const HEADLINE = "Pricing strategist building Pricekeel";
 const BIO =
-  "M.S. Marketing Analytics with a Pricing specialization from Simon Business School (University of Rochester). Previously led a $626M margin-recovery analysis across 1,200+ opportunities. Building Pricekeel to make that kind of analysis routine for any pricing team — and defensible to finance.";
+  "M.S. Marketing Analytics with a Pricing specialization from Simon Business School (University of Rochester). Previously led a $626M margin-recovery analysis across 1,200+ opportunities. Building Pricekeel to make that kind of analysis routine for any pricing team, and defensible to finance.";
 
 // Default to the portfolio-known LinkedIn URL; allow env override for later.
 const LINKEDIN =

@@ -94,8 +94,8 @@ export default function DiagnosticPreview() {
           Below is the actual structure of the page on{" "}
           <Link href="/sample" className="text-teal underline">
             /sample
-          </Link>{" "}
-          — KPIs, win-rate curve with the calculated win point, and the deal
+          </Link>
+          : KPIs, win-rate curve with the calculated win point, and the deal
           list to investigate. Your numbers come from your own CSV.
         </p>
       </div>
@@ -141,7 +141,7 @@ export default function DiagnosticPreview() {
                   Win rate by discount band
                 </div>
                 <div className="text-sm font-semibold text-fg">
-                  Win point at the 15% band — bigger discounts don&rsquo;t buy
+                  Win point at the 15% band; bigger discounts don&rsquo;t buy
                   more wins
                 </div>
               </div>

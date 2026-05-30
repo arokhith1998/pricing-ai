@@ -35,7 +35,7 @@ export default function FounderCta() {
         </div>
         <div className="flex-1 text-center sm:text-left">
           <div className="text-xs font-semibold uppercase tracking-wider text-teal">
-            Design partner program — open
+            Design partner program · open
           </div>
           <div className="mt-0.5 text-lg font-bold text-fg">
             Want me to run the diagnostic on your CSV personally?

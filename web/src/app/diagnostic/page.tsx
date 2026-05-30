@@ -32,7 +32,7 @@ function Card({
 }
 
 function Flag({ on, label }: { on: boolean; label: string }) {
-  if (!on) return <span className="text-mist">—</span>;
+  if (!on) return <span className="text-mist">·</span>;
   return (
     <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-medium text-coral">
       {label}
@@ -64,12 +64,12 @@ export default async function DiagnosticPage() {
         <PageGuide
           eyebrow="Reading this report"
           title="Find your win point first; the rest is its consequence."
-          body="The very first chart is the most important. Find the discount band where win rate stops climbing — that is your win point. Everything below uses it as a lens."
+          body="The very first chart is the most important. Find the discount band where win rate stops climbing. That is your win point, and everything below uses it as a lens."
           bullets={[
-            "Win rate vs discount — the curve, with confidence band and the win point marked in coral.",
-            "Realization by segment / BU / product line — where price erodes most.",
-            "Packaging signal and trade-or-give — framework-grounded callouts (Rivera, Simon-Kucher) worth a deal-desk meeting.",
-            "Deals to look at first — your prioritized investigate list, not a refund figure.",
+            "Win rate vs discount: the curve, with confidence band and the win point marked in coral.",
+            "Realization by segment / BU / product line, showing where price erodes most.",
+            "Packaging signal and trade-or-give: framework-grounded callouts (Rivera, Simon-Kucher) worth a deal-desk meeting.",
+            "Deals to look at first: your prioritized investigate list, not a refund figure.",
           ]}
         />
       </Reveal>
@@ -149,7 +149,7 @@ export default async function DiagnosticPage() {
         <Reveal delay={0.05}>
           <Card
             title="Trade-for-discount gap"
-            subtitle="Off-policy discounts should trade for something — a longer term, a sign-off, or a commitment. Deals where none of that happened are the cleanest 'gave it away' set."
+            subtitle="Off-policy discounts should trade for something: a longer term, a sign-off, or a commitment. Deals where none of that happened are the cleanest 'gave it away' set."
           >
             <p className="text-ink">
               <span className="font-semibold text-coral">

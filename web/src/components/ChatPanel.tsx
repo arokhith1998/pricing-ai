@@ -452,7 +452,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                   {docs.map((d, i) => (
                     <li key={i} className="truncate">
                       <span className="text-teal">●</span> {d.name}{" "}
-                      <span className="text-mist">— {d.chunks} chunks</span>
+                      <span className="text-mist">· {d.chunks} chunks</span>
                     </li>
                   ))}
                 </ul>
@@ -464,7 +464,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
               {messages.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted">
-                    Pick a canonical question — every answer is grounded in
+                    Pick a canonical question. Every answer is grounded in
                     your analysis with a deterministic dollar impact estimate
                     and the math written out. Decisions you take are logged.
                   </p>
@@ -487,7 +487,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                     ))}
                   </div>
                   <p className="pt-2 text-[11px] text-muted">
-                    Or ask anything in free-form below — those answers use the
+                    Or ask anything in free-form below. Those answers use the
                     RAG pipeline (analysis + your uploaded docs + optional web).
                   </p>
                 </div>
