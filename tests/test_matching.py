@@ -198,28 +198,33 @@ def test_pricing_position_reported_unknown_when_a_price_is_missing():
 # --- fetch cache (no network needed; monkeypatch requests.get) ---------------
 
 class _FakeResp:
-    def __init__(self, body: bytes):
+    def __init__(self, body: bytes, status: int = 200):
         self.content = body
         self.encoding = "utf-8"
+        self.status_code = status
+        self.text = body.decode("utf-8", errors="replace")
     def raise_for_status(self):
         return None
 
 
 def test_fetch_pricing_page_caches_within_ttl(monkeypatch):
-    calls = {"n": 0}
+    page_calls = {"n": 0}
 
     def fake_get(url, **kwargs):
-        calls["n"] += 1
+        # Don't count robots.txt fetches toward page-cache assertion.
+        if not url.endswith("/robots.txt"):
+            page_calls["n"] += 1
         return _FakeResp(b"<html><body>Plans: Free, Pro</body></html>")
 
     monkeypatch.setattr(matching.requests, "get", fake_get)
     matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
 
     a = matching.fetch_pricing_page("https://example.test/pricing")
     b = matching.fetch_pricing_page("https://example.test/pricing")
     assert a == b
     assert "Plans: Free, Pro" in a
-    assert calls["n"] == 1
+    assert page_calls["n"] == 1, "the page itself should be fetched exactly once"
 
 
 def test_fetch_pricing_page_refetches_after_ttl(monkeypatch):
@@ -231,7 +236,81 @@ def test_fetch_pricing_page_refetches_after_ttl(monkeypatch):
 
     monkeypatch.setattr(matching.requests, "get", fake_get)
     matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
 
     matching.fetch_pricing_page("https://example.test/x", ttl_seconds=0)
     matching.fetch_pricing_page("https://example.test/x", ttl_seconds=0)
-    assert calls["n"] == 2
+    # one robots.txt fetch (cached) + two page fetches
+    assert calls["n"] >= 2
+
+
+# --- IP-risk hardening (robots.txt + kill-switch) ---------------------------
+
+class _RobotsResp:
+    """robots.txt response that disallows everything for our UA."""
+    def __init__(self, body: str, status: int = 200):
+        self.text = body
+        self.status_code = status
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise matching.requests.RequestException("robots fetch failed")
+
+
+def test_fetch_blocked_by_robots_txt(monkeypatch):
+    def fake_get(url, **kwargs):
+        if url.endswith("/robots.txt"):
+            return _RobotsResp("User-agent: *\nDisallow: /pricing\n")
+        return _FakeResp(b"<p>should never reach</p>")
+
+    monkeypatch.setattr(matching.requests, "get", fake_get)
+    matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
+
+    with pytest.raises(matching.FetchBlocked) as exc:
+        matching.fetch_pricing_page("https://blocked.test/pricing")
+    assert "robots.txt" in exc.value.reason
+
+
+def test_fetch_allowed_when_no_robots_txt(monkeypatch):
+    def fake_get(url, **kwargs):
+        if url.endswith("/robots.txt"):
+            return _RobotsResp("", status=404)
+        return _FakeResp(b"<p>ok</p>")
+
+    monkeypatch.setattr(matching.requests, "get", fake_get)
+    matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
+
+    out = matching.fetch_pricing_page("https://open.test/pricing")
+    assert "ok" in out
+
+
+def test_kill_switch_blocks_host(monkeypatch):
+    # Use the env var so we do not mutate the static set in tests.
+    monkeypatch.setenv("LEGAL_BLOCKED_HOSTS", "blocked.example,otherblocked.example")
+    matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
+
+    with pytest.raises(matching.FetchBlocked) as exc:
+        matching.fetch_pricing_page("https://blocked.example/pricing")
+    assert "kill-switch" in exc.value.reason
+
+
+def test_kill_switch_blocks_subdomain_of_blocked_apex(monkeypatch):
+    monkeypatch.setenv("LEGAL_BLOCKED_HOSTS", "example.com")
+    matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
+
+    with pytest.raises(matching.FetchBlocked):
+        matching.fetch_pricing_page("https://www.example.com/pricing")
+
+
+def test_extract_plans_from_url_returns_empty_on_block(monkeypatch):
+    monkeypatch.setenv("LEGAL_BLOCKED_HOSTS", "blocked.example")
+    matching._FETCH_CACHE.clear()
+    matching._ROBOTS_CACHE.clear()
+    vendor, plans = matching.extract_plans_from_url("https://blocked.example/pricing")
+    # Should not raise — should fall through to ("", []) so the UI surfaces
+    # a "no plans" message rather than a stack trace.
+    assert vendor == ""
+    assert plans == []

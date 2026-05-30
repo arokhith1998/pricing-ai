@@ -1,0 +1,28 @@
+# Pricekeel — robots.txt
+# We welcome search engine indexing of marketing pages and explicitly
+# disallow indexing of customer-data routes and proxy endpoints.
+
+User-agent: *
+Allow: /
+Allow: /sample
+Allow: /pricing
+Allow: /blog
+Allow: /privacy
+Allow: /terms
+Allow: /trust
+Allow: /subprocessors
+Allow: /licenses
+Disallow: /diagnostic
+Disallow: /guidance
+Disallow: /competitor-watch
+Disallow: /upload
+Disallow: /login
+Disallow: /api/
+
+# Pricekeel operates an outbound fetcher (PricekeelBot/1.0) for the
+# Competitor Watch feature. It fetches public pricing pages submitted by
+# customers, no more than once per hour per URL. It honors robots.txt on
+# the target site. If you operate a site and want us never to fetch it,
+# email privacy@pricekeel.com.
+
+Sitemap: https://pricekeel.com/sitemap.xml

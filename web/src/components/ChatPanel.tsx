@@ -521,6 +521,15 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                           Decisions are logged with their math. Defensible to
                           finance.
                         </div>
+                        <div className="text-[10px] italic text-muted">
+                          AI-assisted: figures come from your analysis;
+                          narrative is generated. Review before acting.
+                          See{" "}
+                          <a href="/trust" className="underline hover:text-fg">
+                            /trust
+                          </a>
+                          .
+                        </div>
                       </div>
                     )}
                   </div>

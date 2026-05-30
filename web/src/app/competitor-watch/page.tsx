@@ -173,8 +173,12 @@ export default function CompetitorWatchPage() {
         </p>
         <p className="mt-1 max-w-3xl text-xs text-muted">
           Customer-named competitors only. We do not scrape the market. Pages
-          fetched once and cached for an hour. Row data never leaves the
-          server.
+          fetched once per hour, with <code>robots.txt</code> honored and a
+          kill-switch list for any host that asks us to stop. By submitting a
+          URL you warrant that you have the right to query it under the
+          operator&rsquo;s terms (see{" "}
+          <a href="/terms" className="underline hover:text-fg">/terms</a>).
+          Plan extraction is AI-assisted; review results before acting.
         </p>
       </Reveal>
 

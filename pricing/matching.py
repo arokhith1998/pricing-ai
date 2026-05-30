@@ -35,8 +35,10 @@ import json
 import os
 import re
 import time
+import urllib.robotparser
 from dataclasses import asdict, dataclass, field
 from typing import Optional
+from urllib.parse import urlparse
 
 import numpy as np
 import requests
@@ -113,6 +115,100 @@ _FETCH_MAX_BYTES = 250_000    # ~250KB max body — pricing pages are small
 _USER_AGENT = "PricekeelBot/1.0 (+https://pricekeel.com; one-time pricing extraction)"
 
 
+# --- IP-risk hardening -----------------------------------------------------
+# Per the 2026-05-30 legal audit (vault/Decisions/), the matching fetcher
+# carries the highest IP-infringement risk in the product. Two defenses live
+# here:
+#   1. Honor robots.txt before every fetch (defends CFAA / good-citizen risk).
+#   2. Maintain an explicit kill-switch list: any host or URL prefix we are
+#      asked to stop fetching, we stop. We never want a deposition where the
+#      answer to "did you stop when they asked you to" is "no".
+# Both can be expanded via the LEGAL_BLOCKED_HOSTS env var (comma-separated
+# hostnames) without a redeploy.
+
+
+class FetchBlocked(Exception):
+    """Raised when the matching fetcher refuses to fetch a URL.
+
+    Carries a machine-readable reason so the UI can show a helpful message
+    rather than a stack trace.
+    """
+    def __init__(self, url: str, reason: str):
+        super().__init__(f"refused to fetch {url}: {reason}")
+        self.url = url
+        self.reason = reason
+
+
+# Static kill-switch — extend in-code for any host that asks us to stop, or
+# at runtime via the LEGAL_BLOCKED_HOSTS env var.
+_BLOCKED_HOSTS: set[str] = set()
+
+# Cache robots.txt parsers per origin so we do not refetch on every page.
+_ROBOTS_CACHE: dict[str, tuple[float, urllib.robotparser.RobotFileParser | None]] = {}
+_ROBOTS_TTL_SECONDS = 24 * 60 * 60  # 1 day
+
+
+def _origin_of(url: str) -> tuple[str, str]:
+    """Return (scheme://host, host) for a URL. Raises on bad input."""
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        raise ValueError(f"not an absolute URL: {url}")
+    return f"{parsed.scheme}://{parsed.netloc}", parsed.netloc.lower()
+
+
+def _runtime_blocked_hosts() -> set[str]:
+    """Static kill-switch + LEGAL_BLOCKED_HOSTS env var (comma-separated)."""
+    extras = os.environ.get("LEGAL_BLOCKED_HOSTS", "")
+    runtime = {h.strip().lower() for h in extras.split(",") if h.strip()}
+    return _BLOCKED_HOSTS | runtime
+
+
+def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
+    """Fetch + cache robots.txt for an origin. None if it could not be fetched
+    (in which case we conservatively *do* allow — robots.txt is not legally
+    mandatory and many sites do not publish one)."""
+    now = time.time()
+    cached = _ROBOTS_CACHE.get(origin)
+    if cached and (now - cached[0]) < _ROBOTS_TTL_SECONDS:
+        return cached[1]
+
+    rp: urllib.robotparser.RobotFileParser | None
+    try:
+        rp = urllib.robotparser.RobotFileParser()
+        rp.set_url(f"{origin}/robots.txt")
+        # urllib's default read() can hang; use requests with a short timeout.
+        resp = requests.get(
+            f"{origin}/robots.txt",
+            headers={"User-Agent": _USER_AGENT},
+            timeout=8,
+        )
+        if resp.status_code >= 400:
+            # No robots.txt → unrestricted by convention.
+            rp = None
+        else:
+            rp.parse(resp.text.splitlines())
+    except requests.RequestException:
+        rp = None
+    _ROBOTS_CACHE[origin] = (now, rp)
+    return rp
+
+
+def _check_allowed(url: str) -> None:
+    """Raise FetchBlocked if our kill-switch or robots.txt forbids this URL."""
+    try:
+        origin, host = _origin_of(url)
+    except ValueError as exc:
+        raise FetchBlocked(url, str(exc)) from exc
+
+    blocked = _runtime_blocked_hosts()
+    if host in blocked or any(host.endswith("." + b) for b in blocked):
+        raise FetchBlocked(url, f"host '{host}' is on our kill-switch list")
+
+    rp = _robots_for(origin)
+    if rp is not None and not rp.can_fetch(_USER_AGENT, url):
+        raise FetchBlocked(url, "robots.txt disallows this user-agent for this URL")
+
+
 def _strip_html(html: str) -> str:
     """Quick HTML → text. No bs4 dep; we send to LLM next, exactness is fine."""
     # Drop script + style + noscript blocks first (they carry no text we want).
@@ -132,9 +228,11 @@ def _strip_html(html: str) -> str:
 def fetch_pricing_page(url: str, *, ttl_seconds: int = _FETCH_TTL_SECONDS) -> str:
     """Fetch and clean a pricing page; cached for `ttl_seconds`.
 
-    Raises requests.RequestException on network failure. The caller decides
+    Raises FetchBlocked if our kill-switch or robots.txt forbids the URL,
+    or requests.RequestException on network failure. The caller decides
     whether to fall back or surface the error.
     """
+    _check_allowed(url)  # raises FetchBlocked when refused
     now = time.time()
     cached = _FETCH_CACHE.get(url)
     if cached and (now - cached[0]) < ttl_seconds:
@@ -258,10 +356,10 @@ def _safe_float(x) -> Optional[float]:
 
 
 def extract_plans_from_url(url: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
-    """Convenience: fetch + extract. Returns ("", []) on network or parse failure."""
+    """Convenience: fetch + extract. Returns ("", []) on refusal, network, or parse failure."""
     try:
         text = fetch_pricing_page(url)
-    except requests.RequestException:
+    except (FetchBlocked, requests.RequestException):
         return fallback_vendor, []
     return extract_plans_from_text(text, fallback_vendor=fallback_vendor)
 
