@@ -5,6 +5,8 @@ import FounderStrip from "@/components/FounderStrip";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
+import DeliverableSection from "@/components/DeliverableSection";
+import FounderCta from "@/components/FounderCta";
 
 // Static marketing landing — no API dependency, so it always loads fast.
 export const dynamic = "force-static";
@@ -73,6 +75,13 @@ export default function Landing() {
       <Reveal delay={0.05}>
         <section className="mt-12">
           <DiagnosticPreview />
+        </section>
+      </Reveal>
+
+      {/* 2b. Deliverable section (NEW per 2026-05-30 review) -------------- */}
+      <Reveal delay={0.05}>
+        <section className="mt-14">
+          <DeliverableSection />
         </section>
       </Reveal>
 
@@ -209,6 +218,13 @@ export default function Landing() {
       <Reveal delay={0.05}>
         <section className="mt-14">
           <FounderStrip />
+        </section>
+      </Reveal>
+
+      {/* 9b. Founder design-partner CTA (NEW per 2026-05-30 review) ------ */}
+      <Reveal delay={0.05}>
+        <section className="mt-10">
+          <FounderCta />
         </section>
       </Reveal>
 

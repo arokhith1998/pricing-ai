@@ -1,5 +1,6 @@
 import UploadClient from "@/components/UploadClient";
 import PageGuide from "@/components/PageGuide";
+import UploadPrivacyCallout from "@/components/UploadPrivacyCallout";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,11 @@ export default function UploadPage() {
           is processed in memory to produce your diagnostic and is not stored.
         </p>
       </div>
+
+      {/* Per the 2026-05-30 expert review: surface the privacy contract AT
+          the upload moment, not buried in /trust. Answers a CFO's first
+          question on the call. */}
+      <UploadPrivacyCallout />
 
       <PageGuide
         eyebrow="Three steps"

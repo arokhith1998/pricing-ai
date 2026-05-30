@@ -105,6 +105,18 @@ export type TradeOrGive = {
   off_policy_total: number;
 };
 
+// Sales-friendly split of won deals: discount earned vs discount worth
+// investigating. Added 2026-05-30 per the expert review — reports historical
+// fact, no recovery-rate assumption. See pricing/metrics.defended_vs_investigate.
+export type DefendedVsInvestigate = {
+  reference_threshold: number;
+  defended_value: number;
+  defended_deals: number;
+  investigate_value: number;
+  investigate_deals: number;
+  defended_pct_of_booked: number;
+};
+
 export type Diagnostic = {
   overview: Overview;
   leakage: Leakage;
@@ -120,6 +132,8 @@ export type Diagnostic = {
   // Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
   packaging_signals: PackagingSignal[];
   trade_or_give: TradeOrGive;
+  // Defended-vs-investigate split (added 2026-05-30 per expert review).
+  defended_vs_investigate: DefendedVsInvestigate;
 };
 
 export type ModelInfo = {
