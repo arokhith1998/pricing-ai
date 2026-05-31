@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Brand kit · Pricekeel",
   description:
-    "Pricekeel logo, mark, wordmark, and social cover assets — for press, partners, and decks.",
+    "Pricekeel logo, mark, wordmark, and social cover assets for press, partners, and decks.",
 };
 
 type Asset = {
@@ -20,28 +20,28 @@ type Asset = {
 
 const ASSETS: Asset[] = [
   {
-    label: "Mark — color",
+    label: "Mark, color",
     filename: "logo-mark.svg",
     size: "64×64 (scales)",
     format: "SVG",
     use: "Favicon, in-product icon, social avatar background-aware.",
   },
   {
-    label: "Mark — monochrome",
+    label: "Mark, monochrome",
     filename: "logo-mono.svg",
     size: "64×64 (scales)",
     format: "SVG",
     use: "Invoices, PDF reports, slide decks in grayscale, iOS pinned tab.",
   },
   {
-    label: "Mark — 400px PNG (transparent)",
+    label: "Mark, 400px PNG (transparent)",
     filename: "logo-mark-400.png",
     size: "400×400",
     format: "PNG",
     use: "Slack avatar, X profile picture, anywhere alpha is allowed.",
   },
   {
-    label: "Wordmark — horizontal lockup",
+    label: "Wordmark, horizontal lockup",
     filename: "logo-wordmark.svg",
     size: "240×64 (scales)",
     format: "SVG",
@@ -62,11 +62,11 @@ const ASSETS: Asset[] = [
     use: "LinkedIn company-page cover (upload directly).",
   },
   {
-    label: "LinkedIn page cover @2x (retina)",
+    label: "LinkedIn page cover at 2x (retina)",
     filename: "linkedin-cover-2x.png",
     size: "2256×382",
     format: "PNG",
-    use: "Use this one — LinkedIn downsamples it crisply for retina screens.",
+    use: "Use this one. LinkedIn downsamples it crisply for retina screens.",
   },
 ];
 
@@ -95,7 +95,7 @@ export default function BrandPage() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-fg">Mark</h2>
         <p className="mt-1 text-sm text-muted">
-          A stylised ship&rsquo;s keel beneath the waterline — structure
+          A stylised ship&rsquo;s keel beneath the waterline. Structure
           that keeps the surface even. The keel is the brand; the
           waterline is the quiet horizon above it.
         </p>

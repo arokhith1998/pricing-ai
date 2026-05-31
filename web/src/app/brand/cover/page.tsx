@@ -125,7 +125,7 @@ export default function CoverPage() {
                 letterSpacing: "0.01em",
               }}
             >
-              For VP Pricing teams at $10–100M ARR usage-based B2B SaaS.
+              For VP Pricing teams at $10 to 100M ARR usage-based B2B SaaS.
             </div>
           </div>
 

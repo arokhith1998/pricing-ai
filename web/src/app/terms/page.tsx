@@ -26,7 +26,7 @@ export default function TermsPage() {
       <p className="mt-2 text-sm text-muted">
         Effective {EFFECTIVE} ·{" "}
         <span className="inline-block rounded border border-coral/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-coral">
-          DRAFT — counsel review pending
+          DRAFT, counsel review pending
         </span>
       </p>
 

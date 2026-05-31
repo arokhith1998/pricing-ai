@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       <p className="mt-2 text-sm text-muted">
         Effective {EFFECTIVE} ·{" "}
         <span className="inline-block rounded border border-coral/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-coral">
-          DRAFT — counsel review pending
+          DRAFT, counsel review pending
         </span>
       </p>
 
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           arrived on (no third-party advertising trackers).
           <br />
           <span className="text-fg">Legal basis (GDPR):</span> your consent
-          (Art. 6(1)(a)) — the consent checkbox on the lead form.
+          (Art. 6(1)(a)) via the consent checkbox on the lead form.
         </p>
         <p>
           <span className="font-medium text-fg">Data you upload for analysis.</span>{" "}
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
         <p>
           For uploaded deal data shared during an engagement, a mutual
           non-disclosure agreement also governs handling. A Data Processing
-          Addendum is available on request for business customers — email{" "}
+          Addendum is available on request for business customers; email{" "}
           <a className="text-teal underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.
         </p>
       </Section>
@@ -186,8 +186,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="font-medium text-fg">Uploaded CSV / document files:</span>{" "}
-            zero — processed in memory and not persisted after the analysis
-            completes.
+            zero. Files are processed in memory and not persisted after the
+            analysis completes.
           </li>
           <li>
             <span className="font-medium text-fg">Cached competitor pricing-page content:</span>{" "}
