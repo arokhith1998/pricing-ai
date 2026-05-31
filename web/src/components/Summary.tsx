@@ -1,4 +1,5 @@
 import { getSummary } from "@/lib/api";
+import { renderMarkdown } from "@/lib/blog";
 
 // Async server component, streamed in via <Suspense> so the page paints first.
 export default async function Summary() {
@@ -17,5 +18,12 @@ export default async function Summary() {
       </p>
     );
   }
-  return <p className="leading-relaxed text-ink">{data.summary}</p>;
+  // The LLM returns markdown (bolds, numbered lists). Render it. Plain text
+  // shows the raw asterisks, which reads as a broken AI output.
+  return (
+    <div
+      className="pk-prose leading-relaxed text-ink"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(data.summary) }}
+    />
+  );
 }
