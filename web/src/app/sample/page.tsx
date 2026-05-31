@@ -7,6 +7,7 @@ import { LEAD_COOKIE } from "@/lib/auth";
 import Summary from "@/components/Summary";
 import ApiError from "@/components/ApiError";
 import LeadForm from "@/components/LeadForm";
+import MagicLinkForm from "@/components/MagicLinkForm";
 import CountUp from "@/components/CountUp";
 import PageGuide from "@/components/PageGuide";
 
@@ -109,6 +110,24 @@ function UnlockBanner({ unlock }: { unlock: string }) {
   );
 }
 
+function FlashBanner({ flash }: { flash: string }) {
+  // Tiny flash for the /api/lead/redeem failure paths so the visitor knows
+  // why we sent them back here instead of opening their gated route.
+  const msg =
+    flash === "link_expired"
+      ? "That access link expired. Request a new one below, or fill the form."
+      : "That access link did not check out. Request a new one below, or fill the form.";
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="rounded-xl border border-coral/50 bg-coral/5 px-5 py-3 text-sm text-fg"
+    >
+      <span className="font-semibold text-coral">Heads up.</span> {msg}
+    </section>
+  );
+}
+
 function LeadGate({
   leak,
   unlock,
@@ -116,6 +135,7 @@ function LeadGate({
   leak: Diagnostic["leakage"];
   unlock?: string;
 }) {
+  const nextRoute = unlock ? UNLOCK_TARGETS[unlock] : undefined;
   return (
     <section className="rounded-xl border border-mist bg-surface p-6 shadow-sm">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -136,7 +156,8 @@ function LeadGate({
           </ul>
         </div>
         <div className="rounded-lg bg-surface-2 p-4">
-          <LeadForm next={unlock ? UNLOCK_TARGETS[unlock] : undefined} />
+          <LeadForm next={nextRoute} />
+          <MagicLinkForm next={nextRoute} />
         </div>
       </div>
     </section>
@@ -204,14 +225,16 @@ export default async function SamplePage({
   // Next 16 (App Router): searchParams is async. proxy.ts attaches
   // ?unlock=<diagnostic|guidance|competitor-watch> when it redirects a
   // gated route here; we surface that as a banner + redirect-on-success.
-  searchParams: Promise<{ unlock?: string }>;
+  searchParams: Promise<{ unlock?: string; flash?: string }>;
 }) {
   const unlocked = Boolean((await cookies()).get(LEAD_COOKIE)?.value);
-  const { unlock } = await searchParams;
+  const { unlock, flash } = await searchParams;
   const validUnlock =
     unlock && Object.prototype.hasOwnProperty.call(UNLOCK_TARGETS, unlock)
       ? unlock
       : undefined;
+  const validFlash =
+    flash === "link_expired" || flash === "link_invalid" ? flash : undefined;
 
   let d: Diagnostic;
   try {
@@ -224,6 +247,7 @@ export default async function SamplePage({
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+      {!unlocked && validFlash ? <FlashBanner flash={validFlash} /> : null}
       {!unlocked && validUnlock ? <UnlockBanner unlock={validUnlock} /> : null}
       <div>
         <p className="text-sm font-medium text-teal">Sample data</p>

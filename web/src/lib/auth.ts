@@ -8,6 +8,20 @@
 export const LEAD_COOKIE = "pk_lead";
 export const ACCESS_COOKIE = "pk_access";
 
+// Shared cookie settings for pk_lead. The value is just an intent marker
+// ("this visitor passed the lead form at some point"), not an auth token,
+// so a long lifetime is fine. We refresh it on every gated visit in the
+// proxy so an engaged user effectively never expires.
+export const LEAD_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
+
+export const leadCookieOptions = () => ({
+  httpOnly: true as const,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: LEAD_COOKIE_MAX_AGE_SECONDS,
+});
+
 // Free / personal email domains we reject for lead capture (company email only).
 const FREE_EMAIL_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "outlook.com",

@@ -4,7 +4,12 @@
 //   needs code:  /upload                  (their own data)
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ACCESS_COOKIE, LEAD_COOKIE, accessToken } from "@/lib/auth";
+import {
+  ACCESS_COOKIE,
+  LEAD_COOKIE,
+  LEAD_COOKIE_MAX_AGE_SECONDS,
+  accessToken,
+} from "@/lib/auth";
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
@@ -29,7 +34,18 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/guidance") ||
     pathname.startsWith("/competitor-watch")
   ) {
-    if (request.cookies.get(LEAD_COOKIE)?.value) return NextResponse.next();
+    if (request.cookies.get(LEAD_COOKIE)?.value) {
+      // Rolling refresh. An engaged visitor never expires.
+      const res = NextResponse.next();
+      res.cookies.set(LEAD_COOKIE, "1", {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: LEAD_COOKIE_MAX_AGE_SECONDS,
+      });
+      return res;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/sample";
     url.searchParams.set("unlock", pathname.slice(1));

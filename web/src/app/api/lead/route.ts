@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { LEAD_COOKIE, isCompanyEmail } from "@/lib/auth";
+import { LEAD_COOKIE, isCompanyEmail, leadCookieOptions } from "@/lib/auth";
 import { saveLead } from "@/lib/store";
 
 // POST a lead -> store it -> set pk_lead, which unlocks the full sample.
@@ -57,12 +57,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Could not save right now. Try again." }, { status: 500 });
   }
 
-  (await cookies()).set(LEAD_COOKIE, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  });
+  (await cookies()).set(LEAD_COOKIE, "1", leadCookieOptions());
   return Response.json({ ok: true });
 }
