@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Reveal from "@/components/Reveal";
+import { renderMarkdown } from "@/lib/markdown";
 
 type Plan = {
   vendor: string;
@@ -241,7 +242,13 @@ export default function CompetitorWatchPage() {
               <h2 className="text-lg font-semibold text-fg">
                 Market position summary
               </h2>
-              <p className="text-sm leading-relaxed text-ink">{result.summary}</p>
+              {/* Match summary comes back as markdown from the LLM. Render
+                  it as HTML so bolds and lists are not shown raw. */}
+              <div
+                className="pk-prose text-sm leading-relaxed text-ink"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(result.summary) }}
+              />
+
             </section>
           </Reveal>
 

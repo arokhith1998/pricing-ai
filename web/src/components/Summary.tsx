@@ -1,5 +1,5 @@
 import { getSummary } from "@/lib/api";
-import { renderMarkdown } from "@/lib/blog";
+import { renderMarkdown } from "@/lib/markdown";
 
 // Async server component, streamed in via <Suspense> so the page paints first.
 export default async function Summary() {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Diagnostic } from "@/lib/api";
+import { renderInlineMarkdown, renderMarkdown } from "@/lib/markdown";
 
 type Citation = {
   kind: "doc" | "analysis" | "web";
@@ -346,16 +347,30 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
   }
 
   function renderAssistantText(m: Extract<Message, { role: "assistant" }>) {
-    // Replace [D1], [W2], [A] tokens with citation chips.
+    // Split on citation tokens ([D1], [W2], [A]), inject CitationChips, and
+    // render the text fragments around them as inline markdown so the
+    // model's **bold** / *italic* / `code` / [links] do not show as raw
+    // asterisks. marked.parseInline does not wrap in <p>, which keeps the
+    // chat bubble layout intact.
     const docCites = m.citations.filter((c) => c.kind === "doc");
     const webCites = m.citations.filter((c) => c.kind === "web");
     const analysisCite = m.citations.find((c) => c.kind === "analysis");
     const parts: React.ReactNode[] = [];
+    const pushText = (slice: string) => {
+      if (!slice) return;
+      parts.push(
+        <span
+          key={parts.length}
+          className="pk-inline-md"
+          dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(slice) }}
+        />,
+      );
+    };
     let i = 0;
     const re = /\[(D|W)(\d+)\]|\[A\]/g;
     let match: RegExpExecArray | null;
     while ((match = re.exec(m.text)) !== null) {
-      if (match.index > i) parts.push(m.text.slice(i, match.index));
+      if (match.index > i) pushText(m.text.slice(i, match.index));
       if (match[0] === "[A]" && analysisCite) {
         parts.push(<CitationChip key={parts.length} c={analysisCite} n={0} />);
       } else if (match[1] === "D") {
@@ -369,7 +384,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
       }
       i = re.lastIndex;
     }
-    if (i < m.text.length) parts.push(m.text.slice(i));
+    if (i < m.text.length) pushText(m.text.slice(i));
     return parts;
   }
 
@@ -521,9 +536,12 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                 return (
                   <div key={i} className="flex flex-col gap-2">
                     {m.text ? (
-                      <div className="max-w-[95%] rounded-2xl rounded-bl-sm border border-teal/30 bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink">
-                        {m.text}
-                      </div>
+                      <div
+                        className="pk-prose max-w-[95%] rounded-2xl rounded-bl-sm border border-teal/30 bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink"
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(m.text),
+                        }}
+                      />
                     ) : null}
                     {m.opportunities.length === 0 ? (
                       <div className="rounded-lg border border-mist bg-surface-2 px-3 py-2 text-xs text-muted">
