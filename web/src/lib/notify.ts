@@ -68,12 +68,63 @@ export async function notifyLeadCaptured(lead: Lead): Promise<void> {
     } else if (webhook) {
       await viaWebhook(lead, webhook);
     } else {
-      // No notification channel configured — leave a structured stderr line
+      // No notification channel configured. Leave a structured stderr line
       // so `vercel logs` still surfaces the new lead in real time.
       console.log("[lead captured]", lead.company, lead.email);
     }
   } catch (err) {
     // Never let a notification failure surface to the user.
     console.error("[lead notify failed]", err instanceof Error ? err.message : err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Magic-link delivery. Tight transactional email, no marketing copy.
+// Falls back to a stderr log when RESEND_API_KEY is unset so the founder can
+// test the flow end-to-end before wiring Resend in Vercel.
+
+const MAGIC_FROM = "Pricekeel <hello@pricekeel.com>";
+
+export async function sendMagicLink(email: string, link: string): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY;
+  const subject = "Your Pricekeel access link";
+  const text = [
+    "Click here to open the Pricekeel sample read-out:",
+    "",
+    link,
+    "",
+    "This link is valid for 24 hours.",
+    "",
+    "Pricekeel",
+  ].join("\n");
+
+  if (!resendKey) {
+    // Dev / pre-Resend mode: log to stderr so the founder can copy the URL
+    // out of `vercel logs` (or local terminal) and test the redeem path.
+    console.log("[magic link]", email, link);
+    return;
+  }
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: MAGIC_FROM,
+        to: email,
+        subject,
+        text,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`resend ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+  } catch (err) {
+    // Same posture as notifyLeadCaptured: log and swallow. The API caller
+    // always sees a generic "if you submitted before, check your inbox"
+    // response, which makes this safe to fail silently.
+    console.error("[magic link send failed]", err instanceof Error ? err.message : err);
   }
 }

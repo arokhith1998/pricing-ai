@@ -50,6 +50,26 @@ export async function saveLead(lead: Lead): Promise<void> {
   await notifyLeadCaptured(lead);
 }
 
+/** Best-effort lookup. Returns true if we have ever captured this email.
+ *  Used by the magic-link recovery flow so returning leads do not have to
+ *  refill the form on a new device or after their cookie expired. */
+export async function leadExists(email: string): Promise<boolean> {
+  const e = email.trim().toLowerCase();
+  if (!e) return false;
+  const c = client();
+  if (!c) return memLeads.some((l) => l.email.trim().toLowerCase() === e);
+  const { data, error } = await c
+    .from("leads")
+    .select("email")
+    .ilike("email", e)
+    .limit(1);
+  if (error) {
+    console.error("[leadExists] supabase error:", error.message);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
+}
+
 export async function isValidAccessCode(code: string): Promise<boolean> {
   const c = client();
   if (!c) {
