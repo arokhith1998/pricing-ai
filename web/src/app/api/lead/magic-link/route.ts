@@ -46,21 +46,27 @@ export async function POST(req: Request) {
   const nextRaw = typeof body.next === "string" ? body.next : "";
   const next = ALLOWED_NEXT.has(nextRaw) ? nextRaw : undefined;
 
-  // Fire-and-forget recovery. We deliberately do not surface whether the
-  // email was found, to prevent address enumeration. The user always sees
-  // "if you have submitted before, check your inbox."
-  (async () => {
-    try {
-      const found = await leadExists(email);
-      if (!found) return;
+  // We deliberately do not surface whether the email was found to prevent
+  // address enumeration; the user always sees the same {ok:true} response.
+  //
+  // The work is awaited (not fire-and-forget) because Vercel's serverless
+  // runtime can terminate the function context the moment Response.json()
+  // returns, which would silently drop the Resend send call. The cost is a
+  // ~1-2s response time, which is fine for this UX.
+  try {
+    const found = await leadExists(email);
+    if (found) {
       const token = await makeMagicToken(email);
       const origin = new URL(req.url).origin;
       const link = magicRedeemUrl(origin, token, next);
       await sendMagicLink(email, link);
-    } catch (err) {
-      console.error("[magic-link route]", err instanceof Error ? err.message : err);
+      console.log("[magic-link] sent to", email);
+    } else {
+      console.log("[magic-link] no lead found for", email, "(silent)");
     }
-  })();
+  } catch (err) {
+    console.error("[magic-link route]", err instanceof Error ? err.message : err);
+  }
 
   return Response.json({ ok: true });
 }
