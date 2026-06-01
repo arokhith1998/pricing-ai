@@ -1,25 +1,14 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
 import RoiCalculator from "@/components/RoiCalculator";
-import FounderStrip from "@/components/FounderStrip";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
 import DeliverableSection from "@/components/DeliverableSection";
 import FounderCta from "@/components/FounderCta";
 
-// Static marketing landing — no API dependency, so it always loads fast.
+// Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
-
-function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
-  return (
-    <div className="rounded-xl border border-mist bg-surface p-5 text-center shadow-sm">
-      <div className="text-3xl font-extrabold tabular-nums text-fg">{value}</div>
-      <div className="mt-1 text-sm text-slate">{label}</div>
-      {sub ? <div className="mt-1 text-xs text-muted">{sub}</div> : null}
-    </div>
-  );
-}
 
 function Capability({ title, body }: { title: string; body: string }) {
   return (
@@ -85,46 +74,16 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 3. ROI calculator — promoted to position 3 ------------------------ */}
+      {/* 3. ROI calculator. The sample numbers are already shown inside the
+          DiagnosticPreview above, so we cut the previously-here stats strip
+          (it was repeating $67.1M / $11.2M / 81.4% one section apart). */}
       <Reveal delay={0.05}>
         <section className="mt-14">
           <RoiCalculator />
         </section>
       </Reveal>
 
-      {/* 4. Live sample numbers (replaces generic industry stats) --------- */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <p className="text-center text-xs font-semibold uppercase tracking-wider text-teal">
-            What Pricekeel surfaced on the bundled sample
-          </p>
-          <h2 className="mt-2 text-center text-xl font-bold text-fg">
-            2,000 closed deals → three numbers a CFO can act on
-          </h2>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat
-              value="$67.1M"
-              label="Booked value (won)"
-              sub="1,215 won / 785 lost · win rate 60.8%"
-            />
-            <Stat
-              value="$11.2M"
-              label="Pricing upside to pursue"
-              sub="16.7% of booked, past the win point"
-            />
-            <Stat
-              value="81.4%"
-              label="Price realization"
-              sub="avg discount 13.8%"
-            />
-          </div>
-          <p className="mt-3 text-center text-xs text-muted">
-            Live figures from the bundled sample. Your numbers come from your CSV.
-          </p>
-        </section>
-      </Reveal>
-
-      {/* 5. What it does — 4 cards (Defend the decision is new) ----------- */}
+      {/* 4. What it does, 4 cards including Defend the decision. */}
       <Reveal delay={0.05}>
         <section className="mt-14">
           <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
@@ -214,50 +173,20 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 9. Founder strip — placeholder until real bio + headshot land --- */}
+      {/* 8. Founder design-partner section. Merged what used to be a
+          separate FounderStrip (bio + chips) and FounderCta (the offer)
+          into one component, since the two were rendering the same photo
+          and intro back to back. */}
       <Reveal delay={0.05}>
         <section className="mt-14">
-          <FounderStrip />
-        </section>
-      </Reveal>
-
-      {/* 9b. Founder design-partner CTA (NEW per 2026-05-30 review) ------ */}
-      <Reveal delay={0.05}>
-        <section className="mt-10">
           <FounderCta />
         </section>
       </Reveal>
 
-      {/* 10. Trust strip (NEW) -------------------------------------------- */}
+      {/* 9. Trust strip. */}
       <Reveal delay={0.05}>
         <section className="mt-10">
           <TrustStrip />
-        </section>
-      </Reveal>
-
-      {/* 11. Final CTA — kept --------------------------------------------- */}
-      <Reveal delay={0.05}>
-        <section className="mt-10 rounded-xl border border-mist bg-surface p-6 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-fg">See it on your own deals</h2>
-          <p className="mx-auto mt-1 max-w-xl text-sm text-slate">
-            Export a CSV of your closed opportunities and get your own diagnostic.
-            Your data is processed to produce the analysis and is not stored. If
-            you need an NDA first, we will sign one.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/sample"
-              className="rounded-lg bg-navy px-5 py-3 font-medium text-white transition hover:bg-navy/90"
-            >
-              Start with the sample
-            </Link>
-            <Link
-              href="/upload"
-              className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
-            >
-              Upload your CSV
-            </Link>
-          </div>
         </section>
       </Reveal>
     </main>

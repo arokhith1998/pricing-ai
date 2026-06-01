@@ -3,7 +3,6 @@
 // so a future-dated file sits in the repo until then. See web/content/CONTENT.md.
 import fs from "node:fs";
 import path from "node:path";
-import { marked } from "marked";
 
 const DIR = path.join(process.cwd(), "content", "blog");
 
@@ -66,6 +65,7 @@ export function getPost(slug: string): Post | null {
   return p && isLive(p) ? p : null;
 }
 
-export function renderMarkdown(md: string): string {
-  return marked.parse(md, { async: false }) as string;
-}
+// Re-exported from lib/markdown so existing callers (blog page) keep working.
+// Direct imports from lib/markdown are preferred for new code, especially in
+// client components, since this file pulls in node:fs at module level.
+export { renderMarkdown, renderInlineMarkdown } from "@/lib/markdown";
