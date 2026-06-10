@@ -7,3 +7,7 @@
 # normalizes them, or they stop testing the formats they mimic.
 data/synthetic/format-fixtures/*.csv -text
 data/synthetic/format-fixtures/*.xlsx binary
+# Round-2 adversarial fixtures: cp1252 encoding, NBSP/space thousands, semicolon
+# delimiters, CRLF — all deliberate. Keep them byte-exact.
+data/synthetic/adversarial-fixtures/*.csv -text
+data/synthetic/adversarial-fixtures/*.xlsx binary

@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from pricing import assist, metrics, model  # noqa: E402  (re-exported for pages)
 from pricing.diagnostic import run  # noqa: E402
-from pricing.ingest import ingest  # noqa: E402
+from pricing.ingest import ingest, ingest_verbose  # noqa: E402
 from pricing.schema import DEFAULT_POLICY_THRESHOLD  # noqa: E402
 
 BRAND = {
@@ -112,6 +112,14 @@ def require_csv(csv: str) -> None:
 @st.cache_data(show_spinner="Running diagnostic…")
 def get_diagnostic(csv: str, policy: float) -> dict:
     return run(csv, policy_threshold=policy)
+
+
+@st.cache_data(show_spinner=False)
+def get_load_report(csv: str, policy: float):
+    """The 'what we read from your file' report — rows read / excluded / deduped
+    / decoded / sheet chosen. Cached per CSV so the dashboard never recomputes."""
+    _df, report = ingest_verbose(csv, policy_threshold=policy)
+    return report
 
 
 @st.cache_resource(show_spinner="Training win-probability model…")

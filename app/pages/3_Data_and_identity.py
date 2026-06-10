@@ -11,8 +11,8 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from _app_lib import (  # noqa: E402
-    assist, field_label, get_column_map, get_diagnostic, page, relabel,
-    require_csv, sidebar_inputs,
+    assist, field_label, get_column_map, get_diagnostic, get_load_report, page,
+    relabel, require_csv, sidebar_inputs,
 )
 
 page("Data and identity")
@@ -21,6 +21,12 @@ require_csv(csv)
 res = get_diagnostic(csv, policy)
 df = res["data"]
 ov = res["overview"]
+
+# What we read from the file, before any analysis — the explainability posture
+# applied to ingestion. Every excluded open deal, dropped duplicate, decode
+# choice, or chosen worksheet is a visible line here, never a silent number.
+st.subheader("What we read from your file")
+st.code(get_load_report(csv, policy).summary(), language="text")
 
 st.subheader("Cleaning up account names")
 st.caption("Real exports spell the same company several ways and often leave the "
