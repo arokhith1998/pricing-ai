@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import io
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,59 @@ from pricing.schema import (
     Outcome,
     band_for,
 )
+
+# A diagnostic needs a minimum of real closed deals to mean anything; below this
+# we fail loudly rather than render a NaN dashboard.
+MIN_CLOSED_DEALS = 30
+_CLOSED = {Outcome.WON.value, Outcome.LOST.value}
+# CSV decode cascade for the common real-world encodings. latin-1 maps every
+# byte, so it never raises — it is the guaranteed last resort.
+_ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
+
+
+@dataclass
+class LoadReport:
+    """What we read from a file, and what we set aside and why.
+
+    This is the 'here is what we read from your file' artifact the diagnostic
+    should surface first — the explainability posture applied to ingestion.
+    Every silent-corruption trap (open deals retained, duplicates double-counted,
+    a mis-decoded name) becomes a visible line here instead of a wrong number.
+    """
+
+    source: str = ""
+    encoding: str = ""                # which decode succeeded (CSV only)
+    sheet: str = ""                   # chosen worksheet (XLSX only)
+    rows_read: int = 0                # data rows after load + blank drop
+    rows_kept: int = 0                # rows that reached the metrics
+    blank_rows_dropped: int = 0
+    exact_duplicates_dropped: int = 0
+    conflicting_ids: list[str] = field(default_factory=list)
+    excluded_open: dict[str, int] = field(default_factory=dict)  # stage -> count
+    notes: list[str] = field(default_factory=list)
+
+    def summary(self) -> str:
+        """A short, human-readable 'what we read' block for the dashboard."""
+        out = [f"Read {self.rows_kept} closed deals from {self.source}."]
+        if self.sheet:
+            out.append(f"  worksheet: {self.sheet}")
+        if self.encoding and self.encoding != "utf-8-sig":
+            out.append(f"  decoded as {self.encoding}")
+        if self.excluded_open:
+            total = sum(self.excluded_open.values())
+            detail = ", ".join(f"{k}: {v}" for k, v in self.excluded_open.items())
+            out.append(f"  excluded {total} open / non-closed rows ({detail})")
+        if self.exact_duplicates_dropped:
+            out.append(f"  dropped {self.exact_duplicates_dropped} exact duplicate rows")
+        if self.conflicting_ids:
+            out.append(
+                f"  WARNING: {len(self.conflicting_ids)} opportunity_id(s) with "
+                "conflicting values, kept first occurrence"
+            )
+        if self.blank_rows_dropped:
+            out.append(f"  dropped {self.blank_rows_dropped} blank / summary rows")
+        out.extend(f"  {n}" for n in self.notes)
+        return "\n".join(out)
 
 _NUMERIC = ["list_acv", "booked_acv", "platform_fee_acv", "usage_acv", "quantity",
             "committed_acv", "overage_rate", "ramp_year_1_acv", "ramp_year_2_acv",
@@ -53,30 +107,82 @@ def normalize_account_name(name: str) -> str:
     return " ".join(tokens)
 
 
-def load_any(path: str | Path) -> pd.DataFrame:
+def _header_row(raw: pd.DataFrame) -> int | None:
+    """Index of the first row with >3 non-empty cells (the real header, skipping
+    a title/banner above it). None if no row qualifies."""
+    return next((i for i, r in raw.iterrows() if r.notna().sum() > 3), None)
+
+
+def _frame_from_header(raw: pd.DataFrame, hdr: int) -> pd.DataFrame:
+    """Slice a header-less sheet/frame into a typed-as-string DataFrame from the
+    detected header row, dropping all-blank rows and a trailing TOTAL row."""
+    df = raw.iloc[hdr + 1:].copy()
+    df.columns = [str(c) for c in raw.iloc[hdr]]
+    df = df.dropna(how="all")
+    first_cell = df.iloc[:, 0].astype(str).str.strip().str.upper()
+    df = df[first_cell != "TOTAL"]
+    return df.fillna("").astype(str).reset_index(drop=True)
+
+
+def _load_excel(path: Path, report: LoadReport | None) -> pd.DataFrame:
+    """Pick the worksheet whose header resolves the most required fields, so a
+    summary/pivot sheet sitting before the real data does not win."""
+    xls = pd.ExcelFile(path)
+    best = None  # (score, sheet, raw, hdr)
+    for sheet in xls.sheet_names:
+        raw = pd.read_excel(xls, sheet_name=sheet, header=None, dtype=str)
+        if raw.empty:
+            continue
+        hdr = _header_row(raw)
+        if hdr is None:
+            continue
+        cols = [str(c).strip() for c in raw.iloc[hdr] if pd.notna(c)]
+        mapped = mapping.map_headers(cols, llm_fallback=False,
+                                     use_embeddings=False)["mapping"]
+        score = sum(1 for f in REQUIRED_FIELDS if mapped.get(f))
+        if best is None or score > best[0]:
+            best = (score, sheet, raw, hdr)
+    if best is None:  # no sheet had a usable header; fall back to the first
+        raw = pd.read_excel(xls, sheet_name=0, header=None, dtype=str)
+        best = (0, xls.sheet_names[0], raw, _header_row(raw) or 0)
+    _score, sheet, raw, hdr = best
+    if report is not None:
+        report.sheet = sheet
+        if len(xls.sheet_names) > 1:
+            report.notes.append(
+                f"chose worksheet '{sheet}' of {len(xls.sheet_names)} by required-field coverage"
+            )
+    return _frame_from_header(raw, hdr)
+
+
+def load_any(path: str | Path, report: LoadReport | None = None) -> pd.DataFrame:
     """Tolerant raw read of a deals export, returning all-string columns.
 
     Handles the shapes real exports arrive in (type coercion happens later):
-      * .xlsx with a title/banner row above the real header and a TOTAL row
-        at the bottom (Finance's Excel),
-      * semicolon-delimited CSV (EU ERP/CRM exports),
-      * a UTF-8 BOM (hand-maintained CRM exports).
+      * .xlsx with a banner row above the header, a TOTAL row, and possibly a
+        summary sheet before the data sheet,
+      * semicolon-delimited CSV (EU ERP exports),
+      * UTF-8 BOM, and Windows-1252 / latin-1 encodings (decode cascade).
     """
     path = Path(path)
     if path.suffix.lower() in (".xlsx", ".xls"):
-        raw = pd.read_excel(path, header=None, dtype=str)
-        # Header row = first row with >3 non-empty cells; skips a title/blank
-        # banner sitting above the real header.
-        hdr = next((i for i, r in raw.iterrows() if r.notna().sum() > 3), 0)
-        df = raw.iloc[hdr + 1:].copy()
-        df.columns = [str(c) for c in raw.iloc[hdr]]
-        df = df.dropna(how="all")
-        # Drop a trailing summary row whose first cell is "TOTAL".
-        first_cell = df.iloc[:, 0].astype(str).str.strip().str.upper()
-        df = df[first_cell != "TOTAL"]
-        return df.fillna("").astype(str).reset_index(drop=True)
+        return _load_excel(path, report)
 
-    text = path.read_bytes().decode("utf-8-sig")  # utf-8-sig strips a BOM
+    raw = path.read_bytes()
+    text = None
+    for enc in _ENCODINGS:
+        try:
+            text = raw.decode(enc)
+            if report is not None:
+                report.encoding = enc
+            break
+        except UnicodeDecodeError:
+            continue
+    if text is None:  # latin-1 cannot reach here, but stay defensive
+        text = raw.decode("latin-1", errors="replace")
+        if report is not None:
+            report.encoding = "latin-1 (lossy)"
+
     lines = text.splitlines()
     first = lines[0] if lines else ""
     sep = ";" if first.count(";") > first.count(",") else ","
@@ -108,6 +214,62 @@ def validate(df: pd.DataFrame) -> None:
         raise SchemaError(
             f"Input is missing {len(missing)} required column(s): {missing}. "
             f"See pricing/schema.py and gtm/data-request.md."
+        )
+
+
+def _dedupe(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
+    """Drop exact re-export duplicates; flag same-id-different-values conflicts.
+
+    A re-export that appends the same rows twice would otherwise double-count
+    booked ACV. Exact-row duplicates drop silently into the report. Rows sharing
+    an opportunity_id but disagreeing on values are a data-quality error: we keep
+    the first and surface a warning rather than guess which is right.
+    """
+    if "opportunity_id" not in df.columns:
+        return df
+    before = len(df)
+    df = df.drop_duplicates().reset_index(drop=True)
+    report.exact_duplicates_dropped = before - len(df)
+    conflict_mask = df["opportunity_id"].duplicated(keep=False)
+    if conflict_mask.any():
+        report.conflicting_ids = sorted(
+            df.loc[conflict_mask, "opportunity_id"].astype(str).unique().tolist()
+        )
+        df = df.drop_duplicates(subset="opportunity_id", keep="first").reset_index(drop=True)
+    return df
+
+
+def _exclude_open(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
+    """Drop rows whose stage is not a closed outcome (open pipeline deals).
+
+    A CRM export full of Negotiation / Proposal Sent rows would otherwise be
+    counted as losses and silently tank the win rate. Excluded counts go to the
+    report by stage, so the exclusion is visible, never silent.
+    """
+    if "outcome" not in df.columns:
+        return df
+    is_closed = df["outcome"].isin(_CLOSED)
+    if not is_closed.all():
+        report.excluded_open = {
+            str(k): int(v)
+            for k, v in df.loc[~is_closed, "outcome"].value_counts().items()
+        }
+        df = df[is_closed].reset_index(drop=True)
+    return df
+
+
+def _require_enough(df: pd.DataFrame) -> None:
+    """Fail loudly when there is not enough closed data for a real diagnostic."""
+    if len(df) == 0:
+        raise SchemaError(
+            "No deals to analyze: the file parsed but has no closed (won or "
+            "lost) data rows. Check that it is a deals export, not a header-only "
+            "or summary file."
+        )
+    if len(df) < MIN_CLOSED_DEALS:
+        raise SchemaError(
+            f"Only {len(df)} closed deal(s) found; the diagnostic needs at least "
+            f"{MIN_CLOSED_DEALS} closed (won or lost) deals to be meaningful."
         )
 
 
@@ -281,23 +443,48 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     return df
 
 
-def ingest(path: str | Path,
-           policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> pd.DataFrame:
-    """Full pipeline: load → map headers → validate → coerce → resolve → enrich.
+def ingest_verbose(
+    path: str | Path,
+    policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+) -> tuple[pd.DataFrame, LoadReport]:
+    """Full pipeline returning the enriched deals AND a LoadReport of what was
+    read, excluded, deduped, decoded, and inferred.
 
-    The header-mapping step (deterministic synonyms + fuzzy) is what lets a raw
-    Salesforce / HubSpot / EU / warehouse / Excel export ingest without a manual
-    rename pass — see data/synthetic/format-fixtures/.
+    Pipeline: load → map headers → drop blanks → validate columns → coerce →
+    dedupe → exclude open deals → require enough closed data → resolve → enrich.
+    The report is the customer-facing 'here is what we read from your file'
+    artifact; see data/synthetic/adversarial-fixtures/ for the traps it closes.
     """
-    df = load_any(path)
+    report = LoadReport(source=Path(path).name)
+    df = load_any(path, report)
     df = apply_header_mapping(df)
-    # Drop blank and summary rows that carry no opportunity id (Excel TOTAL
-    # rows, injected blank separators) so they never reach the metrics.
+
+    # Drop blank / summary rows that carry no opportunity id.
     if "opportunity_id" in df.columns:
         oid = df["opportunity_id"].astype(str).str.strip()
+        before = len(df)
         df = df[oid != ""].reset_index(drop=True)
-    validate(df)
-    df = _coerce_types(df)
+        report.blank_rows_dropped = before - len(df)
+    report.rows_read = len(df)
+
+    validate(df)                       # required columns present
+    df = _dedupe(df, report)           # exact re-export dupes + id conflicts
+    df = _coerce_types(df)             # money / dates / outcome / booleans
+    df = _exclude_open(df, report)     # non-closed pipeline rows
+    _require_enough(df)                # ≥1 row, ≥ MIN_CLOSED_DEALS closed
+
     df = resolve_identity(df)
     df = enrich(df, policy_threshold=policy_threshold)
+    report.rows_kept = len(df)
+    return df, report
+
+
+def ingest(path: str | Path,
+           policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> pd.DataFrame:
+    """Backward-compatible entry point: the enriched deals only.
+
+    Use ingest_verbose() when you also want the LoadReport (what was read /
+    excluded / deduped / decoded), e.g. to show it in the dashboard.
+    """
+    df, _report = ingest_verbose(path, policy_threshold=policy_threshold)
     return df

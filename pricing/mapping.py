@@ -26,6 +26,7 @@ SYNONYMS: dict[str, list[str]] = {
     "opportunity_id": [
         "opportunity id", "opp id", "deal id", "opportunity",
         "opp", "oppid", "opp_id", "deal", "deal number", "deal #",
+        "record id",  # HubSpot's per-deal key
     ],
     "account_id": [
         "account id", "customer id", "acct id", "client id", "company id",
@@ -106,7 +107,9 @@ SYNONYMS: dict[str, list[str]] = {
     ],
     "rep_id": [
         "rep", "rep id", "owner", "salesperson", "ae", "account executive",
-        "owner id", "rep name",
+        "owner id", "rep name", "deal owner",
+        # "deal owner" claimed here in layer 1 so it can't fuzzy-grab
+        # opportunity_id (it contains the token "deal").
     ],
     "approved_by": [
         "approver", "approved by", "approval", "approved",
