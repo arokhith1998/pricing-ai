@@ -50,7 +50,7 @@ async function viaWebhook(lead: Lead, url: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      text: `*New Pricekeel lead* — ${lead.company} (${lead.role_title})\n${summary(lead)}`,
+      text: `*New Pricekeel lead.* ${lead.company} (${lead.role_title})\n${summary(lead)}`,
       lead,
     }),
   });
@@ -84,6 +84,11 @@ export async function notifyLeadCaptured(lead: Lead): Promise<void> {
 // test the flow end-to-end before wiring Resend in Vercel.
 
 const MAGIC_FROM = "Pricekeel <hello@pricekeel.com>";
+// Reply-To lands on the real M365 mailbox so any human reply reaches us.
+// Sending from hello@ (not yet a real mailbox) is fine because the recipient
+// is told to click the link, not reply, and M365 trusts mail more when
+// Reply-To resolves to a real inbox under the same org.
+const MAGIC_REPLY_TO = process.env.LEAD_NOTIFY_TO || "adhithya@pricekeel.com";
 
 export async function sendMagicLink(email: string, link: string): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY;
@@ -97,6 +102,48 @@ export async function sendMagicLink(email: string, link: string): Promise<void> 
     "",
     "Pricekeel",
   ].join("\n");
+
+  // Multipart bodies (text + HTML) score better than text-only on M365 and
+  // Gmail spam filters. The HTML stays minimal: a single branded paragraph,
+  // a styled button, a fallback URL, and a TTL note. No images, no tracking
+  // pixels, no marketing chrome (also helps deliverability).
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0d1b2e;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;background:#ffffff;border:1px solid #dde3ec;border-radius:12px;">
+        <tr><td style="padding:28px 32px 8px 32px;">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.01em;line-height:1;">
+            <span style="color:#0d1b2e;">Price</span><span style="color:#0d9488;">keel</span>
+          </div>
+          <div style="margin-top:4px;color:#6b7891;font-size:11px;">Keep your pricing on an even keel.</div>
+        </td></tr>
+        <tr><td style="padding:8px 32px 0 32px;">
+          <h1 style="margin:16px 0 6px 0;font-size:18px;font-weight:700;color:#0d1b2e;">Your access link</h1>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:#1f2a3d;">
+            Click the button below to open the Pricekeel sample read-out. This
+            link is valid for 24 hours.
+          </p>
+        </td></tr>
+        <tr><td align="center" style="padding:20px 32px 8px 32px;">
+          <a href="${escapeAttr(link)}" style="display:inline-block;background:#0d9488;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;">Open Pricekeel</a>
+        </td></tr>
+        <tr><td style="padding:8px 32px 24px 32px;">
+          <p style="margin:12px 0 0 0;font-size:12px;line-height:1.5;color:#6b7891;">
+            Button not working? Paste this URL into your browser:<br/>
+            <a href="${escapeAttr(link)}" style="color:#0b7d72;word-break:break-all;">${escapeHtml(link)}</a>
+          </p>
+          <p style="margin:18px 0 0 0;font-size:11px;color:#6b7891;border-top:1px solid #eef2f7;padding-top:14px;">
+            You are receiving this because someone using your email asked for an
+            access link at pricekeel.com. If that wasn't you, you can ignore
+            this message; nothing happens until the link is clicked.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
 
   if (!resendKey) {
     // Dev / pre-Resend mode: log to stderr so the founder can copy the URL
@@ -113,9 +160,11 @@ export async function sendMagicLink(email: string, link: string): Promise<void> 
       },
       body: JSON.stringify({
         from: MAGIC_FROM,
+        reply_to: MAGIC_REPLY_TO,
         to: email,
         subject,
         text,
+        html,
       }),
     });
     if (!res.ok) {
@@ -127,4 +176,18 @@ export async function sendMagicLink(email: string, link: string): Promise<void> 
     // response, which makes this safe to fail silently.
     console.error("[magic link send failed]", err instanceof Error ? err.message : err);
   }
+}
+
+// Minimal HTML escaping for the values we interpolate into the template.
+// The link is built server-side from our own HMAC + base64url, so it can
+// only contain URL-safe chars; the only realistic risk is a future change
+// adding user-supplied text. This keeps us safe by default.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+function escapeAttr(s: string): string {
+  return escapeHtml(s).replace(/"/g, "&quot;");
 }
