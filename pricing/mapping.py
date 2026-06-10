@@ -87,7 +87,7 @@ SYNONYMS: dict[str, list[str]] = {
     ],
     "platform_fee_acv": [
         "platform fee", "platform", "base fee", "subscription fee",
-        "fixed fee", "commit",
+        "fixed fee",
     ],
     "usage_acv": [
         "usage", "usage value", "consumption", "metered", "variable",
@@ -112,6 +112,35 @@ SYNONYMS: dict[str, list[str]] = {
     ],
     "lost_reason": [
         "lost reason", "loss reason", "reason", "loss code",
+    ],
+    "committed_acv": [
+        "committed acv", "commit", "commitment", "committed spend",
+        "minimum commitment", "min commit", "committed amount", "floor",
+        "annual commitment",
+    ],
+    "overage_rate": [
+        "overage rate", "overage", "on demand rate", "on-demand rate",
+        "overage price", "unit overage", "burst rate", "rate per unit",
+    ],
+    "ramp_year_1_acv": [
+        "ramp year 1", "year 1 acv", "y1 acv", "ramp y1", "year one acv",
+        "ramp_year_1", "yr1 acv",
+    ],
+    "ramp_year_2_acv": [
+        "ramp year 2", "year 2 acv", "y2 acv", "ramp y2", "year two acv",
+        "ramp_year_2", "yr2 acv",
+    ],
+    "is_renewal": [
+        "renewal", "is renewal", "renewal flag", "is_renewal", "renewed",
+        "contract type",
+    ],
+    "renewal_uplift": [
+        "renewal uplift", "uplift", "renewal increase", "price uplift",
+        "renewal rate increase", "escalator", "annual uplift",
+    ],
+    "cogs_acv": [
+        "cogs", "cogs acv", "cost of goods", "cost of goods sold",
+        "delivery cost", "infra cost", "cost", "service cost",
     ],
 }
 

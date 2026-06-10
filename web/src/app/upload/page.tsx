@@ -18,7 +18,7 @@ const REQUIRED = [
 ];
 
 const OPTIONAL =
-  "account_id, region, industry, platform_fee_acv, usage_acv, term_months, quantity, rep_id, approved_by, competitor_present, lost_reason";
+  "account_id, region, industry, platform_fee_acv, usage_acv, term_months, quantity, rep_id, approved_by, competitor_present, lost_reason, committed_acv, overage_rate, ramp_year_1_acv, ramp_year_2_acv, is_renewal, renewal_uplift, cogs_acv";
 
 export default function UploadPage() {
   return (

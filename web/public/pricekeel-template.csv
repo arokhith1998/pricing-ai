@@ -1,3 +1,4 @@
-opportunity_id,account_id,account_name,outcome,created_date,close_date,segment,region,industry,product_tier,value_metric,list_acv,booked_acv,platform_fee_acv,usage_acv,term_months,quantity,rep_id,approved_by,competitor_present,lost_reason
-OPP-00481,ACC-0123,"Acme, Inc.",closed_won,2025-08-04,2025-09-30,MidMarket,NA,FinTech,Growth,hybrid,120000.00,96000.00,36000.00,60000.00,12,150,REP-07,MGR-02,true,
-OPP-00482,ACC-0144,Globex LLC,closed_lost,2025-07-10,2025-09-28,Enterprise,EMEA,SaaS,Enterprise,consumption,300000.00,255000.00,,255000.00,12,500,REP-03,,true,price
+opportunity_id,account_id,account_name,outcome,created_date,close_date,segment,region,industry,product_tier,value_metric,list_acv,booked_acv,platform_fee_acv,usage_acv,term_months,quantity,rep_id,approved_by,competitor_present,lost_reason,committed_acv,overage_rate,ramp_year_1_acv,ramp_year_2_acv,is_renewal,renewal_uplift,cogs_acv
+OPP-00481,ACC-0123,"Acme, Inc.",closed_won,2025-08-04,2025-09-30,MidMarket,NA,FinTech,Growth,hybrid,120000.00,96000.00,36000.00,60000.00,12,150,REP-07,MGR-02,true,,72000.00,0.85,,,false,,28000.00
+OPP-00482,ACC-0144,Globex LLC,closed_lost,2025-07-10,2025-09-28,Enterprise,EMEA,SaaS,Enterprise,consumption,300000.00,255000.00,,255000.00,12,500,REP-03,,true,price,200000.00,1.20,,,false,,81600.00
+OPP-00483,ACC-0210,Northwind Data,closed_won,2025-05-01,2025-06-30,Enterprise,NA,DevTools,Scale,hybrid,480000.00,408000.00,180000.00,228000.00,36,900,REP-05,MGR-01,false,,360000.00,0.95,300000.00,450000.00,true,0.08,110000.00

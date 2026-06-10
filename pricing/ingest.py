@@ -26,7 +26,9 @@ from pricing.schema import (
     band_for,
 )
 
-_NUMERIC = ["list_acv", "booked_acv", "platform_fee_acv", "usage_acv", "quantity"]
+_NUMERIC = ["list_acv", "booked_acv", "platform_fee_acv", "usage_acv", "quantity",
+            "committed_acv", "overage_rate", "ramp_year_1_acv", "ramp_year_2_acv",
+            "renewal_uplift", "cogs_acv"]
 _LEGAL_TOKENS = {"inc", "llc", "corp", "co", "ltd", "incorporated", "llp", "plc"}
 _PUNCT = re.compile(r"[^a-z0-9\s]")
 _WS = re.compile(r"\s+")
@@ -74,11 +76,12 @@ def _coerce_types(df: pd.DataFrame) -> pd.DataFrame:
     for col in ("created_date", "close_date"):
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
-    if "competitor_present" in df.columns:
-        df["competitor_present"] = (
-            df["competitor_present"].astype(str).str.strip().str.lower()
-            .isin(["true", "1", "yes", "y"])
-        )
+    for boolcol in ("competitor_present", "is_renewal"):
+        if boolcol in df.columns:
+            df[boolcol] = (
+                df[boolcol].astype(str).str.strip().str.lower()
+                .isin(["true", "1", "yes", "y"])
+            )
     return df
 
 
