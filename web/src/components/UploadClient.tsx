@@ -378,6 +378,11 @@ export default function UploadClient() {
   const [res, setRes] = useState<Diagnostic | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Clickwrap: an affirmative tick gating the upload converts passive
+  // browsewrap (Terms §1 "uploading constitutes acceptance") into a real
+  // clickwrap record at the moment data changes hands. Also captures the
+  // data-rights warranty (Terms §5) the user makes about their own upload.
+  const [accepted, setAccepted] = useState(false);
 
   async function readFile() {
     if (!file) return;
@@ -444,12 +449,33 @@ export default function UploadClient() {
             />
             <button
               onClick={readFile}
-              disabled={!file || busy}
+              disabled={!file || busy || !accepted}
               className="rounded-lg bg-navy px-5 py-2.5 font-medium text-white transition hover:bg-navy/90 disabled:opacity-50"
             >
               {busy && !map ? "Reading…" : map ? "Re-read file" : "Read file"}
             </button>
           </div>
+
+          <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-navy"
+            />
+            <span>
+              I have the right to upload this data, and I agree to the{" "}
+              <a className="text-teal underline" href="/terms" target="_blank" rel="noopener noreferrer">
+                Terms of Use
+              </a>{" "}
+              and{" "}
+              <a className="text-teal underline" href="/privacy" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
+
           {error && !map ? <p className="mt-3 text-sm text-coral">{error}</p> : null}
           <p className="mt-3 text-xs text-muted">
             CSV or Excel. Processed in memory to produce the analysis; not stored.
