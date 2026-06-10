@@ -37,7 +37,9 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
+from pricing import metrics
 from pricing.ingest import ingest
+from pricing.schema import band_for
 
 # Features available at quote time. Categorical first, then numeric.
 CATEGORICAL = ["segment", "region", "industry", "product_tier", "value_metric"]
@@ -158,6 +160,59 @@ def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
         "uplift": float(expected_acv[best] - expected_acv[cur_i]),
         "curve": pd.DataFrame({"discount": grid, "win_prob": p,
                                "expected_acv": expected_acv}),
+    }
+
+
+def comparable_deals(df: pd.DataFrame, idx, k: int = 5) -> pd.DataFrame:
+    """The k closed deals most similar to deal `idx` — the evidence behind a
+    recommendation (explainability > accuracy: a transparent rule, not a
+    black-box neighbour search).
+
+    Similarity is deliberately simple and defensible in a pricing committee:
+    prefer the same segment, then rank by closeness in deal size (log list ACV)
+    and discount given. Returns won AND lost deals so the user sees how similar
+    deals fared at similar discounts, not a cherry-picked set.
+    """
+    if idx not in df.index:
+        return df.iloc[0:0]
+    this = df.loc[idx]
+    pool = df[df.index != idx]
+    same_seg = pool[pool["segment"] == this["segment"]]
+    base = same_seg if len(same_seg) >= k else pool
+    this_log = float(np.log(max(float(this["list_acv"]), 1.0)))
+    d_size = (np.log(base["list_acv"].clip(lower=1.0)) - this_log).abs()
+    d_disc = (base["discount_pct"] - float(this["discount_pct"])).abs()
+    # discount lives in [0,1]; log-size distance is O(1). Weight discount up so
+    # "similar discount" counts as much as "similar size".
+    score = d_size + 3.0 * d_disc
+    chosen = base.assign(_score=score).sort_values("_score").head(k)
+    cols = [c for c in ["opportunity_id", "resolved_account_name", "segment",
+                        "industry", "list_acv", "discount_pct", "is_won"]
+            if c in chosen.columns]
+    return chosen[cols].reset_index(drop=True)
+
+
+def band_context(df: pd.DataFrame, idx, recommended_discount: float) -> dict:
+    """The win-rate-by-discount-band curve segment this recommendation came from.
+
+    Computes the empirical win rate per discount band among deals in the same
+    segment (the cohort the model reasons over), and names the band the current
+    and recommended discounts fall in. This is the observed saturation that the
+    recommendation rides on, shown so a reviewer can see it for themselves.
+    """
+    seg = str(df.loc[idx, "segment"])
+    cohort = df[df["segment"] == seg]
+    bands = metrics.win_rate_by_band(cohort)
+    return {
+        "segment": seg,
+        "cohort_deals": int(len(cohort)),
+        "bands": [
+            {"band": str(r.discount_band), "deals": int(r.deals),
+             "win_rate": float(r.win_rate)}
+            for r in bands.itertuples()
+        ],
+        "current_band": band_for(float(df.loc[idx, "discount_pct"])),
+        "recommended_band": band_for(float(recommended_discount)),
     }
 
 

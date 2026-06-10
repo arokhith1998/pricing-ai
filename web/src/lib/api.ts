@@ -178,6 +178,32 @@ export type Factor = {
 
 export type CurvePoint = { discount: number; win_prob: number; expected_acv: number };
 
+// The evidence behind a recommendation (explainability panel, Phase 3).
+export type ComparableDeal = {
+  opportunity_id: string;
+  resolved_account_name: string;
+  segment: string;
+  industry?: string;
+  list_acv: number;
+  discount_pct: number;
+  is_won: boolean;
+};
+
+export type BandContext = {
+  segment: string;
+  cohort_deals: number;
+  bands: { band: string; deals: number; win_rate: number }[];
+  current_band: string;
+  recommended_band: string;
+};
+
+export type Confidence = {
+  auc: number;
+  mean_pred: number;
+  base_rate: number;
+  n_train: number;
+};
+
 export type Recommendation = {
   opportunity_id: string;
   account: string;
@@ -191,6 +217,9 @@ export type Recommendation = {
   expected_acv_at_rec: number;
   uplift: number;
   top_factors: Factor[];
+  comparables: ComparableDeal[];
+  band_context: BandContext;
+  confidence: Confidence;
   curve: CurvePoint[];
 };
 
