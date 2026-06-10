@@ -40,6 +40,59 @@ function Flag({ on, label }: { on: boolean; label: string }) {
   );
 }
 
+// Why-panel for the single most contestable number on the page: the win point
+// (reference discount). It is not asserted, it is derived — show the
+// derivation. Reuses the per-band bootstrap CI already in the payload, so a
+// reviewer can see why this band, and the caveat on what the number is not.
+function WinPointWhy({ rd }: { rd: Diagnostic["reference_discount"] }) {
+  const peakCi = rd.band_win_rate_ci?.[rd.peak_band];
+  const refCi = rd.band_win_rate_ci?.[rd.reference_band];
+  const tied = rd.reference_band !== rd.peak_band;
+  return (
+    <section className="rounded-xl border border-teal/30 bg-surface-2 p-5">
+      <h2 className="text-lg font-semibold text-fg">Why this is the win point</h2>
+      <p className="mt-1 text-sm text-slate">
+        The win point is derived from your own deals, not assumed. Here is the
+        comparison it comes from.
+      </p>
+      <ul className="mt-3 space-y-2 text-sm text-ink">
+        <li>
+          <span className="font-medium text-fg">Best band.</span> Win rate peaks
+          in the <span className="font-medium">{rd.peak_band}</span> discount
+          band at <span className="font-semibold text-fg">{pct(rd.peak_win_rate, 0)}</span>
+          {peakCi ? (
+            <span className="text-slate">
+              {" "}(90% confidence {pct(peakCi[1], 0)} to {pct(peakCi[2], 0)})
+            </span>
+          ) : null}
+          .
+        </li>
+        <li>
+          <span className="font-medium text-fg">Win point.</span> The cheapest
+          band whose win rate is{" "}
+          {tied ? "not statistically below" : "at"} that peak is{" "}
+          <span className="font-medium">{rd.reference_band}</span>
+          {refCi ? (
+            <span className="text-slate">
+              {" "}(win rate {pct(refCi[0], 0)})
+            </span>
+          ) : null}
+          . So discount given beyond{" "}
+          <span className="font-semibold text-coral">{pct(rd.reference_threshold, 0)}</span>{" "}
+          bought no measurable extra win rate.
+        </li>
+      </ul>
+      <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+        <span className="font-medium text-ink">How to read this.</span> The bands
+        are compared with a bootstrap, so a noisy band cannot masquerade as the
+        peak. It is correlational, not causal: harder or more competitive deals
+        attract bigger discounts, so some of the gap is justified. Treat the
+        figure as a prioritized list to investigate, not a refund.
+      </p>
+    </section>
+  );
+}
+
 export default async function DiagnosticPage() {
   let d: Diagnostic;
   try {
@@ -84,6 +137,10 @@ export default async function DiagnosticPage() {
         >
           <WinRateChart bands={d.win_rate_by_band} reference={d.reference_discount} />
         </Card>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <WinPointWhy rd={d.reference_discount} />
       </Reveal>
 
       <Reveal delay={0.05}>
