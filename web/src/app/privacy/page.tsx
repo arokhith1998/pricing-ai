@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_JURISDICTION } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
 
@@ -35,8 +36,8 @@ export default function PrivacyPage() {
 
       <p className="mt-6 text-sm leading-relaxed text-muted">
         This policy explains what Pricekeel (&ldquo;we&rdquo;, operated by{" "}
-        <span className="text-fg">[legal entity]</span>,{" "}
-        <span className="text-fg">[jurisdiction]</span>) collects, why, and
+        <span className="text-fg">{LEGAL_ENTITY}</span>,{" "}
+        <span className="text-fg">{LEGAL_JURISDICTION}</span>) collects, why, and
         what we do with it. We keep data collection to the minimum needed to
         run the product, and we publish the full subprocessor list at{" "}
         <a className="text-teal underline" href="/subprocessors">/subprocessors</a>{" "}

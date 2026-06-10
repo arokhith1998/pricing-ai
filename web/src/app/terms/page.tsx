@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { LEGAL_ENTITY, LEGAL_JURISDICTION, GOVERNING_LAW, LEGAL_VENUE } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Terms of Use · Pricekeel" };
 
 // NOTE TO FOUNDER: this is a DRAFT Terms of Use written to provide working
 // language for counsel to mark up. It is NOT legal advice and is not a final
-// instrument. Fill the [bracketed] entity/jurisdiction fields and have a
-// lawyer review before relying on it. The effective date is a placeholder.
+// instrument. The entity/jurisdiction fields come from one source of truth in
+// @/lib/legal — fill them via Vercel env after incorporation (see that file).
+// Have a lawyer review before relying on it. The effective date is a placeholder.
 
 const EFFECTIVE = "30 May 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "[legal@pricekeel.com]";
@@ -36,8 +38,8 @@ export default function TermsPage() {
         <span className="text-fg">pricekeel.com</span> and the diagnostic,
         guidance, copilot, and competitor-watch features made available there
         (collectively, the &ldquo;Service&rdquo;). Pricekeel is operated by{" "}
-        <span className="text-fg">[legal entity]</span>, a{" "}
-        <span className="text-fg">[jurisdiction]</span> company
+        <span className="text-fg">{LEGAL_ENTITY}</span>, a{" "}
+        <span className="text-fg">{LEGAL_JURISDICTION}</span> company
         (&ldquo;Pricekeel&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By
         using the Service, you agree to these Terms. If you do not agree, do
         not use the Service.
@@ -179,10 +181,10 @@ export default function TermsPage() {
       <Section id="governing-law" title="11. Governing law and venue">
         <p>
           These Terms are governed by the laws of{" "}
-          <span className="text-fg">[Delaware, USA]</span> (or such other
+          <span className="text-fg">{GOVERNING_LAW}</span> (or such other
           jurisdiction named in a signed order form). The parties submit to
           the exclusive jurisdiction of the courts located in{" "}
-          <span className="text-fg">[New Castle County, Delaware]</span>,
+          <span className="text-fg">{LEGAL_VENUE}</span>,
           subject to either party&rsquo;s right to seek injunctive relief in
           any court of competent jurisdiction.
         </p>
