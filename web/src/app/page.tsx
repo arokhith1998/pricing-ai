@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
-import RoiCalculator from "@/components/RoiCalculator";
+import LeakageCalculator from "@/components/LeakageCalculator";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
@@ -74,12 +74,19 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 3. ROI calculator. The sample numbers are already shown inside the
-          DiagnosticPreview above, so we cut the previously-here stats strip
-          (it was repeating $67.1M / $11.2M / 81.4% one section apart). */}
+      {/* 3. Leakage calculator. Honest two-number split (gross discount +
+          above-policy slice), math shown, no invented recovery rate. The
+          sample numbers already appear in DiagnosticPreview above, so we cut
+          the previously-here stats strip. Full shareable version at
+          /calculator. */}
       <Reveal delay={0.05}>
         <section className="mt-14">
-          <RoiCalculator />
+          <LeakageCalculator />
+          <p className="mt-3 text-center text-sm text-muted">
+            <Link href="/calculator" className="text-teal underline-offset-4 hover:underline">
+              Open the full calculator →
+            </Link>
+          </p>
         </section>
       </Reveal>
 
