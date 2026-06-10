@@ -110,9 +110,9 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
         Win rate by discount band · {ctx.segment}
       </h3>
       <p className="mt-0.5 text-xs text-slate">
-        Across {ctx.cohort_deals.toLocaleString()} {ctx.segment} deals. Win rate
-        flattens as discount climbs, which is why the recommendation sits where
-        it does.
+        How win rate varied by discount across{" "}
+        {ctx.cohort_deals.toLocaleString()} {ctx.segment} deals. The
+        recommendation rides this observed curve, not a single global rule.
       </p>
       <ul className="mt-3 space-y-1.5">
         {ctx.bands.map((b) => {
@@ -145,6 +145,16 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
           );
         })}
       </ul>
+      {!ctx.bands.some((b) => b.band === ctx.recommended_band) ? (
+        <p className="mt-2 text-xs text-slate">
+          <span className="font-medium text-teal">
+            Recommended band {ctx.recommended_band}.
+          </span>{" "}
+          No {ctx.segment}{" "}deals sit this low, so there is no bar to show:
+          the model is pointing below this segment&apos;s historical discount
+          floor, which is itself the signal.
+        </p>
+      ) : null}
     </div>
   );
 }
