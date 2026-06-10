@@ -5,7 +5,7 @@ import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
 import DeliverableSection from "@/components/DeliverableSection";
-import FounderCta from "@/components/FounderCta";
+import FounderStrip from "@/components/FounderStrip";
 
 // Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
@@ -173,13 +173,14 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 8. Founder design-partner section. Merged what used to be a
-          separate FounderStrip (bio + chips) and FounderCta (the offer)
-          into one component, since the two were rendering the same photo
-          and intro back to back. */}
+      {/* 8. Slim founder credibility strip. Single horizontal card with
+          photo, name, role, three credibility chips, and a quiet "Connect
+          on LinkedIn" link. The design-partner offer + DM/Email CTAs that
+          used to live here moved to /contact and /pricing, where a hard
+          sales ask is appropriate. The landing should not lead with one. */}
       <Reveal delay={0.05}>
         <section className="mt-14">
-          <FounderCta />
+          <FounderStrip />
         </section>
       </Reveal>
 
