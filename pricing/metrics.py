@@ -175,6 +175,38 @@ def trade_or_give(df: pd.DataFrame) -> dict:
     }
 
 
+def trade_or_give_deals(df: pd.DataFrame, n: int = 6) -> pd.DataFrame:
+    """The actual off-policy won deals that traded nothing for the discount.
+
+    The receipts behind `trade_or_give()`: identical mask (off-policy won deals
+    with neither a longer-than-median term nor a recorded approver), ranked by
+    the discount $ given away. Showing these makes the aggregate claim auditable
+    deal by deal rather than asked to be taken on trust.
+    """
+    cols = ["opportunity_id", "resolved_account_name", "segment", "list_acv",
+            "booked_acv", "discount_pct", "discount_amount", "term_months"]
+    won = _won(df)
+    if won.empty or "off_policy" not in won.columns:
+        return pd.DataFrame(columns=cols)
+    off = won[won["off_policy"]]
+    if off.empty:
+        return pd.DataFrame(columns=cols)
+    median_term = (float(won["term_months"].median())
+                   if "term_months" in won.columns else 12.0)
+    term = (off.get("term_months", pd.Series([0] * len(off), index=off.index))
+            .fillna(0))
+    long_term = term > median_term
+    approver = (off.get("approved_by",
+                        pd.Series([""] * len(off), index=off.index))
+                .fillna("").astype(str).str.strip())
+    no_trade = ~long_term & (approver == "")
+    rows = off[no_trade]
+    if rows.empty:
+        return pd.DataFrame(columns=cols)
+    keep = [c for c in cols if c in rows.columns]
+    return rows.sort_values("discount_amount", ascending=False).head(n)[keep]
+
+
 def win_rate_by_band(df: pd.DataFrame) -> pd.DataFrame:
     """Win rate, deal counts, and avg discount per discount band (all deals)."""
     g = df.groupby("discount_band").agg(

@@ -168,3 +168,36 @@ def test_trade_or_give_counts_off_policy_with_no_concession():
     # Dollars discounted on the no-trade deals = 25k + 30k = 55k
     assert res["dollars"] == pytest.approx(55_000.0)
     assert res["off_policy_total"] == 4
+
+
+def test_trade_or_give_deals_are_the_receipts():
+    """trade_or_give_deals returns exactly the no-trade set behind the count,
+    ranked by discount $ given away."""
+    rows = [
+        # Reference deal to set the median term at 12.
+        dict(opportunity_id="R1", account_id="R", account_name="R",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=95_000.0,
+             term_months=12, approved_by=""),
+        # Off-policy (25-30%), short term, no approver -> the receipts.
+        dict(opportunity_id="G1", account_id="G1", account_name="G1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by=""),   # 25k given away
+        dict(opportunity_id="G2", account_id="G2", account_name="G2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=70_000.0,
+             term_months=12, approved_by=""),   # 30k given away
+        # Traded (approver) -> excluded.
+        dict(opportunity_id="T1", account_id="T1", account_name="T1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by="MGR-01"),
+        # Traded (long term) -> excluded.
+        dict(opportunity_id="T2", account_id="T2", account_name="T2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=36, approved_by=""),
+    ]
+    df = _build(rows)
+    deals = metrics.trade_or_give_deals(df)
+    # only the no-trade deals, ranked by discount $ (G2 30k before G1 25k)
+    assert list(deals["opportunity_id"]) == ["G2", "G1"]
+    assert deals.iloc[0]["discount_amount"] == pytest.approx(30_000.0)
+    # exactly the set the aggregate counts
+    assert len(deals) == metrics.trade_or_give(df)["deals"]

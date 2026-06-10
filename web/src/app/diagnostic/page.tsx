@@ -198,6 +198,12 @@ export default async function DiagnosticPage() {
                 </li>
               ))}
             </ul>
+            <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">How to read this.</span> Low
+              realization in one value can be a deliberate fence (a segment that
+              should pay less) rather than leakage. It points to a packaging
+              review, not an automatic price change.
+            </p>
           </Card>
         </Reveal>
       ) : null}
@@ -219,6 +225,47 @@ export default async function DiagnosticPage() {
               Total discount on those:{" "}
               <span className="font-semibold text-fg">${Math.round(d.trade_or_give.dollars).toLocaleString()}</span>
               , out of {d.trade_or_give.off_policy_total.toLocaleString()} off-policy wins.
+            </p>
+
+            {d.trade_or_give_deals.length > 0 ? (
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-fg">The receipts</div>
+                <p className="mt-0.5 text-xs text-slate">
+                  The biggest of these deals by discount given. Each one is
+                  off-policy, won, with no longer term and no approver on record.
+                </p>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-mist text-left text-slate">
+                        <th className="py-1.5 pr-3 font-medium">Account</th>
+                        <th className="py-1.5 pr-3 font-medium">Segment</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">List</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">Discount</th>
+                        <th className="py-1.5 text-right font-medium">Given away</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.trade_or_give_deals.map((r) => (
+                        <tr key={r.opportunity_id} className="border-b border-mist/60">
+                          <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                          <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
+                          <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
+                          <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
+                          <td className="py-1.5 text-right font-semibold tabular-nums text-coral">{money(r.discount_amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
+            <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">How to read this.</span> The
+              flag is the missing trade, not proof of waste: a rep may have
+              traded something off the record. Treat it as the cleanest set to
+              take to a deal-desk review, not an accusation.
             </p>
           </Card>
         </Reveal>
@@ -247,6 +294,12 @@ export default async function DiagnosticPage() {
               <p className="mt-2 text-sm text-slate">
                 That timing pattern accounts for about{" "}
                 {money(qe.attributable_discount_won)} of discount on won deals.
+              </p>
+              <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+                <span className="font-medium text-ink">How to read this.</span> A
+                timing correlation, not proof of pressure: quarter-end deals can
+                also skew larger or more competitive. The attributable figure
+                uses the rest-of-quarter rate as the baseline.
               </p>
             </Card>
           </Reveal>

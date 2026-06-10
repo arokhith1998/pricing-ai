@@ -40,6 +40,9 @@ def run(path: str | Path,
         # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
         "packaging_signals": metrics.packaging_signals(df),
         "trade_or_give": metrics.trade_or_give(df),
+        # The actual no-trade deals behind the trade_or_give count — the
+        # receipts, so the claim is auditable deal by deal.
+        "trade_or_give_deals": metrics.trade_or_give_deals(df),
         # Sales-friendly split: discount earned vs discount worth investigating.
         # Pure function of (won deals, reference_threshold) — no recovery
         # assumption. Surfaced so reps see what their discounting defended,
