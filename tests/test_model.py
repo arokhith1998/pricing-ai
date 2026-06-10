@@ -75,6 +75,38 @@ def test_leakage_vs_model_is_sane(trained):
     assert ml["model_excess_won"] > 0.0
 
 
+def test_comparable_deals_are_relevant(trained):
+    df, _tm = trained
+    idx = df.index[0]
+    comps = model.comparable_deals(df, idx, k=5)
+    assert len(comps) == 5
+    # never returns the deal itself
+    assert df.loc[idx, "opportunity_id"] not in set(comps["opportunity_id"])
+    # large cohort → all neighbours share the segment
+    assert (comps["segment"] == df.loc[idx, "segment"]).all()
+    # carries the outcome so won AND lost comparables are representable
+    assert comps["is_won"].dtype == bool
+
+
+def test_band_context_matches_segment_cohort(trained):
+    from pricing.schema import DISCOUNT_BANDS, band_for
+
+    df, _tm = trained
+    idx = df.index[0]
+    seg = str(df.loc[idx, "segment"])
+    ctx = model.band_context(df, idx, recommended_discount=0.03)
+
+    assert ctx["segment"] == seg
+    assert ctx["cohort_deals"] == int((df["segment"] == seg).sum())
+    labels = {label for *_rest, label in DISCOUNT_BANDS}
+    assert {b["band"] for b in ctx["bands"]}.issubset(labels)
+    assert all(0.0 <= b["win_rate"] <= 1.0 for b in ctx["bands"])
+    # every deal lands in exactly one band, so band counts partition the cohort
+    assert sum(b["deals"] for b in ctx["bands"]) == ctx["cohort_deals"]
+    assert ctx["recommended_band"] == band_for(0.03)
+    assert ctx["current_band"] == band_for(float(df.loc[idx, "discount_pct"]))
+
+
 def test_recommend_discount_maximizes_expected_acv(trained):
     df, tm = trained
     # pick a clearly over-discounted won deal

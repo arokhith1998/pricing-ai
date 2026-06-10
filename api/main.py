@@ -583,5 +583,17 @@ def recommend(req: RecommendReq) -> dict:
         "expected_acv_at_rec": rec["expected_acv_at_rec"],
         "uplift": rec["uplift"],
         "top_factors": _explain_factors(tm, df, idx),
+        # The evidence behind the recommendation (Phase 3 explainability):
+        # similar deals, the segment's win-rate-by-band curve segment, and the
+        # model-confidence numbers for the caveat. The panel must stand up in a
+        # pricing committee, so every element is observed, not asserted.
+        "comparables": _records(model.comparable_deals(df, idx)),
+        "band_context": model.band_context(df, idx, rec["recommended_discount"]),
+        "confidence": {
+            "auc": tm.metrics["auc"],
+            "mean_pred": tm.metrics["mean_pred"],
+            "base_rate": tm.metrics["base_rate"],
+            "n_train": tm.metrics["n_train"],
+        },
         "curve": _records(curve),
     }

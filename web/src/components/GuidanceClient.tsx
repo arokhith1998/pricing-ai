@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Deal, Recommendation } from "@/lib/api";
-import { money, pct0 } from "@/lib/format";
+import type { Deal, Recommendation, ComparableDeal, BandContext, Confidence } from "@/lib/api";
+import { money, moneyShort, pct, pct0 } from "@/lib/format";
 import ExpectedValueChart from "@/components/charts/ExpectedValueChart";
 
 function Stat({
@@ -51,6 +51,115 @@ function FactorRow({
         {up ? "▲ raises win chance" : "▼ lowers win chance"}
       </span>
     </li>
+  );
+}
+
+function OutcomeChip({ won }: { won: boolean }) {
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+        won ? "border-green/40 text-green" : "border-coral/40 text-coral"
+      }`}
+    >
+      {won ? "won" : "lost"}
+    </span>
+  );
+}
+
+function Comparables({ rows }: { rows: ComparableDeal[] }) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-fg">Deals like this one</h3>
+      <p className="mt-0.5 text-xs text-slate">
+        The closest closed deals by segment, size, and discount, won and lost.
+      </p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-mist text-left text-slate">
+              <th className="py-1.5 pr-3 font-medium">Account</th>
+              <th className="py-1.5 pr-3 text-right font-medium">List</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Discount</th>
+              <th className="py-1.5 font-medium">Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.opportunity_id} className="border-b border-mist/60">
+                <td className="py-1.5 pr-3">
+                  <span className="font-medium text-fg">{r.resolved_account_name}</span>
+                  <span className="text-xs text-slate"> · {r.industry ?? r.segment}</span>
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{moneyShort(r.list_acv)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{pct0(r.discount_pct)}</td>
+                <td className="py-1.5"><OutcomeChip won={r.is_won} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BandCohort({ ctx }: { ctx: BandContext }) {
+  const maxWin = Math.max(...ctx.bands.map((b) => b.win_rate), 0.0001);
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-fg">
+        Win rate by discount band · {ctx.segment}
+      </h3>
+      <p className="mt-0.5 text-xs text-slate">
+        Across {ctx.cohort_deals.toLocaleString()} {ctx.segment} deals. Win rate
+        flattens as discount climbs, which is why the recommendation sits where
+        it does.
+      </p>
+      <ul className="mt-3 space-y-1.5">
+        {ctx.bands.map((b) => {
+          const isCurrent = b.band === ctx.current_band;
+          const isRec = b.band === ctx.recommended_band;
+          return (
+            <li key={b.band} className="flex items-center gap-2 text-xs">
+              <span className="w-14 shrink-0 tabular-nums text-slate">{b.band}</span>
+              <span className="relative h-3 flex-1 overflow-hidden rounded bg-mist/50">
+                <span
+                  className={`absolute inset-y-0 left-0 rounded ${
+                    isRec ? "bg-teal" : isCurrent ? "bg-amber" : "bg-slate/40"
+                  }`}
+                  style={{ width: `${(b.win_rate / maxWin) * 100}%` }}
+                />
+              </span>
+              <span className="w-10 shrink-0 text-right tabular-nums text-ink">
+                {pct(b.win_rate, 0)}
+              </span>
+              <span className="w-20 shrink-0 text-right">
+                {isRec ? (
+                  <span className="font-medium text-teal">recommended</span>
+                ) : isCurrent ? (
+                  <span className="font-medium text-amber">current</span>
+                ) : (
+                  <span className="text-slate">{b.deals.toLocaleString()} deals</span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ConfidenceCaveat({ c }: { c: Confidence }) {
+  return (
+    <div className="mt-5 rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-slate">
+      <span className="font-semibold text-ink">How to read this.</span> These
+      patterns are correlational, not causal: bigger or more competitive deals
+      attract bigger discounts, so some of the gap is justified. Treat the
+      recommendation as decision support for a human, not an instruction. On
+      held-out deals the model ranks at {c.auc.toFixed(2)} AUC and calibrates to{" "}
+      {pct(c.mean_pred, 0)} predicted versus {pct(c.base_rate, 0)} actual win
+      rate, learned from {c.n_train.toLocaleString()} of your closed deals.
+    </div>
   );
 }
 
@@ -200,6 +309,22 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               </ul>
             </div>
           </div>
+
+          {/* The evidence behind the recommendation — comparable deals, the
+              win-rate curve segment it came from, and the confidence caveat.
+              One screen, defensible in a pricing committee. */}
+          <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-fg">The evidence behind this</h2>
+            <p className="mt-1 text-sm text-slate">
+              Similar deals, the win-rate curve segment this recommendation came
+              from, and what the model can and cannot claim.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Comparables rows={rec.comparables} />
+              <BandCohort ctx={rec.band_context} />
+            </div>
+            <ConfidenceCaveat c={rec.confidence} />
+          </section>
         </div>
       ) : null}
     </div>
