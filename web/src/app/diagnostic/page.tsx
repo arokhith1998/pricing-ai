@@ -1,4 +1,4 @@
-import { getDemo, type Diagnostic } from "@/lib/api";
+import { getDemo, type Diagnostic, type FindingDeal } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
@@ -37,6 +37,42 @@ function Flag({ on, label }: { on: boolean; label: string }) {
     <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-medium text-coral">
       {label}
     </span>
+  );
+}
+
+// Reusable receipts table: the actual deals behind an aggregate finding, so the
+// claim is auditable deal by deal. Renders nothing when there are no deals.
+function ReceiptsTable({ rows, intro }: { rows: FindingDeal[]; intro: string }) {
+  if (!rows.length) return null;
+  return (
+    <div className="mt-4">
+      <div className="text-sm font-semibold text-fg">The receipts</div>
+      <p className="mt-0.5 text-xs text-slate">{intro}</p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-mist text-left text-slate">
+              <th className="py-1.5 pr-3 font-medium">Account</th>
+              <th className="py-1.5 pr-3 font-medium">Segment</th>
+              <th className="py-1.5 pr-3 text-right font-medium">List</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Discount</th>
+              <th className="py-1.5 text-right font-medium">Given away</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.opportunity_id} className="border-b border-mist/60">
+                <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
+                <td className="py-1.5 text-right font-semibold tabular-nums text-coral">{money(r.discount_amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -198,6 +234,12 @@ export default async function DiagnosticPage() {
                 </li>
               ))}
             </ul>
+            <ReceiptsTable
+              rows={d.packaging_signal_deals}
+              intro={`The deepest-discounted deals behind the top signal${
+                d.packaging_signals[0] ? `, ${d.packaging_signals[0].value}` : ""
+              }.`}
+            />
             <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
               <span className="font-medium text-ink">How to read this.</span> Low
               realization in one value can be a deliberate fence (a segment that
@@ -295,6 +337,10 @@ export default async function DiagnosticPage() {
                 That timing pattern accounts for about{" "}
                 {money(qe.attributable_discount_won)} of discount on won deals.
               </p>
+              <ReceiptsTable
+                rows={d.quarter_end_deals}
+                intro="The quarter-end won deals with the deepest discounts."
+              />
               <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
                 <span className="font-medium text-ink">How to read this.</span> A
                 timing correlation, not proof of pressure: quarter-end deals can

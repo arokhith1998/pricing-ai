@@ -117,6 +117,17 @@ export type TradeOrGiveDeal = {
   term_months: number | null;
 };
 
+// Per-finding receipts: the deals behind the quarter-end and packaging signals.
+export type FindingDeal = {
+  opportunity_id: string;
+  resolved_account_name: string;
+  segment: string;
+  list_acv: number;
+  booked_acv: number;
+  discount_pct: number;
+  discount_amount: number;
+};
+
 // Sales-friendly split of won deals: discount earned vs discount worth
 // investigating. Added 2026-05-30 per the expert review — reports historical
 // fact, no recovery-rate assumption. See pricing/metrics.defended_vs_investigate.
@@ -145,6 +156,8 @@ export type Diagnostic = {
   packaging_signals: PackagingSignal[];
   trade_or_give: TradeOrGive;
   trade_or_give_deals: TradeOrGiveDeal[];
+  quarter_end_deals: FindingDeal[];
+  packaging_signal_deals: FindingDeal[];
   // Defended-vs-investigate split (added 2026-05-30 per expert review).
   defended_vs_investigate: DefendedVsInvestigate;
 };

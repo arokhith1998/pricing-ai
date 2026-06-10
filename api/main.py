@@ -103,6 +103,8 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
         "packaging_signals": res["packaging_signals"],
         "trade_or_give": res["trade_or_give"],
         "trade_or_give_deals": _records(res["trade_or_give_deals"]),
+        "quarter_end_deals": _records(res["quarter_end_deals"]),
+        "packaging_signal_deals": _records(res["packaging_signal_deals"]),
     }
 
 

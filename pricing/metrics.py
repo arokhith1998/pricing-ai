@@ -207,6 +207,37 @@ def trade_or_give_deals(df: pd.DataFrame, n: int = 6) -> pd.DataFrame:
     return rows.sort_values("discount_amount", ascending=False).head(n)[keep]
 
 
+_FINDING_DEAL_COLS = ["opportunity_id", "resolved_account_name", "segment",
+                      "list_acv", "booked_acv", "discount_pct", "discount_amount"]
+
+
+def quarter_end_deals(df: pd.DataFrame, n: int = 6) -> pd.DataFrame:
+    """The quarter-end won deals with the deepest discounts — the receipts
+    behind the quarter-end effect, ranked by discount $ given."""
+    won = _won(df)
+    if won.empty or "is_quarter_end" not in won.columns:
+        return pd.DataFrame(columns=_FINDING_DEAL_COLS)
+    qe = won[won["is_quarter_end"]]
+    if qe.empty:
+        return pd.DataFrame(columns=_FINDING_DEAL_COLS)
+    keep = [c for c in _FINDING_DEAL_COLS if c in qe.columns]
+    return qe.sort_values("discount_amount", ascending=False).head(n)[keep]
+
+
+def packaging_signal_deals(df: pd.DataFrame, dimension: str, value: str,
+                           n: int = 6) -> pd.DataFrame:
+    """Won deals behind one packaging signal: those in the flagged dimension
+    value, ranked by discount $ given. The receipts for a fence/packaging flag."""
+    won = _won(df)
+    if dimension not in won.columns:
+        return pd.DataFrame(columns=_FINDING_DEAL_COLS)
+    sub = won[won[dimension].astype(str).str.strip() == str(value)]
+    if sub.empty:
+        return pd.DataFrame(columns=_FINDING_DEAL_COLS)
+    keep = [c for c in _FINDING_DEAL_COLS if c in sub.columns]
+    return sub.sort_values("discount_amount", ascending=False).head(n)[keep]
+
+
 def win_rate_by_band(df: pd.DataFrame) -> pd.DataFrame:
     """Win rate, deal counts, and avg discount per discount band (all deals)."""
     g = df.groupby("discount_band").agg(
