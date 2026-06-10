@@ -114,6 +114,36 @@ FIELDS: list[Field] = [
     Field("lost_reason", "str", False,
           "Reason captured on closed_lost deals (price | product | "
           "no_decision | competitor | timing).", "price"),
+    # --- Usage-based-pricing structure (all OPTIONAL) ---------------------
+    # These let a deal express its UBP shape so guidance can eventually reason
+    # about commit vs rate, not just discount %. The diagnostic degrades
+    # gracefully without them; they are populated by the synthetic generator.
+    Field("committed_acv", "float", False,
+          "Committed annual spend / minimum commitment (usage-based & hybrid "
+          "deals). The floor the customer commits to regardless of usage. "
+          "Blank for pure seat deals.", "72000.00"),
+    Field("overage_rate", "float", False,
+          "Price per usage unit beyond the commitment (the overage / "
+          "on-demand rate). Blank for pure seat deals.", "0.85"),
+    Field("ramp_year_1_acv", "float", False,
+          "Booked ACV scheduled for contract year 1 on a ramped multi-year "
+          "deal (below steady state). Blank for single-year / non-ramped "
+          "deals.", "60000.00"),
+    Field("ramp_year_2_acv", "float", False,
+          "Booked ACV scheduled for contract year 2 on a ramped multi-year "
+          "deal. Blank if not ramped.", "96000.00"),
+    Field("is_renewal", "bool", False,
+          "Whether this opportunity is a renewal of an existing contract "
+          "(vs new business or expansion).", "false"),
+    Field("renewal_uplift", "float", False,
+          "Price uplift applied at renewal vs the prior term, as a fraction "
+          "(0.07 = 7%). Blank for non-renewals.", "0.07"),
+    # --- Cost (OPTIONAL) — enables the Phase 3 margin layer ----------------
+    Field("cogs_acv", "float", False,
+          "Annualized cost of goods sold attributable to the deal (infra / "
+          "delivery cost). Enables gross-margin analysis; the leakage "
+          "diagnostic itself is price-based and does not require it.",
+          "28000.00"),
 ]
 
 REQUIRED_FIELDS: list[str] = [f.name for f in FIELDS if f.required]

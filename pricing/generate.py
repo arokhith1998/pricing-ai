@@ -117,6 +117,66 @@ def _messy_name(rng: np.random.Generator, core: str) -> str:
     return name
 
 
+def _add_ubp_cost_columns(df: pd.DataFrame, seed: int) -> None:
+    """Populate the OPTIONAL UBP-structure + cost columns, in place.
+
+    Drawn from an INDEPENDENT rng stream (seed + 2) so these never perturb the
+    main generator sequence — same rule as the hierarchy fields, so the pinned
+    dataset / model tests stay stable. These add expressible UBP shape and a
+    cost column, not new leakage signal; the diagnostic does not read them yet.
+    Applicability mirrors the value metric: commit/overage only where there is
+    usage, ramp only on multi-year deals.
+    """
+    rng = np.random.default_rng(seed + 2)
+    n = len(df)
+    booked = df["booked_acv"].to_numpy(dtype=float)
+    usage = df["usage_acv"].to_numpy(dtype=float)
+    qty = df["quantity"].to_numpy(dtype=float)
+    vm = df["value_metric"].to_numpy()
+    term = df["term_months"].to_numpy(dtype=float)
+
+    is_usage = np.isin(vm, ["consumption", "hybrid"])
+    has_usage = is_usage & (usage > 0) & (qty > 0)
+    multiyear = term >= 24
+
+    # Committed annual spend floor (usage-based & hybrid only).
+    commit = np.round(booked * rng.uniform(0.55, 0.90, n), 2)
+    committed_acv = np.where(is_usage, commit, np.nan)
+
+    # Overage = the effective committed unit rate, marked up for on-demand.
+    unit_rate = np.divide(usage, qty, out=np.zeros(n), where=qty > 0)
+    overage = np.round(unit_rate * rng.uniform(1.1, 1.6, n), 2)
+    overage_rate = np.where(has_usage, overage, np.nan)
+
+    # Two-year ramp on multi-year deals: year 1 below, year 2 above, the
+    # annualized booked figure.
+    y1 = np.round(booked * rng.uniform(0.60, 0.80, n), 2)
+    y2 = np.round(booked * rng.uniform(1.00, 1.25, n), 2)
+    ramp_year_1_acv = np.where(multiyear, y1, np.nan)
+    ramp_year_2_acv = np.where(multiyear, y2, np.nan)
+
+    # ~22% renewals, each with a modest uplift over the prior term.
+    renewal = rng.random(n) < 0.22
+    uplift = np.round(rng.uniform(0.03, 0.12, n), 3)
+    renewal_uplift = np.where(renewal, uplift, np.nan)
+
+    # COGS share is highest for consumption (infra cost), lowest for seats.
+    cogs_frac = np.select(
+        [vm == "consumption", vm == "hybrid"],
+        [rng.uniform(0.22, 0.38, n), rng.uniform(0.15, 0.28, n)],
+        default=rng.uniform(0.08, 0.18, n),  # seats
+    )
+    cogs_acv = np.round(booked * cogs_frac, 2)
+
+    df["committed_acv"] = committed_acv
+    df["overage_rate"] = overage_rate
+    df["ramp_year_1_acv"] = ramp_year_1_acv
+    df["ramp_year_2_acv"] = ramp_year_2_acv
+    df["is_renewal"] = np.where(renewal, "true", "false")
+    df["renewal_uplift"] = renewal_uplift
+    df["cogs_acv"] = cogs_acv
+
+
 def generate(n: int = 2000, seed: int = 7,
              start: date = date(2024, 7, 1),
              end: date = date(2025, 6, 30)) -> pd.DataFrame:
@@ -263,6 +323,7 @@ def generate(n: int = 2000, seed: int = 7,
         })
 
     df = pd.DataFrame(rows, columns=ALL_COLUMNS)
+    _add_ubp_cost_columns(df, seed)
     return df
 
 
