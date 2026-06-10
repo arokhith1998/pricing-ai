@@ -168,3 +168,80 @@ def test_trade_or_give_counts_off_policy_with_no_concession():
     # Dollars discounted on the no-trade deals = 25k + 30k = 55k
     assert res["dollars"] == pytest.approx(55_000.0)
     assert res["off_policy_total"] == 4
+
+
+def test_trade_or_give_deals_are_the_receipts():
+    """trade_or_give_deals returns exactly the no-trade set behind the count,
+    ranked by discount $ given away."""
+    rows = [
+        # Reference deal to set the median term at 12.
+        dict(opportunity_id="R1", account_id="R", account_name="R",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=95_000.0,
+             term_months=12, approved_by=""),
+        # Off-policy (25-30%), short term, no approver -> the receipts.
+        dict(opportunity_id="G1", account_id="G1", account_name="G1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by=""),   # 25k given away
+        dict(opportunity_id="G2", account_id="G2", account_name="G2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=70_000.0,
+             term_months=12, approved_by=""),   # 30k given away
+        # Traded (approver) -> excluded.
+        dict(opportunity_id="T1", account_id="T1", account_name="T1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=12, approved_by="MGR-01"),
+        # Traded (long term) -> excluded.
+        dict(opportunity_id="T2", account_id="T2", account_name="T2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             term_months=36, approved_by=""),
+    ]
+    df = _build(rows)
+    deals = metrics.trade_or_give_deals(df)
+    # only the no-trade deals, ranked by discount $ (G2 30k before G1 25k)
+    assert list(deals["opportunity_id"]) == ["G2", "G1"]
+    assert deals.iloc[0]["discount_amount"] == pytest.approx(30_000.0)
+    # exactly the set the aggregate counts
+    assert len(deals) == metrics.trade_or_give(df)["deals"]
+
+
+def test_quarter_end_deals_are_the_qe_set():
+    """quarter_end_deals returns only quarter-end won deals, by discount $."""
+    rows = [
+        dict(opportunity_id="Q1", account_id="Q1", account_name="Q1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=70_000.0,
+             segment="SMB", approved_by="",
+             created_date=pd.Timestamp("2025-03-01"),
+             close_date=pd.Timestamp("2025-03-31")),   # quarter end, 30k given
+        dict(opportunity_id="Q2", account_id="Q2", account_name="Q2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=80_000.0,
+             segment="SMB", approved_by="",
+             created_date=pd.Timestamp("2025-03-01"),
+             close_date=pd.Timestamp("2025-03-29")),   # quarter end, 20k given
+        dict(opportunity_id="N1", account_id="N1", account_name="N1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=75_000.0,
+             segment="SMB", approved_by="",
+             created_date=pd.Timestamp("2025-02-01"),
+             close_date=pd.Timestamp("2025-02-15")),   # mid-quarter, excluded
+    ]
+    df = _build(rows)
+    deals = metrics.quarter_end_deals(df)
+    assert list(deals["opportunity_id"]) == ["Q1", "Q2"]
+    assert deals.iloc[0]["discount_amount"] == pytest.approx(30_000.0)
+
+
+def test_packaging_signal_deals_returns_the_value_deals():
+    """packaging_signal_deals returns only the won deals in the flagged value."""
+    rows = [
+        dict(opportunity_id="P1", account_id="P1", account_name="P1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=70_000.0,
+             segment="SMB", approved_by=""),          # SMB, 30k
+        dict(opportunity_id="P2", account_id="P2", account_name="P2",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=80_000.0,
+             segment="SMB", approved_by=""),          # SMB, 20k
+        dict(opportunity_id="E1", account_id="E1", account_name="E1",
+             outcome="closed_won", list_acv=100_000.0, booked_acv=90_000.0,
+             segment="Enterprise", approved_by=""),   # other value, excluded
+    ]
+    df = _build(rows)
+    deals = metrics.packaging_signal_deals(df, "segment", "SMB")
+    assert list(deals["opportunity_id"]) == ["P1", "P2"]
+    assert (deals["segment"] == "SMB").all()

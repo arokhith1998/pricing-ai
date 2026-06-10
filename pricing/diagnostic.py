@@ -21,6 +21,7 @@ def run(path: str | Path,
         policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
     """Run the full pipeline and return all diagnostic sections."""
     df = ingest(path, policy_threshold=policy_threshold)
+    pkg = metrics.packaging_signals(df)
     return {
         "data": df,
         "overview": metrics.overview(df),
@@ -38,8 +39,17 @@ def run(path: str | Path,
             for d in metrics.present_hierarchy_dimensions(df)
         },
         # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
-        "packaging_signals": metrics.packaging_signals(df),
+        "packaging_signals": pkg,
         "trade_or_give": metrics.trade_or_give(df),
+        # Per-finding receipts — the actual deals behind each aggregate claim,
+        # so a reviewer can audit it deal by deal instead of on trust.
+        "trade_or_give_deals": metrics.trade_or_give_deals(df),
+        "quarter_end_deals": metrics.quarter_end_deals(df),
+        # Receipts for the top (worst-gap) packaging signal, if any.
+        "packaging_signal_deals": (
+            metrics.packaging_signal_deals(df, pkg[0]["dimension"], pkg[0]["value"])
+            if pkg else pd.DataFrame(columns=metrics._FINDING_DEAL_COLS)
+        ),
         # Sales-friendly split: discount earned vs discount worth investigating.
         # Pure function of (won deals, reference_threshold) — no recovery
         # assumption. Surfaced so reps see what their discounting defended,

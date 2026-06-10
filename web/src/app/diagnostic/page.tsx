@@ -1,4 +1,4 @@
-import { getDemo, type Diagnostic } from "@/lib/api";
+import { getDemo, type Diagnostic, type FindingDeal } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
@@ -37,6 +37,95 @@ function Flag({ on, label }: { on: boolean; label: string }) {
     <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-medium text-coral">
       {label}
     </span>
+  );
+}
+
+// Reusable receipts table: the actual deals behind an aggregate finding, so the
+// claim is auditable deal by deal. Renders nothing when there are no deals.
+function ReceiptsTable({ rows, intro }: { rows: FindingDeal[]; intro: string }) {
+  if (!rows.length) return null;
+  return (
+    <div className="mt-4">
+      <div className="text-sm font-semibold text-fg">The receipts</div>
+      <p className="mt-0.5 text-xs text-slate">{intro}</p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-mist text-left text-slate">
+              <th className="py-1.5 pr-3 font-medium">Account</th>
+              <th className="py-1.5 pr-3 font-medium">Segment</th>
+              <th className="py-1.5 pr-3 text-right font-medium">List</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Discount</th>
+              <th className="py-1.5 text-right font-medium">Given away</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.opportunity_id} className="border-b border-mist/60">
+                <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
+                <td className="py-1.5 text-right font-semibold tabular-nums text-coral">{money(r.discount_amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Why-panel for the single most contestable number on the page: the win point
+// (reference discount). It is not asserted, it is derived — show the
+// derivation. Reuses the per-band bootstrap CI already in the payload, so a
+// reviewer can see why this band, and the caveat on what the number is not.
+function WinPointWhy({ rd }: { rd: Diagnostic["reference_discount"] }) {
+  const peakCi = rd.band_win_rate_ci?.[rd.peak_band];
+  const refCi = rd.band_win_rate_ci?.[rd.reference_band];
+  const tied = rd.reference_band !== rd.peak_band;
+  return (
+    <section className="rounded-xl border border-teal/30 bg-surface-2 p-5">
+      <h2 className="text-lg font-semibold text-fg">Why this is the win point</h2>
+      <p className="mt-1 text-sm text-slate">
+        The win point is derived from your own deals, not assumed. Here is the
+        comparison it comes from.
+      </p>
+      <ul className="mt-3 space-y-2 text-sm text-ink">
+        <li>
+          <span className="font-medium text-fg">Best band.</span> Win rate peaks
+          in the <span className="font-medium">{rd.peak_band}</span> discount
+          band at <span className="font-semibold text-fg">{pct(rd.peak_win_rate, 0)}</span>
+          {peakCi ? (
+            <span className="text-slate">
+              {" "}(90% confidence {pct(peakCi[1], 0)} to {pct(peakCi[2], 0)})
+            </span>
+          ) : null}
+          .
+        </li>
+        <li>
+          <span className="font-medium text-fg">Win point.</span> The cheapest
+          band whose win rate is{" "}
+          {tied ? "not statistically below" : "at"} that peak is{" "}
+          <span className="font-medium">{rd.reference_band}</span>
+          {refCi ? (
+            <span className="text-slate">
+              {" "}(win rate {pct(refCi[0], 0)})
+            </span>
+          ) : null}
+          . So discount given beyond{" "}
+          <span className="font-semibold text-coral">{pct(rd.reference_threshold, 0)}</span>{" "}
+          bought no measurable extra win rate.
+        </li>
+      </ul>
+      <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+        <span className="font-medium text-ink">How to read this.</span> The bands
+        are compared with a bootstrap, so a noisy band cannot masquerade as the
+        peak. It is correlational, not causal: harder or more competitive deals
+        attract bigger discounts, so some of the gap is justified. Treat the
+        figure as a prioritized list to investigate, not a refund.
+      </p>
+    </section>
   );
 }
 
@@ -84,6 +173,10 @@ export default async function DiagnosticPage() {
         >
           <WinRateChart bands={d.win_rate_by_band} reference={d.reference_discount} />
         </Card>
+      </Reveal>
+
+      <Reveal delay={0.05}>
+        <WinPointWhy rd={d.reference_discount} />
       </Reveal>
 
       <Reveal delay={0.05}>
@@ -141,6 +234,18 @@ export default async function DiagnosticPage() {
                 </li>
               ))}
             </ul>
+            <ReceiptsTable
+              rows={d.packaging_signal_deals}
+              intro={`The deepest-discounted deals behind the top signal${
+                d.packaging_signals[0] ? `, ${d.packaging_signals[0].value}` : ""
+              }.`}
+            />
+            <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">How to read this.</span> Low
+              realization in one value can be a deliberate fence (a segment that
+              should pay less) rather than leakage. It points to a packaging
+              review, not an automatic price change.
+            </p>
           </Card>
         </Reveal>
       ) : null}
@@ -162,6 +267,47 @@ export default async function DiagnosticPage() {
               Total discount on those:{" "}
               <span className="font-semibold text-fg">${Math.round(d.trade_or_give.dollars).toLocaleString()}</span>
               , out of {d.trade_or_give.off_policy_total.toLocaleString()} off-policy wins.
+            </p>
+
+            {d.trade_or_give_deals.length > 0 ? (
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-fg">The receipts</div>
+                <p className="mt-0.5 text-xs text-slate">
+                  The biggest of these deals by discount given. Each one is
+                  off-policy, won, with no longer term and no approver on record.
+                </p>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-mist text-left text-slate">
+                        <th className="py-1.5 pr-3 font-medium">Account</th>
+                        <th className="py-1.5 pr-3 font-medium">Segment</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">List</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">Discount</th>
+                        <th className="py-1.5 text-right font-medium">Given away</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.trade_or_give_deals.map((r) => (
+                        <tr key={r.opportunity_id} className="border-b border-mist/60">
+                          <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                          <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
+                          <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
+                          <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
+                          <td className="py-1.5 text-right font-semibold tabular-nums text-coral">{money(r.discount_amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
+            <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">How to read this.</span> The
+              flag is the missing trade, not proof of waste: a rep may have
+              traded something off the record. Treat it as the cleanest set to
+              take to a deal-desk review, not an accusation.
             </p>
           </Card>
         </Reveal>
@@ -190,6 +336,16 @@ export default async function DiagnosticPage() {
               <p className="mt-2 text-sm text-slate">
                 That timing pattern accounts for about{" "}
                 {money(qe.attributable_discount_won)} of discount on won deals.
+              </p>
+              <ReceiptsTable
+                rows={d.quarter_end_deals}
+                intro="The quarter-end won deals with the deepest discounts."
+              />
+              <p className="mt-3 border-t border-mist pt-3 text-xs leading-relaxed text-slate">
+                <span className="font-medium text-ink">How to read this.</span> A
+                timing correlation, not proof of pressure: quarter-end deals can
+                also skew larger or more competitive. The attributable figure
+                uses the rest-of-quarter rate as the baseline.
               </p>
             </Card>
           </Reveal>
