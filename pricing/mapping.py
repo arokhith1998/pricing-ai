@@ -31,7 +31,7 @@ SYNONYMS: dict[str, list[str]] = {
         "account id", "customer id", "acct id", "client id", "company id",
     ],
     "account_name": [
-        "account", "account name", "customer", "customer name",
+        "account", "account name", "acct name", "customer", "customer name",
         "company", "company name", "client", "client name", "buyer",
     ],
     "outcome": [
@@ -47,7 +47,10 @@ SYNONYMS: dict[str, list[str]] = {
         "deal closed", "close", "closed at", "closedate",
     ],
     "segment": [
-        "segment", "customer segment", "tier", "size", "company size",
+        # NOTE: "tier" deliberately removed — it collides with product_tier
+        # (segment values are SMB/MidMarket/Enterprise; a "tier" column means
+        # the product plan). "seg" added for abbreviated finance exports.
+        "segment", "customer segment", "seg", "size", "company size",
         "account segment",
     ],
     "region": [
@@ -84,6 +87,8 @@ SYNONYMS: dict[str, list[str]] = {
         "acv", "booked", "booked value", "booked amount", "amount",
         "annual contract value", "annual value", "annualized",
         "won amount", "booked acv", "subscription value", "deal value",
+        # Real exports name the post-discount figure many ways:
+        "deal amount", "net price", "contract value", "net acv", "net amount",
     ],
     "platform_fee_acv": [
         "platform fee", "platform", "base fee", "subscription fee",
@@ -242,12 +247,17 @@ def embedding_match(header: str, threshold: float = 0.55) -> Optional[tuple[str,
 Confidence = str  # "high" | "medium" | "low" | "none"
 
 
-def map_headers(headers: list[str], llm_fallback: bool = True) -> dict:
+def map_headers(headers: list[str], llm_fallback: bool = True,
+                use_embeddings: bool = True) -> dict:
     """Return {mapping, confidence, used} for our schema fields.
 
     `mapping[field]` is the matched prospect header (or None).
     `confidence[field]` is one of high/medium/low/none.
     `used[header]` records which layer matched it (audit trail).
+
+    `use_embeddings=False` restricts to the deterministic layers 1-2 (synonyms
+    + fuzzy); the core ingest path uses this so it stays offline and
+    reproducible (no 80MB model download, no network).
     """
     field_to_header: dict[str, str] = {}
     confidence: dict[str, Confidence] = {}
@@ -278,7 +288,7 @@ def map_headers(headers: list[str], llm_fallback: bool = True) -> dict:
             _claim(r[0], h, "fuzzy", conf)
 
     # Layer 3: embeddings (semantic, the catch for unusual phrasing)
-    for h in headers:
+    for h in (headers if use_embeddings else []):
         if h in claimed:
             continue
         r = embedding_match(h)
