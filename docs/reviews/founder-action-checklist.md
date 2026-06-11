@@ -14,6 +14,20 @@ money, counsel, or a signature. Ordered by urgency.
 - One commercial structure decided and applied everywhere (vault decision note 2026-06-11;
   veto window open until the first readout call).
 
+## Late additions (found while deploying, already handled, awareness only)
+
+- **Commit email rule**: now that the repo is private, Vercel Hobby blocks any deployment
+  whose commit author email is not linked to your GitHub account. This repo's git config
+  was switched to `154478328+arokhith1998@users.noreply.github.com`. If you commit from
+  another clone or machine, use that email or the deploy will silently sit "Blocked".
+- **Sanitizer swap**: isomorphic-dompurify crashed every markdown-rendering route in the
+  Vercel runtime (blog, sample summary, 500s found and fixed live); replaced with
+  sanitize-html. If you add markdown surfaces, render through `lib/markdown.ts` only.
+- **API perimeter is CLOSED as of today**: `PRICEKEEL_API_KEY` was generated and set in
+  both Render and Vercel via your logged-in dashboard sessions, both redeployed, and
+  enforcement verified live (unauthenticated /ask returns 401). Item 4 below is done
+  except the rotation note in item 3 still applies to all other credentials.
+
 ## This week, in order
 
 1. **Engage counsel (the critical path, not outreach).** Package: NDA + data addendum
