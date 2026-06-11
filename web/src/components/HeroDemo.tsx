@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // The hero proves the product is real with motion, not screenshots: a short,
 // muted, looping screen recording of the diagnostic running on the sample data
@@ -10,6 +10,21 @@ import { useEffect, useState } from "react";
 // poster frame, a real screenshot of the diagnostic, so the hero is correct and
 // shippable today. Drop hero-demo.mp4 into web/public/ and it goes live with no
 // code change. Under prefers-reduced-motion we render the poster as a still.
+
+const QUERY = "(prefers-reduced-motion: reduce)";
+
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const m = window.matchMedia(QUERY);
+      m.addEventListener("change", onChange);
+      return () => m.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(QUERY).matches,
+    () => false, // server snapshot: assume motion is allowed
+  );
+}
+
 export default function HeroDemo({
   poster = "/hero-poster.png",
   src = "/hero-demo.mp4",
@@ -19,15 +34,7 @@ export default function HeroDemo({
   src?: string;
   alt?: string;
 }) {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const on = (e: MediaQueryListEvent) => setReduced(e.matches);
-    m.addEventListener("change", on);
-    return () => m.removeEventListener("change", on);
-  }, []);
-
+  const reduced = usePrefersReducedMotion();
   const frame =
     "w-full rounded-2xl border border-border bg-surface shadow-2xl shadow-black/40";
 

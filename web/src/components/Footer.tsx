@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_ENTITY } from "@/lib/legal";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -8,11 +9,14 @@ export default function Footer() {
         <div>
           <span className="font-semibold text-fg">Price</span>
           <span className="font-semibold text-teal">keel</span>
-          <span className="ml-2">© {year}</span>
+          <span className="ml-2">© {year} {LEGAL_ENTITY}</span>
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <Link href="/sample" className="hover:text-fg">
             Sample
+          </Link>
+          <Link href="/manifesto" className="hover:text-fg">
+            Manifesto
           </Link>
           <Link href="/calculator" className="hover:text-fg">
             Calculator

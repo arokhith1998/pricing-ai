@@ -45,10 +45,10 @@ function UseCaseGlyph({ kind }: { kind: number }) {
 }
 
 function Section({
-  children, className = "",
-}: { children: React.ReactNode; className?: string }) {
+  children, className = "", id,
+}: { children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <section className={`mx-auto max-w-5xl px-6 ${className}`}>{children}</section>
+    <section id={id} className={`mx-auto max-w-5xl px-6 ${className}`}>{children}</section>
   );
 }
 
@@ -117,7 +117,7 @@ export default function Landing() {
       </Section>
 
       {/* 5. How it works — 3 steps ------------------------------------------- */}
-      <Section className="py-20">
+      <Section id="how-it-works" className="scroll-mt-24 py-20">
         <Reveal className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-fg">How it works</h2>
         </Reveal>
