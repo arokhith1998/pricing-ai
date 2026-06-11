@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Deal, Recommendation, ComparableDeal, BandContext, Confidence } from "@/lib/api";
 import { money, moneyShort, pct, pct0 } from "@/lib/format";
 import ExpectedValueChart from "@/components/charts/ExpectedValueChart";
+import DecisionControl from "@/components/DecisionControl";
 
 function Stat({
   label,
@@ -335,6 +336,16 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
             </div>
             <ConfidenceCaveat c={rec.confidence} />
           </section>
+
+          {/* The governance loop closes here: the recommendation above, the
+              decision below. Keyed by deal so the control resets when the
+              dropdown switches deals. */}
+          <DecisionControl
+            key={rec.opportunity_id}
+            dealId={rec.opportunity_id}
+            account={rec.account}
+            recommendedDiscount={rec.recommended_discount}
+          />
         </div>
       ) : null}
     </div>

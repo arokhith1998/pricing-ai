@@ -3,6 +3,7 @@ import { pct } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
 import GuidanceClient from "@/components/GuidanceClient";
+import DecisionLog from "@/components/DecisionLog";
 import PageGuide from "@/components/PageGuide";
 import NextStep from "@/components/NextStep";
 
@@ -45,6 +46,18 @@ export default async function GuidancePage() {
 
       <Reveal inView>
         <GuidanceClient deals={deals} />
+      </Reveal>
+
+      <Reveal inView>
+        <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-fg">Decision log</h2>
+          <p className="mt-1 text-sm text-slate">
+            Every approval and exception request, with the verdict it received:
+            requested vs recommended vs the policy floor, who asked, and why.
+            This is the audit trail.
+          </p>
+          <DecisionLog />
+        </section>
       </Reveal>
 
       <Reveal inView>

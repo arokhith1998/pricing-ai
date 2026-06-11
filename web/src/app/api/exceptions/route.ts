@@ -28,14 +28,18 @@ export async function POST(req: Request) {
   if (!deal_id) {
     return Response.json({ error: "deal_id required" }, { status: 400 });
   }
+  // Contract note: discount values on this endpoint are percent 0-100 (not
+  // the 0-1 fractions the diagnostic endpoints use), and the engine's scoring
+  // grid caps requests at 40 percent. Mirror the cap here so the user gets a
+  // clear message instead of an upstream 422.
   if (
     typeof requested_discount_pct !== "number" ||
     !Number.isFinite(requested_discount_pct) ||
     requested_discount_pct < 0 ||
-    requested_discount_pct > 1
+    requested_discount_pct > 40
   ) {
     return Response.json(
-      { error: "requested_discount_pct must be a fraction between 0 and 1" },
+      { error: "requested_discount_pct must be a percentage between 0 and 40" },
       { status: 400 },
     );
   }

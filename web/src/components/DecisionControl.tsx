@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import type { ExceptionResult, ExceptionVerdict } from "@/lib/api";
-import { money, pct0 } from "@/lib/format";
+import { money, pct0, pct100 } from "@/lib/format";
 
 // DecisionLog listens for this on window and refetches, so a freshly logged
 // decision shows up in the log further down the page without a reload.
@@ -37,10 +37,10 @@ function Verdict({ result }: { result: ExceptionResult }) {
             Below the floor
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-ink">
-            The requested <span className="font-semibold tabular-nums">{pct0(v.requested_pct)}</span>{" "}
-            sits below the policy floor of{" "}
-            <span className="font-semibold tabular-nums text-coral">{pct0(v.floor_pct)}</span>.
-            Versus the recommended {pct0(v.recommended_pct)}, expected value on
+            The requested <span className="font-semibold tabular-nums">{pct100(v.requested_pct)}</span>{" "}
+            exceeds the policy floor of{" "}
+            <span className="font-semibold tabular-nums text-coral">{pct100(v.floor_pct)}</span>.
+            Versus the recommended {pct100(v.recommended_pct)}, expected value on
             this deal moves{" "}
             <span className="font-semibold tabular-nums text-coral">
               {signedMoney(v.ev_delta_vs_recommended)}
@@ -55,11 +55,11 @@ function Verdict({ result }: { result: ExceptionResult }) {
             Within policy
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-ink">
-            <span className="font-semibold tabular-nums">{pct0(v.requested_pct)}</span>{" "}
-            clears the policy floor of {pct0(v.floor_pct)}. Win probability{" "}
+            <span className="font-semibold tabular-nums">{pct100(v.requested_pct)}</span>{" "}
+            stays within the policy floor of {pct100(v.floor_pct)}. Win probability{" "}
             {pct0(v.win_prob_at_requested)} at this discount,{" "}
             {pct0(v.win_prob_at_recommended)} at the recommended{" "}
-            {pct0(v.recommended_pct)}.
+            {pct100(v.recommended_pct)}.
           </p>
         </>
       )}
@@ -124,16 +124,18 @@ export default function DecisionControl({
       setError("Add your name so the log says who approved it.");
       return;
     }
+    // recommendedDiscount arrives as a 0-1 fraction (the /recommend payload);
+    // the exceptions contract takes percent 0-100.
     void submit({
-      requested_discount_pct: recommendedDiscount,
+      requested_discount_pct: recommendedDiscount * 100,
       justification: "Approved at the recommended discount.",
     });
   }
 
   function onRequestException() {
     const parsed = Number(requestedPct);
-    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-      setError("Requested discount must be a percentage between 0 and 100.");
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 40) {
+      setError("Requested discount must be a percentage between 0 and 40.");
       return;
     }
     if (!justification.trim()) {
@@ -144,8 +146,10 @@ export default function DecisionControl({
       setError("Add your name so the log says who requested it.");
       return;
     }
+    // The input is typed as a percent (e.g. 22) and the contract takes
+    // percent 0-100, so it goes through as entered.
     void submit({
-      requested_discount_pct: parsed / 100,
+      requested_discount_pct: parsed,
       justification: justification.trim(),
     });
   }
@@ -251,7 +255,7 @@ export default function DecisionControl({
                 id="dc-pct"
                 type="number"
                 min={0}
-                max={100}
+                max={40}
                 step="0.5"
                 value={requestedPct}
                 onChange={(e) => setRequestedPct(e.target.value)}

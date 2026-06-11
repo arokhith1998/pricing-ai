@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ExceptionRecord } from "@/lib/api";
-import { money, pct0 } from "@/lib/format";
+import { money, pct100 } from "@/lib/format";
 import { DECISION_LOGGED_EVENT } from "@/components/DecisionControl";
 
 const fmtWhen = (iso: string) =>
@@ -97,13 +97,13 @@ export default function DecisionLog() {
                 </td>
                 <td className="py-2 pr-3 font-medium text-fg">{r.deal_id}</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-ink">
-                  {pct0(v.requested_pct)}
+                  {pct100(v.requested_pct)}
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums text-ink">
-                  {pct0(v.recommended_pct)}
+                  {pct100(v.recommended_pct)}
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums text-ink">
-                  {pct0(v.floor_pct)}
+                  {pct100(v.floor_pct)}
                 </td>
                 <td className="py-2 pr-3">
                   <FloorChip below={v.below_floor} />

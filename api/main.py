@@ -693,10 +693,17 @@ def copilot_decisions(session_id: str) -> dict:
 # LLM) and logs the decision; /digest re-surfaces the week's activity. Every
 # number is deterministic; storage via pricing/governance.py (Supabase when
 # configured, in-memory fallback).
+#
+# Percent convention (documented contract): requested_discount_pct and every
+# *_pct field in the verdict and digest are percent 0-100 — 22.5 means a
+# 22.5 percent discount, the default floor_pct is 15.0. Win probabilities are
+# 0-1 fractions; ev_delta_vs_recommended is dollars.
 
 
 class ExceptionReq(BaseModel):
     deal_id: str
+    # Percent 0-100 (22.5 = a 22.5 percent discount). Valid range 0-40, the
+    # discount grid the win model sweeps.
     requested_discount_pct: float
     justification: str = ""
     requested_by: str = ""
@@ -705,14 +712,14 @@ class ExceptionReq(BaseModel):
 @app.post("/exceptions")
 def create_exception(req: ExceptionReq) -> dict:
     """Score a discount-exception request against the deal's own EV curve,
-    log it, and return the verdict."""
+    log it, and return the verdict. requested_discount_pct is percent 0-100."""
     if not (0.0 <= req.requested_discount_pct
-            <= governance_mod.EXCEPTION_MAX_DISCOUNT):
+            <= governance_mod.EXCEPTION_MAX_PCT):
         raise HTTPException(
             status_code=422,
             detail=(f"requested_discount_pct must be between 0 and "
-                    f"{governance_mod.EXCEPTION_MAX_DISCOUNT:.0%} "
-                    f"(the modeled discount range)."),
+                    f"{governance_mod.EXCEPTION_MAX_PCT:g} (percent of list "
+                    f"price; the modeled discount range)."),
         )
     df, tm = _engine()
     matches = df.index[df["opportunity_id"] == req.deal_id]
@@ -762,14 +769,27 @@ def list_exceptions(limit: int = 50) -> dict:
     return {"items": items}
 
 
+# The digest needs the loaded book's diagnostic aggregates; cache the run
+# keyed on the CSV's mtime (same pattern as _ENGINE) so an unmetered GET is
+# not a full ingest+diagnostic every time.
+_DIGEST_BOOK: dict = {"mtime": None, "analysis": None}
+
+
 @app.get("/digest")
 def digest() -> dict:
     """Weekly governance digest: decision-log activity over the last 7 days
-    plus the loaded book's diagnostic aggregates. Deterministic, no LLM."""
+    plus the loaded book's diagnostic aggregates. Deterministic, no LLM.
+    Discount/realization figures are percent 0-100, matching /exceptions."""
     analysis = None
     try:
         if DEMO_CSV.exists():
-            analysis = run(str(DEMO_CSV), policy_threshold=0.15)
+            mtime = DEMO_CSV.stat().st_mtime
+            if _DIGEST_BOOK["mtime"] != mtime:
+                _DIGEST_BOOK.update(
+                    mtime=mtime,
+                    analysis=run(str(DEMO_CSV), policy_threshold=0.15),
+                )
+            analysis = _DIGEST_BOOK["analysis"]
     except Exception:  # noqa: BLE001 — digest must degrade, not 500
         logger.warning("digest: book diagnostics unavailable", exc_info=True)
     return governance_mod.build_digest(analysis=analysis, window_days=7)

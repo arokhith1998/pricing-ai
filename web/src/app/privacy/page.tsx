@@ -75,6 +75,21 @@ export default function PrivacyPage() {
           customers, or your explicit consent (Art. 6(1)(a)) for ad-hoc use.
         </p>
         <p>
+          <span className="font-medium text-fg">Decision records.</span>{" "}
+          When you log an approval or an exception request through the
+          governance loop, we retain that record: the deal identifier, the
+          requested and recommended discount, the policy floor, the figures
+          shown with the verdict, the justification, and the name of the
+          person who logged it. Retaining this is the product: the decision
+          log is your audit trail, kept for the duration of your engagement
+          plus the audit window in the retention schedule below. This does
+          not change how we handle uploaded files: row-level CSV deal data
+          is still processed in memory and never stored.
+          <br />
+          <span className="text-fg">Legal basis (GDPR):</span> performance of
+          the engagement we have with you (Art. 6(1)(b)).
+        </p>
+        <p>
           <span className="font-medium text-fg">Access codes.</span> If you
           are issued an access code, we record it and when it is used.
           <br />
@@ -209,7 +224,7 @@ export default function PrivacyPage() {
             <span className="font-medium text-fg">Server logs:</span> 30 days.
           </li>
           <li>
-            <span className="font-medium text-fg">Decision log of copilot recommendations:</span>{" "}
+            <span className="font-medium text-fg">Decision log (copilot recommendations, approvals, exception requests):</span>{" "}
             for the duration of your active engagement, plus 12 months for
             audit purposes.
           </li>

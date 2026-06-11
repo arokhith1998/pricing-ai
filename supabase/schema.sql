@@ -58,6 +58,11 @@ create table if not exists decision_log (
   created_at timestamptz not null default now()
 );
 
+-- Read paths: GET /exceptions filters kind + orders by created_at desc;
+-- /digest reads everything in the last 7 days.
+create index if not exists decision_log_kind_created_at_idx
+  on decision_log (kind, created_at desc);
+
 -- Same RLS posture as the tables above: enabled with no policies, so only
 -- the service-role key (which bypasses RLS) can touch it.
 alter table decision_log enable row level security;

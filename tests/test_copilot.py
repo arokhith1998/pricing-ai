@@ -159,17 +159,7 @@ def test_canonical_routes_to_kind_filtered_subsets():
     assert all(o.revenue_impact_usd >= 500_000 for o in big)
 
 
-# --- decision log -----------------------------------------------------------
-
-def test_decision_log_round_trip():
-    sid = "test-session-abc"
-    copilot._DECISION_LOG.pop(sid, None)
-    d = copilot.log_decision(sid, "losing_deals",
-                             surfaced=["o1", "o2"], accepted=["o1"])
-    assert d.qid == "losing_deals"
-    out = copilot.decisions_for(sid)
-    assert len(out) == 1
-    assert out[0].opportunities_accepted == ["o1"]
+# (The decision log moved to pricing/governance.py — see tests/test_governance.py.)
 
 
 def test_canonical_questions_have_six_entries_with_required_keys():

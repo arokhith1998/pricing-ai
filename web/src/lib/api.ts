@@ -253,8 +253,11 @@ export type Recommendation = {
 
 // --- Governance loop (exceptions + digest) ---------------------------------
 // Contract fixed 2026-06-11; the FastAPI side implements it in parallel.
-// Discount/floor/realization figures are fractions (0.18 = 18%), matching
-// every other pct field in this file. EV deltas and excess are dollars.
+// UNLIKE every other pct field in this file, discount/floor/realization
+// figures on this contract are percent on the 0-100 scale (18 = 18%), both
+// in the POST body and in the verdict/digest responses. Format them with
+// pct100, never pct/pct0. EV deltas and excess are dollars. Win
+// probabilities are also percent 0-100.
 
 export type ExceptionVerdict = {
   requested_pct: number;

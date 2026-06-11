@@ -11,6 +11,8 @@
 // behavior `saveLead` had before this module existed.
 
 import type { Lead } from "@/lib/store";
+import type { Digest } from "@/lib/api";
+import { money, pct100 } from "@/lib/format";
 
 const FROM = "Pricekeel Leads <leads@pricekeel.com>";
 const TO = process.env.LEAD_NOTIFY_TO || "adhithya@pricekeel.com";
@@ -176,6 +178,123 @@ export async function sendMagicLink(email: string, link: string): Promise<void> 
     // response, which makes this safe to fail silently.
     console.error("[magic link send failed]", err instanceof Error ? err.message : err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Weekly governance digest. Same minimal-HTML posture as the magic link:
+// one branded card, the headline, the lines, a stats strip. No images, no
+// tracking. Unlike the lead/magic-link senders this one THROWS on a Resend
+// failure: the caller is a cron route that wants to know the send failed,
+// not a user-facing form that must never see the error.
+
+const DIGEST_FROM = "Pricekeel Digest <digest@pricekeel.com>";
+const DIGEST_REPLY_TO = "adhithya@pricekeel.com";
+
+export async function sendDigest(
+  digest: Digest,
+): Promise<{ sent_to: string; dry_run: boolean }> {
+  const to =
+    process.env.DIGEST_RECIPIENT ||
+    process.env.LEAD_NOTIFY_TO ||
+    "adhithya@pricekeel.com";
+  const subject = `Pricekeel digest · ${digest.customer} · last ${digest.window_days} days`;
+
+  const stats = digest.stats;
+  // realization_pct / excess can be null when no book is loaded; skip those
+  // rows rather than rendering NaN into a customer-facing email.
+  const statRows: [string, string][] = [
+    ["Exceptions priced", String(stats.exceptions_total)],
+    ["Below the floor", String(stats.exceptions_below_floor)],
+    ["Copilot decisions", String(stats.copilot_decisions)],
+    ...(stats.realization_pct != null
+      ? ([["Price realization", pct100(stats.realization_pct)]] as [string, string][])
+      : []),
+    ...(stats.excess_vs_segment_reference != null
+      ? ([["Excess vs segment reference", money(stats.excess_vs_segment_reference)]] as [
+          string,
+          string,
+        ][])
+      : []),
+  ];
+
+  const text = [
+    digest.headline,
+    "",
+    ...digest.lines.map((l) => `- ${l}`),
+    "",
+    ...statRows.map(([k, v]) => `${k}: ${v}`),
+    "",
+    `Pricekeel · ${digest.customer} · generated ${digest.generated_at}`,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0d1b2e;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#ffffff;border:1px solid #dde3ec;border-radius:12px;">
+        <tr><td style="padding:28px 32px 8px 32px;">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.01em;line-height:1;">
+            <span style="color:#0d1b2e;">Price</span><span style="color:#0d9488;">keel</span>
+          </div>
+          <div style="margin-top:4px;color:#6b7891;font-size:11px;">Weekly digest · ${escapeHtml(digest.customer)} · last ${digest.window_days} days</div>
+        </td></tr>
+        <tr><td style="padding:8px 32px 0 32px;">
+          <h1 style="margin:16px 0 6px 0;font-size:18px;font-weight:700;color:#0d1b2e;">${escapeHtml(digest.headline)}</h1>
+        </td></tr>
+        <tr><td style="padding:4px 32px 0 32px;">
+          <ul style="margin:8px 0 0 0;padding:0 0 0 18px;font-size:14px;line-height:1.6;color:#1f2a3d;">
+            ${digest.lines.map((l) => `<li style="margin:0 0 6px 0;">${escapeHtml(l)}</li>`).join("\n            ")}
+          </ul>
+        </td></tr>
+        <tr><td style="padding:16px 32px 24px 32px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:1px solid #eef2f7;">
+            ${statRows
+              .map(
+                ([k, v]) => `<tr>
+              <td style="padding:7px 0 0 0;font-size:12px;color:#6b7891;">${escapeHtml(k)}</td>
+              <td align="right" style="padding:7px 0 0 0;font-size:12px;font-weight:600;color:#0d1b2e;">${escapeHtml(v)}</td>
+            </tr>`,
+              )
+              .join("\n            ")}
+          </table>
+          <p style="margin:18px 0 0 0;font-size:11px;color:#6b7891;border-top:1px solid #eef2f7;padding-top:14px;">
+            Every figure above traces back to an entry in your decision log.
+            Generated ${escapeHtml(digest.generated_at)}. Reply to this email to reach us.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
+    // Dev / pre-Resend mode: log the rendered text so the founder can read
+    // the digest out of the terminal (or vercel logs) end to end.
+    console.log("[digest dry run]", `to: ${to}`, `subject: ${subject}\n${text}`);
+    return { sent_to: to, dry_run: true };
+  }
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: DIGEST_FROM,
+      reply_to: DIGEST_REPLY_TO,
+      to,
+      subject,
+      text,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`resend ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+  return { sent_to: to, dry_run: false };
 }
 
 // Minimal HTML escaping for the values we interpolate into the template.

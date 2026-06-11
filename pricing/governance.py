@@ -9,9 +9,15 @@ the request: we log, fall back to memory, and keep serving.
 
 Honesty rules (same as pricing/copilot.py): every number in a verdict or
 digest is deterministic — read off the win-probability model's EV curve or
-the diagnostic aggregates. No LLM is involved anywhere in this module, and
-generated prose carries the correlational caveat. No em dashes in any
-generated text (house style).
+the diagnostic aggregates. No LLM is involved anywhere in this module, the
+digest carries the correlational caveat, and no generated text contains an
+em dash (house style).
+
+Percent convention (the API surface): discount and realization figures are
+percent 0-100 — requested_discount_pct=22.5 means a 22.5 percent discount,
+floor_pct defaults to 15.0. Win probabilities stay 0-1 fractions, EV deltas
+are dollars. Internal model math stays in 0-1 fractions; conversion happens
+at this module's boundary.
 """
 from __future__ import annotations
 
@@ -36,7 +42,12 @@ _TIMEOUT_S = 5.0
 
 # The win-probability model sweeps discounts on a 0..40% grid
 # (model.recommend_discount). Requests outside it cannot be scored honestly.
-EXCEPTION_MAX_DISCOUNT = 0.40
+# Percent 0-100, like the rest of the API surface.
+EXCEPTION_MAX_PCT = 40.0
+
+# Policy floor on the API surface, percent 0-100. DEFAULT_POLICY_THRESHOLD is
+# the engine-internal 0-1 fraction (0.15).
+FLOOR_PCT_DEFAULT = DEFAULT_POLICY_THRESHOLD * 100.0
 
 DECISION_KINDS = ("copilot", "exception")
 
@@ -229,57 +240,64 @@ def copilot_decisions(session_id: str) -> list[dict]:
 
 def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
                       requested_pct: float,
-                      floor_pct: float = DEFAULT_POLICY_THRESHOLD) -> dict:
+                      floor_pct: float = FLOOR_PCT_DEFAULT) -> dict:
     """Score a requested discount against the deal's own EV curve.
 
-    Reuses model.recommend_discount (the /recommend math) with the requested
-    discount substituted as the deal's current discount, so "EV at requested"
-    and "EV at recommended" come off the exact same sweep. Pure function of
-    (model, deal row, list ACV, requested discount, floor). No LLM.
+    Percent convention: `requested_pct` and `floor_pct` come in as percent
+    0-100 (22.5 means a 22.5 percent discount), and the *_pct fields in the
+    returned verdict are percent 0-100 too. Win probabilities are 0-1
+    fractions. `ev_delta_vs_recommended` is dollars, EV(requested) minus
+    EV(recommended); it is never positive because the recommended discount
+    maximizes expected ACV on the sweep.
+
+    Reuses model.recommend_discount (the /guidance / /recommend math) with
+    the requested discount substituted as the deal's current discount, so
+    "EV at requested" and "EV at recommended" come off the exact same sweep
+    (nearest grid point, same as /recommend's win_prob_at_current). Pure
+    function of (model, deal row, list ACV, requested discount, floor).
+    No LLM; rationale is one plain sentence built from the numbers.
     """
+    requested = float(requested_pct)
+    req_frac = requested / 100.0
     row = X_row.copy()
-    row["discount_pct"] = float(requested_pct)
+    row["discount_pct"] = req_frac
     rec = model.recommend_discount(tm, row, float(list_acv))
 
     curve = rec["curve"]
-    req_row = curve.iloc[(curve["discount"] - requested_pct).abs().argmin()]
+    req_row = curve.iloc[(curve["discount"] - req_frac).abs().argmin()]
 
-    requested = float(requested_pct)
-    recommended = float(rec["recommended_discount"])
+    recommended = float(rec["recommended_discount"]) * 100.0
     win_req = float(req_row["win_prob"])
     win_rec = float(rec["win_prob_at_rec"])
     # EV(requested) - EV(recommended). <= 0 by construction: the recommended
     # discount maximizes expected ACV on the sweep.
     ev_delta = float(rec["expected_acv_at_current"] - rec["expected_acv_at_rec"])
-    below_floor = requested > floor_pct
+    below_floor = requested > float(floor_pct)
 
-    parts: list[str] = []
-    if below_floor:
-        parts.append(
-            f"Requested discount {requested:.1%} is above the "
-            f"{floor_pct:.1%} policy floor and needs approval."
-        )
-    else:
-        parts.append(
-            f"Requested discount {requested:.1%} is within the "
-            f"{floor_pct:.1%} policy floor."
-        )
-    if abs(requested - recommended) < 0.005:
-        parts.append(
-            f"It matches the engine's recommended discount of {recommended:.1%}."
-        )
-    else:
-        direction = "lower" if ev_delta < 0 else "higher"
-        parts.append(
-            f"The engine recommends {recommended:.1%}: win probability is "
-            f"{win_rec:.0%} at the recommendation versus {win_req:.0%} at the "
-            f"request, and expected deal value at the request is "
-            f"${abs(ev_delta):,.0f} {direction} than at the recommendation."
-        )
-    parts.append(
-        "Win probabilities are correlational estimates from historical "
-        "deals, not guarantees."
+    rationale = (
+        f"Requested discount {requested:.1f} percent "
+        f"{'exceeds' if below_floor else 'is within'} the "
+        f"{float(floor_pct):g} percent floor"
     )
+    if abs(requested - recommended) < 0.5:
+        rationale += (
+            f" and matches the engine's recommended discount of "
+            f"{recommended:.1f} percent."
+        )
+    elif abs(ev_delta) < 0.5:
+        rationale += (
+            f"; the engine recommends {recommended:.1f} percent, with win "
+            f"probability {win_rec * 100:.0f} percent at the recommendation "
+            f"versus {win_req * 100:.0f} percent at the request and "
+            f"essentially the same expected deal value."
+        )
+    else:
+        rationale += (
+            f"; the engine recommends {recommended:.1f} percent, where win "
+            f"probability is {win_rec * 100:.0f} percent versus "
+            f"{win_req * 100:.0f} percent at the request and expected deal "
+            f"value is ${abs(ev_delta):,.0f} higher."
+        )
 
     return {
         "requested_pct": requested,
@@ -289,7 +307,7 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
         "ev_delta_vs_recommended": ev_delta,
         "win_prob_at_requested": win_req,
         "win_prob_at_recommended": win_rec,
-        "rationale": " ".join(parts),
+        "rationale": rationale,
     }
 
 
@@ -301,12 +319,16 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
 
 def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
                  customer: str = "default", window_days: int = 7,
-                 floor_pct: float = DEFAULT_POLICY_THRESHOLD) -> dict:
+                 floor_pct: float = FLOOR_PCT_DEFAULT) -> dict:
     """Assemble the digest payload for GET /digest.
 
     `analysis` is the diagnostic result dict (pricing.diagnostic.run) for the
     currently loaded book, or None when no book is loaded — then the
     realization stats are null and the digest covers the log alone.
+
+    Percent convention matches /exceptions: `floor_pct` and the
+    `realization_pct` stat are percent 0-100; the segment-excess stat is
+    dollars.
     """
     store = store or STORE
     now = _now_utc()
@@ -318,25 +340,26 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
              if ((e.get("payload") or {}).get("verdict") or {}).get("below_floor")]
     copilot_n = sum(1 for e in entries if e.get("kind") == "copilot")
 
-    realization: float | None = None
+    realization_pct: float | None = None
     excess_seg: float | None = None
-    reference_threshold: float | None = None
+    reference_pct: float | None = None
     if analysis is not None:
         ov = analysis.get("overview") or {}
         lk = analysis.get("leakage") or {}
         if ov.get("price_realization_won") is not None:
-            realization = float(ov["price_realization_won"])
+            realization_pct = float(ov["price_realization_won"]) * 100.0
         if lk.get("excess_vs_segment_reference_won") is not None:
             excess_seg = float(lk["excess_vs_segment_reference_won"])
         if lk.get("reference_threshold") is not None:
-            reference_threshold = float(lk["reference_threshold"])
+            reference_pct = float(lk["reference_threshold"]) * 100.0
 
     n_exc, n_below = len(exceptions), len(below)
     headline = (
         f"{n_exc} exception request{'s' if n_exc != 1 else ''} this week, "
-        f"{n_below} below the {floor_pct:.0%} floor"
+        f"{n_below} below the {float(floor_pct):g} percent floor"
     )
-    headline += f"; realization {realization:.1%}." if realization is not None else "."
+    headline += (f"; realization {realization_pct:.1f} percent."
+                 if realization_pct is not None else ".")
 
     lines: list[str] = [
         f"{n_exc} exception request{'s' if n_exc != 1 else ''} and "
@@ -352,7 +375,7 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
         bp = biggest.get("payload") or {}
         pct = float(bp.get("requested_discount_pct") or 0.0)
         who = str(bp.get("requested_by") or "").strip()
-        line = (f"Largest below-floor request: {pct:.1%} on deal "
+        line = (f"Largest below-floor request: {pct:.1f} percent on deal "
                 f"{bp.get('deal_id', biggest.get('deal_id', ''))}")
         if who:
             line += f", requested by {who}"
@@ -362,18 +385,19 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
     else:
         lines.append("No exception requests were logged this week.")
 
-    if realization is not None:
-        line = f"Price realization on won deals stands at {realization:.1%}"
+    if realization_pct is not None:
+        line = (f"Price realization on won deals stands at "
+                f"{realization_pct:.1f} percent")
         if excess_seg is not None:
             line += (f", with ${excess_seg:,.0f} of discount sitting above "
                      f"each segment's own reference")
         lines.append(line + ".")
-    if reference_threshold is not None:
+    if reference_pct is not None:
         lines.append(
-            f"Reminder: the win curve plateaus near "
-            f"{reference_threshold:.0%}. Historically, discounts past that "
-            f"point did not buy meaningfully more wins. That relationship is "
-            f"correlational, not causal."
+            f"Reminder: the win curve plateaus near {reference_pct:g} "
+            f"percent. Historically, discounts past that point did not buy "
+            f"meaningfully more wins. That relationship is correlational, "
+            f"not causal."
         )
     if analysis is None:
         lines.append("No deal book is loaded, so realization and win-point "
@@ -389,7 +413,7 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
             "exceptions_total": n_exc,
             "exceptions_below_floor": n_below,
             "copilot_decisions": copilot_n,
-            "realization_pct": realization,
+            "realization_pct": realization_pct,
             "excess_vs_segment_reference": excess_seg,
         },
     }

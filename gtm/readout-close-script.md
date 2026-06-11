@@ -13,6 +13,11 @@ The diagnostic was free; this call is where the free work earns the right to nam
 a $15K, 90-day pilot, fee due at signature, 50% credited toward an annual subscription
 signed within the pilot window.
 
+The pilot's success criterion is USAGE, not deliverables: at least 20 deals run through
+guidance (approvals and exception requests logged) inside the 90 days. Say this on the
+call. It tells the champion what good looks like, it is the evidence an investor will ask
+us for, and a pilot that only consumed readouts is a failed pilot even if it renews.
+
 One rule above all: their numbers carry the call. You are not presenting Pricekeel. You are
 presenting their book, with receipts, and the offer is one sentence near the end.
 
