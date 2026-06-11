@@ -14,6 +14,12 @@ export const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
 
 export const pct0 = (x: number) => `${Math.round(x * 100)}%`;
 
+/**
+ * Percent that already arrives on the 0-100 scale (the exceptions/digest
+ * contract), unlike the 0-1 fractions everywhere else in the diagnostic.
+ */
+export const pct100 = (x: number) => `${Math.round(x)}%`;
+
 /** "2026-05-27" -> "May 27, 2026" (UTC, locale-stable). */
 export const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {

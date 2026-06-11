@@ -14,9 +14,9 @@ type Tier = {
 };
 
 // Tier copy is intentionally written so Diagnostic feels like the door-opener
-// (free for design partners, one cycle) and Operate feels like the daily-used
-// product (recurring, with concrete monthly artifacts). The "Why monthly"
-// section below the cards makes the contrast visceral.
+// (free for design partners, one cycle) and Operate feels like the governance
+// loop (requests priced, decisions logged, digests sent). The "Why Operate is
+// a subscription" section below the cards makes the contrast visceral.
 const TIERS: Tier[] = [
   {
     name: "Diagnostic",
@@ -33,19 +33,19 @@ const TIERS: Tier[] = [
   },
   {
     name: "Pricekeel Operate",
-    audience: "Recurring engagement",
+    audience: "The governance loop",
     body:
-      "What changes the moment your closed-deal data starts flowing in monthly: the deal desk gets per-deal recommendations, drift detection triggers within days not quarters, and the decision log becomes a board-defensible audit trail.",
+      "Not a report you read, a loop your deals run through. Every below-floor discount request is priced before it is approved, every decision lands in the log with its math, and the loop reports back to you on a weekly, monthly, and quarterly rhythm.",
     features: [
-      "Monthly readout email naming the three things worth your attention",
-      "Top-five-deals-to-walk list, with the recommended discount and the why",
-      "Weekly Slack signal when realization drops >200 bps in any segment",
-      "Audit-grade decision log: every recommendation and outcome, captured",
-      "Ask-your-Pricekeel chat over your team's policy and playbook docs",
+      "Every exception priced before it is approved: the floor, the win odds, the expected-value cost in dollars",
+      "Every decision logged with its math, the audit trail your CFO and your next diligence see",
+      "A weekly digest that comes to you: exceptions priced, below-floor count, realization, what moved",
+      "Monthly drift readout naming the segments where realization is slipping and the deals behind it",
+      "Quarterly policy re-simulation: floors re-fit against the deals you actually closed",
     ],
     highlight: true,
     footer:
-      "Delivered as a managed service today (monthly CSV cadence, founder-led readout). Live CRM integration when Phase 2 ships.",
+      "Founder-led today: monthly CSV intake, and we run the loop and the readouts with you. Live CRM integration when Phase 2 ships.",
   },
   {
     name: "Margin Enhancement",
@@ -211,9 +211,10 @@ export default function PricingPage() {
           </h2>
           <p className="mt-2 max-w-3xl text-sm text-muted">
             The Diagnostic is a one-page narrative your CFO reads once. Operate
-            is the weekly artifact your deal desk uses to make a call. Same
-            engine, different cadence, different surface. Here is what shows up
-            in your team&apos;s tools every week.
+            is the loop that runs after it: discount requests come through
+            Pricekeel, decisions land in the log with their math, and the log
+            reports back to you. Here is what that loop puts in your
+            team&apos;s tools every week.
           </p>
           <ol className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
             {SCENARIOS.map((s, i) => (
@@ -237,9 +238,10 @@ export default function PricingPage() {
             ))}
           </ol>
           <p className="mt-5 text-xs italic text-muted">
-            None of these scenarios fire from a one-time CSV scan. They require
-            a recurring cadence on your own deal data. That is what justifies
-            the monthly invoice, not the diagnostic itself.
+            None of these scenarios fire from a one-time CSV scan. They fire
+            because the loop is running: requests priced, decisions logged,
+            digests sent. That is what justifies the subscription, not the
+            diagnostic itself.
           </p>
         </section>
       </Reveal>
@@ -353,9 +355,9 @@ export default function PricingPage() {
                 an XLSX / PDF / DOCX / PPTX of any pricing policy or playbook
                 doc you want our chat to ground its answers in. Tomorrow (Phase
                 2 and Phase 3): native connectors for Salesforce, HubSpot,
-                Stripe, Zuora, Snowflake. Operate ships as a managed monthly
-                cadence in the meantime, so you get the recurring artifact
-                without waiting on integrations.
+                Stripe, Zuora, Snowflake. Operate runs founder-led in the
+                meantime, so the loop is live (exceptions priced, decisions
+                logged, digest in your inbox) without waiting on integrations.
               </p>
             </div>
             <div>
@@ -389,11 +391,12 @@ export default function PricingPage() {
             </li>
             <li>
               <span className="font-medium text-fg">Pricekeel Operate</span>{" "}
-              today is a managed monthly cadence (CSV intake plus a founder-led
-              readout). Engagement structure and pricing are scoped on the
-              first call; engagements typically start in the low five figures.
-              Once live integration ships, it moves to the standard SaaS
-              contract with ACV scaling on deal volume and policy docs indexed.
+              today is founder-led: monthly CSV intake, the exception loop in
+              the product, and a readout we walk through with you. Engagement
+              structure and pricing are scoped on the first call; engagements
+              typically start in the low five figures. Once live integration
+              ships, it moves to the standard SaaS contract with ACV scaling
+              on deal volume and policy docs indexed.
             </li>
             <li>
               <span className="font-medium text-fg">Margin Enhancement</span> is

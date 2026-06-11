@@ -16,7 +16,6 @@ logged with its math; defensible to finance." That promise lives here.
 from __future__ import annotations
 
 import json
-import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from typing import Optional
@@ -513,45 +512,7 @@ def answer_canonical(qid: str, analysis: dict,
                   citations_used=["A"])
 
 
-# ---------------------------------------------------------------------------
-# Decision log — per-session, append-only, in-memory.
-# Supabase-backed when we move past in-memory state.
-
-
-@dataclass
-class Decision:
-    ts: float
-    session_id: str
-    qid: str
-    opportunities_surfaced: list[str]
-    opportunities_accepted: list[str]
-    opportunities_rejected: list[str]
-    note: str = ""
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-
-_DECISION_LOG: dict[str, list[Decision]] = {}
-
-
-def log_decision(session_id: str, qid: str, *,
-                 surfaced: list[str] | None = None,
-                 accepted: list[str] | None = None,
-                 rejected: list[str] | None = None,
-                 note: str = "") -> Decision:
-    d = Decision(
-        ts=time.time(),
-        session_id=session_id,
-        qid=qid,
-        opportunities_surfaced=list(surfaced or []),
-        opportunities_accepted=list(accepted or []),
-        opportunities_rejected=list(rejected or []),
-        note=note,
-    )
-    _DECISION_LOG.setdefault(session_id, []).append(d)
-    return d
-
-
-def decisions_for(session_id: str) -> list[Decision]:
-    return list(_DECISION_LOG.get(session_id, []))
+# The per-session in-memory decision log that used to live here moved to
+# pricing/governance.py (DecisionStore, kind='copilot'): Supabase-backed when
+# configured, memory fallback, same /copilot/log and /copilot/decisions
+# response shapes.

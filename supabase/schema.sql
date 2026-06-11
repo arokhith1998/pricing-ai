@@ -41,3 +41,28 @@ alter table access_codes enable row level security;
 --   insert into access_codes (code, issued_to, expires_at)
 --   values ('PASTE-RANDOM-TOKEN', 'Acme Inc', now() + interval '30 days');
 -- Revoke one:   update access_codes set revoked = true where code = '...';
+
+-- Governance loop (2026-06-11): persistent decision log. Every copilot
+-- decision and discount-exception request the API serves is appended here
+-- (pricing/governance.py via PostgREST, service-role key only). This is the
+-- system-of-record moat; rows are append-only and never updated.
+create table if not exists decision_log (
+  id uuid primary key default gen_random_uuid(),
+  customer_ref text not null default 'default',
+  kind text not null check (kind in ('copilot','exception')),
+  deal_id text not null default '',
+  payload jsonb not null default '{}'::jsonb,
+  decision text not null default '',
+  justification text not null default '',
+  requested_by text not null default '',
+  created_at timestamptz not null default now()
+);
+
+-- Read paths: GET /exceptions filters kind + orders by created_at desc;
+-- /digest reads everything in the last 7 days.
+create index if not exists decision_log_kind_created_at_idx
+  on decision_log (kind, created_at desc);
+
+-- Same RLS posture as the tables above: enabled with no policies, so only
+-- the service-role key (which bypasses RLS) can touch it.
+alter table decision_log enable row level security;

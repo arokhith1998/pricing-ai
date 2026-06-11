@@ -92,6 +92,11 @@ appropriate:
   intake**, defined as the date Company confirms in writing that Partner's submitted data
   passes intake validation. Calendar-named delivery dates are not used. Failure to meet the
   SLA entitles Partner to the remedy stated in the engagement letter.
+- **Pilot success criterion (usage-based):** the parties will treat the pilot as
+  successful when at least [20] deals have been run through Pricekeel's guidance
+  (logged approvals and exception requests) during the pilot term, in addition to the
+  delivered readouts. This is a shared definition of success for the conversion
+  conversation, not a refund condition [counsel: confirm framing].
 - **Liability cap:** each party's aggregate liability arising out of or relating to this
   agreement and any engagement under it is capped at the fees paid by Partner to Company in
   the twelve (12) months preceding the event giving rise to the claim. The cap does not

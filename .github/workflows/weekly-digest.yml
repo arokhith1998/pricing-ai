@@ -1,0 +1,23 @@
+# Sends the weekly governance digest: the product initiates contact, the
+# customer never has to remember to log in. The web route fetches digest
+# content from the API and emails it via Resend.
+name: weekly-digest
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays 13:00 UTC (9am ET)
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger digest send
+        run: |
+          code=$(curl -s -o /tmp/resp.json -w '%{http_code}' --max-time 120 \
+            -X POST \
+            -H "X-Cron-Key: ${{ secrets.CRON_SECRET }}" \
+            "https://www.pricekeel.com/api/digest/send")
+          cat /tmp/resp.json
+          echo "status=$code"
+          test "$code" = "200"

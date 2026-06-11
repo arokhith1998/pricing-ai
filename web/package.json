@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
-    "@types/sanitize-html": "^2.16.1",
     "@vercel/analytics": "^2.0.1",
     "framer-motion": "^12.40.0",
     "marked": "^18.0.4",
@@ -25,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
