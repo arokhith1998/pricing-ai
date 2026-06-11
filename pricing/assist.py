@@ -20,6 +20,20 @@ from pricing.schema import FIELDS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
+# Hard ceiling on any single LLM call. Without it a stalled provider call can
+# hang a Render worker indefinitely (the CTO-review finding). Overridable for
+# ops, never unbounded.
+LLM_TIMEOUT_SECONDS = float(os.environ.get("PRICEKEEL_LLM_TIMEOUT", "60"))
+
+
+class LLMError(RuntimeError):
+    """Base class for assist-layer LLM failures."""
+
+
+class LLMUnavailableError(LLMError):
+    """The provider timed out or could not be reached. The API layer maps
+    this to a 503 instead of letting a worker hang or 500."""
+
 
 def _load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
     if not path.exists():
@@ -51,15 +65,28 @@ def has_llm() -> bool:
 
 def _complete(system: str, user: str, *, json_mode: bool = False,
               max_tokens: int = 800, small: bool = False) -> str:
-    """One completion, provider-agnostic. `small` picks the cheaper model."""
+    """One completion, provider-agnostic. `small` picks the cheaper model.
+
+    Every call carries an explicit timeout (LLM_TIMEOUT_SECONDS). Timeouts and
+    connection failures raise LLMUnavailableError so callers can degrade
+    cleanly (the API turns it into a 503) instead of hanging a worker.
+    """
     if _provider() == "anthropic":
+        import anthropic
         from anthropic import Anthropic
         model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-        msg = Anthropic().messages.create(
-            model=model, max_tokens=max_tokens, system=system,
-            messages=[{"role": "user", "content": user}])
+        try:
+            msg = Anthropic(timeout=LLM_TIMEOUT_SECONDS).messages.create(
+                model=model, max_tokens=max_tokens, system=system,
+                messages=[{"role": "user", "content": user}])
+        # APITimeoutError subclasses APIConnectionError in the anthropic SDK.
+        except anthropic.APIConnectionError as exc:
+            raise LLMUnavailableError(
+                f"LLM provider (anthropic) unreachable or timed out: {exc}"
+            ) from exc
         return msg.content[0].text
 
+    import openai
     from openai import OpenAI
     model = (os.environ.get("OPENAI_MAP_MODEL", "gpt-4o-mini") if small
              else os.environ.get("OPENAI_SUMMARY_MODEL", "gpt-4o"))
@@ -68,7 +95,14 @@ def _complete(system: str, user: str, *, json_mode: bool = False,
                                  {"role": "user", "content": user}]}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
-    return OpenAI().chat.completions.create(**kwargs).choices[0].message.content
+    try:
+        client = OpenAI(timeout=LLM_TIMEOUT_SECONDS)
+        return client.chat.completions.create(**kwargs).choices[0].message.content
+    # APITimeoutError subclasses APIConnectionError in the openai SDK.
+    except openai.APIConnectionError as exc:
+        raise LLMUnavailableError(
+            f"LLM provider (openai) unreachable or timed out: {exc}"
+        ) from exc
 
 
 # --- executive summary -------------------------------------------------------

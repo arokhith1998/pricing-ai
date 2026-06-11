@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LEGAL_ENTITY, LEGAL_JURISDICTION } from "@/lib/legal";
+import { LEGAL_ENTITY, LEGAL_JURISDICTION, ENTITY_FILLED } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
 
@@ -12,7 +12,14 @@ export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
 // have a lawyer review before relying on it.
 
 const EFFECTIVE = "30 May 2026";
-const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "[privacy@pricekeel.com]";
+const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
+
+// Until incorporation completes, name Pricekeel plainly instead of rendering
+// "[legal entity], [jurisdiction]" placeholders to the public. Once the env
+// vars in @/lib/legal are filled, the registered entity renders instead.
+const ENTITY_DESCRIPTION = ENTITY_FILLED
+  ? `${LEGAL_ENTITY}, ${LEGAL_JURISDICTION}`
+  : "Pricekeel (US entity formation in progress; this policy will be updated with the registered entity name and jurisdiction)";
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -28,16 +35,16 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-bold text-fg">Privacy Policy</h1>
       <p className="mt-2 text-sm text-muted">
-        Effective {EFFECTIVE} ·{" "}
-        <span className="inline-block rounded border border-coral/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-coral">
-          DRAFT, counsel review pending
-        </span>
+        Last updated {EFFECTIVE}. Under legal review. Questions:{" "}
+        <a className="text-teal underline" href="mailto:adhithya@pricekeel.com">
+          adhithya@pricekeel.com
+        </a>
       </p>
 
       <p className="mt-6 text-sm leading-relaxed text-muted">
-        This policy explains what Pricekeel (&ldquo;we&rdquo;, operated by{" "}
-        <span className="text-fg">{LEGAL_ENTITY}</span>,{" "}
-        <span className="text-fg">{LEGAL_JURISDICTION}</span>) collects, why, and
+        This policy explains what{" "}
+        <span className="text-fg">{ENTITY_DESCRIPTION}</span>{" "}
+        (&ldquo;we&rdquo;) collects, why, and
         what we do with it. We keep data collection to the minimum needed to
         run the product, and we publish the full subprocessor list at{" "}
         <a className="text-teal underline" href="/subprocessors">/subprocessors</a>{" "}
@@ -169,8 +176,12 @@ export default function PrivacyPage() {
           unlocked the sample diagnostic) and <code>pk_access</code>{" "}
           (remembers that you have entered a valid access code for your own
           data). We do not use advertising, retargeting, or cross-site
-          tracking cookies, and we do not load third-party analytics that
-          set cookies.
+          tracking cookies, and the analytics we use set no cookies at all.
+        </p>
+        <p>
+          We use Vercel Web Analytics, a cookieless, privacy-preserving
+          first-party analytics service that aggregates page views without
+          cross-site tracking and without advertising cookies.
         </p>
       </Section>
 

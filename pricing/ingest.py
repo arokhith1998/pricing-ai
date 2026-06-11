@@ -118,6 +118,11 @@ _PUNCT = re.compile(r"[^a-z0-9\s]")
 _WS = re.compile(r"\s+")
 
 
+# Headers eligible for the value-validated deal-type rescue (normalized form).
+_TYPE_HEADERS = {"type", "opportunity type", "opp type", "deal type",
+                 "record type"}
+
+
 class SchemaError(ValueError):
     """Raised when an input CSV is missing required columns."""
 
@@ -253,6 +258,26 @@ def apply_header_mapping(df: pd.DataFrame,
         rename[header] = fieldname
         sources[fieldname] = f"{header} ({used.get(header, '?')}, {conf})"
 
+    # Salesforce-style "Type" column rescue (2026-06-10 dry-run, wishlist 4).
+    # The bare header is far too generic to claim by name alone (the "Forecast
+    # Category" lesson), so it is claimed only when the VALUES check out: at
+    # least 80% of non-blank values must classify as new/renewal deal types.
+    if "is_renewal" not in rename.values():
+        for col in cols:
+            if col in rename or mapping.normalize(col) not in _TYPE_HEADERS:
+                continue
+            vals = df[col].astype(str).str.strip()
+            vals = vals[~vals.str.lower().isin(_MISSING_STRINGS)]
+            if len(vals) and vals.map(_deal_type_of).ne("").mean() >= 0.8:
+                rename[col] = "is_renewal"
+                sources["is_renewal"] = f"{col} (value-scan, high)"
+                if report is not None:
+                    report.notes.append(
+                        f"mapped '{col}' to the new-vs-renewal deal type by "
+                        "value scan (values look like deal types)"
+                    )
+                break
+
     if report is not None:
         report.field_sources = sources
         report.unmapped_columns = [c for c in cols if c not in rename]
@@ -340,6 +365,28 @@ OUTCOME_ALIASES = {
 }
 
 _BOOL_TRUE = {"true", "1", "yes", "y", "ja", "t", "wahr"}
+_BOOL_FALSE = {"false", "0", "no", "n", "f", "nein", "falsch"}
+_MISSING_STRINGS = {"", "nan", "none", "null", "na"}
+
+
+def _deal_type_of(value: object) -> str:
+    """Classify a raw renewal-flag / deal-Type value: 'renewal' | 'new' | ''.
+
+    Handles both boolean renewal flags ("true"/"false") and CRM Type values
+    ("Renewal", "Existing Business", "New Business"). Existing-business
+    variants count as renewal-side: the disease framing is existing-customer
+    discounting vs new-business discounting. Anything unrecognized maps to ''
+    (unknown) rather than being guessed — never silently fillna a deal type.
+    Order matters: "renewal" contains the substring "new".
+    """
+    s = str(value).strip().lower()
+    if s in _MISSING_STRINGS:
+        return ""
+    if s in _BOOL_TRUE or "renew" in s or "existing" in s:
+        return "renewal"
+    if s in _BOOL_FALSE or "new" in s:
+        return "new"
+    return ""
 _MONEY_STRIP = re.compile(r"[€$£¥\s]")
 _DATE_RE = re.compile(r"^\s*(\d{1,2})[./-](\d{1,2})[./-]\d{2,4}")
 _NUMERIC_NONMONEY = ["quantity", "term_months"]
@@ -451,11 +498,17 @@ def _coerce_types(df: pd.DataFrame) -> pd.DataFrame:
     if "outcome" in df.columns:
         low = df["outcome"].astype(str).str.strip().str.lower()
         df["outcome"] = low.map(OUTCOME_ALIASES).fillna(low)
-    for boolcol in ("competitor_present", "is_renewal"):
-        if boolcol in df.columns:
-            df[boolcol] = (
-                df[boolcol].astype(str).str.strip().str.lower().isin(_BOOL_TRUE)
-            )
+    if "competitor_present" in df.columns:
+        df["competitor_present"] = (
+            df["competitor_present"].astype(str).str.strip().str.lower().isin(_BOOL_TRUE)
+        )
+    if "is_renewal" in df.columns:
+        # Derive the canonical three-state deal_type ('new' / 'renewal' / '')
+        # BEFORE collapsing is_renewal to bool, so unknowns stay unknown
+        # instead of silently becoming "new". Recognizes boolean flags and
+        # CRM Type values ("Renewal", "New Business") alike.
+        df["deal_type"] = df["is_renewal"].map(_deal_type_of)
+        df["is_renewal"] = df["deal_type"].eq("renewal")
     return df
 
 
@@ -537,6 +590,15 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
         df["is_quarter_end"] = df["days_to_quarter_end"] <= 21
     if "created_date" in df.columns and "close_date" in df.columns:
         df["cycle_days"] = (df["close_date"] - df["created_date"]).dt.days
+
+    # Canonical deal_type for the New-vs-Renewal split. The CSV path derives
+    # it in _coerce_types (three-state, before the bool collapse); this covers
+    # direct-frame callers (tests, notebooks) that pass is_renewal natively.
+    if "deal_type" not in df.columns and "is_renewal" in df.columns:
+        if df["is_renewal"].dtype == bool:
+            df["deal_type"] = np.where(df["is_renewal"], "renewal", "new")
+        else:
+            df["deal_type"] = df["is_renewal"].map(_deal_type_of)
 
     approver = df.get("approved_by", pd.Series([""] * len(df))).fillna("").astype(str)
     df["off_policy"] = df["discount_pct"] > policy_threshold

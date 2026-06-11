@@ -1,30 +1,58 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Hero headline with a word-by-word reveal (de-blur + rise) and a coral glow on
-// the closing clause. Animates on mount — it is the first thing in view. The
-// whole effect collapses to a clean static headline under prefers-reduced-motion.
+// the closing clause.
+//
+// SSR / LCP note: the server (and the pre-hydration client) renders a plain,
+// fully visible <h1> so the headline paints immediately and survives with JS
+// disabled. The framer-motion entrance only mounts after hydration, so content
+// is never hidden at opacity 0 waiting for JavaScript. Under
+// prefers-reduced-motion we keep the static headline permanently.
 const WORDS = ["Stop", "giving", "away", "price", "that", "wins", "you", "nothing."];
+
+const H1_CLASS =
+  "mx-auto max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-fg sm:text-5xl";
+
+const wordClass = (w: string) =>
+  `mr-[0.25em] inline-block ${w === "nothing." ? "pk-headline-accent text-coral" : ""}`;
 
 export default function HeroHeadline() {
   const reduce = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Server render + first client render (hydration match) + reduced motion:
+  // a static, visible headline. No inline opacity, no dependency on JS.
+  if (!mounted || reduce) {
+    return (
+      <h1 className={H1_CLASS}>
+        {WORDS.map((w, i) => (
+          <span key={i} className={wordClass(w)}>
+            {w}
+          </span>
+        ))}
+      </h1>
+    );
+  }
 
   const container: Variants = {
     hidden: {},
     show: {
-      transition: { staggerChildren: reduce ? 0 : 0.055, delayChildren: reduce ? 0 : 0.05 },
+      transition: { staggerChildren: 0.055, delayChildren: 0.05 },
     },
   };
   const word: Variants = {
-    hidden: reduce ? { opacity: 1 } : { opacity: 0, y: 20, filter: "blur(8px)" },
+    hidden: { opacity: 0, y: 20, filter: "blur(8px)" },
     show: {
       opacity: 1,
       y: 0,
       filter: "blur(0px)",
-      transition: { duration: reduce ? 0 : 0.6, ease: EASE },
+      transition: { duration: 0.6, ease: EASE },
     },
   };
 
@@ -33,20 +61,13 @@ export default function HeroHeadline() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="mx-auto max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-fg sm:text-5xl"
+      className={H1_CLASS}
     >
-      {WORDS.map((w, i) => {
-        const accent = w === "nothing.";
-        return (
-          <motion.span
-            key={i}
-            variants={word}
-            className={`mr-[0.25em] inline-block ${accent ? "pk-headline-accent text-coral" : ""}`}
-          >
-            {w}
-          </motion.span>
-        );
-      })}
+      {WORDS.map((w, i) => (
+        <motion.span key={i} variants={word} className={wordClass(w)}>
+          {w}
+        </motion.span>
+      ))}
     </motion.h1>
   );
 }

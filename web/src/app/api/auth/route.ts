@@ -1,9 +1,19 @@
 import { cookies } from "next/headers";
-import { ACCESS_COOKIE, accessToken } from "@/lib/auth";
+import {
+  ACCESS_COOKIE,
+  accessCookieOptions,
+  makeAccessCookieValue,
+} from "@/lib/auth";
 import { isValidAccessCode } from "@/lib/store";
+import { rateLimit } from "@/lib/ratelimit";
 
 // POST { code } -> set the access cookie if the code is valid (unlocks /upload).
+// The cookie is HMAC-signed and embeds the code, so each customer's cookie is
+// distinct and revoking a code in access_codes revokes that customer.
 export async function POST(req: Request) {
+  const limited = rateLimit(req, "auth", { max: 5, windowMs: 60_000 });
+  if (limited) return limited;
+
   let code = "";
   try {
     ({ code } = await req.json());
@@ -13,13 +23,11 @@ export async function POST(req: Request) {
   if (!code || !(await isValidAccessCode(code))) {
     return Response.json({ error: "That access code is not valid." }, { status: 401 });
   }
-  (await cookies()).set(ACCESS_COOKIE, await accessToken(), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 7, // one week
-  });
+  (await cookies()).set(
+    ACCESS_COOKIE,
+    await makeAccessCookieValue(code),
+    accessCookieOptions(),
+  );
   return Response.json({ ok: true });
 }
 

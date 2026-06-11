@@ -21,6 +21,12 @@ def run(path: str | Path,
         policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
     """Run the full pipeline and return all diagnostic sections."""
     df, load_report = ingest_verbose(path, policy_threshold=policy_threshold)
+    return analyze(df, load_report, policy_threshold=policy_threshold)
+
+
+def analyze(df, load_report=None,
+            policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
+    """All diagnostic sections for an already-ingested (enriched) frame."""
     pkg = metrics.packaging_signals(df)
     return {
         "data": df,
@@ -32,6 +38,10 @@ def run(path: str | Path,
         "trend_by_quarter": metrics.trend_by_quarter(df),
         "segment_win_points": metrics.segment_win_points(df),
         "policy_simulations": metrics.policy_simulations(df, policy_threshold),
+        # New vs Renewal split (dry-run wishlist 4): renewal discounting is a
+        # different disease from new-business discounting. Empty frame when
+        # the deal-type column is missing, so the readout degrades gracefully.
+        "new_vs_renewal": metrics.new_vs_renewal(df),
         "realization_by_segment": metrics.realization_by_segment(df),
         "win_rate_by_band": metrics.win_rate_by_band(df),
         "reference_discount": metrics.reference_discount(df),
@@ -119,10 +129,42 @@ def print_report(res: dict) -> None:
     print("\n-- Leakage (won deals) " + "-" * 41)
     print(f"Gross discount given        : {_money(lk['gross_discount_won'])}")
     print(f"Off-policy (> {_pct(lk['policy_threshold'])})         : {_money(lk['off_policy_leakage_won'])}")
-    print(f"Excess vs reference ({_pct(lk['reference_threshold'])})  : "
-          f"{_money(lk['excess_vs_reference_won'])} "
-          f"across {lk['deals_above_reference']:,} deals "
-          f"= {_pct(lk['excess_pct_of_booked'])} of booked ACV")
+    seg_refs = lk.get("segment_references") or []
+    if seg_refs and "excess_vs_segment_reference_won" in lk:
+        # Headline: per-segment excess, each segment vs its OWN reference.
+        print(f"Excess vs segment references: "
+              f"{_money(lk['excess_vs_segment_reference_won'])} "
+              f"across {lk['deals_above_segment_reference']:,} deals "
+              f"= {_pct(lk['excess_segment_pct_of_booked'])} of booked ACV")
+        print(f"  (secondary lens, single global reference at "
+              f"{_pct(lk['reference_threshold'])}: "
+              f"{_money(lk['excess_vs_reference_won'])} across "
+              f"{lk['deals_above_reference']:,} deals = "
+              f"{_pct(lk['excess_pct_of_booked'])} of booked ACV. The global "
+              f"lens overstates segments")
+        print("   whose win point sits above the global reference; the "
+              "segment-aware figure is the one to use.)")
+
+        # Disclosure: exactly which reference each segment was measured
+        # against, and why. The headline is only defensible if this is shown.
+        print("\n-- Reference discount by segment (basis of the headline) "
+              + "-" * 6)
+        print(f"   {'segment':<14}{'reference':>10}  {'basis':<38}"
+              f"{'deals':>7}{'bands':>7}")
+        for r in seg_refs:
+            print(f"   {r['segment']:<14}"
+                  f"{_pct(r['reference_threshold']):>10}  "
+                  f"{r['basis']:<38}{r['deals']:>7,}{r['bands_populated']:>7}")
+        print(f"   (A segment earns its own reference with >= "
+              f"{metrics.SEGMENT_REF_MIN_DEALS} deals and >= "
+              f"{metrics.SEGMENT_REF_MIN_BANDS} populated bands;")
+        print("    thinner segments are measured against the global "
+              "reference, disclosed above.)")
+    else:
+        print(f"Excess vs reference ({_pct(lk['reference_threshold'])})  : "
+              f"{_money(lk['excess_vs_reference_won'])} "
+              f"across {lk['deals_above_reference']:,} deals "
+              f"= {_pct(lk['excess_pct_of_booked'])} of booked ACV")
 
     # Wishlist 1: is leakage getting better or worse, by quarter?
     trend = res.get("trend_by_quarter")
@@ -135,6 +177,8 @@ def print_report(res: dict) -> None:
         for c in ("booked_acv", "excess_won"):
             t[c] = t[c].map(_money)
         print(t.to_string(index=False))
+        print("   (trend excess uses the single global reference so quarters "
+              "stay comparable)")
 
     # Wishlist 2a: realization by segment + each segment's own win point.
     seg = res.get("realization_by_segment")
@@ -149,6 +193,45 @@ def print_report(res: dict) -> None:
     for r in res.get("segment_win_points") or []:
         print(f"   {r['segment']:<12} peak {_pct(r['peak_win_rate'])} at "
               f"{r['peak_band']}, win point {r['reference_band']} ({r['deals']:,} deals)")
+
+    # Wishlist 4 (dry-run 2026-06-10): New vs Renewal. Renewal discounting is
+    # a different disease from new-business discounting, so the two must not
+    # hide inside one blended average. Section degrades gracefully: absent
+    # without a deal-type column, marked insufficient when it is too sparse.
+    nvr = res.get("new_vs_renewal")
+    data = res.get("data")
+    has_type_col = data is not None and "deal_type" in getattr(data, "columns", ())
+    typed = (nvr[nvr["deal_type"].isin(("New", "Renewal"))]
+             if nvr is not None and not nvr.empty else None)
+    if typed is not None and not typed.empty:
+        print("\n-- New vs Renewal " + "-" * 46)
+        v = nvr.copy()
+        for c in ("win_rate", "avg_discount_won", "price_realization_won",
+                  "reference_threshold"):
+            v[c] = v[c].map(_pct)
+        v["booked_acv_won"] = v["booked_acv_won"].map(_money)
+        v = v.drop(columns=["reference_band"])
+        v = v.rename(columns={"avg_discount_won": "avg_discount",
+                              "price_realization_won": "realization",
+                              "booked_acv_won": "booked_acv",
+                              "reference_threshold": "win_point",
+                              "reference_basis": "win_point_basis"})
+        print(v.to_string(index=False))
+        by_type = typed.set_index("deal_type")
+        if {"New", "Renewal"} <= set(by_type.index):
+            nd = by_type.loc["New", "avg_discount_won"]
+            rd_ = by_type.loc["Renewal", "avg_discount_won"]
+            print(f"   Renewal deals average {_pct(rd_)} discount vs "
+                  f"{_pct(nd)} on new business. Renewal discounting is a")
+            print("   different disease: a renewal discount rarely buys a win "
+                  "(the customer is already on the")
+            print("   product), so treat renewal giveback as governance and "
+                  "escalator slippage, while new-business")
+            print("   giveback is a win-rate investment question.")
+    elif has_type_col:
+        print("\n-- New vs Renewal " + "-" * 46)
+        print("   Deal-type column present but too sparse to split "
+              "(insufficient data).")
 
     if qe:
         print("\n-- Quarter-end effect " + "-" * 42)

@@ -140,6 +140,14 @@ body {
   animation: pkUpsideGlow 3.6s ease-in-out infinite;
 }
 
+/* Static counterpart for PRODUCT surfaces (/sample KPIs, upload results):
+   the same coral emphasis with no infinite pulse. Marketing surfaces keep
+   the animated .pk-upside-glow. */
+.pk-upside-static {
+  box-shadow: 0 0 0 1px rgba(255, 107, 84, 0.22),
+    0 0 36px -8px rgba(255, 107, 84, 0.3);
+}
+
 /* Respect the user's reduced-motion preference: kill drift, keep entrances
    but make them instant. */
 @media (prefers-reduced-motion: reduce) {

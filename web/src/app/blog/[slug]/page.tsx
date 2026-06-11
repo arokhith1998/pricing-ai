@@ -13,7 +13,27 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = getPost(slug);
-  return { title: post ? `${post.title} · Pricekeel` : "Pricekeel" };
+  if (!post) return { title: "Post not found" };
+  // The root layout's title template appends "· Pricekeel".
+  return {
+    title: post.title,
+    description: post.excerpt,
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      type: "article",
+      url: `/blog/${post.slug}`,
+      title: post.title,
+      description: post.excerpt,
+      publishedTime: `${post.date}T00:00:00Z`,
+      authors: [post.author],
+      siteName: "Pricekeel",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+    },
+  };
 }
 
 export default async function PostPage({

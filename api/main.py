@@ -6,16 +6,22 @@ Run:  uvicorn api.main:app --reload --port 8000
 
 from __future__ import annotations
 
+import dataclasses
+import hmac
 import io
 import json
+import logging
 import os
 import tempfile
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
@@ -45,18 +51,135 @@ FEATURE_LABELS = {
     "competitor_present": "Competitor in deal",
 }
 
+logger = logging.getLogger("pricekeel.api")
+
 app = FastAPI(title="Pricekeel API", version="0.1.0")
 
-# CORS: lock to known origins in production. Local dev wide-open is fine
-# because uvicorn is only reachable from the dev machine; production must
-# only accept calls from our own web tier. Set PRICEKEEL_CORS_ORIGINS as a
-# comma-separated list to override; leave blank for the safe default below.
+# --- API perimeter (CTO security review, 2026-06-11) -------------------------
+#
+# api.pricekeel.com is publicly reachable; the Next.js tier proxies to it
+# server-side and attaches `X-Pricekeel-Key: $PRICEKEEL_API_KEY`. One
+# middleware enforces, in order: shared-secret auth (401), upload size cap
+# (413), and per-IP rate limiting (429). All checks read state at request
+# time so tests (and Render env changes) take effect without re-import.
+
+AUTH_HEADER = "x-pricekeel-key"
+AUTH_EXEMPT_PATHS = {"/", "/health"}
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+UPLOAD_PATHS = {"/map-headers", "/diagnostic", "/docs/upload"}
+
+# Sliding-window per-IP limits: path (exact, or prefix when ending in "/")
+# -> (max requests, window seconds). LLM-backed endpoints are the expensive
+# ones (provider cost + worker time); the rest are CPU-bound but heavy.
+RATE_LIMITS: dict[str, tuple[int, float]] = {
+    "/ask": (10, 60.0),
+    "/summary": (10, 60.0),
+    "/matching/": (10, 60.0),
+    "/diagnostic": (30, 60.0),
+    "/map-headers": (30, 60.0),
+    "/docs/upload": (30, 60.0),
+}
+# (rule, client_ip) -> deque of request timestamps inside the window.
+_RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+
+if not os.environ.get("PRICEKEEL_API_KEY"):
+    logger.warning("API perimeter OPEN — set PRICEKEEL_API_KEY")
+
+
+def _rate_state_reset() -> None:
+    """Test hook: forget all rate-limit history."""
+    _RATE_BUCKETS.clear()
+
+
+def _client_ip(request: Request) -> str:
+    """Caller IP. Render sits behind a proxy, so trust the first
+    X-Forwarded-For value; fall back to the socket peer."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff.strip():
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_rule_for(path: str) -> tuple[str, int, float] | None:
+    """Match a request path to a rate-limit rule (exact or prefix)."""
+    for rule, (limit, window) in RATE_LIMITS.items():
+        if path == rule or (rule.endswith("/") and path.startswith(rule)):
+            return rule, limit, window
+    return None
+
+
+def _rate_limit_retry_after(rule: str, limit: int, window: float,
+                            ip: str) -> int | None:
+    """Record this request; return Retry-After seconds if over the limit."""
+    now = time.monotonic()
+    bucket = _RATE_BUCKETS[(rule, ip)]
+    while bucket and bucket[0] <= now - window:
+        bucket.popleft()
+    if len(bucket) >= limit:
+        return max(1, int(bucket[0] + window - now) + 1)
+    bucket.append(now)
+    return None
+
+
+@app.middleware("http")
+async def perimeter(request: Request, call_next):
+    path = request.url.path
+
+    # 1) Shared-secret auth. CORS preflights (OPTIONS) carry no custom
+    # headers by design, and they execute nothing — let them through.
+    expected = os.environ.get("PRICEKEEL_API_KEY", "")
+    if expected and path not in AUTH_EXEMPT_PATHS and request.method != "OPTIONS":
+        supplied = request.headers.get(AUTH_HEADER, "")
+        if not hmac.compare_digest(supplied.encode(), expected.encode()):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Missing or invalid X-Pricekeel-Key."},
+            )
+
+    # 2) Upload size cap (declared size; the read path re-checks actual bytes).
+    if path in UPLOAD_PATHS and request.method == "POST":
+        try:
+            declared = int(request.headers.get("content-length", "0") or "0")
+        except ValueError:
+            declared = 0
+        if declared > MAX_UPLOAD_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": (
+                    f"Upload too large: {declared} bytes "
+                    f"(limit {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)."
+                )},
+            )
+
+    # 3) Per-IP sliding-window rate limit on the expensive endpoints.
+    rule = _rate_rule_for(path)
+    if rule is not None and request.method == "POST":
+        name, limit, window = rule
+        retry_after = _rate_limit_retry_after(name, limit, window,
+                                              _client_ip(request))
+        if retry_after is not None:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": (
+                    f"Rate limit exceeded ({limit} requests / "
+                    f"{int(window)}s for {name}). Try again shortly."
+                )},
+                headers={"Retry-After": str(retry_after)},
+            )
+
+    return await call_next(request)
+
+# CORS: lock to known origins by default. Wildcard "*" only when
+# PRICEKEEL_ENV is EXPLICITLY "dev" — an unset env var (e.g. a fresh Render
+# service) must fail closed, not open (CTO review). Set
+# PRICEKEEL_CORS_ORIGINS as a comma-separated list to override.
 _DEFAULT_ORIGINS = [
     "https://www.pricekeel.com",
     "https://pricekeel.com",
     "https://pricekeel.vercel.app",
 ]
-_dev_mode = os.environ.get("PRICEKEEL_ENV", "dev").lower() == "dev"
+_dev_mode = os.environ.get("PRICEKEEL_ENV", "").lower() == "dev"
 _origin_env = os.environ.get("PRICEKEEL_CORS_ORIGINS", "").strip()
 if _origin_env:
     _origins = [o.strip() for o in _origin_env.split(",") if o.strip()]
@@ -73,9 +196,19 @@ app.add_middleware(
     allow_origins=_origins,
     allow_origin_regex=_origin_regex,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-Pricekeel-Key"],
     allow_credentials=False,
 )
+
+
+@app.exception_handler(assist.LLMUnavailableError)
+async def _llm_unavailable_handler(request: Request,
+                                   exc: assist.LLMUnavailableError):
+    """A stalled/unreachable LLM provider is a 503, not a hung worker."""
+    return JSONResponse(
+        status_code=503,
+        content={"detail": f"LLM provider unavailable: {exc}"},
+    )
 
 
 def _records(df) -> list[dict]:
@@ -83,9 +216,20 @@ def _records(df) -> list[dict]:
     return json.loads(df.to_json(orient="records"))
 
 
+def _load_report_dict(rep) -> dict:
+    """LoadReport dataclass -> JSON-safe dict, plus its human summary block."""
+    d = dataclasses.asdict(rep)
+    d["summary"] = rep.summary()
+    # Round-trip to flush any stray numpy scalars to plain JSON types.
+    return json.loads(json.dumps(d, default=str))
+
+
 def _diagnostic_payload(csv_path: str, policy: float) -> dict:
     res = run(csv_path, policy_threshold=policy)
     return {
+        # "What we read from your file" — ingest disclosures (duplicates
+        # dropped, open deals excluded, encoding, unmapped columns, ...).
+        "load_report": _load_report_dict(res["load_report"]),
         "overview": res["overview"],
         "leakage": res["leakage"],
         "reference_discount": res["reference_discount"],
@@ -130,6 +274,23 @@ def demo(policy: float = 0.15) -> dict:
     return _diagnostic_payload(str(DEMO_CSV), policy)
 
 
+async def _read_capped(file: UploadFile) -> bytes:
+    """Read an upload, hard-capped at MAX_UPLOAD_BYTES.
+
+    Backstop behind the Content-Length middleware check — a client can lie
+    about (or omit) Content-Length, so we also bound the actual bytes read
+    before any parsing happens.
+    """
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(f"Upload too large "
+                    f"(limit {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)."),
+        )
+    return content
+
+
 def _read_upload(file: UploadFile, content: bytes, *, nrows: int | None = None) -> pd.DataFrame:
     """Parse an uploaded CSV or XLSX into a string DataFrame."""
     name = (file.filename or "").lower()
@@ -151,7 +312,7 @@ async def map_headers_endpoint(file: UploadFile = File(...)) -> dict:
     embeddings). The cloud LLM fallback (layer 4) only ever receives header
     strings, never row data. We also peek at 3 sample rows for the review UI.
     """
-    content = await file.read()
+    content = await _read_capped(file)
     try:
         df_peek = _read_upload(file, content, nrows=5)
     except Exception as exc:  # noqa: BLE001
@@ -172,7 +333,7 @@ async def diagnostic(
     header mapping ({our_field: their_header}) before ingest. The file and
     any temp artifacts are deleted immediately — uploaded data is never
     retained on disk."""
-    content = await file.read()
+    content = await _read_capped(file)
     try:
         df = _read_upload(file, content)
     except Exception as exc:  # noqa: BLE001
@@ -393,7 +554,7 @@ async def docs_upload(
     new_chunks: list[docs_mod.Chunk] = []
     file_info: list[dict] = []
     for f in files:
-        data = await f.read()
+        data = await _read_capped(f)
         try:
             parsed = docs_mod.parse_and_chunk(f.filename or "doc", data)
         except ValueError as exc:

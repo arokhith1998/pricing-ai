@@ -16,14 +16,18 @@ import { motion, useReducedMotion } from "framer-motion";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Win-rate-by-band figures from the real demo payload (policy 0.15), rounded
+// to the nearest point. Win point = the 5-10% band (reference threshold 5%):
+// win rate peaks there at ~68% and then flattens and falls. Regenerate by
+// dumping pricing.diagnostic.run on data/synthetic/deals.csv if the sample
+// dataset changes.
 const BANDS = [
-  { label: "0%", win: 0.42 },
-  { label: "5%", win: 0.56 },
-  { label: "10%", win: 0.68 },
-  { label: "15%", win: 0.74, winPoint: true },
-  { label: "20%", win: 0.75 },
-  { label: "25%", win: 0.76 },
-  { label: "30%+", win: 0.76 },
+  { label: "0-5%", win: 0.54 },
+  { label: "5-10%", win: 0.68, winPoint: true },
+  { label: "10-15%", win: 0.66 },
+  { label: "15-20%", win: 0.62 },
+  { label: "20-25%", win: 0.58 },
+  { label: "25%+", win: 0.42 },
 ];
 
 function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
@@ -150,8 +154,8 @@ export default function DiagnosticPreview() {
                   Win rate by discount band
                 </div>
                 <div className="text-sm font-semibold text-fg">
-                  Win point at the 15% band; bigger discounts don&rsquo;t buy
-                  more wins
+                  Win point at the 5 to 10% band; bigger discounts don&rsquo;t
+                  buy more wins
                 </div>
               </div>
               <div className="hidden text-[10px] text-muted sm:block">
@@ -172,10 +176,11 @@ export default function DiagnosticPreview() {
             </div>
             <div className="mt-2 space-y-1.5 text-xs text-ink">
               {[
-                ["Acme Corp", "Enterprise", "32%", "$248K"],
-                ["Globex", "Enterprise", "28%", "$192K"],
-                ["Initech", "Mid-Market", "26%", "$164K"],
-                ["Soylent", "Mid-Market", "25%", "$141K"],
+                // Top of top_leak_deals from the same demo payload (rounded).
+                ["Lattice AI Corp.", "Enterprise", "40%", "$188K"],
+                ["Cobalt AI Inc.", "Enterprise", "27%", "$121K"],
+                ["Initech Systems Inc", "Enterprise", "36%", "$106K"],
+                ["Fathom Digital LLC", "Enterprise", "24%", "$106K"],
               ].map(([account, segment, discount, leak]) => (
                 <div
                   key={account}

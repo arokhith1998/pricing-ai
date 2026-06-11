@@ -12,6 +12,12 @@ import { isCompanyEmail } from "@/lib/auth";
 import { leadExists } from "@/lib/store";
 import { makeMagicToken, magicRedeemUrl } from "@/lib/magic";
 import { sendMagicLink } from "@/lib/notify";
+import { rateLimit } from "@/lib/ratelimit";
+
+// Pin the origin the emailed link points at. Building it from req.url would
+// let a Host-header-spoofed request mail out a link to an attacker-controlled
+// domain carrying a valid token.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pricekeel.com";
 
 // Whitelist of routes we will redirect to after redeem. Mirrors proxy.ts.
 const ALLOWED_NEXT = new Set([
@@ -22,6 +28,10 @@ const ALLOWED_NEXT = new Set([
 ]);
 
 export async function POST(req: Request) {
+  // Tighter than the lead form: each request can trigger an email send.
+  const limited = rateLimit(req, "magic-link", { max: 3, windowMs: 5 * 60_000 });
+  if (limited) return limited;
+
   let body: { email?: unknown; next?: unknown };
   try {
     body = (await req.json()) as typeof body;
@@ -57,8 +67,7 @@ export async function POST(req: Request) {
     const found = await leadExists(email);
     if (found) {
       const token = await makeMagicToken(email);
-      const origin = new URL(req.url).origin;
-      const link = magicRedeemUrl(origin, token, next);
+      const link = magicRedeemUrl(SITE_URL, token, next);
       await sendMagicLink(email, link);
       console.log("[magic-link] sent to", email);
     } else {

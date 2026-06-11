@@ -30,6 +30,13 @@ create table if not exists access_codes (
   created_at  timestamptz not null default now()
 );
 
+-- RLS: enabled with NO policies. The app talks to these tables exclusively
+-- through the service-role key (which bypasses RLS), so enabling RLS costs
+-- nothing and blocks the anon key entirely (with RLS off, the default anon
+-- grants would expose both tables). Applied to prod 2026-06-11.
+alter table leads enable row level security;
+alter table access_codes enable row level security;
+
 -- Issue a code (generate a random URL-safe token outside SQL, then):
 --   insert into access_codes (code, issued_to, expires_at)
 --   values ('PASTE-RANDOM-TOKEN', 'Acme Inc', now() + interval '30 days');

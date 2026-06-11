@@ -154,14 +154,14 @@ export default function Landing() {
                     tool.status === "csv" ? "text-teal" : "text-amber"
                   }`}
                 >
-                  {tool.status === "csv" ? "via CSV today" : "Phase 3 connector"}
+                  {tool.status === "csv" ? "via CSV today" : "Connector planned"}
                 </div>
               </div>
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-muted">
             A CSV export covers every CRM and billing system today; native
-            connectors land with the Phase 3 margin layer.
+            connectors are on the roadmap with the margin layer.
           </p>
         </section>
       </Reveal>
@@ -172,17 +172,16 @@ export default function Landing() {
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span className="rounded-full border border-teal/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal">
-                Final phase · coming soon
+                On the roadmap
               </span>
               <h2 className="mt-2 text-xl font-bold text-fg">Margin Enhancement</h2>
               <p className="mt-1 max-w-2xl text-sm text-muted">
-                Next, Pricekeel connects to your contracts and CRM to find margin
-                across the whole book: special pricing agreements, fixed
-                discounts, renewal uplift left on the table, and price-floor
-                breaches. From a retrospective diagnostic to a live margin engine.
+                The planned next layer: connect contracts and CRM to surface
+                margin across the whole book, including special pricing
+                agreements, fixed discounts, renewal uplift left on the table,
+                and price-floor breaches. Design partners shape the priority.
               </p>
             </div>
-            <span className="shrink-0 text-3xl">📈</span>
           </div>
         </section>
       </Reveal>

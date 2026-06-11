@@ -22,7 +22,6 @@ const AVATAR = "/founder.jpg";
 
 const CHIPS: string[] = [
   "Simon Business School",
-  "$626M margin-recovery",
   "Pricing + AI",
 ];
 

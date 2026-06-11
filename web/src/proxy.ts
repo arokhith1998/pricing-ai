@@ -2,13 +2,19 @@
 //   public:      /, /sample (teaser), /login, /api/*, static
 //   needs lead:  /diagnostic, /guidance  (full sample results)
 //   needs code:  /upload                  (their own data)
+//
+// Cookie checks here are signature-only (no DB round-trip per request).
+// Revocation of an access code is enforced by gate.ts on the API routes,
+// which re-check the code embedded in the cookie against access_codes.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   ACCESS_COOKIE,
   LEAD_COOKIE,
-  LEAD_COOKIE_MAX_AGE_SECONDS,
-  accessToken,
+  leadCookieOptions,
+  makeLeadCookieValue,
+  verifyAccessCookieValue,
+  verifyLeadCookieValue,
 } from "@/lib/auth";
 
 export const config = {
@@ -20,8 +26,8 @@ export async function proxy(request: NextRequest) {
 
   // Their own data: requires a valid access code.
   if (pathname.startsWith("/upload")) {
-    const token = request.cookies.get(ACCESS_COOKIE)?.value;
-    if (token && token === (await accessToken())) return NextResponse.next();
+    const value = request.cookies.get(ACCESS_COOKIE)?.value;
+    if ((await verifyAccessCookieValue(value)).ok) return NextResponse.next();
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
@@ -34,16 +40,11 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/guidance") ||
     pathname.startsWith("/competitor-watch")
   ) {
-    if (request.cookies.get(LEAD_COOKIE)?.value) {
+    const value = request.cookies.get(LEAD_COOKIE)?.value;
+    if (await verifyLeadCookieValue(value)) {
       // Rolling refresh. An engaged visitor never expires.
       const res = NextResponse.next();
-      res.cookies.set(LEAD_COOKIE, "1", {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: LEAD_COOKIE_MAX_AGE_SECONDS,
-      });
+      res.cookies.set(LEAD_COOKIE, await makeLeadCookieValue(), leadCookieOptions());
       return res;
     }
     const url = request.nextUrl.clone();
