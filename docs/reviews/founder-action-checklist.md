@@ -14,6 +14,19 @@ money, counsel, or a signature. Ordered by urgency.
 - One commercial structure decided and applied everywhere (vault decision note 2026-06-11;
   veto window open until the first readout call).
 
+## Hardening pass (external Codex review, 2026-06-11) — shipped + verified live
+
+All four launch blockers plus the medium/low findings are closed on `main` (PR #41,
+178 tests). Verified in production: `persisted:true` on a real exception, tenant
+isolation (one customer cannot read another's decision log), perimeter still 401s
+unauthenticated, SSRF refuses the AWS metadata IP (422, no fetch).
+
+**One new operational rule:** the API now FAILS CLOSED in production. If
+`PRICEKEEL_API_KEY` is ever unset on Render, every non-health route returns 503 (this
+is deliberate: a misconfigured API is no longer silently public). The key is currently
+set, so nothing breaks; just never delete it without setting a replacement. `/health`
+and `/` stay exempt so Render's probe is unaffected.
+
 ## Late additions (found while deploying, already handled, awareness only)
 
 - **Commit email rule**: now that the repo is private, Vercel Hobby blocks any deployment
