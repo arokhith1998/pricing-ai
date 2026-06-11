@@ -150,8 +150,13 @@ REQUIRED_FIELDS: list[str] = [f.name for f in FIELDS if f.required]
 ALL_COLUMNS: list[str] = [f.name for f in FIELDS]
 
 # Discount bands used for win-rate-by-band analysis. Half-open bins on
-# discount_pct = 1 - booked_acv/list_acv, expressed as fractions [0,1].
+# discount_pct = 1 - booked_acv/list_acv. The first band is NEGATIVE: deals
+# booked above list (expansion / CPI indexation / scarcity pricing) are a
+# pricing-power signal, the opposite of leakage. It is kept as its own band so
+# band_for never mislabels it into "0-5%", and metrics excludes it from the
+# reference-discount search (it is not a discount policy level).
 DISCOUNT_BANDS: list[tuple[float, float, str]] = [
+    (-1.01, 0.00, "above list"),
     (0.00, 0.05, "0-5%"),
     (0.05, 0.10, "5-10%"),
     (0.10, 0.15, "10-15%"),

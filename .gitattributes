@@ -11,3 +11,5 @@ data/synthetic/format-fixtures/*.xlsx binary
 # delimiters, CRLF — all deliberate. Keep them byte-exact.
 data/synthetic/adversarial-fixtures/*.csv -text
 data/synthetic/adversarial-fixtures/*.xlsx binary
+# Round-3 judgment fixtures: € symbols, ambiguous dates, formula-injection text.
+data/synthetic/round3-fixtures/*.csv -text

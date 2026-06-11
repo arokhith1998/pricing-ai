@@ -57,6 +57,9 @@ class LoadReport:
     exact_duplicates_dropped: int = 0
     conflicting_ids: list[str] = field(default_factory=list)
     excluded_open: dict[str, int] = field(default_factory=dict)  # stage -> count
+    above_list_deals: int = 0         # booked > list: a pricing-power signal
+    currencies: list[str] = field(default_factory=list)  # symbols seen in money
+    blank_booked: int = 0             # rows with no parseable booked value
     notes: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -79,6 +82,22 @@ class LoadReport:
             )
         if self.blank_rows_dropped:
             out.append(f"  dropped {self.blank_rows_dropped} blank / summary rows")
+        if self.above_list_deals:
+            out.append(
+                f"  {self.above_list_deals} deal(s) closed ABOVE list "
+                "(booked > list) — a pricing-power signal, not leakage"
+            )
+        if len(self.currencies) > 1:
+            out.append(
+                f"  WARNING: mixed currency symbols in money columns "
+                f"({', '.join(self.currencies)}) — totals may combine currencies; "
+                "verify the source uses one currency"
+            )
+        if self.blank_booked:
+            out.append(
+                f"  {self.blank_booked} deal(s) with a blank / unparseable booked "
+                "value (excluded from dollar totals)"
+            )
         out.extend(f"  {n}" for n in self.notes)
         return "\n".join(out)
 
@@ -353,6 +372,41 @@ def parse_dates(s: pd.Series) -> pd.Series:
                           format="mixed")
 
 
+def _ambiguous_date_note(df: pd.DataFrame) -> str | None:
+    """Disclose when a slash/dot date column's day/month order can't be inferred
+    (every day <= 12), so the month-first assumption is visible, not silent."""
+    if "close_date" not in df.columns:
+        return None
+    saw = first_gt12 = second_gt12 = False
+    for v in df["close_date"].astype(str):
+        m = _DATE_RE.match(v)
+        if not m:
+            continue
+        saw = True
+        if int(m.group(1)) > 12:
+            first_gt12 = True
+        if int(m.group(2)) > 12:
+            second_gt12 = True
+    if saw and not first_gt12 and not second_gt12:
+        return ("close_date day/month order is ambiguous (every day <= 12); "
+                "assumed MM/DD/YYYY (month-first) — confirm if your export is "
+                "day-first")
+    return None
+
+
+def _scan_currencies(df: pd.DataFrame) -> list[str]:
+    """Currency symbols present across the money columns. More than one means a
+    naive symbol-strip would sum different currencies into one total."""
+    found: set[str] = set()
+    for col in ("booked_acv", "list_acv"):
+        if col in df.columns:
+            s = df[col].astype(str)
+            for sym in ("$", "€", "£", "¥"):
+                if s.str.contains(re.escape(sym)).any():
+                    found.add(sym)
+    return sorted(found)
+
+
 def _coerce_types(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     for col in _NUMERIC + _NUMERIC_NONMONEY:
@@ -418,10 +472,17 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     """Add the derived fields the metrics layer consumes."""
     df = df.copy()
     list_acv = df["list_acv"].replace(0, np.nan)
+    # Cap realization at 1.5 (booked up to 1.5x list) as a data-sanity bound,
+    # not at 1.0 — deals booked ABOVE list (expansion, CPI indexation, scarcity)
+    # are legitimate pricing-power signals, the opposite of leakage.
     df["price_realization"] = (df["booked_acv"] / list_acv).clip(upper=1.5)
     # round to 6dp so band assignment is deterministic at boundaries
-    # (e.g. 1 - 0.8 == 0.19999999999999996 in float would mis-band a clean 20%)
-    df["discount_pct"] = (1.0 - df["price_realization"]).clip(lower=0.0, upper=1.0).round(6)
+    # (e.g. 1 - 0.8 == 0.19999999999999996 in float would mis-band a clean 20%).
+    # NOTE: no lower clamp — discount_pct may be negative (above-list deals); the
+    # realization cap above is the sanity bound. Clamping here erased them.
+    df["discount_pct"] = (1.0 - df["price_realization"]).clip(upper=1.0).round(6)
+    # discount_amount is "discount given", so it floors at 0 (an above-list deal
+    # gave no discount; its premium is not negative leakage).
     df["discount_amount"] = (df["list_acv"] - df["booked_acv"]).clip(lower=0.0)
     df["is_won"] = df["outcome"].astype(str) == Outcome.WON.value
     df["discount_band"] = df["discount_pct"].fillna(0.0).map(band_for)
@@ -469,13 +530,22 @@ def ingest_verbose(
 
     validate(df)                       # required columns present
     df = _dedupe(df, report)           # exact re-export dupes + id conflicts
+    # Disclose assumptions BEFORE coercion strips the evidence (currency symbols,
+    # date order). These are surfaced in the report, not silently resolved.
+    report.currencies = _scan_currencies(df)
+    date_note = _ambiguous_date_note(df)
+    if date_note:
+        report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
+    if "booked_acv" in df.columns:
+        report.blank_booked = int(df["booked_acv"].isna().sum())
     df = _exclude_open(df, report)     # non-closed pipeline rows
     _require_enough(df)                # ≥1 row, ≥ MIN_CLOSED_DEALS closed
 
     df = resolve_identity(df)
     df = enrich(df, policy_threshold=policy_threshold)
     report.rows_kept = len(df)
+    report.above_list_deals = int((df["discount_pct"] < 0).sum())
     return df, report
 
 
