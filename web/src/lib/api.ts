@@ -251,6 +251,57 @@ export type Recommendation = {
   curve: CurvePoint[];
 };
 
+// --- Governance loop (exceptions + digest) ---------------------------------
+// Contract fixed 2026-06-11; the FastAPI side implements it in parallel.
+// Discount/floor/realization figures are fractions (0.18 = 18%), matching
+// every other pct field in this file. EV deltas and excess are dollars.
+
+export type ExceptionVerdict = {
+  requested_pct: number;
+  recommended_pct: number;
+  floor_pct: number;
+  below_floor: boolean;
+  ev_delta_vs_recommended: number;
+  win_prob_at_requested: number;
+  win_prob_at_recommended: number;
+  rationale: string;
+};
+
+export type ExceptionInput = {
+  deal_id: string;
+  requested_discount_pct: number;
+  justification: string;
+  requested_by: string;
+};
+
+// POST /exceptions response: the verdict plus the log entry's identity.
+export type ExceptionResult = {
+  id: string;
+  verdict: ExceptionVerdict;
+  created_at: string;
+};
+
+// GET /exceptions items: the original request fields plus verdict + created_at.
+export type ExceptionRecord = ExceptionInput & {
+  verdict: ExceptionVerdict;
+  created_at: string;
+};
+
+export type Digest = {
+  customer: string;
+  generated_at: string;
+  window_days: number;
+  headline: string;
+  lines: string[];
+  stats: {
+    exceptions_total: number;
+    exceptions_below_floor: number;
+    copilot_decisions: number;
+    realization_pct: number;
+    excess_vs_segment_reference: number;
+  };
+};
+
 // Hung backends should fail the page fast (and let /sample fall back to the
 // bundled snapshot) instead of stalling SSR until the platform kills it.
 const API_TIMEOUT_MS = 8_000;
@@ -324,6 +375,26 @@ export async function getRecommendation(
   if (!res.ok) throw new Error(`API responded ${res.status}`);
   return res.json();
 }
+
+// Price an exception request (or log an approval at the recommended discount)
+// and get the verdict back. The backend logs the entry either way; the verdict
+// says whether the request sits below the policy floor and what it costs.
+export async function postException(
+  input: ExceptionInput,
+): Promise<ExceptionResult> {
+  const res = await apiFetch("/exceptions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  return res.json();
+}
+
+export const getExceptions = (limit = 50) =>
+  getJSON<{ items: ExceptionRecord[] }>(`/exceptions?limit=${limit}`);
+
+export const getDigest = () => getJSON<Digest>("/digest");
 
 export async function getSummary(
   policy = 0.15,

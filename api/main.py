@@ -27,6 +27,7 @@ from pydantic import BaseModel
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
 from pricing import copilot as copilot_mod
 from pricing import docs as docs_mod
+from pricing import governance as governance_mod
 from pricing import matching as matching_mod
 from pricing import rag as rag_mod
 from pricing.diagnostic import run
@@ -79,6 +80,10 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
     "/diagnostic": (30, 60.0),
     "/map-headers": (30, 60.0),
     "/docs/upload": (30, 60.0),
+    # Guidance-tier endpoint: CPU-bound model sweep plus a decision-log write.
+    # (POST only — the middleware never limits GET, so reads stay unmetered,
+    # same as /recommend.)
+    "/exceptions": (30, 60.0),
 }
 # (rule, client_ip) -> deque of request timestamps inside the window.
 _RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
@@ -645,8 +650,9 @@ def copilot_canonical(req: CanonicalReq) -> dict:
     )
     # Auto-log every surfaced set so the decision log always reflects what
     # the user actually saw (accept / reject can come later via /copilot/log).
+    # Persisted via the governance store (Supabase when configured).
     if req.session_id:
-        copilot_mod.log_decision(
+        governance_mod.log_copilot_decision(
             req.session_id, req.qid,
             surfaced=[o.id for o in ans.opportunities],
         )
@@ -663,19 +669,110 @@ class DecisionLogReq(BaseModel):
 
 @app.post("/copilot/log")
 def copilot_log(req: DecisionLogReq) -> dict:
-    d = copilot_mod.log_decision(
+    """Log a copilot decision. Same response contract as before; storage now
+    goes through pricing/governance.py (Supabase when configured, memory
+    fallback) instead of a process-lifetime dict."""
+    d = governance_mod.log_copilot_decision(
         req.session_id, req.qid,
         accepted=req.accepted, rejected=req.rejected, note=req.note,
     )
-    return {"logged": True, "decision": d.to_dict()}
+    return {"logged": True, "decision": d}
 
 
 @app.get("/copilot/decisions")
 def copilot_decisions(session_id: str) -> dict:
     return {
         "session_id": session_id,
-        "decisions": [d.to_dict() for d in copilot_mod.decisions_for(session_id)],
+        "decisions": governance_mod.copilot_decisions(session_id),
     }
+
+
+# --- Governance loop: discount exceptions + weekly digest --------------------
+# The subscription use case: a deal-desk rep requests a below-floor discount,
+# Pricekeel returns the priced verdict (same EV-curve math as /recommend, no
+# LLM) and logs the decision; /digest re-surfaces the week's activity. Every
+# number is deterministic; storage via pricing/governance.py (Supabase when
+# configured, in-memory fallback).
+
+
+class ExceptionReq(BaseModel):
+    deal_id: str
+    requested_discount_pct: float
+    justification: str = ""
+    requested_by: str = ""
+
+
+@app.post("/exceptions")
+def create_exception(req: ExceptionReq) -> dict:
+    """Score a discount-exception request against the deal's own EV curve,
+    log it, and return the verdict."""
+    if not (0.0 <= req.requested_discount_pct
+            <= governance_mod.EXCEPTION_MAX_DISCOUNT):
+        raise HTTPException(
+            status_code=422,
+            detail=(f"requested_discount_pct must be between 0 and "
+                    f"{governance_mod.EXCEPTION_MAX_DISCOUNT:.0%} "
+                    f"(the modeled discount range)."),
+        )
+    df, tm = _engine()
+    matches = df.index[df["opportunity_id"] == req.deal_id]
+    if len(matches) == 0:
+        raise HTTPException(status_code=404, detail="Unknown deal_id")
+    idx = matches[0]
+
+    verdict = governance_mod.exception_verdict(
+        tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
+        req.requested_discount_pct,
+    )
+    row = governance_mod.STORE.insert(
+        kind="exception",
+        deal_id=req.deal_id,
+        payload={
+            "deal_id": req.deal_id,
+            "requested_discount_pct": req.requested_discount_pct,
+            "justification": req.justification,
+            "requested_by": req.requested_by,
+            "verdict": verdict,
+        },
+        decision="below_floor" if verdict["below_floor"] else "within_floor",
+        justification=req.justification,
+        requested_by=req.requested_by,
+    )
+    return {"id": str(row["id"]), "verdict": verdict,
+            "created_at": str(row["created_at"])}
+
+
+@app.get("/exceptions")
+def list_exceptions(limit: int = 50) -> dict:
+    """Recent exception requests, newest first, with their logged verdicts."""
+    rows = governance_mod.STORE.list(kind="exception",
+                                     limit=max(1, min(int(limit), 200)))
+    items = []
+    for r in rows:
+        p = r.get("payload") or {}
+        items.append({
+            "id": str(r.get("id", "")),
+            "deal_id": str(p.get("deal_id", r.get("deal_id", ""))),
+            "requested_discount_pct": p.get("requested_discount_pct"),
+            "justification": str(p.get("justification", "")),
+            "requested_by": str(p.get("requested_by", "")),
+            "verdict": p.get("verdict") or {},
+            "created_at": str(r.get("created_at", "")),
+        })
+    return {"items": items}
+
+
+@app.get("/digest")
+def digest() -> dict:
+    """Weekly governance digest: decision-log activity over the last 7 days
+    plus the loaded book's diagnostic aggregates. Deterministic, no LLM."""
+    analysis = None
+    try:
+        if DEMO_CSV.exists():
+            analysis = run(str(DEMO_CSV), policy_threshold=0.15)
+    except Exception:  # noqa: BLE001 — digest must degrade, not 500
+        logger.warning("digest: book diagnostics unavailable", exc_info=True)
+    return governance_mod.build_digest(analysis=analysis, window_days=7)
 
 
 # --- Product Matching v1: your pricing page vs your named competitors ------
