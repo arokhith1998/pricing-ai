@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { LEGAL_ENTITY, LEGAL_JURISDICTION, GOVERNING_LAW, LEGAL_VENUE } from "@/lib/legal";
+import {
+  LEGAL_ENTITY,
+  LEGAL_JURISDICTION,
+  GOVERNING_LAW,
+  LEGAL_VENUE,
+  ENTITY_FILLED,
+} from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Terms of Use · Pricekeel" };
 
@@ -10,7 +16,14 @@ export const metadata: Metadata = { title: "Terms of Use · Pricekeel" };
 // Have a lawyer review before relying on it. The effective date is a placeholder.
 
 const EFFECTIVE = "30 May 2026";
-const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "[legal@pricekeel.com]";
+const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
+
+// Until incorporation completes, name Pricekeel plainly instead of rendering
+// "[legal entity], [jurisdiction]" placeholders to the public. Once the env
+// vars in @/lib/legal are filled, the registered entity renders instead.
+const ENTITY_DESCRIPTION = ENTITY_FILLED
+  ? `${LEGAL_ENTITY}, a ${LEGAL_JURISDICTION} company`
+  : "Pricekeel (US entity formation in progress; these Terms will be updated with the registered entity name and jurisdiction)";
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -26,10 +39,10 @@ export default function TermsPage() {
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-bold text-fg">Terms of Use</h1>
       <p className="mt-2 text-sm text-muted">
-        Effective {EFFECTIVE} ·{" "}
-        <span className="inline-block rounded border border-coral/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-coral">
-          DRAFT, counsel review pending
-        </span>
+        Last updated {EFFECTIVE}. Under legal review. Questions:{" "}
+        <a className="text-teal underline" href="mailto:adhithya@pricekeel.com">
+          adhithya@pricekeel.com
+        </a>
       </p>
 
       <p className="mt-6 text-sm leading-relaxed text-muted">
@@ -37,9 +50,8 @@ export default function TermsPage() {
         use of the Pricekeel website at{" "}
         <span className="text-fg">pricekeel.com</span> and the diagnostic,
         guidance, copilot, and competitor-watch features made available there
-        (collectively, the &ldquo;Service&rdquo;). Pricekeel is operated by{" "}
-        <span className="text-fg">{LEGAL_ENTITY}</span>, a{" "}
-        <span className="text-fg">{LEGAL_JURISDICTION}</span> company
+        (collectively, the &ldquo;Service&rdquo;). The Service is operated by{" "}
+        <span className="text-fg">{ENTITY_DESCRIPTION}</span>{" "}
         (&ldquo;Pricekeel&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By
         using the Service, you agree to these Terms. If you do not agree, do
         not use the Service.

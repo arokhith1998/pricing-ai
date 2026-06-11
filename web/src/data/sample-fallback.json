@@ -1,0 +1,746 @@
+{
+ "load_report": {
+  "source": "deals.csv",
+  "encoding": "utf-8-sig",
+  "sheet": "",
+  "rows_read": 2000,
+  "rows_kept": 2000,
+  "blank_rows_dropped": 0,
+  "exact_duplicates_dropped": 0,
+  "conflicting_ids": [],
+  "excluded_open": {},
+  "above_list_deals": 0,
+  "currencies": [],
+  "blank_booked": 0,
+  "field_sources": {
+   "opportunity_id": "opportunity_id (synonyms, high)",
+   "account_id": "account_id (synonyms, high)",
+   "account_name": "account_name (synonyms, high)",
+   "outcome": "outcome (synonyms, high)",
+   "created_date": "created_date (synonyms, high)",
+   "close_date": "close_date (synonyms, high)",
+   "segment": "segment (synonyms, high)",
+   "region": "region (synonyms, high)",
+   "industry": "industry (synonyms, high)",
+   "business_unit": "business_unit (synonyms, high)",
+   "product_line": "product_line (synonyms, high)",
+   "product_family": "product_family (synonyms, high)",
+   "product_tier": "product_tier (synonyms, high)",
+   "sku": "sku (synonyms, high)",
+   "value_metric": "value_metric (synonyms, high)",
+   "list_acv": "list_acv (synonyms, high)",
+   "booked_acv": "booked_acv (synonyms, high)",
+   "platform_fee_acv": "platform_fee_acv (synonyms, high)",
+   "usage_acv": "usage_acv (synonyms, high)",
+   "term_months": "term_months (synonyms, high)",
+   "quantity": "quantity (synonyms, high)",
+   "rep_id": "rep_id (synonyms, high)",
+   "approved_by": "approved_by (synonyms, high)",
+   "competitor_present": "competitor_present (synonyms, high)",
+   "lost_reason": "lost_reason (synonyms, high)"
+  },
+  "unmapped_columns": [],
+  "notes": [],
+  "summary": "Read 2000 closed deals from deals.csv."
+ },
+ "overview": {
+  "opportunities": 2000,
+  "won": 1215,
+  "lost": 785,
+  "win_rate": 0.6075,
+  "resolved_accounts": 300,
+  "booked_acv_won": 67051471.19,
+  "list_acv_won": 82331313.53999999,
+  "price_realization_won": 0.8144103173748539,
+  "avg_discount_won": 0.13798811687242796
+ },
+ "leakage": {
+  "policy_threshold": 0.15,
+  "gross_discount_won": 15279842.350000001,
+  "off_policy_leakage_won": 4137333.5015807706,
+  "reference_threshold": 0.05,
+  "reference_band": "5-10%",
+  "excess_vs_reference_won": 11216200.713909019,
+  "deals_above_reference": 1088,
+  "excess_pct_of_booked": 0.1672774737801994,
+  "segment_references": [
+   {
+    "segment": "Enterprise",
+    "deals": 342,
+    "bands_populated": 4,
+    "reference_threshold": 0.1,
+    "reference_band": "10-15%",
+    "basis": "own win point"
+   },
+   {
+    "segment": "MidMarket",
+    "deals": 772,
+    "bands_populated": 6,
+    "reference_threshold": 0.05,
+    "reference_band": "5-10%",
+    "basis": "own win point"
+   },
+   {
+    "segment": "SMB",
+    "deals": 886,
+    "bands_populated": 5,
+    "reference_threshold": 0.05,
+    "reference_band": "5-10%",
+    "basis": "own win point"
+   }
+  ],
+  "excess_vs_segment_reference_won": 8946770.475597959,
+  "deals_above_segment_reference": 1087,
+  "excess_segment_pct_of_booked": 0.13343138214292116
+ },
+ "reference_discount": {
+  "reference_threshold": 0.05,
+  "reference_band": "5-10%",
+  "peak_win_rate": 0.6760925449871465,
+  "peak_band": "5-10%",
+  "peak_win_rate_ci": [
+   0.6375321336760925,
+   0.712082262210797
+  ],
+  "band_win_rate_ci": {
+   "0-5%": [
+    0.5358649789029536,
+    0.4850210970464135,
+    0.590928270042194
+   ],
+   "5-10%": [
+    0.6760925449871465,
+    0.6375321336760925,
+    0.712082262210797
+   ],
+   "10-15%": [
+    0.6645299145299145,
+    0.6303418803418803,
+    0.6988247863247862
+   ],
+   "15-20%": [
+    0.6158940397350994,
+    0.5761589403973509,
+    0.6534216335540839
+   ],
+   "20-25%": [
+    0.579136690647482,
+    0.5287769784172662,
+    0.6330935251798561
+   ],
+   "25%+": [
+    0.4228571428571429,
+    0.36,
+    0.4857142857142857
+   ]
+  }
+ },
+ "quarter_end": {
+  "qe_deals": 301,
+  "qe_avg_discount": 0.17120422923588038,
+  "rest_avg_discount": 0.12704933150984682,
+  "lift": 0.044154897726033565,
+  "attributable_discount_won": 2032797.1632650457
+ },
+ "governance": {
+  "off_policy_won": 514,
+  "off_policy_unapproved_won": 123,
+  "unapproved_discount_dollars": 2711633.7399999998
+ },
+ "win_rate_by_band": [
+  {
+   "discount_band": "0-5%",
+   "deals": 237.0,
+   "won": 127.0,
+   "avg_discount": 0.0236924979,
+   "win_rate": 0.5358649789
+  },
+  {
+   "discount_band": "5-10%",
+   "deals": 389.0,
+   "won": 263.0,
+   "avg_discount": 0.0786507249,
+   "win_rate": 0.676092545
+  },
+  {
+   "discount_band": "10-15%",
+   "deals": 468.0,
+   "won": 311.0,
+   "avg_discount": 0.1247146175,
+   "win_rate": 0.6645299145
+  },
+  {
+   "discount_band": "15-20%",
+   "deals": 453.0,
+   "won": 279.0,
+   "avg_discount": 0.1735267064,
+   "win_rate": 0.6158940397
+  },
+  {
+   "discount_band": "20-25%",
+   "deals": 278.0,
+   "won": 161.0,
+   "avg_discount": 0.2227390647,
+   "win_rate": 0.5791366906
+  },
+  {
+   "discount_band": "25%+",
+   "deals": 175.0,
+   "won": 74.0,
+   "avg_discount": 0.2869063257,
+   "win_rate": 0.4228571429
+  }
+ ],
+ "realization_by_segment": [
+  {
+   "segment": "Enterprise",
+   "deals": 180,
+   "list_acv": 45453574.32,
+   "booked_acv": 35375592.46,
+   "avg_discount": 0.2222784222,
+   "price_realization": 0.778279662
+  },
+  {
+   "segment": "MidMarket",
+   "deals": 472,
+   "list_acv": 29482893.830000002,
+   "booked_acv": 25028406.29,
+   "avg_discount": 0.1521286737,
+   "price_realization": 0.8489128114
+  },
+  {
+   "segment": "SMB",
+   "deals": 563,
+   "list_acv": 7394845.39,
+   "booked_acv": 6647472.44,
+   "avg_discount": 0.0991842131,
+   "price_realization": 0.8989332555
+  }
+ ],
+ "top_leak_deals": [
+  {
+   "opportunity_id": "OPP-00280",
+   "resolved_account_name": "Lattice AI Corp.",
+   "segment": "Enterprise",
+   "business_unit": "Cloud",
+   "product_line": "Storage",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-03",
+   "list_acv": 537232.52,
+   "booked_acv": 322427.09,
+   "discount_pct": 0.399837,
+   "competitor_present": true,
+   "is_quarter_end": true,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 161082.18709924
+  },
+  {
+   "opportunity_id": "OPP-01361",
+   "resolved_account_name": "Cobalt AI Inc.",
+   "segment": "Enterprise",
+   "business_unit": "Data",
+   "product_line": "Streaming",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-08",
+   "list_acv": 549274.55,
+   "booked_acv": 400960.76,
+   "discount_pct": 0.270018,
+   "competitor_present": false,
+   "is_quarter_end": true,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 93386.5604419
+  },
+  {
+   "opportunity_id": "OPP-01332",
+   "resolved_account_name": "Initech Systems Inc",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-05",
+   "list_acv": 338293.28,
+   "booked_acv": 214946.56,
+   "discount_pct": 0.364615,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": true,
+   "excess_discount_dollars": 89517.4762872
+  },
+  {
+   "opportunity_id": "OPP-01513",
+   "resolved_account_name": "Tessera Systems Corp.",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Observability",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-03",
+   "list_acv": 328057.56,
+   "booked_acv": 205851.12,
+   "discount_pct": 0.372515,
+   "competitor_present": true,
+   "is_quarter_end": true,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 89400.6059634
+  },
+  {
+   "opportunity_id": "OPP-00811",
+   "resolved_account_name": "Nimbus Systems, Inc.",
+   "segment": "Enterprise",
+   "business_unit": "Data",
+   "product_line": "Streaming",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-07",
+   "list_acv": 308244.95,
+   "booked_acv": 194246.97,
+   "discount_pct": 0.369829,
+   "competitor_present": true,
+   "is_quarter_end": true,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 83173.42661355
+  },
+  {
+   "opportunity_id": "OPP-00471",
+   "resolved_account_name": "Fathom Networks Co.",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Observability",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-01",
+   "list_acv": 409184.14,
+   "booked_acv": 287392.6,
+   "discount_pct": 0.297645,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 80873.1993503
+  },
+  {
+   "opportunity_id": "OPP-01277",
+   "resolved_account_name": "Initech Data Inc.",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Observability",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-05",
+   "list_acv": 327708.83,
+   "booked_acv": 215061.01,
+   "discount_pct": 0.343744,
+   "competitor_present": true,
+   "is_quarter_end": true,
+   "off_policy_unapproved": true,
+   "excess_discount_dollars": 79877.06105952
+  },
+  {
+   "opportunity_id": "OPP-00754",
+   "resolved_account_name": "Fathom Digital LLC",
+   "segment": "Enterprise",
+   "business_unit": "Cloud",
+   "product_line": "Compute",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-07",
+   "list_acv": 561276.95,
+   "booked_acv": 427351.31,
+   "discount_pct": 0.238609,
+   "competitor_present": false,
+   "is_quarter_end": false,
+   "off_policy_unapproved": true,
+   "excess_discount_dollars": 77798.03676255
+  },
+  {
+   "opportunity_id": "OPP-01044",
+   "resolved_account_name": "Monarch AI",
+   "segment": "Enterprise",
+   "business_unit": "Cloud",
+   "product_line": "Storage",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-06",
+   "list_acv": 438594.24,
+   "booked_acv": 318448.76,
+   "discount_pct": 0.273933,
+   "competitor_present": false,
+   "is_quarter_end": true,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 76286.01194592
+  },
+  {
+   "opportunity_id": "OPP-00049",
+   "resolved_account_name": "Fathom Labs LLC",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-01",
+   "list_acv": 361400.9,
+   "booked_acv": 253685.9,
+   "discount_pct": 0.298049,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 71575.0868441
+  },
+  {
+   "opportunity_id": "OPP-01060",
+   "resolved_account_name": "VERTEX DIGITAL INC",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-03",
+   "list_acv": 521592.62,
+   "booked_acv": 399344.06,
+   "discount_pct": 0.234376,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 70089.52990512
+  },
+  {
+   "opportunity_id": "OPP-00980",
+   "resolved_account_name": "Halcyon Data Corp.",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-00",
+   "list_acv": 364200.96,
+   "booked_acv": 260587.42,
+   "discount_pct": 0.284496,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 67193.62031616
+  },
+  {
+   "opportunity_id": "OPP-00964",
+   "resolved_account_name": "Meridian Digital Inc.",
+   "segment": "Enterprise",
+   "business_unit": "Data",
+   "product_line": "Warehouse",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-04",
+   "list_acv": 419693.41,
+   "booked_acv": 310653.63,
+   "discount_pct": 0.259808,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 67070.36446528
+  },
+  {
+   "opportunity_id": "OPP-01893",
+   "resolved_account_name": "Lattice Labs Inc.",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-05",
+   "list_acv": 329606.47,
+   "booked_acv": 230285.33,
+   "discount_pct": 0.301332,
+   "competitor_present": true,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 66360.32981804
+  },
+  {
+   "opportunity_id": "OPP-01812",
+   "resolved_account_name": "Catalyst Data",
+   "segment": "Enterprise",
+   "business_unit": "Platform",
+   "product_line": "Identity",
+   "product_family": "",
+   "sku": "",
+   "rep_id": "REP-01",
+   "list_acv": 541220.9,
+   "booked_acv": 421388.28,
+   "discount_pct": 0.221412,
+   "competitor_present": false,
+   "is_quarter_end": false,
+   "off_policy_unapproved": false,
+   "excess_discount_dollars": 65710.7119108
+  }
+ ],
+ "hierarchy_slices": {
+  "business_unit": [
+   {
+    "business_unit": "Platform",
+    "deals": 409,
+    "list_acv": 30727048.25,
+    "booked_acv": 24809493.18,
+    "avg_discount": 0.1438732689,
+    "price_realization": 0.8074154399
+   },
+   {
+    "business_unit": "Cloud",
+    "deals": 402,
+    "list_acv": 26009344.68,
+    "booked_acv": 21199730.12,
+    "avg_discount": 0.1365931617,
+    "price_realization": 0.8150812864
+   },
+   {
+    "business_unit": "Data",
+    "deals": 404,
+    "list_acv": 25594920.61,
+    "booked_acv": 21042247.89,
+    "avg_discount": 0.1334181782,
+    "price_realization": 0.8221259292
+   }
+  ],
+  "product_line": [
+   {
+    "product_line": "Identity",
+    "deals": 196,
+    "list_acv": 15670827.84,
+    "booked_acv": 12596605.7,
+    "avg_discount": 0.1419609388,
+    "price_realization": 0.8038251603
+   },
+   {
+    "product_line": "Observability",
+    "deals": 213,
+    "list_acv": 15056220.41,
+    "booked_acv": 12212887.48,
+    "avg_discount": 0.1456329718,
+    "price_realization": 0.8111522778
+   },
+   {
+    "product_line": "Warehouse",
+    "deals": 206,
+    "list_acv": 14008962.82,
+    "booked_acv": 11512206.64,
+    "avg_discount": 0.1370547621,
+    "price_realization": 0.8217743732
+   },
+   {
+    "product_line": "Compute",
+    "deals": 207,
+    "list_acv": 13548100.39,
+    "booked_acv": 11073118.81,
+    "avg_discount": 0.1402992222,
+    "price_realization": 0.8173189223
+   },
+   {
+    "product_line": "Storage",
+    "deals": 195,
+    "list_acv": 12461244.29,
+    "booked_acv": 10126611.31,
+    "avg_discount": 0.1326590359,
+    "price_realization": 0.8126484863
+   },
+   {
+    "product_line": "Streaming",
+    "deals": 198,
+    "list_acv": 11585957.790000001,
+    "booked_acv": 9530041.25,
+    "avg_discount": 0.1296346616,
+    "price_realization": 0.8225510072
+   }
+  ]
+ },
+ "packaging_signals": [
+  {
+   "dimension": "segment",
+   "value": "Enterprise",
+   "price_realization": 0.7782796620338481,
+   "median_realization": 0.8489128114192309,
+   "gap_pp": 7.063314938538278,
+   "deals": 180,
+   "booked_acv": 35375592.46
+  }
+ ],
+ "trade_or_give": {
+  "deals": 75,
+  "dollars": 1601399.04,
+  "median_term_months": 12.0,
+  "off_policy_total": 514
+ },
+ "trade_or_give_deals": [
+  {
+   "opportunity_id": "OPP-00754",
+   "resolved_account_name": "Fathom Digital LLC",
+   "segment": "Enterprise",
+   "list_acv": 561276.95,
+   "booked_acv": 427351.31,
+   "discount_pct": 0.238609,
+   "discount_amount": 133925.64,
+   "term_months": 12.0
+  },
+  {
+   "opportunity_id": "OPP-01332",
+   "resolved_account_name": "Initech Systems Inc",
+   "segment": "Enterprise",
+   "list_acv": 338293.28,
+   "booked_acv": 214946.56,
+   "discount_pct": 0.364615,
+   "discount_amount": 123346.72,
+   "term_months": 12.0
+  },
+  {
+   "opportunity_id": "OPP-01277",
+   "resolved_account_name": "Initech Data Inc.",
+   "segment": "Enterprise",
+   "list_acv": 327708.83,
+   "booked_acv": 215061.01,
+   "discount_pct": 0.343744,
+   "discount_amount": 112647.82,
+   "term_months": 12.0
+  },
+  {
+   "opportunity_id": "OPP-01444",
+   "resolved_account_name": "Meridian Software Inc",
+   "segment": "Enterprise",
+   "list_acv": 427347.12,
+   "booked_acv": 336770.59,
+   "discount_pct": 0.211951,
+   "discount_amount": 90576.53,
+   "term_months": 12.0
+  },
+  {
+   "opportunity_id": "OPP-01709",
+   "resolved_account_name": "Umbra Data Inc",
+   "segment": "Enterprise",
+   "list_acv": 294118.05,
+   "booked_acv": 227422.05,
+   "discount_pct": 0.226766,
+   "discount_amount": 66696.0,
+   "term_months": 12.0
+  },
+  {
+   "opportunity_id": "OPP-00786",
+   "resolved_account_name": "NIMBUS LABS INC.",
+   "segment": "Enterprise",
+   "list_acv": 185969.82,
+   "booked_acv": 121069.88,
+   "discount_pct": 0.348981,
+   "discount_amount": 64899.94,
+   "term_months": 12.0
+  }
+ ],
+ "quarter_end_deals": [
+  {
+   "opportunity_id": "OPP-00280",
+   "resolved_account_name": "Lattice AI Corp.",
+   "segment": "Enterprise",
+   "list_acv": 537232.52,
+   "booked_acv": 322427.09,
+   "discount_pct": 0.399837,
+   "discount_amount": 214805.43
+  },
+  {
+   "opportunity_id": "OPP-01361",
+   "resolved_account_name": "Cobalt AI Inc.",
+   "segment": "Enterprise",
+   "list_acv": 549274.55,
+   "booked_acv": 400960.76,
+   "discount_pct": 0.270018,
+   "discount_amount": 148313.79
+  },
+  {
+   "opportunity_id": "OPP-01513",
+   "resolved_account_name": "Tessera Systems Corp.",
+   "segment": "Enterprise",
+   "list_acv": 328057.56,
+   "booked_acv": 205851.12,
+   "discount_pct": 0.372515,
+   "discount_amount": 122206.44
+  },
+  {
+   "opportunity_id": "OPP-01044",
+   "resolved_account_name": "Monarch AI",
+   "segment": "Enterprise",
+   "list_acv": 438594.24,
+   "booked_acv": 318448.76,
+   "discount_pct": 0.273933,
+   "discount_amount": 120145.48
+  },
+  {
+   "opportunity_id": "OPP-00811",
+   "resolved_account_name": "Nimbus Systems, Inc.",
+   "segment": "Enterprise",
+   "list_acv": 308244.95,
+   "booked_acv": 194246.97,
+   "discount_pct": 0.369829,
+   "discount_amount": 113997.98
+  },
+  {
+   "opportunity_id": "OPP-01277",
+   "resolved_account_name": "Initech Data Inc.",
+   "segment": "Enterprise",
+   "list_acv": 327708.83,
+   "booked_acv": 215061.01,
+   "discount_pct": 0.343744,
+   "discount_amount": 112647.82
+  }
+ ],
+ "packaging_signal_deals": [
+  {
+   "opportunity_id": "OPP-00280",
+   "resolved_account_name": "Lattice AI Corp.",
+   "segment": "Enterprise",
+   "list_acv": 537232.52,
+   "booked_acv": 322427.09,
+   "discount_pct": 0.399837,
+   "discount_amount": 214805.43
+  },
+  {
+   "opportunity_id": "OPP-01361",
+   "resolved_account_name": "Cobalt AI Inc.",
+   "segment": "Enterprise",
+   "list_acv": 549274.55,
+   "booked_acv": 400960.76,
+   "discount_pct": 0.270018,
+   "discount_amount": 148313.79
+  },
+  {
+   "opportunity_id": "OPP-00754",
+   "resolved_account_name": "Fathom Digital LLC",
+   "segment": "Enterprise",
+   "list_acv": 561276.95,
+   "booked_acv": 427351.31,
+   "discount_pct": 0.238609,
+   "discount_amount": 133925.64
+  },
+  {
+   "opportunity_id": "OPP-01332",
+   "resolved_account_name": "Initech Systems Inc",
+   "segment": "Enterprise",
+   "list_acv": 338293.28,
+   "booked_acv": 214946.56,
+   "discount_pct": 0.364615,
+   "discount_amount": 123346.72
+  },
+  {
+   "opportunity_id": "OPP-01060",
+   "resolved_account_name": "VERTEX DIGITAL INC",
+   "segment": "Enterprise",
+   "list_acv": 521592.62,
+   "booked_acv": 399344.06,
+   "discount_pct": 0.234376,
+   "discount_amount": 122248.56
+  },
+  {
+   "opportunity_id": "OPP-01513",
+   "resolved_account_name": "Tessera Systems Corp.",
+   "segment": "Enterprise",
+   "list_acv": 328057.56,
+   "booked_acv": 205851.12,
+   "discount_pct": 0.372515,
+   "discount_amount": 122206.44
+  }
+ ]
+}

@@ -7,7 +7,7 @@
 // Token is HMAC-signed by /api/lead/magic-link with a 24-hour expiry.
 
 import { NextResponse } from "next/server";
-import { LEAD_COOKIE, leadCookieOptions } from "@/lib/auth";
+import { LEAD_COOKIE, leadCookieOptions, makeLeadCookieValue } from "@/lib/auth";
 import { verifyMagicToken } from "@/lib/magic";
 
 const ALLOWED_NEXT = new Set([
@@ -33,6 +33,6 @@ export async function GET(req: Request) {
   // actually rides on the redirect response. The cookies() helper from
   // next/headers does not attach to native Response.redirect().
   const res = NextResponse.redirect(new URL(next, url.origin), 302);
-  res.cookies.set(LEAD_COOKIE, "1", leadCookieOptions());
+  res.cookies.set(LEAD_COOKIE, await makeLeadCookieValue(), leadCookieOptions());
   return res;
 }

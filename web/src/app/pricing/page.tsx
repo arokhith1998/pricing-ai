@@ -4,10 +4,6 @@ import Reveal from "@/components/Reveal";
 export const dynamic = "force-static";
 export const metadata: Metadata = { title: "Pricing · Pricekeel" };
 
-// Optional: lead-form / outreach contact email is wired via this env var
-// (same one the access-code page uses for the NDA mailto).
-const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
-
 type Tier = {
   name: string;
   audience: string;
@@ -92,11 +88,7 @@ function TierCard({ tier }: { tier: Tier }) {
         <p className="mt-4 text-xs italic text-muted">{tier.footer}</p>
       ) : null}
       <a
-        href={
-          CONTACT
-            ? `mailto:${CONTACT}?subject=Pricekeel%20${encodeURIComponent(tier.name)}`
-            : "/upload"
-        }
+        href="/contact"
         className={`mt-6 block w-full rounded-lg px-4 py-3 text-center font-medium transition ${
           tier.highlight
             ? "bg-teal text-bg hover:scale-[1.01]"
@@ -378,8 +370,8 @@ export default function PricingPage() {
                 zero-retention provider terms. Full details on{" "}
                 <a href="/privacy" className="text-teal underline">
                   our privacy page
-                </a>{" "}
-                (final review by counsel pending).
+                </a>
+                .
               </p>
             </div>
           </div>
@@ -397,10 +389,11 @@ export default function PricingPage() {
             </li>
             <li>
               <span className="font-medium text-fg">Pricekeel Operate</span>{" "}
-              today is a managed monthly cadence (CSV intake plus founder-led
-              readout) priced at $5K per month with a six-month term. Once live
-              integration ships, it moves to the standard SaaS contract with
-              ACV scaling on deal volume and policy docs indexed.
+              today is a managed monthly cadence (CSV intake plus a founder-led
+              readout). Engagement structure and pricing are scoped on the
+              first call; engagements typically start in the low five figures.
+              Once live integration ships, it moves to the standard SaaS
+              contract with ACV scaling on deal volume and policy docs indexed.
             </li>
             <li>
               <span className="font-medium text-fg">Margin Enhancement</span> is

@@ -3,8 +3,11 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// Optional: set NEXT_PUBLIC_CONTACT_EMAIL to surface a "request access" mailto.
-const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
+// Request-access contact. NEXT_PUBLIC_CONTACT_EMAIL can override, but the
+// founder address is hardcoded as the default so a cold visitor always has
+// a way forward even when the env var is unset.
+const CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL || "adhithya@pricekeel.com";
 
 function KeelMark() {
   return (
@@ -81,17 +84,20 @@ export default function LoginPage() {
         <LoginForm />
       </Suspense>
       <p className="mt-6 max-w-sm text-center text-xs text-slate">
-        Don&apos;t have a code? {CONTACT_EMAIL ? (
-          <a
-            className="font-medium text-fg underline"
-            href={`mailto:${CONTACT_EMAIL}?subject=Pricekeel%20access%20request`}
-          >
-            Request access
-          </a>
-        ) : (
-          "Ask your Pricekeel contact"
-        )}
+        Don&apos;t have a code?{" "}
+        <a
+          className="font-medium text-fg underline"
+          href={`mailto:${CONTACT_EMAIL}?subject=Pricekeel%20access%20request`}
+        >
+          Email {CONTACT_EMAIL}
+        </a>
         . We will sign an NDA before you share any data.
+      </p>
+      <p className="mt-2 max-w-sm text-center text-xs text-slate">
+        No code yet?{" "}
+        <a className="font-medium text-teal underline" href="/contact">
+          Tell me about your book and I will send you one.
+        </a>
       </p>
     </main>
   );

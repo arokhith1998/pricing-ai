@@ -149,7 +149,7 @@ export default async function DiagnosticPage() {
         </p>
       </Reveal>
 
-      <Reveal delay={0.04}>
+      <Reveal inView>
         <PageGuide
           eyebrow="Reading this report"
           title="Find your win point first; the rest is its consequence."
@@ -163,7 +163,7 @@ export default async function DiagnosticPage() {
         />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <Card
           title="Win rate vs discount"
           subtitle={`Win rate climbs with discount, then flattens. Past the win point (about ${pct(
@@ -175,11 +175,11 @@ export default async function DiagnosticPage() {
         </Card>
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <WinPointWhy rd={d.reference_discount} />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <Card
           title="Price realization by segment"
           subtitle="Share of list value you actually keep, by segment. The lowest bar is where price erodes most."
@@ -197,7 +197,7 @@ export default async function DiagnosticPage() {
         };
         const label = labels[dim] ?? dim;
         return (
-          <Reveal key={dim} delay={0.05}>
+          <Reveal key={dim} inView>
             <Card
               title={`Price realization by ${label}`}
               subtitle={`Same lens, sliced by ${label}. The lowest bar is where price erodes most.`}
@@ -209,7 +209,7 @@ export default async function DiagnosticPage() {
       })}
 
       {d.packaging_signals.length > 0 ? (
-        <Reveal delay={0.05}>
+        <Reveal inView>
           <Card
             title="Packaging signal"
             subtitle="Where realization is materially below the dimension's median. Concentrated discounting in one tier or unit often points to a packaging / fence problem, not just rep discipline."
@@ -251,7 +251,7 @@ export default async function DiagnosticPage() {
       ) : null}
 
       {d.trade_or_give.deals > 0 ? (
-        <Reveal delay={0.05}>
+        <Reveal inView>
           <Card
             title="Trade-for-discount gap"
             subtitle="Off-policy discounts should trade for something: a longer term, a sign-off, or a commitment. Deals where none of that happened are the cleanest 'gave it away' set."
@@ -313,7 +313,7 @@ export default async function DiagnosticPage() {
         </Reveal>
       ) : null}
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <Card
           title="Where the money goes"
           subtitle="Three views of the same discounting, from a plain description to the strongest claim worth acting on."
@@ -324,7 +324,7 @@ export default async function DiagnosticPage() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {qe ? (
-          <Reveal delay={0.05}>
+          <Reveal inView>
             <Card title="Quarter-end effect">
               <p className="text-ink">
                 Deals closing near quarter end are discounted{" "}
@@ -351,7 +351,7 @@ export default async function DiagnosticPage() {
           </Reveal>
         ) : null}
 
-        <Reveal delay={0.05}>
+        <Reveal inView>
           <Card title="Governance gaps">
             <p className="text-ink">
               <span className="font-semibold">
@@ -368,7 +368,7 @@ export default async function DiagnosticPage() {
         </Reveal>
       </div>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <Card
           title="Deals to look at first"
           subtitle="Ranked by discount given beyond the win point. A prioritized list to investigate, not a refund figure."
@@ -420,11 +420,11 @@ export default async function DiagnosticPage() {
           numbers above. Per the 2026-05-30 review: a CFO's third question
           is always "what decision do I make differently?". This block
           answers it explicitly. */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <NextActionsBlock analysis={d} />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <NextStep
           href="/guidance"
           title="Guidance"

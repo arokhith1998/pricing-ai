@@ -12,18 +12,26 @@
 "use client";
 
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+// Win-rate-by-band figures from the real demo payload (policy 0.15), rounded
+// to the nearest point. Win point = the 5-10% band (reference threshold 5%):
+// win rate peaks there at ~68% and then flattens and falls. Regenerate by
+// dumping pricing.diagnostic.run on data/synthetic/deals.csv if the sample
+// dataset changes.
 const BANDS = [
-  { label: "0%", win: 0.42 },
-  { label: "5%", win: 0.56 },
-  { label: "10%", win: 0.68 },
-  { label: "15%", win: 0.74, winPoint: true },
-  { label: "20%", win: 0.75 },
-  { label: "25%", win: 0.76 },
-  { label: "30%+", win: 0.76 },
+  { label: "0-5%", win: 0.54 },
+  { label: "5-10%", win: 0.68, winPoint: true },
+  { label: "10-15%", win: 0.66 },
+  { label: "15-20%", win: 0.62 },
+  { label: "20-25%", win: 0.58 },
+  { label: "25%+", win: 0.42 },
 ];
 
-function Bar({ band }: { band: (typeof BANDS)[number] }) {
+function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
+  const reduce = useReducedMotion();
   const heightPct = Math.round(band.win * 100);
   return (
     <div className="flex flex-1 flex-col items-center">
@@ -33,13 +41,18 @@ function Bar({ band }: { band: (typeof BANDS)[number] }) {
             win point
           </div>
         ) : null}
-        <div
+        {/* Bars climb from the baseline as the chart scrolls into view, so the
+            win-rate curve reads as a motion, not a static picture. */}
+        <motion.div
           className={`mx-auto w-full max-w-[28px] rounded-t-md ${
             band.winPoint
               ? "bg-coral/70 ring-2 ring-coral/40"
               : "bg-teal/60"
           }`}
-          style={{ height: `${heightPct}%` }}
+          initial={{ height: reduce ? `${heightPct}%` : 0 }}
+          whileInView={{ height: `${heightPct}%` }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: reduce ? 0 : 0.7, ease: EASE, delay: reduce ? 0 : index * 0.06 }}
           aria-label={`Win rate at ${band.label} discount: ${heightPct}%`}
         />
       </div>
@@ -62,7 +75,7 @@ function Kpi({
   return (
     <div
       className={`rounded-lg border p-3 ${
-        accent ? "border-teal/40 bg-surface" : "border-mist bg-surface-2"
+        accent ? "pk-upside-glow border-coral/30 bg-surface" : "border-mist bg-surface-2"
       }`}
     >
       <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
@@ -70,7 +83,7 @@ function Kpi({
       </div>
       <div
         className={`mt-0.5 text-xl font-bold tabular-nums ${
-          accent ? "text-teal" : "text-fg"
+          accent ? "text-coral" : "text-fg"
         }`}
       >
         {value}
@@ -100,7 +113,7 @@ export default function DiagnosticPreview() {
         </p>
       </div>
 
-      <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-mist bg-bg p-1 shadow-xl shadow-navy/20">
+      <div className="pk-card-3d mx-auto mt-6 max-w-4xl rounded-2xl border border-mist bg-bg p-1 shadow-xl shadow-navy/20">
         {/* faux browser chrome */}
         <div className="flex items-center gap-2 rounded-t-xl border-b border-mist bg-surface px-3 py-2">
           <span className="h-2.5 w-2.5 rounded-full bg-coral/60" />
@@ -141,8 +154,8 @@ export default function DiagnosticPreview() {
                   Win rate by discount band
                 </div>
                 <div className="text-sm font-semibold text-fg">
-                  Win point at the 15% band; bigger discounts don&rsquo;t buy
-                  more wins
+                  Win point at the 5 to 10% band; bigger discounts don&rsquo;t
+                  buy more wins
                 </div>
               </div>
               <div className="hidden text-[10px] text-muted sm:block">
@@ -150,8 +163,8 @@ export default function DiagnosticPreview() {
               </div>
             </div>
             <div className="flex items-end gap-1 pt-5">
-              {BANDS.map((b) => (
-                <Bar key={b.label} band={b} />
+              {BANDS.map((b, i) => (
+                <Bar key={b.label} band={b} index={i} />
               ))}
             </div>
           </div>
@@ -163,10 +176,11 @@ export default function DiagnosticPreview() {
             </div>
             <div className="mt-2 space-y-1.5 text-xs text-ink">
               {[
-                ["Acme Corp", "Enterprise", "32%", "$248K"],
-                ["Globex", "Enterprise", "28%", "$192K"],
-                ["Initech", "Mid-Market", "26%", "$164K"],
-                ["Soylent", "Mid-Market", "25%", "$141K"],
+                // Top of top_leak_deals from the same demo payload (rounded).
+                ["Lattice AI Corp.", "Enterprise", "40%", "$188K"],
+                ["Cobalt AI Inc.", "Enterprise", "27%", "$121K"],
+                ["Initech Systems Inc", "Enterprise", "36%", "$106K"],
+                ["Fathom Digital LLC", "Enterprise", "24%", "$106K"],
               ].map(([account, segment, discount, leak]) => (
                 <div
                   key={account}

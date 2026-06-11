@@ -15,11 +15,14 @@
 // All-Web-Crypto, so it works equally in Node and Edge runtimes (same pattern
 // auth.ts uses for the access cookie).
 
+import { pricekeelSecret } from "@/lib/auth";
+
 const MAGIC_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 
 function secret(): string {
-  // Same secret the access cookie uses. Set PRICEKEEL_SECRET in production.
-  return process.env.PRICEKEEL_SECRET ?? "pricekeel-dev-secret";
+  // Same secret the access cookie uses. Fail-fast on Vercel production when
+  // PRICEKEEL_SECRET is missing (see auth.ts).
+  return pricekeelSecret();
 }
 
 function toB64Url(bytes: Uint8Array): string {

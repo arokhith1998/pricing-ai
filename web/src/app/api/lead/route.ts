@@ -1,9 +1,18 @@
 import { cookies } from "next/headers";
-import { LEAD_COOKIE, isCompanyEmail, leadCookieOptions } from "@/lib/auth";
+import {
+  LEAD_COOKIE,
+  isCompanyEmail,
+  leadCookieOptions,
+  makeLeadCookieValue,
+} from "@/lib/auth";
 import { saveLead } from "@/lib/store";
+import { rateLimit } from "@/lib/ratelimit";
 
 // POST a lead -> store it -> set pk_lead, which unlocks the full sample.
 export async function POST(req: Request) {
+  const limited = rateLimit(req, "lead", { max: 5, windowMs: 60_000 });
+  if (limited) return limited;
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -12,6 +21,14 @@ export async function POST(req: Request) {
   }
 
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+  // Honeypot: real visitors never see or fill a "website" field. Bots that
+  // autofill every input do. Accept and silently drop so the bot cannot
+  // tell the submission went nowhere.
+  if (str(body.website)) {
+    return Response.json({ ok: true });
+  }
+
   const name = str(body.name);
   const company = str(body.company);
   const email = str(body.email);
@@ -57,6 +74,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Could not save right now. Try again." }, { status: 500 });
   }
 
-  (await cookies()).set(LEAD_COOKIE, "1", leadCookieOptions());
+  (await cookies()).set(LEAD_COOKIE, await makeLeadCookieValue(), leadCookieOptions());
   return Response.json({ ok: true });
 }

@@ -67,7 +67,7 @@ function MetricCard({
   return (
     <div
       className={`pk-card-3d rounded-xl border bg-surface p-5 shadow-sm ${
-        accent === "coral" ? "pk-upside-glow border-coral/30" : "border-mist"
+        accent === "coral" ? "pk-upside-static border-coral/30" : "border-mist"
       }`}
     >
       <div className="text-sm text-muted">{label}</div>

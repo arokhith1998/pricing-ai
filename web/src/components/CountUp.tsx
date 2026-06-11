@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { animate, useMotionValue } from "framer-motion";
+import { animate, useMotionValue, useReducedMotion } from "framer-motion";
 import { money, pct } from "@/lib/format";
 
 // Formatters resolved by key so the server can hand props (numbers + strings)
@@ -25,20 +25,30 @@ export default function CountUp({
   duration?: number;
 }) {
   const fmt = FORMATTERS[format];
+  const reduce = useReducedMotion();
   const m = useMotionValue(0);
-  const [v, setV] = useState(fmt(0));
+  // Under prefers-reduced-motion, render the final value immediately: no
+  // count-up animation at all.
+  const [v, setV] = useState(reduce ? fmt(to) : fmt(0));
   useEffect(() => {
+    if (reduce) {
+      setV(fmt(to));
+      return;
+    }
     const unsub = m.on("change", (latest) => setV(fmt(latest)));
     const ctrl = animate(m, to, { duration, ease: [0.22, 1, 0.36, 1] });
     return () => {
       ctrl.stop();
       unsub();
     };
-  }, [to, fmt, duration, m]);
-  // Final value to assistive tech via aria-label; animated text is decorative.
+  }, [to, fmt, duration, m, reduce]);
+  // Final value to assistive tech via a visually-hidden span; the animated
+  // text is decorative (aria-hidden). aria-label on a role-less span is
+  // prohibited by ARIA, so we expose the value as real (sr-only) text instead.
   return (
-    <span aria-label={fmt(to)}>
+    <span>
       <span aria-hidden="true">{v}</span>
+      <span className="sr-only">{fmt(to)}</span>
     </span>
   );
 }

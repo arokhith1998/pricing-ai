@@ -25,7 +25,17 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let _client: SupabaseClient | null = null;
 function client(): SupabaseClient | null {
-  if (!URL || !KEY) return null;
+  if (!URL || !KEY) {
+    // Fail-fast in production: without Supabase env, leads would silently
+    // land in lambda memory (lost on every cold start) while the visitor
+    // sees a success message. Local dev keeps the in-memory fallback.
+    if (process.env.VERCEL_ENV === "production") {
+      throw new Error(
+        "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set. Refusing the in-memory lead store in production. Set both in the Vercel environment.",
+      );
+    }
+    return null;
+  }
   if (!_client) _client = createClient(URL, KEY, { auth: { persistSession: false } });
   return _client;
 }
@@ -58,10 +68,13 @@ export async function leadExists(email: string): Promise<boolean> {
   if (!e) return false;
   const c = client();
   if (!c) return memLeads.some((l) => l.email.trim().toLowerCase() === e);
+  // Escape PostgREST/Postgres LIKE wildcards so an input like "%@corp.com"
+  // matches literally instead of acting as a pattern.
+  const pattern = e.replace(/[\\%_]/g, "\\$&");
   const { data, error } = await c
     .from("leads")
     .select("email")
-    .ilike("email", e)
+    .ilike("email", pattern)
     .limit(1);
   if (error) {
     console.error("[leadExists] supabase error:", error.message);

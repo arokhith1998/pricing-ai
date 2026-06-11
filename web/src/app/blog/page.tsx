@@ -6,7 +6,13 @@ import Reveal from "@/components/Reveal";
 
 // Re-evaluated per request so date-scheduled posts appear once their day arrives.
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Blog · Pricekeel" };
+// The root layout's title template appends "· Pricekeel".
+export const metadata: Metadata = {
+  title: "Blog",
+  description:
+    "Notes on pricing, discounting, and margin for usage-based B2B SaaS.",
+  alternates: { canonical: "/blog" },
+};
 
 export default function BlogIndex() {
   const posts = listPosts();

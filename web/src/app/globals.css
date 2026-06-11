@@ -140,6 +140,14 @@ body {
   animation: pkUpsideGlow 3.6s ease-in-out infinite;
 }
 
+/* Static counterpart for PRODUCT surfaces (/sample KPIs, upload results):
+   the same coral emphasis with no infinite pulse. Marketing surfaces keep
+   the animated .pk-upside-glow. */
+.pk-upside-static {
+  box-shadow: 0 0 0 1px rgba(255, 107, 84, 0.22),
+    0 0 36px -8px rgba(255, 107, 84, 0.3);
+}
+
 /* Respect the user's reduced-motion preference: kill drift, keep entrances
    but make them instant. */
 @media (prefers-reduced-motion: reduce) {
@@ -148,11 +156,29 @@ body {
   .pk-aurora-mid,
   .pk-aurora-near,
   .pk-upside-glow,
+  .pk-headline-accent,
   .pk-fade-in {
     animation: none !important;
   }
   .pk-card-3d:hover {
     transform: none !important;
+  }
+}
+
+/* Hero headline accent: a soft coral aura on the closing clause that breathes
+   slowly. Static (no pulse) under reduced motion via the override above. */
+.pk-headline-accent {
+  text-shadow: 0 0 28px rgba(255, 107, 84, 0.35);
+  animation: pkHeadlineGlow 4.5s ease-in-out infinite;
+}
+
+@keyframes pkHeadlineGlow {
+  0%,
+  100% {
+    text-shadow: 0 0 22px rgba(255, 107, 84, 0.28);
+  }
+  50% {
+    text-shadow: 0 0 40px rgba(255, 107, 84, 0.5);
   }
 }
 

@@ -70,20 +70,24 @@ export default function Nav({ leadUnlocked = false }: { leadUnlocked?: boolean }
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-10 border-b border-mist bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
-        <Link href="/" className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-3">
           <KeelMark />
           <div>
             <div className="text-xl font-extrabold tracking-tight leading-none">
               <span className="text-fg">Price</span>
               <span className="text-teal">keel</span>
             </div>
-            <div className="mt-0.5 text-xs text-slate">
+            {/* Tagline only from md up: it crowds the link row on phones. */}
+            <div className="mt-0.5 hidden text-xs text-slate md:block">
               Keep your pricing on an even keel.
             </div>
           </div>
         </Link>
-        <nav className="flex items-center gap-1 text-sm font-medium">
+        {/* Smaller text + tighter gaps below sm, and horizontal scroll as the
+            escape hatch, so the four links fit a 390px viewport without a
+            hamburger. */}
+        <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-xs font-medium sm:gap-1 sm:overflow-x-visible sm:text-sm">
           {LINKS.map((link) => {
             const active =
               link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -101,11 +105,24 @@ export default function Nav({ leadUnlocked = false }: { leadUnlocked?: boolean }
             // locked (active means the user is already on the page, which
             // means they had the cookie when proxy let them in).
             return (
-              <div key={link.href} className="group relative">
+              <div key={link.href} className="group relative shrink-0">
                 <Link
                   href={href}
                   aria-disabled={locked ? "true" : undefined}
-                  className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 transition ${
+                  // The tooltip is hover/focus-only, so locked links also
+                  // carry the hint as aria-label + title for touch and
+                  // assistive tech.
+                  aria-label={
+                    locked
+                      ? `${link.label} (locked). Fill the short unlock form on the Overview page to open it.`
+                      : undefined
+                  }
+                  title={
+                    locked
+                      ? `Locked. Fill the short unlock form on the Overview page to open the ${link.label.toLowerCase()} view.`
+                      : undefined
+                  }
+                  className={`relative flex items-center gap-1.5 rounded-lg px-2 py-2 transition sm:px-3 ${
                     !active && !locked ? "hover:bg-mist" : ""
                   } ${locked ? "cursor-pointer" : ""}`}
                 >
@@ -134,7 +151,7 @@ export default function Nav({ leadUnlocked = false }: { leadUnlocked?: boolean }
                 {locked ? (
                   <span
                     role="tooltip"
-                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-lg border border-mist bg-surface px-3 py-2 text-xs leading-snug text-fg opacity-0 shadow-lg transition group-hover:opacity-100"
+                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-lg border border-mist bg-surface px-3 py-2 text-xs leading-snug text-fg opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100"
                   >
                     <span className="font-semibold text-teal">Locked.</span>{" "}
                     Fill the short unlock form on the Overview page to open

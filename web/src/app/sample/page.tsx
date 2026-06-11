@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getDemo, type Diagnostic } from "@/lib/api";
+import { getDemoWithFallback, type Diagnostic } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 import { LEAD_COOKIE } from "@/lib/auth";
 import Summary from "@/components/Summary";
+import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
 import LeadForm from "@/components/LeadForm";
 import MagicLinkForm from "@/components/MagicLinkForm";
@@ -27,7 +28,7 @@ function MetricCard({
   return (
     <div
       className={`pk-fade-in pk-card-3d rounded-xl border bg-surface p-5 shadow-sm ${
-        accent === "coral" ? "pk-upside-glow border-coral/30" : "border-mist"
+        accent === "coral" ? "pk-upside-static border-coral/30" : "border-mist"
       }`}
     >
       <div className="text-sm text-slate">{label}</div>
@@ -177,44 +178,50 @@ function FullSample() {
         ]}
       />
 
-      <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
-        <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
-        <Suspense
-          fallback={
-            <p className="animate-pulse text-sm text-slate">Writing the summary&hellip;</p>
-          }
-        >
-          <Summary />
-        </Suspense>
-      </section>
+      <Reveal inView>
+        <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+          <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
+          <Suspense
+            fallback={
+              <p className="animate-pulse text-sm text-slate">Writing the summary&hellip;</p>
+            }
+          >
+            <Summary />
+          </Suspense>
+        </section>
+      </Reveal>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Link
-          href="/diagnostic"
-          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
-        >
-          <div className="text-lg font-semibold text-fg">Diagnostic →</div>
-          <p className="mt-1 text-sm text-slate">
-            Win rate vs discount, leakage lenses, quarter-end, governance, and the
-            deals to look at first.
-          </p>
-        </Link>
-        <Link
-          href="/guidance"
-          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
-        >
-          <div className="text-lg font-semibold text-fg">Guidance →</div>
-          <p className="mt-1 text-sm text-slate">
-            Pick a deal and see the discount that maximizes expected value, with a
-            plain-language why.
-          </p>
-        </Link>
-      </section>
+      <Reveal inView>
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Link
+            href="/diagnostic"
+            className="pk-card-3d rounded-xl border border-mist bg-surface p-5 shadow-sm hover:border-teal"
+          >
+            <div className="text-lg font-semibold text-fg">Diagnostic →</div>
+            <p className="mt-1 text-sm text-slate">
+              Win rate vs discount, leakage lenses, quarter-end, governance, and the
+              deals to look at first.
+            </p>
+          </Link>
+          <Link
+            href="/guidance"
+            className="pk-card-3d rounded-xl border border-mist bg-surface p-5 shadow-sm hover:border-teal"
+          >
+            <div className="text-lg font-semibold text-fg">Guidance →</div>
+            <p className="mt-1 text-sm text-slate">
+              Pick a deal and see the discount that maximizes expected value, with a
+              plain-language why.
+            </p>
+          </Link>
+        </section>
+      </Reveal>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-fg">How it works</h2>
-        <Flow />
-      </section>
+      <Reveal inView>
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-fg">How it works</h2>
+          <Flow />
+        </section>
+      </Reveal>
     </>
   );
 }
@@ -236,9 +243,13 @@ export default async function SamplePage({
   const validFlash =
     flash === "link_expired" || flash === "link_invalid" ? flash : undefined;
 
+  // Prefer the live API; fall back to the bundled snapshot of the same demo
+  // payload when the engine is unreachable, with an honest note below. The
+  // error page is the last resort only.
   let d: Diagnostic;
+  let cached = false;
   try {
-    d = await getDemo();
+    ({ data: d, cached } = await getDemoWithFallback());
   } catch {
     return <ApiError />;
   }
@@ -257,6 +268,12 @@ export default async function SamplePage({
         <p className="mt-1 text-slate">
           A worked example on a realistic synthetic book of 2,000 closed deals.
         </p>
+        {cached ? (
+          <p className="mt-2 inline-block rounded-md border border-mist bg-surface px-2 py-1 text-xs text-muted">
+            Cached sample: the live analysis engine is briefly unavailable, so
+            these figures come from a bundled snapshot of the same dataset.
+          </p>
+        ) : null}
       </div>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
