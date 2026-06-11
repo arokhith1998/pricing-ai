@@ -12,6 +12,9 @@
 "use client";
 
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 const BANDS = [
   { label: "0%", win: 0.42 },
@@ -23,7 +26,8 @@ const BANDS = [
   { label: "30%+", win: 0.76 },
 ];
 
-function Bar({ band }: { band: (typeof BANDS)[number] }) {
+function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
+  const reduce = useReducedMotion();
   const heightPct = Math.round(band.win * 100);
   return (
     <div className="flex flex-1 flex-col items-center">
@@ -33,13 +37,18 @@ function Bar({ band }: { band: (typeof BANDS)[number] }) {
             win point
           </div>
         ) : null}
-        <div
+        {/* Bars climb from the baseline as the chart scrolls into view, so the
+            win-rate curve reads as a motion, not a static picture. */}
+        <motion.div
           className={`mx-auto w-full max-w-[28px] rounded-t-md ${
             band.winPoint
               ? "bg-coral/70 ring-2 ring-coral/40"
               : "bg-teal/60"
           }`}
-          style={{ height: `${heightPct}%` }}
+          initial={{ height: reduce ? `${heightPct}%` : 0 }}
+          whileInView={{ height: `${heightPct}%` }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: reduce ? 0 : 0.7, ease: EASE, delay: reduce ? 0 : index * 0.06 }}
           aria-label={`Win rate at ${band.label} discount: ${heightPct}%`}
         />
       </div>
@@ -62,7 +71,7 @@ function Kpi({
   return (
     <div
       className={`rounded-lg border p-3 ${
-        accent ? "border-teal/40 bg-surface" : "border-mist bg-surface-2"
+        accent ? "pk-upside-glow border-coral/30 bg-surface" : "border-mist bg-surface-2"
       }`}
     >
       <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
@@ -70,7 +79,7 @@ function Kpi({
       </div>
       <div
         className={`mt-0.5 text-xl font-bold tabular-nums ${
-          accent ? "text-teal" : "text-fg"
+          accent ? "text-coral" : "text-fg"
         }`}
       >
         {value}
@@ -100,7 +109,7 @@ export default function DiagnosticPreview() {
         </p>
       </div>
 
-      <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-mist bg-bg p-1 shadow-xl shadow-navy/20">
+      <div className="pk-card-3d mx-auto mt-6 max-w-4xl rounded-2xl border border-mist bg-bg p-1 shadow-xl shadow-navy/20">
         {/* faux browser chrome */}
         <div className="flex items-center gap-2 rounded-t-xl border-b border-mist bg-surface px-3 py-2">
           <span className="h-2.5 w-2.5 rounded-full bg-coral/60" />
@@ -150,8 +159,8 @@ export default function DiagnosticPreview() {
               </div>
             </div>
             <div className="flex items-end gap-1 pt-5">
-              {BANDS.map((b) => (
-                <Bar key={b.label} band={b} />
+              {BANDS.map((b, i) => (
+                <Bar key={b.label} band={b} index={i} />
               ))}
             </div>
           </div>

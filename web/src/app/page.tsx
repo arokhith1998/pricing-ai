@@ -1,5 +1,6 @@
 import Link from "next/link";
-import Reveal from "@/components/Reveal";
+import Reveal, { Stagger, StaggerItem } from "@/components/Reveal";
+import HeroHeadline from "@/components/HeroHeadline";
 import LeakageCalculator from "@/components/LeakageCalculator";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
@@ -12,7 +13,7 @@ export const dynamic = "force-static";
 
 function Capability({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+    <div className="pk-card-3d h-full rounded-xl border border-mist bg-surface p-5 shadow-sm">
       <h3 className="font-semibold text-fg">{title}</h3>
       <p className="mt-1 text-sm text-slate">{body}</p>
     </div>
@@ -25,9 +26,7 @@ export default function Landing() {
       {/* 1. Hero ------------------------------------------------------------ */}
       <Reveal>
         <section className="py-8 text-center">
-          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
-            Stop giving away price that wins you nothing.
-          </h1>
+          <HeroHeadline />
           {/* Audience chip — promoted from micro-eyebrow into a substantive
               subhead so the 'who is this for' answer is immediate. */}
           <div className="mt-4 flex justify-center">
@@ -61,14 +60,14 @@ export default function Landing() {
       </Reveal>
 
       {/* 2. Product preview (NEW) ------------------------------------------ */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-12">
           <DiagnosticPreview />
         </section>
       </Reveal>
 
       {/* 2b. Deliverable section (NEW per 2026-05-30 review) -------------- */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <DeliverableSection />
         </section>
@@ -79,7 +78,7 @@ export default function Landing() {
           sample numbers already appear in DiagnosticPreview above, so we cut
           the previously-here stats strip. Full shareable version at
           /calculator. */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <LeakageCalculator />
           <p className="mt-3 text-center text-sm text-muted">
@@ -91,39 +90,47 @@ export default function Landing() {
       </Reveal>
 
       {/* 4. What it does, 4 cards including Defend the decision. */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Capability
-              title="Find the leakage"
-              body="Price realization, win rate by discount band, and three views of discount leakage from a plain description to the strongest claim worth acting on."
-            />
-            <Capability
-              title="Find the win point"
-              body="The discount level where win rate stops improving. Everything given beyond it is a list to investigate, not a refund."
-            />
-            <Capability
-              title="Guide the next discount"
-              body="A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why."
-            />
-            <Capability
-              title="Defend the decision"
-              body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers."
-            />
-          </div>
+          <Stagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StaggerItem className="h-full">
+              <Capability
+                title="Find the leakage"
+                body="Price realization, win rate by discount band, and three views of discount leakage from a plain description to the strongest claim worth acting on."
+              />
+            </StaggerItem>
+            <StaggerItem className="h-full">
+              <Capability
+                title="Find the win point"
+                body="The discount level where win rate stops improving. Everything given beyond it is a list to investigate, not a refund."
+              />
+            </StaggerItem>
+            <StaggerItem className="h-full">
+              <Capability
+                title="Guide the next discount"
+                body="A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why."
+              />
+            </StaggerItem>
+            <StaggerItem className="h-full">
+              <Capability
+                title="Defend the decision"
+                body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers."
+              />
+            </StaggerItem>
+          </Stagger>
         </section>
       </Reveal>
 
       {/* 6. Methodology credibility (NEW) ---------------------------------- */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <MethodologyStrip />
         </section>
       </Reveal>
 
       {/* 7. Stack strip — unchanged --------------------------------------- */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <p className="text-center text-sm font-medium text-slate">
             Built for the stack you already run
@@ -139,7 +146,7 @@ export default function Landing() {
             ].map((tool) => (
               <div
                 key={tool.name}
-                className="flex flex-col items-center justify-center rounded-xl border border-mist bg-surface px-3 py-4 text-center"
+                className="pk-card-3d flex flex-col items-center justify-center rounded-xl border border-mist bg-surface px-3 py-4 text-center"
               >
                 <div className="text-sm font-semibold text-fg">{tool.name}</div>
                 <div
@@ -160,7 +167,7 @@ export default function Landing() {
       </Reveal>
 
       {/* 8. Margin Enhancement teaser — kept ------------------------------ */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -185,14 +192,14 @@ export default function Landing() {
           on LinkedIn" link. The design-partner offer + DM/Email CTAs that
           used to live here moved to /contact and /pricing, where a hard
           sales ask is appropriate. The landing should not lead with one. */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-14">
           <FounderStrip />
         </section>
       </Reveal>
 
       {/* 9. Trust strip. */}
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="mt-10">
           <TrustStrip />
         </section>

@@ -148,11 +148,29 @@ body {
   .pk-aurora-mid,
   .pk-aurora-near,
   .pk-upside-glow,
+  .pk-headline-accent,
   .pk-fade-in {
     animation: none !important;
   }
   .pk-card-3d:hover {
     transform: none !important;
+  }
+}
+
+/* Hero headline accent: a soft coral aura on the closing clause that breathes
+   slowly. Static (no pulse) under reduced motion via the override above. */
+.pk-headline-accent {
+  text-shadow: 0 0 28px rgba(255, 107, 84, 0.35);
+  animation: pkHeadlineGlow 4.5s ease-in-out infinite;
+}
+
+@keyframes pkHeadlineGlow {
+  0%,
+  100% {
+    text-shadow: 0 0 22px rgba(255, 107, 84, 0.28);
+  }
+  50% {
+    text-shadow: 0 0 40px rgba(255, 107, 84, 0.5);
   }
 }
 
