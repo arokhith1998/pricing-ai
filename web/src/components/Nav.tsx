@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { CTA, announcement } from "@content/landing";
 
 // Brand mark. Keeps the source-of-truth geometry inline so the nav stays
 // crisp at any zoom, while the same geometry also lives at /brand/logo-mark.svg
@@ -68,6 +69,51 @@ const LINKS: NavLink[] = [
 
 export default function Nav({ leadUnlocked = false }: { leadUnlocked?: boolean }) {
   const pathname = usePathname();
+
+  // Marketing pages get the announcement bar + a single-CTA marketing nav. The
+  // gated product views (below) keep their section navigation.
+  const isProduct = ["/diagnostic", "/guidance", "/competitor-watch", "/upload"]
+    .some((p) => pathname.startsWith(p));
+
+  if (!isProduct) {
+    return (
+      <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur">
+        <Link
+          href={CTA.href}
+          className="block bg-teal/10 px-6 py-2 text-center text-xs font-medium text-teal transition hover:bg-teal/15"
+        >
+          {announcement}
+        </Link>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <Link href="/" className="flex items-center gap-2.5">
+            <KeelMark />
+            <span className="text-lg font-extrabold tracking-tight leading-none">
+              <span className="text-fg">Price</span>
+              <span className="text-teal">keel</span>
+            </span>
+          </Link>
+          <nav className="flex items-center gap-1 text-sm font-medium">
+            <Link href="/#how-it-works" className="hidden rounded-lg px-3 py-2 text-muted transition hover:text-fg sm:block">
+              How it works
+            </Link>
+            <Link href="/sample" className="hidden rounded-lg px-3 py-2 text-muted transition hover:text-fg sm:block">
+              Sample report
+            </Link>
+            <Link href="/manifesto" className="hidden rounded-lg px-3 py-2 text-muted transition hover:text-fg sm:block">
+              Manifesto
+            </Link>
+            <Link
+              href={CTA.href}
+              className="ml-1 rounded-full bg-teal px-4 py-2 font-semibold text-bg transition hover:brightness-110"
+            >
+              {CTA.label}
+            </Link>
+          </nav>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-10 border-b border-mist bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">

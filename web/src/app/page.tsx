@@ -1,202 +1,194 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
-import LeakageCalculator from "@/components/LeakageCalculator";
+import HeroDemo from "@/components/HeroDemo";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
-import MethodologyStrip from "@/components/MethodologyStrip";
-import TrustStrip from "@/components/TrustStrip";
-import DeliverableSection from "@/components/DeliverableSection";
-import FounderStrip from "@/components/FounderStrip";
+import {
+  CTA, SLOTS, hero, useCases, midCta, proof, howItWorks, outcomes, trust, close,
+} from "@content/landing";
 
-// Static marketing landing. No API dependency, so it always loads fast.
+// One idea per viewport. One CTA, repeated verbatim. Outcome numbers, not
+// adjectives. Whitespace is the design (aqqrue.com flow benchmark, structure
+// only). Static marketing landing, no API dependency at request time.
 export const dynamic = "force-static";
 
-function Capability({ title, body }: { title: string; body: string }) {
+// The single call-to-action. Identical label + destination everywhere.
+function Cta({ size = "lg" }: { size?: "lg" | "md" }) {
   return (
-    <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
-      <h3 className="font-semibold text-fg">{title}</h3>
-      <p className="mt-1 text-sm text-slate">{body}</p>
-    </div>
+    <Link
+      href={CTA.href}
+      className={`inline-flex items-center justify-center rounded-full bg-teal font-semibold text-bg transition hover:brightness-110 ${
+        size === "lg" ? "px-7 py-3.5 text-base" : "px-5 py-2.5 text-sm"
+      }`}
+    >
+      {CTA.label}
+    </Link>
+  );
+}
+
+// One short scroll-triggered glyph per use-case card (teal stroke, the only
+// accent above the fold besides the CTA).
+function UseCaseGlyph({ kind }: { kind: number }) {
+  const common = {
+    width: 40, height: 40, viewBox: "0 0 40 40", fill: "none",
+    stroke: "currentColor", strokeWidth: 2,
+    strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
+    className: "text-teal",
+  };
+  if (kind === 0) // falling realization line
+    return <svg {...common}><path d="M4 10 L14 14 L22 26 L36 32" /><path d="M30 32 h6 v-6" /></svg>;
+  if (kind === 1) // saturating win curve
+    return <svg {...common}><path d="M4 32 C12 32 14 12 22 11 C30 10 32 10 36 10" /><path d="M4 32 h32" opacity="0.35" /></svg>;
+  if (kind === 2) // quarter-end spike bars
+    return <svg {...common}><path d="M6 30 v-6 M14 30 v-10 M22 30 v-7 M30 30 v-18" /><path d="M4 30 h30" opacity="0.35" /></svg>;
+  // ranked list
+  return <svg {...common}><path d="M8 12 h24 M8 20 h18 M8 28 h12" /></svg>;
+}
+
+function Section({
+  children, className = "", id,
+}: { children: React.ReactNode; className?: string; id?: string }) {
+  return (
+    <section id={id} className={`mx-auto max-w-5xl px-6 ${className}`}>{children}</section>
   );
 }
 
 export default function Landing() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      {/* 1. Hero ------------------------------------------------------------ */}
-      <Reveal>
-        <section className="py-8 text-center">
-          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
-            Stop giving away price that wins you nothing.
+    <main className="pb-12">
+      {/* 1. Hero — keep the headline; one-line subhead; product in motion ---- */}
+      <Section className="pt-16 pb-24 text-center sm:pt-24">
+        <Reveal>
+          <h1 className="mx-auto max-w-4xl text-balance font-extrabold leading-[1.05] tracking-tight text-fg text-[clamp(2.75rem,7vw,5.25rem)]">
+            {hero.headline}
           </h1>
-          {/* Audience chip — promoted from micro-eyebrow into a substantive
-              subhead so the 'who is this for' answer is immediate. */}
-          <div className="mt-4 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-surface px-3 py-1 text-xs font-semibold text-teal">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />
-              For VP Pricing teams at $10 to 100M ARR usage-based B2B SaaS
-            </span>
-          </div>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
-            Pricekeel reads your closed deals and shows where discounting buys
-            wins, where it just gives money away, and the discount that earns the
-            most on the next deal. No warehouse, no integration. One CSV.
+          <p className="mx-auto mt-6 max-w-[34rem] text-lg leading-relaxed text-muted">
+            {hero.subhead}
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/sample"
-              className="rounded-lg bg-navy px-5 py-3 font-medium text-white transition hover:bg-navy/90"
-            >
-              Try it on sample data
-            </Link>
-            {/* Demoted to text-link weight per the audit — the gated path
-                should not compete visually with the demo path. */}
-            <Link
-              href="/upload"
-              className="text-sm font-medium text-muted underline-offset-4 hover:text-teal hover:underline"
-            >
-              Or run it on your own CSV →
-            </Link>
+          <div className="mt-9 flex justify-center">
+            <Cta />
           </div>
-        </section>
-      </Reveal>
+        </Reveal>
+        <Reveal delay={0.08} className="mt-14">
+          <div className="mx-auto max-w-3xl">
+            <HeroDemo />
+          </div>
+        </Reveal>
+      </Section>
 
-      {/* 2. Product preview (NEW) ------------------------------------------ */}
-      <Reveal delay={0.05}>
-        <section className="mt-12">
+      {/* 2. Use-case cards (4) — capability + customer vocabulary ------------- */}
+      <Section className="py-20">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {useCases.map((u, i) => (
+            <Reveal key={u.name} delay={i * 0.06}>
+              <div className="h-full rounded-2xl border border-border bg-surface p-6">
+                <UseCaseGlyph kind={i} />
+                <h3 className="mt-4 text-lg font-semibold text-fg">{u.name}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted">{u.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
+
+      {/* 3. Mid-page CTA band ------------------------------------------------- */}
+      <Section className="py-16">
+        <Reveal>
+          <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-surface-2 px-6 py-12 text-center">
+            <p className="max-w-xl text-2xl font-semibold text-fg">{midCta}</p>
+            <Cta />
+          </div>
+        </Reveal>
+      </Section>
+
+      {/* 4. Proof — the live sample report, clearly labeled synthetic -------- */}
+      <Section className="py-20">
+        <Reveal className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-fg">{proof.title}</h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted">{proof.subtitle}</p>
+        </Reveal>
+        <Reveal delay={0.06} className="mt-10">
           <DiagnosticPreview />
-        </section>
-      </Reveal>
+        </Reveal>
+        <Reveal delay={0.1} className="mt-6 text-center">
+          <Link href="/sample" className="text-sm font-medium text-teal underline-offset-4 hover:underline">
+            Explore the full sample report →
+          </Link>
+        </Reveal>
+      </Section>
 
-      {/* 2b. Deliverable section (NEW per 2026-05-30 review) -------------- */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <DeliverableSection />
-        </section>
-      </Reveal>
+      {/* 5. How it works — 3 steps ------------------------------------------- */}
+      <Section id="how-it-works" className="scroll-mt-24 py-20">
+        <Reveal className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-fg">How it works</h2>
+        </Reveal>
+        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {howItWorks.map((s, i) => (
+            <Reveal key={s.step} delay={i * 0.06}>
+              <div className="h-full rounded-2xl border border-border bg-surface p-6">
+                <div className="font-mono text-sm text-teal">{s.step}</div>
+                <h3 className="mt-3 text-lg font-semibold text-fg">{s.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
 
-      {/* 3. Leakage calculator. Honest two-number split (gross discount +
-          above-policy slice), math shown, no invented recovery rate. The
-          sample numbers already appear in DiagnosticPreview above, so we cut
-          the previously-here stats strip. Full shareable version at
-          /calculator. */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <LeakageCalculator />
-          <p className="mt-3 text-center text-sm text-muted">
-            <Link href="/calculator" className="text-teal underline-offset-4 hover:underline">
-              Open the full calculator →
-            </Link>
-          </p>
-        </section>
-      </Reveal>
-
-      {/* 4. What it does, 4 cards including Defend the decision. */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Capability
-              title="Find the leakage"
-              body="Price realization, win rate by discount band, and three views of discount leakage from a plain description to the strongest claim worth acting on."
-            />
-            <Capability
-              title="Find the win point"
-              body="The discount level where win rate stops improving. Everything given beyond it is a list to investigate, not a refund."
-            />
-            <Capability
-              title="Guide the next discount"
-              body="A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why."
-            />
-            <Capability
-              title="Defend the decision"
-              body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers."
-            />
-          </div>
-        </section>
-      </Reveal>
-
-      {/* 6. Methodology credibility (NEW) ---------------------------------- */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <MethodologyStrip />
-        </section>
-      </Reveal>
-
-      {/* 7. Stack strip — unchanged --------------------------------------- */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <p className="text-center text-sm font-medium text-slate">
-            Built for the stack you already run
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {[
-              { name: "Salesforce", status: "csv" },
-              { name: "HubSpot", status: "csv" },
-              { name: "Stripe", status: "csv" },
-              { name: "Zuora", status: "csv" },
-              { name: "Snowflake", status: "phase3" },
-              { name: "Google Sheets", status: "csv" },
-            ].map((tool) => (
-              <div
-                key={tool.name}
-                className="flex flex-col items-center justify-center rounded-xl border border-mist bg-surface px-3 py-4 text-center"
-              >
-                <div className="text-sm font-semibold text-fg">{tool.name}</div>
-                <div
-                  className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${
-                    tool.status === "csv" ? "text-teal" : "text-amber"
-                  }`}
-                >
-                  {tool.status === "csv" ? "via CSV today" : "Phase 3 connector"}
+      {/* 6. Outcome numbers — one row, three, accent on the figures ---------- */}
+      <Section className="py-20">
+        <Reveal className="text-center">
+          <p className="text-sm uppercase tracking-wider text-muted">{outcomes.caption}</p>
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3">
+            {outcomes.stats.map((s) => (
+              <div key={s.value}>
+                <div className="text-4xl font-extrabold tabular-nums text-teal sm:text-5xl">
+                  {s.value}
                 </div>
+                <div className="mx-auto mt-2 max-w-[14rem] text-sm text-muted">{s.label}</div>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-center text-xs text-muted">
-            A CSV export covers every CRM and billing system today; native
-            connectors land with the Phase 3 margin layer.
+        </Reveal>
+      </Section>
+
+      {/* 7. Trust block — honest, no fake badges ----------------------------- */}
+      <Section className="py-20">
+        <Reveal className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-fg">What you can count on</h2>
+        </Reveal>
+        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {trust.map((t, i) => (
+            <Reveal key={t.title} delay={i * 0.05}>
+              <div className="h-full rounded-2xl border border-border bg-surface p-6">
+                <h3 className="text-base font-semibold text-fg">{t.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted">{t.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={0.1} className="mt-6 text-center text-sm text-muted">
+          Read the{" "}
+          <Link href="/privacy" className="text-teal underline-offset-4 hover:underline">Privacy Policy</Link>{" "}
+          and{" "}
+          <Link href="/terms" className="text-teal underline-offset-4 hover:underline">Terms of Use</Link>.
+        </Reveal>
+      </Section>
+
+      {/* 8. Identity + scarcity close ---------------------------------------- */}
+      <Section className="py-24 text-center">
+        <Reveal>
+          <h2 className="mx-auto max-w-2xl text-balance text-3xl font-bold tracking-tight text-fg sm:text-4xl">
+            {close.title}
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted">{close.body}</p>
+          <p className="mt-8 text-sm font-medium text-teal">
+            Founding cohort: {SLOTS} free diagnostic slots remaining.
           </p>
-        </section>
-      </Reveal>
-
-      {/* 8. Margin Enhancement teaser — kept ------------------------------ */}
-      <Reveal delay={0.05}>
-        <section className="mt-14 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="rounded-full border border-teal/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal">
-                Final phase · coming soon
-              </span>
-              <h2 className="mt-2 text-xl font-bold text-fg">Margin Enhancement</h2>
-              <p className="mt-1 max-w-2xl text-sm text-muted">
-                Next, Pricekeel connects to your contracts and CRM to find margin
-                across the whole book: special pricing agreements, fixed
-                discounts, renewal uplift left on the table, and price-floor
-                breaches. From a retrospective diagnostic to a live margin engine.
-              </p>
-            </div>
-            <span className="shrink-0 text-3xl">📈</span>
+          <div className="mt-6 flex justify-center">
+            <Cta />
           </div>
-        </section>
-      </Reveal>
-
-      {/* 8. Slim founder credibility strip. Single horizontal card with
-          photo, name, role, three credibility chips, and a quiet "Connect
-          on LinkedIn" link. The design-partner offer + DM/Email CTAs that
-          used to live here moved to /contact and /pricing, where a hard
-          sales ask is appropriate. The landing should not lead with one. */}
-      <Reveal delay={0.05}>
-        <section className="mt-14">
-          <FounderStrip />
-        </section>
-      </Reveal>
-
-      {/* 9. Trust strip. */}
-      <Reveal delay={0.05}>
-        <section className="mt-10">
-          <TrustStrip />
-        </section>
-      </Reveal>
+        </Reveal>
+      </Section>
     </main>
   );
 }
