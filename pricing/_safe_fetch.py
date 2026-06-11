@@ -96,6 +96,12 @@ def _resolve_or_raise(host: str) -> list[str]:
 # Pinned-IP adapter — defeats time-of-check / time-of-use DNS rebinding
 
 
+def _pin_netloc(ip: str, port: int | None) -> str:
+    """Build a netloc that targets `ip`, bracketing IPv6 literals."""
+    host = f"[{ip}]" if ":" in ip else ip
+    return f"{host}:{port}" if port else host
+
+
 class _PinnedHostAdapter(HTTPAdapter):
     """A requests adapter that connects to a fixed IP we already validated,
     setting the Host header to the original hostname so TLS / vhost routing
@@ -116,9 +122,7 @@ class _PinnedHostAdapter(HTTPAdapter):
         url = request.url
         parsed = urlparse(url)
         if parsed.hostname:
-            new_netloc = self._pinned_ip
-            if parsed.port:
-                new_netloc = f"{self._pinned_ip}:{parsed.port}"
+            new_netloc = _pin_netloc(self._pinned_ip, parsed.port)
             pinned_url = urlunparse(parsed._replace(netloc=new_netloc))
             request.url = pinned_url
             request.headers["Host"] = parsed.netloc
@@ -138,6 +142,29 @@ class SafeResponse:
     encoding: str | None
 
 
+def _pick_pinned_ip(addrs: Iterable[str]) -> str:
+    """Choose one validated address to pin the socket to.
+
+    `addrs` is the list `_resolver` already proved safe. We re-check here
+    (defense in depth) and FAIL CLOSED if nothing is pinnable, so we never
+    fall back to an unpinned, re-resolving request.
+    """
+    for a in addrs:
+        if not _is_unsafe_ip(a):
+            return a
+    raise UnsafeFetchError(
+        "no safe address available to pin the connection to (failing closed)"
+    )
+
+
+def _pinned_session(pinned_ip: str, scheme: str) -> requests.Session:
+    """A Session that routes the URL's scheme through `_PinnedHostAdapter`,
+    so the socket connects to `pinned_ip` while Host/SNI keep the hostname."""
+    session = requests.Session()
+    session.mount(f"{scheme}://", _PinnedHostAdapter(pinned_ip))
+    return session
+
+
 def safe_get(
     url: str,
     *,
@@ -147,8 +174,17 @@ def safe_get(
     user_agent: str = "PricekeelBot/1.0",
     extra_headers: dict[str, str] | None = None,
     _resolver=_resolve_or_raise,  # injectable for tests
+    _session_factory=_pinned_session,  # injectable for tests
 ) -> SafeResponse:
-    """SSRF-hardened GET. Raises UnsafeFetchError on any safety violation."""
+    """SSRF-hardened GET. Raises UnsafeFetchError on any safety violation.
+
+    Each hop is resolved-and-pinned: we validate the hostname's addresses,
+    pick one safe IP, and perform the request through a `requests.Session`
+    that pins the socket to that exact IP (Host/SNI stay the hostname). This
+    closes the DNS-rebinding window — the kernel never re-resolves the name
+    between our check and the connect. If a hop cannot be pinned we fail
+    closed; we never fall back to an unpinned `requests.get`.
+    """
     headers = {"User-Agent": user_agent, "Accept": "text/html,*/*;q=0.8"}
     if extra_headers:
         headers.update(extra_headers)
@@ -163,13 +199,18 @@ def safe_get(
         if not parsed.hostname:
             raise UnsafeFetchError(f"URL has no hostname: {current_url}")
 
-        # 1) Resolve + IP-range check before we touch the network.
-        _resolver(parsed.hostname)
+        # 1) Resolve + IP-range check before we touch the network. The
+        #    returned addresses were all proven safe; pin to one of them so
+        #    the socket cannot re-resolve to a rebind target.
+        addrs = _resolver(parsed.hostname)
+        pinned_ip = _pick_pinned_ip(addrs)
 
-        # 2) Make the request. We disable redirects so we can re-validate
-        #    each hop's destination ourselves.
+        # 2) Make the request through a Session pinned to the validated IP.
+        #    We disable redirects so we can re-validate (and re-pin) each hop's
+        #    destination ourselves.
+        session = _session_factory(pinned_ip, parsed.scheme)
         try:
-            resp = requests.get(
+            resp = session.get(
                 current_url,
                 headers=headers,
                 timeout=timeout,
@@ -177,11 +218,13 @@ def safe_get(
                 stream=True,  # so we can cap bytes
             )
         except requests.RequestException as exc:
+            session.close()
             raise UnsafeFetchError(f"network error fetching {current_url}: {exc}") from exc
 
         if resp.is_redirect or resp.is_permanent_redirect:
             loc = resp.headers.get("Location")
             resp.close()
+            session.close()
             if not loc:
                 raise UnsafeFetchError(f"redirect without Location at {current_url}")
             # Resolve relative redirects against the current URL.
@@ -202,15 +245,26 @@ def safe_get(
             if len(body) >= max_bytes:
                 body = body[:max_bytes]
                 break
+        status_code = resp.status_code
+        encoding = resp.encoding
         resp.close()
+        session.close()
         return SafeResponse(
-            status_code=resp.status_code,
+            status_code=status_code,
             url=current_url,
             content=bytes(body),
-            encoding=resp.encoding,
+            encoding=encoding,
         )
     # Should be unreachable.
     raise UnsafeFetchError(f"redirect loop ended without a final response: {url}")
 
 
-__all__ = ["safe_get", "UnsafeFetchError", "SafeResponse", "_is_unsafe_ip"]
+__all__ = [
+    "safe_get",
+    "UnsafeFetchError",
+    "SafeResponse",
+    "_is_unsafe_ip",
+    "_PinnedHostAdapter",
+    "_pinned_session",
+    "_pick_pinned_ip",
+]

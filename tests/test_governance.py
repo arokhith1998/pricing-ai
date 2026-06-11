@@ -39,6 +39,9 @@ def _clean(monkeypatch):
     for var in ("PRICEKEEL_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
                 "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"):
         monkeypatch.delenv(var, raising=False)
+    # Dev path: the no-key endpoint tests below run open (warn-and-allow);
+    # prod fail-closed is covered in test_api_perimeter.py.
+    monkeypatch.setenv("PRICEKEEL_ENV", "dev")
     governance.STORE.reset_memory()
     main._rate_state_reset()
     yield
@@ -120,6 +123,96 @@ def test_supabase_failure_degrades_to_memory(monkeypatch, caplog):
     assert "fell back to memory" in caplog.text
 
 
+def test_memory_insert_reports_not_persisted():
+    # Finding 5: a memory-fallback write must not claim durability.
+    row = governance.STORE.insert(kind="exception", deal_id="D-1")
+    assert row["persisted"] is False
+
+
+def test_supabase_success_reports_persisted(monkeypatch):
+    # Finding 5: a durable Supabase write reports persisted=True.
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sk-test")
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"id": "u-1", "created_at": "2026-06-11T00:00:00+00:00"}]
+
+    monkeypatch.setattr(governance.httpx, "post",
+                        lambda *a, **k: _Resp())
+    row = governance.STORE.insert(kind="exception", deal_id="D-1")
+    assert row["id"] == "u-1"
+    assert row["persisted"] is True
+
+
+# --- 1c. tenant scoping (Finding 3) ------------------------------------------
+
+def test_store_list_scoped_by_customer_ref():
+    governance.STORE.insert(kind="exception", deal_id="A-1", customer_ref="A")
+    governance.STORE.insert(kind="exception", deal_id="B-1", customer_ref="B")
+    a = governance.STORE.list(kind="exception", customer_ref="A")
+    b = governance.STORE.list(kind="exception", customer_ref="B")
+    assert [r["deal_id"] for r in a] == ["A-1"]
+    assert [r["deal_id"] for r in b] == ["B-1"]
+    # Default scope sees neither A nor B.
+    assert governance.STORE.list(kind="exception", customer_ref="default") == []
+
+
+def test_exceptions_isolated_across_customers_via_header(client, deal_id):
+    # Write as customer A; a read as customer B must not see it.
+    client.post("/exceptions",
+                json={"deal_id": deal_id, "requested_discount_pct": 25.0,
+                      "justification": "A's deal", "requested_by": "a@x.com"},
+                headers={"X-Pricekeel-Customer": "A"})
+    a_items = client.get("/exceptions",
+                         headers={"X-Pricekeel-Customer": "A"}).json()["items"]
+    b_items = client.get("/exceptions",
+                         headers={"X-Pricekeel-Customer": "B"}).json()["items"]
+    assert len(a_items) == 1
+    assert b_items == []
+    # No header => "default", also isolated from A.
+    assert client.get("/exceptions").json()["items"] == []
+
+
+def test_exceptions_response_includes_persisted_flag(client, deal_id):
+    # Memory mode (no Supabase env): persisted must be False, never claimed.
+    r = client.post("/exceptions",
+                    json={"deal_id": deal_id, "requested_discount_pct": 20.0,
+                          "justification": "x", "requested_by": "rep@x.com"})
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body) == {"id", "verdict", "created_at", "persisted"}
+    assert body["persisted"] is False
+
+
+def test_copilot_decisions_isolated_across_customers(client):
+    client.post("/copilot/log",
+                json={"session_id": "s1", "qid": "losing_deals", "note": "A"},
+                headers={"X-Pricekeel-Customer": "A"})
+    a = client.get("/copilot/decisions", params={"session_id": "s1"},
+                   headers={"X-Pricekeel-Customer": "A"}).json()
+    b = client.get("/copilot/decisions", params={"session_id": "s1"},
+                   headers={"X-Pricekeel-Customer": "B"}).json()
+    assert len(a["decisions"]) == 1
+    assert b["decisions"] == []
+
+
+def test_digest_scoped_by_customer(client, deal_id):
+    client.post("/exceptions",
+                json={"deal_id": deal_id, "requested_discount_pct": 30.0,
+                      "justification": "x", "requested_by": "rep@x.com"},
+                headers={"X-Pricekeel-Customer": "A"})
+    a = client.get("/digest", headers={"X-Pricekeel-Customer": "A"}).json()
+    b = client.get("/digest", headers={"X-Pricekeel-Customer": "B"}).json()
+    assert a["customer"] == "A"
+    assert a["stats"]["exceptions_total"] == 1
+    assert b["customer"] == "B"
+    assert b["stats"]["exceptions_total"] == 0
+
+
 def test_supabase_requests_carry_service_headers(monkeypatch):
     """Supabase 401s the secret key on browser-like User-Agents; pin ours."""
     monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
@@ -176,7 +269,9 @@ def test_exception_verdict_contract_and_ev_delta_sign(client, deal_id):
         "deal_id": deal_id, "requested_discount_pct": 25.0,
         "justification": "competitor pressure", "requested_by": "rep@x.com"})
     body = r.json()
-    assert set(body) == {"id", "verdict", "created_at"}
+    # Contract gained a `persisted` field (Finding 5).
+    assert set(body) == {"id", "verdict", "created_at", "persisted"}
+    assert body["persisted"] is False  # memory mode in tests
     assert isinstance(body["id"], str) and body["id"]
     v = body["verdict"]
     assert set(v) == {"requested_pct", "recommended_pct", "floor_pct",

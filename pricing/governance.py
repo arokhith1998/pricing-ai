@@ -111,6 +111,11 @@ class DecisionStore:
 
         Never raises on storage failure: a Supabase error degrades to the
         in-memory log so the caller's request still succeeds.
+
+        The returned row carries a transient `persisted` flag (Finding 5):
+        True when the write reached Supabase durably, False when it landed in
+        the memory fallback (Supabase unset or unreachable). The flag is for
+        the caller's response only; it is not part of the stored row.
         """
         if kind not in DECISION_KINDS:
             raise ValueError(f"kind must be one of {DECISION_KINDS}, got {kind!r}")
@@ -136,12 +141,16 @@ class DecisionStore:
                 resp.raise_for_status()
                 rows = resp.json()
                 if isinstance(rows, list) and rows:
-                    return rows[0]
+                    return {**rows[0], "persisted": True}
                 raise ValueError("unexpected PostgREST insert response shape")
             except Exception as exc:  # noqa: BLE001 — degrade, never 500
                 logger.warning("decision_log insert fell back to memory: %s", exc)
+        # persisted=False: this is the memory fallback, not durable storage.
+        # The flag lives on the stored row too (harmless: readers select the
+        # fields they need) so callers that mutate the returned dict in tests
+        # keep affecting the stored row by identity.
         row = {**body, "id": str(uuid.uuid4()),
-               "created_at": _now_utc().isoformat()}
+               "created_at": _now_utc().isoformat(), "persisted": False}
         with self._lock:
             self._memory.append(row)
         return row
@@ -149,8 +158,13 @@ class DecisionStore:
     # -- read ----------------------------------------------------------------
     def list(self, *, kind: str | None = None, session_id: str | None = None,
              since: datetime | None = None, limit: int = 200,
-             newest_first: bool = True) -> list[dict]:
-        """Rows matching the filters, Supabase and memory merged the same way."""
+             newest_first: bool = True,
+             customer_ref: str = "default") -> list[dict]:
+        """Rows matching the filters, Supabase and memory merged the same way.
+
+        Tenant-scoped: only rows for `customer_ref` are returned (Finding 3).
+        One customer's decision log is invisible to another.
+        """
         rows: list[dict] = []
         cfg = _supabase_config()
         if cfg is not None:
@@ -159,6 +173,7 @@ class DecisionStore:
                 "select": "*",
                 "order": f"created_at.{'desc' if newest_first else 'asc'}",
                 "limit": str(limit),
+                "customer_ref": f"eq.{customer_ref}",
             }
             if kind:
                 params["kind"] = f"eq.{kind}"
@@ -176,7 +191,7 @@ class DecisionStore:
         # Memory rows: everything written pre-Supabase or during an outage.
         with self._lock:
             mem = [r for r in self._memory
-                   if self._matches(r, kind, session_id, since)]
+                   if self._matches(r, kind, session_id, since, customer_ref)]
         seen = {r.get("id") for r in rows}
         rows.extend(r for r in mem if r.get("id") not in seen)
         rows.sort(key=lambda r: (_parse_iso(r.get("created_at", ""))
@@ -186,7 +201,9 @@ class DecisionStore:
 
     @staticmethod
     def _matches(row: dict, kind: str | None, session_id: str | None,
-                 since: datetime | None) -> bool:
+                 since: datetime | None, customer_ref: str = "default") -> bool:
+        if row.get("customer_ref", "default") != customer_ref:
+            return False
         if kind and row.get("kind") != kind:
             return False
         if session_id is not None:
@@ -212,7 +229,8 @@ def log_copilot_decision(session_id: str, qid: str, *,
                          surfaced: list[str] | None = None,
                          accepted: list[str] | None = None,
                          rejected: list[str] | None = None,
-                         note: str = "") -> dict:
+                         note: str = "",
+                         customer_ref: str = "default") -> dict:
     """Persist one copilot decision; returns the legacy decision dict shape."""
     d = {
         "ts": time.time(),
@@ -223,14 +241,17 @@ def log_copilot_decision(session_id: str, qid: str, *,
         "opportunities_rejected": list(rejected or []),
         "note": note,
     }
-    STORE.insert(kind="copilot", payload=d, decision=qid, justification=note)
+    STORE.insert(kind="copilot", payload=d, decision=qid, justification=note,
+                 customer_ref=customer_ref)
     return d
 
 
-def copilot_decisions(session_id: str) -> list[dict]:
-    """All decisions for a session, oldest first (legacy contract)."""
+def copilot_decisions(session_id: str, *,
+                      customer_ref: str = "default") -> list[dict]:
+    """All decisions for a session, oldest first (legacy contract), scoped to
+    the customer."""
     rows = STORE.list(kind="copilot", session_id=session_id,
-                      newest_first=False, limit=500)
+                      newest_first=False, limit=500, customer_ref=customer_ref)
     return [r.get("payload") or {} for r in rows]
 
 
@@ -333,7 +354,8 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
     store = store or STORE
     now = _now_utc()
     since = now - timedelta(days=window_days)
-    entries = store.list(since=since, limit=1000)
+    # Tenant-scoped: the digest only sees this customer's decision log.
+    entries = store.list(since=since, limit=1000, customer_ref=customer)
 
     exceptions = [e for e in entries if e.get("kind") == "exception"]
     below = [e for e in exceptions

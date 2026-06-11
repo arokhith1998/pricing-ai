@@ -27,21 +27,23 @@ export default function CountUp({
   const fmt = FORMATTERS[format];
   const reduce = useReducedMotion();
   const m = useMotionValue(0);
-  // Under prefers-reduced-motion, render the final value immediately: no
-  // count-up animation at all.
-  const [v, setV] = useState(reduce ? fmt(to) : fmt(0));
+  const [animated, setAnimated] = useState(fmt(0));
+  // The effect only drives the animation, and only when motion is allowed, so
+  // it never calls setState synchronously in its own body. Under
+  // prefers-reduced-motion the effect is a no-op and the final value is
+  // computed during render instead.
   useEffect(() => {
-    if (reduce) {
-      setV(fmt(to));
-      return;
-    }
-    const unsub = m.on("change", (latest) => setV(fmt(latest)));
+    if (reduce) return;
+    const unsub = m.on("change", (latest) => setAnimated(fmt(latest)));
     const ctrl = animate(m, to, { duration, ease: [0.22, 1, 0.36, 1] });
     return () => {
       ctrl.stop();
       unsub();
     };
   }, [to, fmt, duration, m, reduce]);
+  // Under reduced motion, show the final value immediately; otherwise show the
+  // animating value.
+  const v = reduce ? fmt(to) : animated;
   // Final value to assistive tech via a visually-hidden span; the animated
   // text is decorative (aria-hidden). aria-label on a role-less span is
   // prohibited by ARIA, so we expose the value as real (sr-only) text instead.

@@ -10,8 +10,6 @@ These cover the actual attacks the launch-readiness review flagged:
 """
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from pricing._safe_fetch import (
@@ -120,6 +118,25 @@ def _fake_resp(status, headers=None, body=b""):
     return _Resp()
 
 
+def _session_factory_from(get_fn, *, recorder=None):
+    """Build a `_session_factory` substitute whose Session.get delegates to
+    `get_fn(url, **kw)`. When `recorder` is given, it records the
+    (pinned_ip, scheme) the factory was asked to pin per hop."""
+    def factory(pinned_ip, scheme):
+        if recorder is not None:
+            recorder.append((pinned_ip, scheme))
+
+        class _Session:
+            def get(self, url, **kw):
+                return get_fn(url, pinned_ip=pinned_ip, **kw)
+
+            def close(self):
+                pass
+
+        return _Session()
+    return factory
+
+
 def test_safe_get_blocks_redirect_to_private_ip():
     # A public host that 302s to localhost — the second-hop resolver check
     # must catch it.
@@ -138,9 +155,9 @@ def test_safe_get_blocks_redirect_to_private_ip():
             return _fake_resp(302, headers={"Location": "http://localhost.example.com/"})
         return _fake_resp(200, body=b"should never reach here")
 
-    with patch("pricing._safe_fetch.requests.get", side_effect=fake_get):
-        with pytest.raises(UnsafeFetchError, match="resolves to unsafe address"):
-            safe_get("http://public.example.com/redir", _resolver=fake_resolver)
+    with pytest.raises(UnsafeFetchError, match="resolves to unsafe address"):
+        safe_get("http://public.example.com/redir", _resolver=fake_resolver,
+                 _session_factory=_session_factory_from(fake_get))
     # First hop is fetched, redirect target is rejected at the resolver before
     # any second HTTP call happens.
     assert call_count["n"] == 1
@@ -154,13 +171,13 @@ def test_safe_get_caps_redirect_count():
         # Always 302 to the same place — would loop forever without the cap.
         return _fake_resp(302, headers={"Location": "http://public.example.com/r"})
 
-    with patch("pricing._safe_fetch.requests.get", side_effect=fake_get):
-        with pytest.raises(UnsafeFetchError, match="too many redirects"):
-            safe_get(
-                "http://public.example.com/r",
-                _resolver=fake_resolver,
-                max_redirects=2,
-            )
+    with pytest.raises(UnsafeFetchError, match="too many redirects"):
+        safe_get(
+            "http://public.example.com/r",
+            _resolver=fake_resolver,
+            max_redirects=2,
+            _session_factory=_session_factory_from(fake_get),
+        )
 
 
 def test_safe_get_returns_body_and_truncates_at_cap():
@@ -172,12 +189,12 @@ def test_safe_get_returns_body_and_truncates_at_cap():
     def fake_get(url, **_kw):
         return _fake_resp(200, body=big_body)
 
-    with patch("pricing._safe_fetch.requests.get", side_effect=fake_get):
-        resp = safe_get(
-            "http://public.example.com/page",
-            _resolver=fake_resolver,
-            max_bytes=10_000,
-        )
+    resp = safe_get(
+        "http://public.example.com/page",
+        _resolver=fake_resolver,
+        max_bytes=10_000,
+        _session_factory=_session_factory_from(fake_get),
+    )
     assert resp.status_code == 200
     assert len(resp.content) == 10_000
 
@@ -191,8 +208,112 @@ def test_safe_get_returns_through_one_redirect_to_public():
     ])
     def fake_get(url, **_kw):
         return next(seq)
-    with patch("pricing._safe_fetch.requests.get", side_effect=fake_get):
-        resp = safe_get("http://public.example.com/", _resolver=fake_resolver)
+    resp = safe_get("http://public.example.com/", _resolver=fake_resolver,
+                    _session_factory=_session_factory_from(fake_get))
     assert resp.status_code == 200
     assert resp.content == b"hello"
     assert resp.url == "http://final.example.com/"
+
+
+# ---------------------------------------------------------------------------
+# safe_get — DNS pinning (Finding 1): the socket must target the validated IP,
+# never a value re-resolved by the kernel at connect time.
+
+
+def test_safe_get_connects_to_resolved_ip_not_re_resolved():
+    """(a) safe_get pins the socket to the address the resolver validated:
+    the session factory is built with that exact IP, and the adapter rewrites
+    the request netloc to it while keeping the original Host header."""
+    from pricing._safe_fetch import _PinnedHostAdapter
+
+    pinned = []
+
+    def fake_resolver(_host):
+        return ["93.184.216.34"]  # public (example.com)
+
+    def fake_get(url, *, pinned_ip, **_kw):
+        # Prove the adapter would rewrite to the pinned IP while Host stays
+        # the hostname. We drive the real adapter against a fake request.
+        class _Req:
+            def __init__(self):
+                self.url = url
+                self.headers = {}
+        adapter = _PinnedHostAdapter(pinned_ip)
+        req = _Req()
+        try:
+            adapter.get_connection_with_tls_context(req, verify=True)
+        except Exception:
+            # The super() call will fail (no real pool); we only care that the
+            # URL was rewritten to the pinned IP and Host preserved beforehand.
+            pass
+        assert pinned_ip in req.url
+        assert req.headers["Host"] == "public.example.com"
+        return _fake_resp(200, body=b"ok")
+
+    resp = safe_get(
+        "http://public.example.com/",
+        _resolver=fake_resolver,
+        _session_factory=_session_factory_from(
+            fake_get, recorder=pinned),
+    )
+    assert resp.status_code == 200
+    # The factory was asked to pin exactly the validated IP, for http.
+    assert pinned == [("93.184.216.34", "http")]
+
+
+def test_safe_get_cannot_rebind_between_validate_and_connect():
+    """(b) A resolver that would return a *different* address on a second call
+    cannot move the connection: safe_get pins to the IP it validated on this
+    hop, and the socket targets that pin, not a re-resolution."""
+    calls = {"n": 0}
+
+    def rebinding_resolver(_host):
+        calls["n"] += 1
+        # First (and only) resolve returns a safe IP. A naive implementation
+        # that re-resolved at connect time would get the attacker's private IP
+        # on a second lookup; pinning means there is no second lookup.
+        return ["93.184.216.34"]
+
+    seen_targets = []
+
+    def fake_get(url, *, pinned_ip, **_kw):
+        seen_targets.append(pinned_ip)
+        return _fake_resp(200, body=b"ok")
+
+    resp = safe_get(
+        "http://rebind.example.com/",
+        _resolver=rebinding_resolver,
+        _session_factory=_session_factory_from(fake_get),
+    )
+    assert resp.status_code == 200
+    # Exactly one resolution happened, and the connection targeted that pinned
+    # IP — the kernel never got a chance to re-resolve to a rebind address.
+    assert calls["n"] == 1
+    assert seen_targets == ["93.184.216.34"]
+
+
+def test_pick_pinned_ip_fails_closed_when_no_safe_address():
+    """If the only addresses are unsafe, we fail closed rather than fall back
+    to an unpinned request."""
+    from pricing._safe_fetch import _pick_pinned_ip
+    with pytest.raises(UnsafeFetchError, match="failing closed"):
+        _pick_pinned_ip(["127.0.0.1", "10.0.0.1"])
+    assert _pick_pinned_ip(["10.0.0.1", "8.8.8.8"]) == "8.8.8.8"
+
+
+def test_pinned_adapter_rewrites_ipv6_with_brackets():
+    """IPv6 pins must be bracketed in the netloc so the URL stays valid."""
+    from pricing._safe_fetch import _PinnedHostAdapter
+
+    class _Req:
+        def __init__(self):
+            self.url = "http://public.example.com/x"
+            self.headers = {}
+    adapter = _PinnedHostAdapter("2606:2800:220:1:248:1893:25c8:1946")
+    req = _Req()
+    try:
+        adapter.get_connection_with_tls_context(req, verify=True)
+    except Exception:
+        pass
+    assert "[2606:2800:220:1:248:1893:25c8:1946]" in req.url
+    assert req.headers["Host"] == "public.example.com"

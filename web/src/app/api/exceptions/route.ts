@@ -1,5 +1,5 @@
 import { getExceptions, postException, type ExceptionInput } from "@/lib/api";
-import { requireLead } from "@/lib/gate";
+import { customerRef, requireLead } from "@/lib/gate";
 
 // Same-origin proxy for the governance loop:
 //   POST → FastAPI /exceptions  (price + log an approval or exception request)
@@ -51,12 +51,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await postException({
-      deal_id,
-      requested_discount_pct,
-      justification,
-      requested_by,
-    });
+    const result = await postException(
+      {
+        deal_id,
+        requested_discount_pct,
+        justification,
+        requested_by,
+      },
+      await customerRef(),
+    );
     return Response.json(result);
   } catch {
     return Response.json(
@@ -74,7 +77,7 @@ export async function GET(req: Request) {
   const limit = Math.min(Math.max(Number.isFinite(raw) ? raw : 50, 1), 200);
 
   try {
-    return Response.json(await getExceptions(limit));
+    return Response.json(await getExceptions(limit, await customerRef()));
   } catch {
     return Response.json(
       { error: "Decision log is unavailable. Is the API running?" },
