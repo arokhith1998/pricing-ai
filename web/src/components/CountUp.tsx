@@ -35,10 +35,13 @@ export default function CountUp({
       unsub();
     };
   }, [to, fmt, duration, m]);
-  // Final value to assistive tech via aria-label; animated text is decorative.
+  // Final value to assistive tech via a visually-hidden span; the animated
+  // text is decorative (aria-hidden). aria-label on a role-less span is
+  // prohibited by ARIA, so we expose the value as real (sr-only) text instead.
   return (
-    <span aria-label={fmt(to)}>
+    <span>
       <span aria-hidden="true">{v}</span>
+      <span className="sr-only">{fmt(to)}</span>
     </span>
   );
 }
