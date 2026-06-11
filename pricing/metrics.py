@@ -278,16 +278,23 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
 
     stats = _band_stats(min_deals) or _band_stats(1)  # relax floor if too sparse
     edges = {label: lo for lo, _hi, label in DISCOUNT_BANDS}
-    if not stats:
-        return {"reference_threshold": 0.0, "reference_band": _BAND_ORDER[0],
-                "peak_win_rate": 0.0, "peak_band": _BAND_ORDER[0],
-                "peak_win_rate_ci": (0.0, 0.0), "band_win_rate_ci": {}}
+    # The reference discount is a discount POLICY level, so only real (>=0) bands
+    # are candidates. Above-list deals (negative discount) are a pricing-power
+    # signal — they still appear in band_win_rate_ci for the chart, but must
+    # never be chosen as the reference (its threshold would be negative).
+    pos_order = [lbl for lbl in _BAND_ORDER if edges.get(lbl, 0.0) >= 0.0]
+    candidates = {k: v for k, v in stats.items() if edges.get(k, 0.0) >= 0.0}
+    if not candidates:
+        return {"reference_threshold": 0.0, "reference_band": pos_order[0],
+                "peak_win_rate": 0.0, "peak_band": pos_order[0],
+                "peak_win_rate_ci": (0.0, 0.0),
+                "band_win_rate_ci": {k: (v[0], v[1], v[2]) for k, v in stats.items()}}
 
-    peak_band = max(stats, key=lambda k: stats[k][0])
-    peak_mean, peak_lo, peak_hi, _ = stats[peak_band]
+    peak_band = max(candidates, key=lambda k: candidates[k][0])
+    peak_mean, peak_lo, peak_hi, _ = candidates[peak_band]
     reference_band = peak_band
-    for label in _BAND_ORDER:          # cheapest band not significantly < peak
-        if label in stats and stats[label][0] >= peak_lo:
+    for label in pos_order:            # cheapest real band not significantly < peak
+        if label in candidates and candidates[label][0] >= peak_lo:
             reference_band = label
             break
     return {

@@ -57,6 +57,7 @@ class LoadReport:
     exact_duplicates_dropped: int = 0
     conflicting_ids: list[str] = field(default_factory=list)
     excluded_open: dict[str, int] = field(default_factory=dict)  # stage -> count
+    above_list_deals: int = 0         # booked > list: a pricing-power signal
     notes: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -79,6 +80,11 @@ class LoadReport:
             )
         if self.blank_rows_dropped:
             out.append(f"  dropped {self.blank_rows_dropped} blank / summary rows")
+        if self.above_list_deals:
+            out.append(
+                f"  {self.above_list_deals} deal(s) closed ABOVE list "
+                "(booked > list) — a pricing-power signal, not leakage"
+            )
         out.extend(f"  {n}" for n in self.notes)
         return "\n".join(out)
 
@@ -418,10 +424,17 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     """Add the derived fields the metrics layer consumes."""
     df = df.copy()
     list_acv = df["list_acv"].replace(0, np.nan)
+    # Cap realization at 1.5 (booked up to 1.5x list) as a data-sanity bound,
+    # not at 1.0 — deals booked ABOVE list (expansion, CPI indexation, scarcity)
+    # are legitimate pricing-power signals, the opposite of leakage.
     df["price_realization"] = (df["booked_acv"] / list_acv).clip(upper=1.5)
     # round to 6dp so band assignment is deterministic at boundaries
-    # (e.g. 1 - 0.8 == 0.19999999999999996 in float would mis-band a clean 20%)
-    df["discount_pct"] = (1.0 - df["price_realization"]).clip(lower=0.0, upper=1.0).round(6)
+    # (e.g. 1 - 0.8 == 0.19999999999999996 in float would mis-band a clean 20%).
+    # NOTE: no lower clamp — discount_pct may be negative (above-list deals); the
+    # realization cap above is the sanity bound. Clamping here erased them.
+    df["discount_pct"] = (1.0 - df["price_realization"]).clip(upper=1.0).round(6)
+    # discount_amount is "discount given", so it floors at 0 (an above-list deal
+    # gave no discount; its premium is not negative leakage).
     df["discount_amount"] = (df["list_acv"] - df["booked_acv"]).clip(lower=0.0)
     df["is_won"] = df["outcome"].astype(str) == Outcome.WON.value
     df["discount_band"] = df["discount_pct"].fillna(0.0).map(band_for)
@@ -476,6 +489,7 @@ def ingest_verbose(
     df = resolve_identity(df)
     df = enrich(df, policy_threshold=policy_threshold)
     report.rows_kept = len(df)
+    report.above_list_deals = int((df["discount_pct"] < 0).sum())
     return df, report
 
 
