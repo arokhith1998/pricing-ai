@@ -64,7 +64,9 @@ SYNONYMS: dict[str, list[str]] = {
         "bu", "business unit", "business group", "division", "org", "unit",
     ],
     "product_line": [
-        "line", "product line", "line of business", "lob", "product family",
+        # "product family" removed — it collides with product_family and would
+        # leave a real product_family column unmapped when both are present.
+        "line", "product line", "line of business", "lob",
     ],
     "product_family": [
         "family", "product family", "category", "product category",
@@ -92,11 +94,11 @@ SYNONYMS: dict[str, list[str]] = {
         "deal amount", "net price", "contract value", "net acv", "net amount",
     ],
     "platform_fee_acv": [
-        "platform fee", "platform", "base fee", "subscription fee",
-        "fixed fee",
+        "platform fee", "platform fee acv", "platform", "base fee",
+        "subscription fee", "fixed fee",
     ],
     "usage_acv": [
-        "usage", "usage value", "consumption", "metered", "variable",
+        "usage", "usage acv", "usage value", "consumption", "metered", "variable",
     ],
     "term_months": [
         "term", "contract term", "duration", "term months",
@@ -181,15 +183,29 @@ def synonyms_match(header: str) -> Optional[str]:
 
 # --- Layer 2: fuzzy ---------------------------------------------------------
 
-def fuzzy_match(header: str, threshold: int = 88) -> Optional[tuple[str, int]]:
+def fuzzy_match(header: str, threshold: int = 88,
+                sort_floor: int = 70) -> Optional[tuple[str, int]]:
+    """Best field for a header by token-set ratio, guarded against subset
+    coincidences.
+
+    token_set_ratio gives a generic one-word synonym ("category") a perfect 100
+    against an unrelated header that merely contains it ("forecast category"),
+    which silently mis-maps an extra column. We additionally require a symmetric
+    token_sort_ratio floor, which separates the real cases ("net acv usd" vs
+    "net acv" sorts at ~78) from the coincidences ("forecast category" vs
+    "category" sorts at ~64).
+    """
     n = normalize(header)
     best_field, best_score = None, 0
     for field, alts in _NORM_SYN.items():
         for alt in alts:
             score = rapidfuzz.fuzz.token_set_ratio(n, alt)
-            if score > best_score:
-                best_score, best_field = score, field
-    if best_score >= threshold:
+            if score < threshold or score <= best_score:
+                continue
+            if rapidfuzz.fuzz.token_sort_ratio(n, alt) < sort_floor:
+                continue
+            best_score, best_field = score, field
+    if best_field is not None:
         return (best_field, best_score)  # type: ignore[return-value]
     return None
 

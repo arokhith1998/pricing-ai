@@ -13,18 +13,25 @@ from pathlib import Path
 import pandas as pd
 
 from pricing import metrics
-from pricing.ingest import ingest
+from pricing.ingest import ingest_verbose
 from pricing.schema import DEFAULT_POLICY_THRESHOLD
 
 
 def run(path: str | Path,
         policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
     """Run the full pipeline and return all diagnostic sections."""
-    df = ingest(path, policy_threshold=policy_threshold)
+    df, load_report = ingest_verbose(path, policy_threshold=policy_threshold)
     pkg = metrics.packaging_signals(df)
     return {
         "data": df,
+        # "What we read from your file" — section #1 of every readout.
+        "load_report": load_report,
         "overview": metrics.overview(df),
+        # Customer wishlist (2026-06-10 dry-run): time trend, segment/rep cuts,
+        # and a so-what (policy simulation) for the headline excess figure.
+        "trend_by_quarter": metrics.trend_by_quarter(df),
+        "segment_win_points": metrics.segment_win_points(df),
+        "policy_simulations": metrics.policy_simulations(df, policy_threshold),
         "realization_by_segment": metrics.realization_by_segment(df),
         "win_rate_by_band": metrics.win_rate_by_band(df),
         "reference_discount": metrics.reference_discount(df),
@@ -72,6 +79,21 @@ def print_report(res: dict) -> None:
     qe = res["quarter_end"]
     gv = res["governance"]
 
+    # Section #1: what we read from the file. Trust before conclusions — the
+    # deliverable must not start with a number the prospect cannot vet.
+    rep = res.get("load_report")
+    if rep is not None:
+        print("-" * 64)
+        print("  WHAT WE READ FROM YOUR FILE")
+        print("-" * 64)
+        print(rep.summary())
+        fuzzy_maps = {f: s for f, s in rep.field_sources.items() if "fuzzy" in s}
+        if fuzzy_maps:
+            print("  columns mapped by fuzzy match (please verify):")
+            for fld, src in sorted(fuzzy_maps.items()):
+                print(f"    {fld} <- {src}")
+        print()
+
     print("=" * 64)
     print("  DISCOUNT-LEAKAGE DIAGNOSTIC")
     print("=" * 64)
@@ -102,6 +124,32 @@ def print_report(res: dict) -> None:
           f"across {lk['deals_above_reference']:,} deals "
           f"= {_pct(lk['excess_pct_of_booked'])} of booked ACV")
 
+    # Wishlist 1: is leakage getting better or worse, by quarter?
+    trend = res.get("trend_by_quarter")
+    if trend is not None and not trend.empty:
+        print("\n-- Trend by quarter " + "-" * 44)
+        t = trend.copy()
+        t["win_rate"] = t["win_rate"].map(_pct)
+        t["price_realization"] = t["price_realization"].map(_pct)
+        t["excess_pct_of_booked"] = t["excess_pct_of_booked"].map(_pct)
+        for c in ("booked_acv", "excess_won"):
+            t[c] = t[c].map(_money)
+        print(t.to_string(index=False))
+
+    # Wishlist 2a: realization by segment + each segment's own win point.
+    seg = res.get("realization_by_segment")
+    if seg is not None and not seg.empty:
+        print("\n-- Price realization by segment " + "-" * 32)
+        s = seg.copy()
+        s["price_realization"] = s["price_realization"].map(_pct)
+        s["avg_discount"] = s["avg_discount"].map(_pct)
+        for c in ("list_acv", "booked_acv"):
+            s[c] = s[c].map(_money)
+        print(s.to_string(index=False))
+    for r in res.get("segment_win_points") or []:
+        print(f"   {r['segment']:<12} peak {_pct(r['peak_win_rate'])} at "
+              f"{r['peak_band']}, win point {r['reference_band']} ({r['deals']:,} deals)")
+
     if qe:
         print("\n-- Quarter-end effect " + "-" * 42)
         print(f"Avg discount: quarter-end {_pct(qe['qe_avg_discount'])} "
@@ -113,6 +161,18 @@ def print_report(res: dict) -> None:
     print(f"  ...with NO recorded approver: {gv['off_policy_unapproved_won']:,} "
           f"({_money(gv['unapproved_discount_dollars'])} discounted, unapproved)")
 
+    # Wishlist 2b: rep league table — surface the over-discounters by name.
+    reps = res.get("rep_discipline")
+    if reps is not None and not reps.empty:
+        print("\n-- Rep league table " + "-" * 44)
+        r = reps.copy()
+        for c in ("avg_discount", "win_rate", "discount_vs_median"):
+            if c in r:
+                r[c] = r[c].map(_pct)
+        if "booked_acv" in r:
+            r["booked_acv"] = r["booked_acv"].map(_money)
+        print(r.to_string(index=False))
+
     print("\n-- Top deals to investigate (excess discount $) " + "-" * 16)
     tld = res["top_leak_deals"].head(8).copy()
     for c in ("list_acv", "booked_acv", "excess_discount_dollars"):
@@ -121,6 +181,16 @@ def print_report(res: dict) -> None:
     if "discount_pct" in tld:
         tld["discount_pct"] = tld["discount_pct"].map(_pct)
     print(tld.to_string(index=False))
+
+    # Wishlist 3: so-what. What would each policy have held back on won deals?
+    sims = res.get("policy_simulations") or []
+    if sims:
+        print("\n-- What would have prevented it (policy simulation) " + "-" * 12)
+        for s in sims:
+            print(f"   {s['policy']:<46} up to {_money(s['held_back'])} "
+                  f"({s['deals_affected']:,} won deals)")
+        print("   (Upper bound: correlational, some discount was needed to win.)")
+
     print("\n(Note: excess-vs-reference is correlational — a prioritized list to")
     print(" investigate, not a refund figure. Validate with a pricing advisor.)")
 

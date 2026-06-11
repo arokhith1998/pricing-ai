@@ -60,6 +60,10 @@ class LoadReport:
     above_list_deals: int = 0         # booked > list: a pricing-power signal
     currencies: list[str] = field(default_factory=list)  # symbols seen in money
     blank_booked: int = 0             # rows with no parseable booked value
+    # Header-mapping provenance: which incoming column each canonical field came
+    # from, and which incoming columns we left unmapped. Makes a mis-map visible.
+    field_sources: dict[str, str] = field(default_factory=dict)  # field -> "header (layer)"
+    unmapped_columns: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -97,6 +101,11 @@ class LoadReport:
             out.append(
                 f"  {self.blank_booked} deal(s) with a blank / unparseable booked "
                 "value (excluded from dollar totals)"
+            )
+        if self.unmapped_columns:
+            out.append(
+                f"  ignored {len(self.unmapped_columns)} unrecognized column(s): "
+                + ", ".join(self.unmapped_columns)
             )
         out.extend(f"  {n}" for n in self.notes)
         return "\n".join(out)
@@ -213,16 +222,40 @@ def load_csv(path: str | Path) -> pd.DataFrame:
     return load_any(path)
 
 
-def apply_header_mapping(df: pd.DataFrame) -> pd.DataFrame:
+def apply_header_mapping(df: pd.DataFrame,
+                         report: "LoadReport | None" = None) -> pd.DataFrame:
     """Rename incoming headers to canonical schema names via the deterministic
     mapper (synonyms + fuzzy only — no embeddings/LLM, so ingest stays offline
     and reproducible). Unmapped columns keep their original names.
+
+    Optional fields are claimed only on HIGH confidence (a synonym or near-exact
+    fuzzy match). A merely-plausible fuzzy guess must never silently relabel an
+    extra column into an optional field (the "Forecast Category -> product_family"
+    credibility bug). Required fields take the best available match. Provenance
+    (which column each field came from) and the ignored columns go to the
+    LoadReport so a reviewer can audit every mapping.
     """
     df = df.copy()
     df.columns = [str(c).strip() for c in df.columns]
-    result = mapping.map_headers(list(df.columns), llm_fallback=False,
-                                 use_embeddings=False)
-    rename = {header: field for field, header in result["mapping"].items() if header}
+    cols = list(df.columns)
+    result = mapping.map_headers(cols, llm_fallback=False, use_embeddings=False)
+    mapped, confidence, used = result["mapping"], result["confidence"], result["used"]
+    required = set(REQUIRED_FIELDS)
+
+    rename: dict[str, str] = {}
+    sources: dict[str, str] = {}
+    for fieldname, header in mapped.items():
+        if not header:
+            continue
+        conf = confidence.get(fieldname, "none")
+        if fieldname not in required and conf != "high":
+            continue  # too weak to claim an optional field
+        rename[header] = fieldname
+        sources[fieldname] = f"{header} ({used.get(header, '?')}, {conf})"
+
+    if report is not None:
+        report.field_sources = sources
+        report.unmapped_columns = [c for c in cols if c not in rename]
     return df.rename(columns=rename)
 
 
@@ -485,7 +518,14 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     # gave no discount; its premium is not negative leakage).
     df["discount_amount"] = (df["list_acv"] - df["booked_acv"]).clip(lower=0.0)
     df["is_won"] = df["outcome"].astype(str) == Outcome.WON.value
-    df["discount_band"] = df["discount_pct"].fillna(0.0).map(band_for)
+    # A blank/unparseable booked value leaves discount_pct NaN. Never fillna(0):
+    # that would bin those rows into "0-5%" and depress the low-band win rate,
+    # which moves the reference discount and the headline leakage number. NaN
+    # band rows are excluded from win_rate_by_band and reference_discount (they
+    # are already counted in the LoadReport's blank_booked).
+    df["discount_band"] = df["discount_pct"].map(
+        lambda x: band_for(x) if pd.notna(x) else None
+    )
 
     if "close_date" in df.columns:
         q = df["close_date"].dt.quarter
@@ -518,7 +558,7 @@ def ingest_verbose(
     """
     report = LoadReport(source=Path(path).name)
     df = load_any(path, report)
-    df = apply_header_mapping(df)
+    df = apply_header_mapping(df, report)
 
     # Drop blank / summary rows that carry no opportunity id.
     if "opportunity_id" in df.columns:

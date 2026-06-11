@@ -453,3 +453,98 @@ def top_leak_deals(df: pd.DataFrame, n: int = 15,
             "excess_discount_dollars"]
     cols = [c for c in cols if c in won.columns]
     return won.sort_values("excess_discount_dollars", ascending=False).head(n)[cols]
+
+
+# --- Customer wishlist (2026-06-10 dry-run): trend, cuts, so-what ------------
+
+def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10) -> pd.DataFrame:
+    """Realization, win rate, and excess-vs-reference leakage by close quarter.
+
+    The first question a CFO asks: is leakage getting better or worse? Excess is
+    measured against the single global reference discount (a property of the
+    whole book) so quarters are comparable. Sparse quarters (< min_deals) are
+    dropped rather than shown as noise.
+    """
+    cols = ["quarter", "deals", "won", "win_rate", "booked_acv",
+            "price_realization", "excess_won", "excess_pct_of_booked"]
+    if "quarter" not in df.columns:
+        return pd.DataFrame(columns=cols)
+    rt = reference_discount(df)["reference_threshold"]
+    q = df["quarter"].astype(str).str.strip()
+    work = df[q.ne("") & ~q.str.lower().isin(("nan", "none", "nat"))]
+    out = []
+    for quarter in sorted(work["quarter"].dropna().unique()):
+        g = work[work["quarter"] == quarter]
+        if len(g) < min_deals:
+            continue
+        won = _won(g)
+        booked = float(won["booked_acv"].sum())
+        list_won = float(won["list_acv"].sum())
+        excess = float(((won["discount_pct"] - rt).clip(lower=0.0)
+                        * won["list_acv"]).sum())
+        out.append({
+            "quarter": str(quarter),
+            "deals": int(len(g)),
+            "won": int(len(won)),
+            "win_rate": (len(won) / len(g)) if len(g) else 0.0,
+            "booked_acv": booked,
+            "price_realization": (booked / list_won) if list_won else 0.0,
+            "excess_won": excess,
+            "excess_pct_of_booked": (excess / booked) if booked else 0.0,
+        })
+    return pd.DataFrame(out, columns=cols)
+
+
+def segment_win_points(df: pd.DataFrame, min_deals: int = 30) -> list[dict]:
+    """Each segment's own win point. Enterprise and SMB curves differ, so a
+    single global reference hides where the real saturation is per segment."""
+    out: list[dict] = []
+    if "segment" not in df.columns:
+        return out
+    for seg in sorted(df["segment"].dropna().astype(str).unique()):
+        if not seg or seg.lower() in ("nan", "none", ""):
+            continue
+        g = df[df["segment"] == seg]
+        if len(g) < min_deals:
+            continue
+        rd = reference_discount(g)
+        out.append({
+            "segment": seg,
+            "deals": int(len(g)),
+            "reference_band": rd["reference_band"],
+            "peak_band": rd["peak_band"],
+            "peak_win_rate": float(rd["peak_win_rate"]),
+        })
+    return out
+
+
+def policy_simulations(df: pd.DataFrame,
+                       policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> list[dict]:
+    """Three concrete policies and the discount $ each would have held back on
+    won deals, so '$X excess' arrives with a next action attached.
+
+    Correlational, not a guarantee: some discount was needed to win, so each
+    figure is an UPPER BOUND on what the policy could have retained, not a
+    promised saving. Every dollar here reuses an existing leakage lens.
+    """
+    won = _won(df)
+    if won.empty:
+        return []
+    rt = reference_discount(df)["reference_threshold"]
+    qe = quarter_end_effect(df)
+
+    def held(threshold: float) -> tuple[float, int]:
+        over = (won["discount_pct"] - threshold).clip(lower=0.0)
+        return float((over * won["list_acv"]).sum()), int((won["discount_pct"] > threshold).sum())
+
+    ref_held, ref_n = held(rt)
+    pol_held, pol_n = held(policy_threshold)
+    return [
+        {"policy": f"Hold discount at the reference win point ({rt:.0%})",
+         "held_back": ref_held, "deals_affected": ref_n},
+        {"policy": f"Require approval above the policy line ({policy_threshold:.0%})",
+         "held_back": pol_held, "deals_affected": pol_n},
+        {"policy": "Freeze extra discounting in the quarter-end window",
+         "held_back": float(qe.get("attributable_discount_won", 0.0)) if qe else 0.0,
+         "deals_affected": int(qe.get("qe_deals", 0)) if qe else 0},
+    ]
