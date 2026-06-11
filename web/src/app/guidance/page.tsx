@@ -30,7 +30,7 @@ export default async function GuidancePage() {
         </p>
       </Reveal>
 
-      <Reveal delay={0.04}>
+      <Reveal inView>
         <PageGuide
           eyebrow="Reading this page"
           title="One deal at a time. Pick from the dropdown to switch."
@@ -43,11 +43,11 @@ export default async function GuidancePage() {
         />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <GuidanceClient deals={deals} />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-fg">Model quality</h2>
           <p className="mt-1 text-sm text-slate">
@@ -94,7 +94,7 @@ export default async function GuidancePage() {
         </section>
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal inView>
         <NextStep
           href="/upload"
           title="Run it on your data"

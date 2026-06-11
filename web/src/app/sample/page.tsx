@@ -5,6 +5,7 @@ import { getDemo, type Diagnostic } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 import { LEAD_COOKIE } from "@/lib/auth";
 import Summary from "@/components/Summary";
+import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
 import LeadForm from "@/components/LeadForm";
 import MagicLinkForm from "@/components/MagicLinkForm";
@@ -177,44 +178,50 @@ function FullSample() {
         ]}
       />
 
-      <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
-        <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
-        <Suspense
-          fallback={
-            <p className="animate-pulse text-sm text-slate">Writing the summary&hellip;</p>
-          }
-        >
-          <Summary />
-        </Suspense>
-      </section>
+      <Reveal inView>
+        <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
+          <h2 className="mb-2 text-lg font-semibold text-fg">Executive summary</h2>
+          <Suspense
+            fallback={
+              <p className="animate-pulse text-sm text-slate">Writing the summary&hellip;</p>
+            }
+          >
+            <Summary />
+          </Suspense>
+        </section>
+      </Reveal>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Link
-          href="/diagnostic"
-          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
-        >
-          <div className="text-lg font-semibold text-fg">Diagnostic →</div>
-          <p className="mt-1 text-sm text-slate">
-            Win rate vs discount, leakage lenses, quarter-end, governance, and the
-            deals to look at first.
-          </p>
-        </Link>
-        <Link
-          href="/guidance"
-          className="rounded-xl border border-mist bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal hover:shadow-md"
-        >
-          <div className="text-lg font-semibold text-fg">Guidance →</div>
-          <p className="mt-1 text-sm text-slate">
-            Pick a deal and see the discount that maximizes expected value, with a
-            plain-language why.
-          </p>
-        </Link>
-      </section>
+      <Reveal inView>
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Link
+            href="/diagnostic"
+            className="pk-card-3d rounded-xl border border-mist bg-surface p-5 shadow-sm hover:border-teal"
+          >
+            <div className="text-lg font-semibold text-fg">Diagnostic →</div>
+            <p className="mt-1 text-sm text-slate">
+              Win rate vs discount, leakage lenses, quarter-end, governance, and the
+              deals to look at first.
+            </p>
+          </Link>
+          <Link
+            href="/guidance"
+            className="pk-card-3d rounded-xl border border-mist bg-surface p-5 shadow-sm hover:border-teal"
+          >
+            <div className="text-lg font-semibold text-fg">Guidance →</div>
+            <p className="mt-1 text-sm text-slate">
+              Pick a deal and see the discount that maximizes expected value, with a
+              plain-language why.
+            </p>
+          </Link>
+        </section>
+      </Reveal>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-fg">How it works</h2>
-        <Flow />
-      </section>
+      <Reveal inView>
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-fg">How it works</h2>
+          <Flow />
+        </section>
+      </Reveal>
     </>
   );
 }
