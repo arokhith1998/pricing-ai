@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+// "Have we hydrated yet" without calling setState in an effect: the server and
+// the first client render both read false, every render after hydration reads
+// true. No external state actually changes, so the subscribe is a no-op.
+const noop = () => () => {};
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+}
 
 // Hero headline with a word-by-word reveal (de-blur + rise) and a coral glow on
 // the closing clause.
@@ -23,8 +35,7 @@ const wordClass = (w: string) =>
 
 export default function HeroHeadline() {
   const reduce = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   // Server render + first client render (hydration match) + reduced motion:
   // a static, visible headline. No inline opacity, no dependency on JS.

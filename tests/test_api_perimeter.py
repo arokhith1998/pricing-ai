@@ -31,10 +31,16 @@ AUTH = {"X-Pricekeel-Key": KEY}
 
 @pytest.fixture(autouse=True)
 def _clean_perimeter(monkeypatch):
-    """Every test starts with: no API key set, no LLM keys, empty limiter."""
+    """Every test starts with: no API key set, no LLM keys, empty limiter.
+
+    PRICEKEEL_ENV=dev so the default 'key unset' tests exercise the
+    warn-and-allow dev path; the prod fail-closed behavior is tested
+    explicitly below by setting PRICEKEEL_ENV to a prod value.
+    """
     monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("PRICEKEEL_ENV", "dev")
     main._rate_state_reset()
     yield
     main._rate_state_reset()
@@ -84,6 +90,48 @@ def test_auth_applies_to_post_endpoints(client, monkeypatch):
     assert r.json() == {"enabled": False, "summary": None}  # no LLM keys
 
 
+# --- 1b. fail-closed auth in production (Finding 2) --------------------------
+
+def test_prod_missing_key_rejects_normal_route(client, monkeypatch):
+    # Production (PRICEKEEL_ENV != 'dev') with no API key set must fail closed:
+    # a misconfigured prod API is otherwise fully public.
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
+    r = client.get("/copilot/canonical")
+    assert r.status_code == 503
+    assert "api key not set" in r.json()["detail"].lower()
+
+
+def test_prod_missing_key_still_allows_health_and_root(client, monkeypatch):
+    # Render's health probe and the bare landing must keep passing.
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
+    assert client.get("/health").status_code == 200
+    assert client.get("/").status_code == 200
+
+
+def test_prod_unset_env_treated_as_prod(client, monkeypatch):
+    # An unset PRICEKEEL_ENV is production (matches CORS fail-closed default).
+    monkeypatch.delenv("PRICEKEEL_ENV", raising=False)
+    monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
+    assert client.get("/copilot/canonical").status_code == 503
+
+
+def test_dev_missing_key_allows(client, monkeypatch):
+    # Dev keeps the warn-and-allow behavior for local work.
+    monkeypatch.setenv("PRICEKEEL_ENV", "dev")
+    monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
+    assert client.get("/copilot/canonical").status_code == 200
+
+
+def test_prod_with_key_set_uses_normal_auth(client, monkeypatch):
+    # Key set in prod: existing 401/200 behavior, not 503.
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", KEY)
+    assert client.get("/copilot/canonical").status_code == 401
+    assert client.get("/copilot/canonical", headers=AUTH).status_code == 200
+
+
 # --- 2. upload size cap --------------------------------------------------------
 
 def test_oversize_upload_rejected_413(client, monkeypatch):
@@ -119,6 +167,31 @@ def test_read_capped_backstop_rejects_lying_content_length(monkeypatch):
 
     up_ok = UploadFile(file=io.BytesIO(b"x" * 50), filename="small.csv")
     assert asyncio.run(main._read_capped(up_ok)) == b"x" * 50
+
+
+# --- 2b. docs upload per-request caps (Finding 4) ----------------------------
+
+def test_docs_upload_rejects_too_many_files(client, monkeypatch):
+    monkeypatch.setattr(main, "MAX_DOCS_FILES_PER_REQUEST", 2)
+    files = [("files", (f"f{i}.txt", io.BytesIO(b"hello world"), "text/plain"))
+             for i in range(3)]
+    r = client.post("/docs/upload", files=files)
+    assert r.status_code == 413
+    assert "too many files" in r.json()["detail"].lower()
+
+
+def test_docs_upload_rejects_total_bytes_over_cap(client, monkeypatch):
+    # Each file is under the single-file cap, but together they exceed the
+    # per-request total-bytes cap.
+    monkeypatch.setattr(main, "MAX_DOCS_FILES_PER_REQUEST", 10)
+    monkeypatch.setattr(main, "MAX_UPLOAD_BYTES", 1024 * 1024)
+    monkeypatch.setattr(main, "MAX_DOCS_TOTAL_BYTES", 1500)
+    blob = b"x" * 1000  # under single-file cap
+    files = [("files", (f"f{i}.txt", io.BytesIO(blob), "text/plain"))
+             for i in range(3)]  # 3000 bytes total > 1500 cap
+    r = client.post("/docs/upload", files=files)
+    assert r.status_code == 413
+    assert "total" in r.json()["detail"].lower()
 
 
 # --- 3. rate limiting ----------------------------------------------------------

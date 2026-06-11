@@ -330,11 +330,16 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   }
 }
 
-async function getJSON<T>(path: string): Promise<T> {
-  const res = await apiFetch(path);
+async function getJSON<T>(path: string, headers?: Record<string, string>): Promise<T> {
+  const res = await apiFetch(path, headers ? { headers } : undefined);
   if (!res.ok) throw new Error(`API responded ${res.status} for ${path}`);
   return res.json();
 }
+
+// The decision log is scoped per customer. The web proxy passes the verified
+// access code (or "default" for lead-only demo visitors) as this header; the
+// governance store filters reads and tags writes by it.
+const CUSTOMER_HEADER = "X-Pricekeel-Customer";
 
 export const getDemo = (policy = 0.15) =>
   getJSON<Diagnostic>(`/demo?policy=${policy}`);
@@ -384,20 +389,24 @@ export async function getRecommendation(
 // says whether the request sits below the policy floor and what it costs.
 export async function postException(
   input: ExceptionInput,
+  customer = "default",
 ): Promise<ExceptionResult> {
   const res = await apiFetch("/exceptions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(`API responded ${res.status}`);
   return res.json();
 }
 
-export const getExceptions = (limit = 50) =>
-  getJSON<{ items: ExceptionRecord[] }>(`/exceptions?limit=${limit}`);
+export const getExceptions = (limit = 50, customer = "default") =>
+  getJSON<{ items: ExceptionRecord[] }>(`/exceptions?limit=${limit}`, {
+    [CUSTOMER_HEADER]: customer,
+  });
 
-export const getDigest = () => getJSON<Digest>("/digest");
+export const getDigest = (customer = "default") =>
+  getJSON<Digest>("/digest", { [CUSTOMER_HEADER]: customer });
 
 export async function getSummary(
   policy = 0.15,

@@ -67,8 +67,25 @@ app = FastAPI(title="Pricekeel API", version="0.1.0")
 AUTH_HEADER = "x-pricekeel-key"
 AUTH_EXEMPT_PATHS = {"/", "/health"}
 
+# Tenant scope (Finding 3). The web proxy sets X-Pricekeel-Customer per signed-in
+# customer; absent => "default" so single-tenant behavior is unchanged. Every
+# decision-log write and read is scoped by this value so one customer's log is
+# invisible to another.
+CUSTOMER_HEADER = "x-pricekeel-customer"
+
+
+def _customer_ref(request: Request) -> str:
+    """Tenant key from X-Pricekeel-Customer; 'default' when absent/blank."""
+    return (request.headers.get(CUSTOMER_HEADER, "") or "").strip() or "default"
+
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 UPLOAD_PATHS = {"/map-headers", "/diagnostic", "/docs/upload"}
+
+# Per-request caps for the multi-file docs upload (Finding 4). The single-file
+# byte cap (_read_capped) and the chunk-count cap (_doc_store_append) do not
+# bound how MANY files or how many TOTAL bytes one request carries.
+MAX_DOCS_FILES_PER_REQUEST = 10
+MAX_DOCS_TOTAL_BYTES = 25 * 1024 * 1024  # 25 MB across all files in one request
 
 # Sliding-window per-IP limits: path (exact, or prefix when ending in "/")
 # -> (max requests, window seconds). LLM-backed endpoints are the expensive
@@ -87,6 +104,13 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
 }
 # (rule, client_ip) -> deque of request timestamps inside the window.
 _RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+
+def _is_prod() -> bool:
+    """Production unless PRICEKEEL_ENV is explicitly 'dev' (same rule CORS
+    uses to fail closed on an unset env). Read at call time so Render env
+    changes and tests take effect without re-import."""
+    return os.environ.get("PRICEKEEL_ENV", "").lower() != "dev"
+
 
 if not os.environ.get("PRICEKEEL_API_KEY"):
     logger.warning("API perimeter OPEN — set PRICEKEEL_API_KEY")
@@ -134,7 +158,20 @@ async def perimeter(request: Request, call_next):
     # 1) Shared-secret auth. CORS preflights (OPTIONS) carry no custom
     # headers by design, and they execute nothing — let them through.
     expected = os.environ.get("PRICEKEEL_API_KEY", "")
-    if expected and path not in AUTH_EXEMPT_PATHS and request.method != "OPTIONS":
+    exempt = path in AUTH_EXEMPT_PATHS or request.method == "OPTIONS"
+    # Fail closed in production: a prod deploy with no API key is fully public,
+    # so reject every non-exempt request rather than silently serve it. /health
+    # and / stay exempt so Render's probe and a bare landing still work. In dev
+    # (PRICEKEEL_ENV=dev) we keep the warn-and-allow behavior for local work.
+    if not expected and not exempt and _is_prod():
+        return JSONResponse(
+            status_code=503,
+            content={"detail": (
+                "Server misconfigured: API key not set. "
+                "Set PRICEKEEL_API_KEY."
+            )},
+        )
+    if expected and not exempt:
         supplied = request.headers.get(AUTH_HEADER, "")
         if not hmac.compare_digest(supplied.encode(), expected.encode()):
             return JSONResponse(
@@ -556,10 +593,30 @@ async def docs_upload(
     import uuid
     sid = session_id or uuid.uuid4().hex
 
+    # Per-request caps (Finding 4): bound file count and total bytes before we
+    # parse anything, so a single request cannot exhaust memory by sending many
+    # files each just under the single-file cap.
+    if len(files) > MAX_DOCS_FILES_PER_REQUEST:
+        raise HTTPException(
+            status_code=413,
+            detail=(f"Too many files in one request "
+                    f"(limit {MAX_DOCS_FILES_PER_REQUEST}). Upload fewer files "
+                    "or split the request."),
+        )
+
     new_chunks: list[docs_mod.Chunk] = []
     file_info: list[dict] = []
+    total_bytes = 0
     for f in files:
         data = await _read_capped(f)
+        total_bytes += len(data)
+        if total_bytes > MAX_DOCS_TOTAL_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(f"Upload too large: total across files exceeds "
+                        f"{MAX_DOCS_TOTAL_BYTES // (1024 * 1024)} MB. Upload "
+                        "fewer or smaller files."),
+            )
         try:
             parsed = docs_mod.parse_and_chunk(f.filename or "doc", data)
         except ValueError as exc:
@@ -640,7 +697,7 @@ def copilot_canonical_list() -> dict:
 
 
 @app.post("/copilot/canonical")
-def copilot_canonical(req: CanonicalReq) -> dict:
+def copilot_canonical(req: CanonicalReq, request: Request) -> dict:
     """Deterministic opportunities + LLM narrative for one canonical question."""
     analysis = req.analysis if req.analysis is not None else _diagnostic_payload(
         str(DEMO_CSV), 0.15,
@@ -650,11 +707,13 @@ def copilot_canonical(req: CanonicalReq) -> dict:
     )
     # Auto-log every surfaced set so the decision log always reflects what
     # the user actually saw (accept / reject can come later via /copilot/log).
-    # Persisted via the governance store (Supabase when configured).
+    # Persisted via the governance store (Supabase when configured), scoped
+    # to the caller's tenant.
     if req.session_id:
         governance_mod.log_copilot_decision(
             req.session_id, req.qid,
             surfaced=[o.id for o in ans.opportunities],
+            customer_ref=_customer_ref(request),
         )
     return ans.to_dict()
 
@@ -668,22 +727,24 @@ class DecisionLogReq(BaseModel):
 
 
 @app.post("/copilot/log")
-def copilot_log(req: DecisionLogReq) -> dict:
+def copilot_log(req: DecisionLogReq, request: Request) -> dict:
     """Log a copilot decision. Same response contract as before; storage now
     goes through pricing/governance.py (Supabase when configured, memory
-    fallback) instead of a process-lifetime dict."""
+    fallback) instead of a process-lifetime dict. Scoped to the tenant."""
     d = governance_mod.log_copilot_decision(
         req.session_id, req.qid,
         accepted=req.accepted, rejected=req.rejected, note=req.note,
+        customer_ref=_customer_ref(request),
     )
     return {"logged": True, "decision": d}
 
 
 @app.get("/copilot/decisions")
-def copilot_decisions(session_id: str) -> dict:
+def copilot_decisions(session_id: str, request: Request) -> dict:
     return {
         "session_id": session_id,
-        "decisions": governance_mod.copilot_decisions(session_id),
+        "decisions": governance_mod.copilot_decisions(
+            session_id, customer_ref=_customer_ref(request)),
     }
 
 
@@ -710,9 +771,15 @@ class ExceptionReq(BaseModel):
 
 
 @app.post("/exceptions")
-def create_exception(req: ExceptionReq) -> dict:
+def create_exception(req: ExceptionReq, request: Request) -> dict:
     """Score a discount-exception request against the deal's own EV curve,
-    log it, and return the verdict. requested_discount_pct is percent 0-100."""
+    log it, and return the verdict. requested_discount_pct is percent 0-100.
+
+    Response shape: {id, verdict, created_at, persisted}. `persisted` is True
+    when the decision was written durably to Supabase, False when it landed in
+    the in-memory fallback (Supabase unset or unreachable) — the response never
+    claims durability it does not have (Finding 5). The write is scoped to the
+    caller's tenant via X-Pricekeel-Customer (Finding 3)."""
     if not (0.0 <= req.requested_discount_pct
             <= governance_mod.EXCEPTION_MAX_PCT):
         raise HTTPException(
@@ -744,16 +811,20 @@ def create_exception(req: ExceptionReq) -> dict:
         decision="below_floor" if verdict["below_floor"] else "within_floor",
         justification=req.justification,
         requested_by=req.requested_by,
+        customer_ref=_customer_ref(request),
     )
     return {"id": str(row["id"]), "verdict": verdict,
-            "created_at": str(row["created_at"])}
+            "created_at": str(row["created_at"]),
+            "persisted": bool(row.get("persisted", False))}
 
 
 @app.get("/exceptions")
-def list_exceptions(limit: int = 50) -> dict:
-    """Recent exception requests, newest first, with their logged verdicts."""
+def list_exceptions(request: Request, limit: int = 50) -> dict:
+    """Recent exception requests, newest first, with their logged verdicts.
+    Scoped to the caller's tenant via X-Pricekeel-Customer (Finding 3)."""
     rows = governance_mod.STORE.list(kind="exception",
-                                     limit=max(1, min(int(limit), 200)))
+                                     limit=max(1, min(int(limit), 200)),
+                                     customer_ref=_customer_ref(request))
     items = []
     for r in rows:
         p = r.get("payload") or {}
@@ -776,10 +847,11 @@ _DIGEST_BOOK: dict = {"mtime": None, "analysis": None}
 
 
 @app.get("/digest")
-def digest() -> dict:
+def digest(request: Request) -> dict:
     """Weekly governance digest: decision-log activity over the last 7 days
     plus the loaded book's diagnostic aggregates. Deterministic, no LLM.
-    Discount/realization figures are percent 0-100, matching /exceptions."""
+    Discount/realization figures are percent 0-100, matching /exceptions.
+    Scoped to the caller's tenant via X-Pricekeel-Customer (Finding 3)."""
     analysis = None
     try:
         if DEMO_CSV.exists():
@@ -792,7 +864,8 @@ def digest() -> dict:
             analysis = _DIGEST_BOOK["analysis"]
     except Exception:  # noqa: BLE001 — digest must degrade, not 500
         logger.warning("digest: book diagnostics unavailable", exc_info=True)
-    return governance_mod.build_digest(analysis=analysis, window_days=7)
+    return governance_mod.build_digest(analysis=analysis, window_days=7,
+                                       customer=_customer_ref(request))
 
 
 # --- Product Matching v1: your pricing page vs your named competitors ------

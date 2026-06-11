@@ -48,3 +48,18 @@ export async function requireAccess(): Promise<Response | null> {
     { status: 401 },
   );
 }
+
+// The tenant key for the decision log: the verified access code when the
+// visitor has one (each design partner gets their own), otherwise "default".
+// The exceptions/digest proxies forward this to FastAPI as X-Pricekeel-Customer
+// so one lead-gated visitor can never read another customer's logged decisions.
+// Lead-only visitors (sample demo, no access code) all share "default", which
+// is correct: they are looking at the shared demo book, not customer data.
+export async function customerRef(): Promise<string> {
+  const value = (await cookies()).get(ACCESS_COOKIE)?.value;
+  const verified = await verifyAccessCookieValue(value);
+  if (verified.ok && (await isValidAccessCode(verified.code))) {
+    return verified.code;
+  }
+  return "default";
+}
