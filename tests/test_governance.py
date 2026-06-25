@@ -229,7 +229,7 @@ def test_exceptions_isolated_across_customers_via_header(client, deal_id):
 
 
 def test_exceptions_response_includes_persisted_flag(client, deal_id):
-    # Memory mode (no Supabase env): persisted must be False, never claimed.
+    # Memory mode (no DATABASE_URL): persisted must be False, never claimed.
     r = client.post("/exceptions",
                     json={"deal_id": deal_id, "requested_discount_pct": 20.0,
                           "justification": "x", "requested_by": "rep@x.com"})

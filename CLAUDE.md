@@ -51,7 +51,7 @@ accuracy in enterprise · humans in the loop always · sell to finance, champion
 6) Governance & approval workflows.
 
 ## Proposed stack (challenge when warranted)
-Data: Snowflake · Fivetran/Airbyte · dbt. App: Next.js · Supabase/Postgres+pgvector · FastAPI.
+Data: Snowflake · Fivetran/Airbyte · dbt. App: Next.js · Neon/Postgres+pgvector · FastAPI.
 Intelligence: Claude/OpenAI · sklearn/XGBoost/LightGBM · PyMC/CausalML/DoWhy · Prophet/
 statsforecast · LangGraph · Langfuse · MLflow. Enterprise: Vanta/Drata · WorkOS · Sentry.
 

@@ -50,13 +50,13 @@ to earn the submit.
 ## Access codes
 
 Per-prospect, issued after contact/NDA. Generated server-side, tracked, and
-revocable. Stored in Postgres (Supabase), not a shared secret.
+revocable. Stored in Postgres (Neon), not a shared secret.
 
 Generate: a URL-safe random token (≥16 bytes). Issue one per prospect, record
 who and an expiry. A prospect enters it on `/upload`; we validate against the
 table and set `pk_access`.
 
-## Data layer (Supabase / Postgres)
+## Data layer (Neon / Postgres)
 
 ```sql
 leads(id, name, company, email, role_title, role_function, created_at, ip)
@@ -64,8 +64,8 @@ access_codes(code PK, issued_to, lead_id FK, expires_at, used_at, revoked)
 ```
 
 A thin `lib/store.ts` interface with two implementations:
-- **Supabase** when `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set (prod).
-- **Dev fallback** (in-memory + console) when they are not, so local build and
+- **Neon** (via `@neondatabase/serverless`) when `DATABASE_URL` is set (prod).
+- **Dev fallback** (in-memory + console) when it is not, so local build and
   verify are not blocked. Access codes fall back to a `PRICEKEEL_ACCESS_CODES`
   env list in dev.
 
@@ -95,7 +95,7 @@ Will get its own design doc before any build.
 
 ## Open dependencies
 
-- Founder provisions a Supabase project and sets `SUPABASE_URL` +
-  `SUPABASE_SERVICE_ROLE_KEY` (prod). Local dev uses the fallback.
+- Founder provisions a Neon project and sets `DATABASE_URL` (prod). Local dev
+  uses the fallback.
 - Benchmarks ("how you compare to peers") are a future locked feature; seed with
   public operator benchmarks (Poyar/Campbell), labeled, until a base exists.

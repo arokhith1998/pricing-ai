@@ -513,6 +513,6 @@ def answer_canonical(qid: str, analysis: dict,
 
 
 # The per-session in-memory decision log that used to live here moved to
-# pricing/governance.py (DecisionStore, kind='copilot'): Supabase-backed when
+# pricing/governance.py (DecisionStore, kind='copilot'): Neon-backed when
 # configured, memory fallback, same /copilot/log and /copilot/decisions
 # response shapes.

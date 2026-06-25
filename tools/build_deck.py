@@ -621,7 +621,7 @@ def investor_html() -> str:
         </div>
         <div class="group">
           <h4>Data and auth</h4>
-          <p><b>Supabase, Postgres</b>, leads and access codes.<br/>
+          <p><b>Neon, Postgres</b>, leads and access codes.<br/>
              <b>pgvector</b>, per-customer chunk store (Phase 3 path).<br/>
              <b>Microsoft 365</b>, contact email with DKIM and SPF.<br/>
              <b>Resend</b>, transactional lead-notify email.</p>
@@ -750,7 +750,7 @@ def investor_html() -> str:
         <div>
           <ul class="bullets">
             <li><b>Product.</b> 8 phases shipped, 77 tests passing, web build and lint clean.</li>
-            <li><b>Public site live.</b> pricekeel.com (Vercel), api.pricekeel.com (Render), Supabase Postgres.</li>
+            <li><b>Public site live.</b> pricekeel.com (Vercel), api.pricekeel.com (Render), Neon Postgres.</li>
             <li><b>Legal pack live.</b> Terms, Privacy, Subprocessors, Trust, Licenses. Founder follow-ups (entity, counsel review, TM, DMCA) tracked separately.</li>
             <li><b>Security hardened.</b> Cross-model launch review flagged 4 High items. All shipped this week.</li>
             <li><b>What is not here yet.</b> <span class="coral">No design partner. n=1 synthetic deal book. No testimonial.</span></li>
@@ -1140,9 +1140,9 @@ class Opportunity:
           <tr><td>Uploaded CSV row data</td><td>No, in-memory only</td><td>No</td><td>No</td></tr>
           <tr><td>Column header names</td><td>No</td><td>Only if cloud LLM mapping fallback fires</td><td>OpenAI or Anthropic (zero-retention)</td></tr>
           <tr><td>Aggregate analysis figures</td><td>Yes (the read-out)</td><td>Yes (for chat narration)</td><td>OpenAI or Anthropic (zero-retention)</td></tr>
-          <tr><td>Lead form fields</td><td>Supabase Postgres</td><td>No</td><td>Resend (notify email body only)</td></tr>
-          <tr><td>Access codes</td><td>Supabase Postgres</td><td>No</td><td>No</td></tr>
-          <tr><td>Decision log entries</td><td>Supabase Postgres (per session)</td><td>No</td><td>No</td></tr>
+          <tr><td>Lead form fields</td><td>Neon Postgres</td><td>No</td><td>Resend (notify email body only)</td></tr>
+          <tr><td>Access codes</td><td>Neon Postgres</td><td>No</td><td>No</td></tr>
+          <tr><td>Decision log entries</td><td>Neon Postgres (per session)</td><td>No</td><td>No</td></tr>
         </tbody>
       </table>
 

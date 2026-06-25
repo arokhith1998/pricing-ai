@@ -4,8 +4,8 @@
 // fill it again on a new device or after their cookie expired. The flow:
 //
 //   1. Visitor enters their email on /sample.
-//   2. POST /api/lead/magic-link looks them up in Supabase. If found, emails a
-//      short-lived signed URL.
+//   2. POST /api/lead/magic-link looks them up in the database. If found,
+//      emails a short-lived signed URL.
 //   3. GET /api/lead/redeem?t=<token> verifies the HMAC, sets pk_lead, and
 //      redirects them back into the gated area.
 //

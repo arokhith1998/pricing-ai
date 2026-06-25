@@ -51,7 +51,7 @@ export default function TrustPage() {
           </li>
           <li>
             <span className="font-medium text-fg">Database (leads + access codes).</span>{" "}
-            Supabase Postgres, United States (us-east-1).
+            Neon Postgres, United States (AWS us-east).
           </li>
         </ul>
         <p>
@@ -91,12 +91,12 @@ export default function TrustPage() {
             endpoints).
           </li>
           <li>
-            <span className="font-medium text-fg">At rest:</span> Supabase
+            <span className="font-medium text-fg">At rest:</span> Neon
             encrypts the database at rest by default (AES-256). Render and
             Vercel encrypt their storage volumes at rest.
           </li>
           <li>
-            Secrets (API keys, database service-role key, app signing
+            Secrets (API keys, database connection string, app signing
             secret) are stored in Vercel/Render encrypted environment
             variable stores and never appear in the codebase.
           </li>
@@ -107,13 +107,13 @@ export default function TrustPage() {
         <ul className="list-disc space-y-1 pl-6">
           <li>
             Only the founder has admin access to production infrastructure
-            (Vercel, Render, Supabase, GoDaddy DNS). MFA enforced on every
+            (Vercel, Render, Neon, GoDaddy DNS). MFA enforced on every
             account.
           </li>
           <li>
-            The Supabase database is reached server-side only with the
-            service-role key. The browser-side anon key is not exposed and
-            no public client has direct database access.
+            The Neon database is reached server-side only with a connection
+            string held in encrypted environment variables. No public client
+            has direct database access.
           </li>
           <li>
             Two-tier funnel gate: the captured-lead cookie unlocks the
@@ -155,8 +155,9 @@ export default function TrustPage() {
             branches deploy to isolated URLs.
           </li>
           <li>
-            <span className="font-medium text-fg">Backups:</span> Supabase
-            performs automated daily backups. Code is mirrored on GitHub.
+            <span className="font-medium text-fg">Backups:</span> Neon
+            retains point-in-time restore history for the database. Code is
+            mirrored on GitHub.
           </li>
           <li>
             <span className="font-medium text-fg">Monitoring:</span> Render

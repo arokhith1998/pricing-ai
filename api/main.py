@@ -515,13 +515,13 @@ class RecommendReq(BaseModel):
 # --- Ask-your-Pricekeel (Phase 3.0): docs + analysis + (optional) web RAG ------
 
 # In-memory chunk store keyed by session id. Dev fallback; production should
-# move to Supabase pgvector keyed to the customer.
+# move to Neon pgvector keyed to the customer.
 #
 # This dict is the single piece of process-lifetime state in the API. Without
 # any cap it grows on every upload until OOM. Hardening (per the 2026-05-30
 # launch-readiness review): per-session chunk cap, total-session cap, TTL,
 # and lazy expiry on every read/write. None of this is a substitute for
-# moving to Supabase pgvector, but it removes the foot-gun for soft launch.
+# moving to Neon pgvector, but it removes the foot-gun for soft launch.
 
 import time as _time
 
@@ -707,7 +707,7 @@ def copilot_canonical(req: CanonicalReq, request: Request) -> dict:
     )
     # Auto-log every surfaced set so the decision log always reflects what
     # the user actually saw (accept / reject can come later via /copilot/log).
-    # Persisted via the governance store (Supabase when configured), scoped
+    # Persisted via the governance store (Neon when configured), scoped
     # to the caller's tenant.
     if req.session_id:
         governance_mod.log_copilot_decision(
@@ -729,7 +729,7 @@ class DecisionLogReq(BaseModel):
 @app.post("/copilot/log")
 def copilot_log(req: DecisionLogReq, request: Request) -> dict:
     """Log a copilot decision. Same response contract as before; storage now
-    goes through pricing/governance.py (Supabase when configured, memory
+    goes through pricing/governance.py (Neon when configured, memory
     fallback) instead of a process-lifetime dict. Scoped to the tenant."""
     d = governance_mod.log_copilot_decision(
         req.session_id, req.qid,
@@ -752,7 +752,7 @@ def copilot_decisions(session_id: str, request: Request) -> dict:
 # The subscription use case: a deal-desk rep requests a below-floor discount,
 # Pricekeel returns the priced verdict (same EV-curve math as /recommend, no
 # LLM) and logs the decision; /digest re-surfaces the week's activity. Every
-# number is deterministic; storage via pricing/governance.py (Supabase when
+# number is deterministic; storage via pricing/governance.py (Neon when
 # configured, in-memory fallback).
 #
 # Percent convention (documented contract): requested_discount_pct and every
@@ -776,9 +776,9 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
     log it, and return the verdict. requested_discount_pct is percent 0-100.
 
     Response shape: {id, verdict, created_at, persisted}. `persisted` is True
-    when the decision was written durably to Supabase, False when it landed in
-    the in-memory fallback (Supabase unset or unreachable) — the response never
-    claims durability it does not have (Finding 5). The write is scoped to the
+    when the decision was written durably to the database, False when it landed
+    in the in-memory fallback (database unset or unreachable) — the response
+    never claims durability it does not have (Finding 5). The write is scoped to the
     caller's tenant via X-Pricekeel-Customer (Finding 3)."""
     if not (0.0 <= req.requested_discount_pct
             <= governance_mod.EXCEPTION_MAX_PCT):

@@ -1,7 +1,7 @@
 // POST /api/lead/magic-link
 // Body: { email: string, next?: string }
 //
-// If we have a lead with this email in Supabase, generate a 24-hour signed
+// If we have a lead with this email in the database, generate a 24-hour signed
 // link and email it. If we do not, behave identically (return ok: true) so
 // the response cannot be used to enumerate which emails are in our database.
 //

@@ -128,7 +128,7 @@ The web app is a two-tier funnel (see `docs/design/buyer-funnel.md`):
   contact / NDA. Uploaded CSVs are processed and deleted, never stored.
 
 A Next.js `proxy.ts` enforces both gates. Leads and access codes are stored in
-Supabase/Postgres in production (run `supabase/schema.sql`); without Supabase
+Neon/Postgres in production (run `neon/schema.sql`); without `DATABASE_URL`
 configured, local dev logs leads to the console and accepts codes from
 `PRICEKEEL_ACCESS_CODES`. See `web/.env.example` for all variables.
 
@@ -161,7 +161,7 @@ docker run -p 8000:8000 pricekeel-api          # honors $PORT on the host
 Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
 
 - `PRICEKEEL_API` = the deployed API's URL (e.g. `https://pricekeel-api.onrender.com`)
-- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` = your Supabase project (leads + access codes)
+- `DATABASE_URL` = your Neon pooled connection string (leads + access codes + decision log). Set the same value on the API (Render).
 - `PRICEKEEL_SECRET` = a long random string (derives the access cookie)
 - `NEXT_PUBLIC_CONTACT_EMAIL` = optional, surfaces a "request access" mailto
 
