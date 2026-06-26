@@ -234,12 +234,12 @@ export default function PrivacyPage() {
       <Section id="security" title="Security measures (GDPR Art. 32)">
         <p>
           Encryption in transit (TLS 1.2+) on all endpoints. Encryption at
-          rest on the database (AES-256 via Supabase). Secrets stored in
-          encrypted environment-variable stores. Server-side service-role
-          access only to the database; no anon key in the browser.
+          rest on the database (AES-256 via Neon). Secrets stored in
+          encrypted environment-variable stores. Server-side connection-string
+          access only to the database; no database credential in the browser.
           Multi-factor authentication enforced on every admin account.
-          Change management via GitHub pull requests with CI. Daily
-          automated database backups. The full security posture is at{" "}
+          Change management via GitHub pull requests with CI. Point-in-time
+          database restore history. The full security posture is at{" "}
           <a className="text-teal underline" href="/trust">/trust</a>.
         </p>
       </Section>

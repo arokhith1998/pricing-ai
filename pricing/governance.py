@@ -2,10 +2,10 @@
 
 The decision log is the product's system-of-record moat: every copilot
 decision and every discount-exception request is appended here with the
-deterministic math that backed it. Storage is Supabase (PostgREST over
-httpx) when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set, with an
-in-memory fallback for dev and tests. A failed Supabase call never fails
-the request: we log, fall back to memory, and keep serving.
+deterministic math that backed it. Storage is Neon/Postgres (psycopg) when
+DATABASE_URL is set, with an in-memory fallback for dev and tests. A failed
+database call never fails the request: we log, fall back to memory, and keep
+serving.
 
 Honesty rules (same as pricing/copilot.py): every number in a verdict or
 digest is deterministic — read off the win-probability model's EV curve or
@@ -29,7 +29,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-import httpx
+import psycopg
+from psycopg.rows import dict_row
+from psycopg.types.json import Json
 
 from pricing import model
 from pricing.schema import DEFAULT_POLICY_THRESHOLD
@@ -37,8 +39,7 @@ from pricing.schema import DEFAULT_POLICY_THRESHOLD
 logger = logging.getLogger("pricekeel.governance")
 
 _TABLE = "decision_log"
-_USER_AGENT = "pricekeel-api/1.0"  # Supabase 401s secret keys on browser-like UAs
-_TIMEOUT_S = 5.0
+_CONNECT_TIMEOUT_S = 5  # libpq connect_timeout is whole seconds
 
 # The win-probability model sweeps discounts on a 0..40% grid
 # (model.recommend_discount). Requests outside it cannot be scored honestly.
@@ -57,7 +58,7 @@ def _now_utc() -> datetime:
 
 
 def _parse_iso(s: str) -> Optional[datetime]:
-    """Lenient ISO-8601 parse (PostgREST may emit 'Z' or '+00:00')."""
+    """Lenient ISO-8601 parse (Postgres may emit 'Z' or '+00:00')."""
     try:
         dt = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
         return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
@@ -65,31 +66,33 @@ def _parse_iso(s: str) -> Optional[datetime]:
         return None
 
 
-def _supabase_config() -> Optional[tuple[str, str]]:
-    """(url, service key) when both envs are set; read at call time so tests
-    and Render env changes take effect without re-import (same convention as
-    the API perimeter)."""
-    url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-    return (url, key) if url and key else None
+def _db_url() -> Optional[str]:
+    """The Neon/Postgres connection string when set; read at call time so
+    tests and Render env changes take effect without re-import (same
+    convention as the API perimeter)."""
+    url = os.environ.get("DATABASE_URL", "").strip()
+    return url or None
 
 
-def _headers(key: str) -> dict[str, str]:
-    return {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "User-Agent": _USER_AGENT,
-    }
+def _row_out(row: dict) -> dict:
+    """Normalize a DB row for the API surface: uuid -> str, datetime -> ISO."""
+    out = dict(row)
+    if "id" in out:
+        out["id"] = str(out["id"])
+    created = out.get("created_at")
+    if hasattr(created, "isoformat"):
+        out["created_at"] = created.isoformat()
+    return out
 
 
 class DecisionStore:
-    """Append-only decision log: Supabase-backed, memory-fallback.
+    """Append-only decision log: Neon/Postgres-backed, memory-fallback.
 
-    Rows mirror the `decision_log` table in supabase/schema.sql:
+    Rows mirror the `decision_log` table in neon/schema.sql:
       id, customer_ref, kind, deal_id, payload (dict), decision,
       justification, requested_by, created_at (ISO-8601 string).
 
-    Memory holds rows written while Supabase was unset OR unreachable, so
+    Memory holds rows written while the database was unset OR unreachable, so
     reads merge both sources — a transient outage loses nothing for the
     lifetime of the process.
     """
@@ -109,12 +112,12 @@ class DecisionStore:
                customer_ref: str = "default") -> dict:
         """Append one decision. Returns the stored row (with id, created_at).
 
-        Never raises on storage failure: a Supabase error degrades to the
+        Never raises on storage failure: a database error degrades to the
         in-memory log so the caller's request still succeeds.
 
         The returned row carries a transient `persisted` flag (Finding 5):
-        True when the write reached Supabase durably, False when it landed in
-        the memory fallback (Supabase unset or unreachable). The flag is for
+        True when the write reached the database durably, False when it landed
+        in the memory fallback (database unset or unreachable). The flag is for
         the caller's response only; it is not part of the stored row.
         """
         if kind not in DECISION_KINDS:
@@ -128,21 +131,24 @@ class DecisionStore:
             "justification": justification,
             "requested_by": requested_by,
         }
-        cfg = _supabase_config()
-        if cfg is not None:
-            url, key = cfg
+        url = _db_url()
+        if url is not None:
             try:
-                resp = httpx.post(
-                    f"{url}/rest/v1/{_TABLE}",
-                    json=body,
-                    headers={**_headers(key), "Prefer": "return=representation"},
-                    timeout=_TIMEOUT_S,
-                )
-                resp.raise_for_status()
-                rows = resp.json()
-                if isinstance(rows, list) and rows:
-                    return {**rows[0], "persisted": True}
-                raise ValueError("unexpected PostgREST insert response shape")
+                with psycopg.connect(url, connect_timeout=_CONNECT_TIMEOUT_S) as conn:
+                    with conn.cursor(row_factory=dict_row) as cur:
+                        cur.execute(
+                            f"insert into {_TABLE} "
+                            "(customer_ref, kind, deal_id, payload, decision, "
+                            "justification, requested_by) "
+                            "values (%s, %s, %s, %s, %s, %s, %s) returning *",
+                            (body["customer_ref"], body["kind"], body["deal_id"],
+                             Json(body["payload"]), body["decision"],
+                             body["justification"], body["requested_by"]),
+                        )
+                        row = cur.fetchone()
+                if row:
+                    return {**_row_out(row), "persisted": True}
+                raise ValueError("insert returned no row")
             except Exception as exc:  # noqa: BLE001 — degrade, never 500
                 logger.warning("decision_log insert fell back to memory: %s", exc)
         # persisted=False: this is the memory fallback, not durable storage.
@@ -160,35 +166,40 @@ class DecisionStore:
              since: datetime | None = None, limit: int = 200,
              newest_first: bool = True,
              customer_ref: str = "default") -> list[dict]:
-        """Rows matching the filters, Supabase and memory merged the same way.
+        """Rows matching the filters, database and memory merged the same way.
 
         Tenant-scoped: only rows for `customer_ref` are returned (Finding 3).
         One customer's decision log is invisible to another.
         """
         rows: list[dict] = []
-        cfg = _supabase_config()
-        if cfg is not None:
-            url, key = cfg
-            params: dict[str, str] = {
-                "select": "*",
-                "order": f"created_at.{'desc' if newest_first else 'asc'}",
-                "limit": str(limit),
-                "customer_ref": f"eq.{customer_ref}",
-            }
+        url = _db_url()
+        if url is not None:
+            clauses = ["customer_ref = %s"]
+            vals: list[Any] = [customer_ref]
             if kind:
-                params["kind"] = f"eq.{kind}"
+                clauses.append("kind = %s")
+                vals.append(kind)
             if session_id is not None:
-                params["payload->>session_id"] = f"eq.{session_id}"
+                # payload->>'session_id': extract the JSON field as text.
+                clauses.append("payload->>'session_id' = %s")
+                vals.append(session_id)
             if since is not None:
-                params["created_at"] = f"gte.{since.isoformat()}"
+                clauses.append("created_at >= %s")
+                vals.append(since)
+            where = " and ".join(clauses)
+            order = "desc" if newest_first else "asc"
+            query = (f"select * from {_TABLE} where {where} "
+                     f"order by created_at {order} limit %s")
+            vals.append(limit)
             try:
-                resp = httpx.get(f"{url}/rest/v1/{_TABLE}", params=params,
-                                 headers=_headers(key), timeout=_TIMEOUT_S)
-                resp.raise_for_status()
-                rows = list(resp.json())
+                with psycopg.connect(url, connect_timeout=_CONNECT_TIMEOUT_S) as conn:
+                    with conn.cursor(row_factory=dict_row) as cur:
+                        cur.execute(query, vals)
+                        fetched = cur.fetchall()
+                rows = [_row_out(r) for r in fetched]
             except Exception as exc:  # noqa: BLE001
                 logger.warning("decision_log read fell back to memory: %s", exc)
-        # Memory rows: everything written pre-Supabase or during an outage.
+        # Memory rows: everything written with no DB configured or during an outage.
         with self._lock:
             mem = [r for r in self._memory
                    if self._matches(r, kind, session_id, since, customer_ref)]

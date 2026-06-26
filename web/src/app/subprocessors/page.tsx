@@ -36,11 +36,11 @@ const SUBPROCESSORS: Sub[] = [
     dpa: "https://render.com/legal/dpa",
   },
   {
-    name: "Supabase",
-    purpose: "Postgres database (leads, access codes)",
-    region: "United States (us-east-1)",
-    dataCategory: "Lead contact details, access codes",
-    dpa: "https://supabase.com/legal/dpa",
+    name: "Neon",
+    purpose: "Postgres database (leads, access codes, decision log)",
+    region: "United States (AWS us-east)",
+    dataCategory: "Lead contact details, access codes, logged pricing decisions",
+    dpa: "https://neon.com/legal/dpa",
   },
   {
     name: "OpenAI",

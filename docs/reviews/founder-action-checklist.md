@@ -50,15 +50,15 @@ and `/` stay exempt so Render's probe is unaffected.
 2. **File the entity** (~Jun 24 per roadmap; before any NDA signature). If you are on a
    student/work visa, immigration attorney BEFORE filing.
 3. **Rotate all credentials**, then delete `All Passwords.txt` into a password manager
-   (1Password/Bitwarden). Rotate: Supabase service key + DB password (dashboard), Perplexity
-   key (console), PRICEKEEL_SECRET (generate new). Update in: Vercel env, Render env, and the
-   two GitHub Actions secrets. Reason: the file sat in plaintext during the public-repo era,
-   on a machine with an unidentified sync/corruption agent.
+   (1Password/Bitwarden). Rotate: Neon database connection string (reset the role password
+   in the Neon console), Perplexity key (console), PRICEKEEL_SECRET (generate new). Update
+   in: Vercel env and Render env. Reason: the file sat in plaintext during the public-repo
+   era, on a machine with an unidentified sync/corruption agent.
 4. **Close the API perimeter**: generate one random key, set `PRICEKEEL_API_KEY` in BOTH
    Render and Vercel, redeploy both. Until set, api.pricekeel.com stays open (code is
    deployed and enforces the moment the env var exists). Also confirm in Vercel:
-   `PRICEKEEL_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` are present (the app now
-   fails fast in production without them) and `PRICEKEEL_ENV` is NOT `dev` on Render.
+   `PRICEKEEL_SECRET` and `DATABASE_URL` are present (the app now fails fast in production
+   without them) and `PRICEKEEL_ENV` is NOT `dev` on Render. `DATABASE_URL` goes on Render too.
 5. **Sentry**: create the account, add DSN to both tiers (the code-side wiring is a 30-minute
    follow-up once you have the DSN; ask and it gets done).
 6. **Provider spend caps**: set hard monthly limits in the OpenAI, Anthropic, and Perplexity
@@ -74,9 +74,13 @@ and `/` stay exempt so Render's probe is unaffected.
 9. **Advisor methodology call**: segment-aware references are now shipped (demo headline
    $11.2M → $8.9M); get the sign-off the roadmap already requires. HARD GATE: no real-data
    readout before sign-off.
-10. **Supabase plan decision**: keep-alive prevents pausing, but Pro ($25/mo) adds real
-    backups (the privacy page promises "daily automated backups"; verify that claim or
-    soften it).
+10. **Neon plan decision** (migrated off Supabase 2026-06-25): Neon's free tier auto-suspends
+    idle compute and auto-resumes on the next query (~sub-second cold start), so lead capture
+    cannot silently die the way the old Supabase free-tier pause killed it. No keep-alive hack
+    is needed. Decide whether the first-request cold-start delay after idle is acceptable for
+    outreach; the paid Launch plan removes suspension and extends point-in-time restore. The
+    privacy/trust pages were softened to "point-in-time restore history", so the earlier
+    "daily automated backups" mismatch is resolved.
 11. **Blog cadence**: Jun 9 and Jun 11 posts are missing; the calendar already slipped.
     Write or reschedule before prospects you email see a stale blog.
 12. **Warm channels**: recruit 3-5 pricing consultants / fractional CFOs and pitch one VC

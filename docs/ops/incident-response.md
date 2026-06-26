@@ -10,11 +10,11 @@ this page is how that promise is met by one person under stress. Companion:
 
 - File integrity failure: a customer file's SHA-256 no longer matches the access-log hash,
   or the known corruption agent touches `C:\pricekeel-customer-data\`.
-- Unexpected access: Supabase logs show reads/writes you did not make; Render or Vercel
+- Unexpected access: Neon logs show reads/writes you did not make; Render or Vercel
   shows deploys, env-var changes, or traffic you did not initiate.
 - Credential exposure: any key, password, or access code found in a public repo, paste,
   email thread, or screenshot.
-- Provider notice: breach notification from Supabase, Render, Vercel, OpenAI, Microsoft,
+- Provider notice: breach notification from Neon, Render, Vercel, OpenAI, Microsoft,
   or GoDaddy affecting our tenancy.
 - Customer report: "we received something odd" or "someone has our numbers."
 - Register mismatch: the data register and reality disagree about what we hold or where.
@@ -29,8 +29,8 @@ post-incident review.
 
 ## 3. Containment (in parallel with scoping)
 
-- Rotate all keys: Supabase service + anon keys, database password, OpenAI and Perplexity
-  keys, PRICEKEEL_SECRET, Vercel and Render tokens.
+- Rotate all keys: Neon database connection string (reset the role password in the Neon
+  console), OpenAI and Perplexity keys, PRICEKEEL_SECRET, Vercel and Render tokens.
 - Revoke or rotate customer access codes and invalidate outstanding magic links.
 - Pause the API (Render service suspend) if it is a plausible vector; the static site can
   stay up.

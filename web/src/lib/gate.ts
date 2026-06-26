@@ -19,7 +19,7 @@
 // Both cookies are HMAC-signed (auth.ts), so a self-granted pk_lead=1 no
 // longer passes. requireAccess additionally re-checks the access code that
 // is embedded in the cookie against the access_codes table, so revoking a
-// code in Supabase revokes that customer's API access immediately.
+// code in the database revokes that customer's API access immediately.
 
 import { cookies } from "next/headers";
 import {

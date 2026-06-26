@@ -1,7 +1,10 @@
--- Pricekeel buyer-funnel storage (Supabase / Postgres).
--- Run in the Supabase SQL editor. The web app uses the service-role key
--- server-side only, so row-level security is not required for these tables;
--- keep the anon key away from them.
+-- Pricekeel storage (Neon / Postgres).
+-- Run once in the Neon SQL editor (or psql) against your project's database.
+--
+-- Access is gated by the connection string (DATABASE_URL), which the web app
+-- (Vercel) and API (Render) hold server-side only. There is no public/anon
+-- HTTP surface in front of these tables, so row-level security is not needed
+-- the way it was under Supabase's PostgREST anon role. Keep DATABASE_URL secret.
 
 create table if not exists leads (
   id            uuid primary key default gen_random_uuid(),
@@ -30,22 +33,15 @@ create table if not exists access_codes (
   created_at  timestamptz not null default now()
 );
 
--- RLS: enabled with NO policies. The app talks to these tables exclusively
--- through the service-role key (which bypasses RLS), so enabling RLS costs
--- nothing and blocks the anon key entirely (with RLS off, the default anon
--- grants would expose both tables). Applied to prod 2026-06-11.
-alter table leads enable row level security;
-alter table access_codes enable row level security;
-
 -- Issue a code (generate a random URL-safe token outside SQL, then):
 --   insert into access_codes (code, issued_to, expires_at)
 --   values ('PASTE-RANDOM-TOKEN', 'Acme Inc', now() + interval '30 days');
 -- Revoke one:   update access_codes set revoked = true where code = '...';
 
--- Governance loop (2026-06-11): persistent decision log. Every copilot
--- decision and discount-exception request the API serves is appended here
--- (pricing/governance.py via PostgREST, service-role key only). This is the
--- system-of-record moat; rows are append-only and never updated.
+-- Governance loop: persistent decision log. Every copilot decision and
+-- discount-exception request the API serves is appended here (pricing/
+-- governance.py via psycopg, DATABASE_URL only). This is the system-of-record
+-- moat; rows are append-only and never updated.
 create table if not exists decision_log (
   id uuid primary key default gen_random_uuid(),
   customer_ref text not null default 'default',
@@ -62,7 +58,3 @@ create table if not exists decision_log (
 -- /digest reads everything in the last 7 days.
 create index if not exists decision_log_kind_created_at_idx
   on decision_log (kind, created_at desc);
-
--- Same RLS posture as the tables above: enabled with no policies, so only
--- the service-role key (which bypasses RLS) can touch it.
-alter table decision_log enable row level security;

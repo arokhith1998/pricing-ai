@@ -7,8 +7,8 @@ import { useState } from "react";
 // a re-fill. Behavior:
 //
 //   1. User enters their email and submits.
-//   2. POST /api/lead/magic-link looks them up in Supabase. If found, emails
-//      a signed URL valid for 24 hours.
+//   2. POST /api/lead/magic-link looks them up in the database. If found,
+//      emails a signed URL valid for 24 hours.
 //   3. Response is always `{ ok: true }` regardless (no email enumeration).
 //   4. UI swaps to "Check your inbox" and disables further submissions.
 

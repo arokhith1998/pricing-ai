@@ -16,7 +16,7 @@ const DEPS: Dep[] = [
   { name: "react-dom", license: "MIT", url: "https://github.com/facebook/react", layer: "web" },
   { name: "framer-motion", license: "MIT", url: "https://github.com/framer/motion", layer: "web" },
   { name: "recharts", license: "MIT", url: "https://github.com/recharts/recharts", layer: "web" },
-  { name: "@supabase/supabase-js", license: "MIT", url: "https://github.com/supabase/supabase-js", layer: "web" },
+  { name: "@neondatabase/serverless", license: "MIT", url: "https://github.com/neondatabase/serverless", layer: "web" },
   { name: "marked", license: "MIT", url: "https://github.com/markedjs/marked", layer: "web" },
   { name: "tailwindcss", license: "MIT", url: "https://github.com/tailwindlabs/tailwindcss", layer: "web" },
   { name: "typescript", license: "Apache-2.0", url: "https://github.com/microsoft/TypeScript", layer: "web" },

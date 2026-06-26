@@ -1,8 +1,8 @@
 """Governance-loop tests: decision store, /exceptions verdicts, /digest.
 
 Covers the subscription use case end to end, offline and deterministic:
-  1. DecisionStore memory mode (no Supabase envs) and Supabase-failure
-     degradation (mocked httpx — no network ever).
+  1. DecisionStore memory mode (no DATABASE_URL) and database-failure
+     degradation (mocked psycopg — no network ever).
   2. Exception verdicts pinned on the demo book: below_floor on both sides
      of the 15 percent floor, EV-delta sign, 404/422, percent 0-100 surface.
   3. Digest aggregation from seeded decision-log entries, including the
@@ -10,9 +10,9 @@ Covers the subscription use case end to end, offline and deterministic:
   4. The perimeter (shared-secret auth + rate-limit rules) on the new
      endpoints.
 
-LLM keys are stripped so nothing calls a provider; Supabase envs are
-stripped so the store runs in memory; the store and limiter are reset
-around every test.
+LLM keys are stripped so nothing calls a provider; DATABASE_URL is stripped
+so the store runs in memory; the store and limiter are reset around every
+test.
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -35,9 +34,9 @@ FLOOR = 15.0  # DEFAULT_POLICY_THRESHOLD on the percent 0-100 API surface
 
 @pytest.fixture(autouse=True)
 def _clean(monkeypatch):
-    """No API key, no LLM keys, no Supabase, empty store + limiter."""
+    """No API key, no LLM keys, no DATABASE_URL, empty store + limiter."""
     for var in ("PRICEKEEL_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"):
+                "DATABASE_URL"):
         monkeypatch.delenv(var, raising=False)
     # Dev path: the no-key endpoint tests below run open (warn-and-allow);
     # prod fail-closed is covered in test_api_perimeter.py.
@@ -105,15 +104,57 @@ def test_list_filters_by_session_and_since():
     assert len(recent) == 2
 
 
-def test_supabase_failure_degrades_to_memory(monkeypatch, caplog):
-    monkeypatch.setenv("SUPABASE_URL", "https://example.invalid")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sk-test")
+# Fake psycopg connection so the DB-backed paths run with no network. The
+# cursor ignores the SQL it is handed and returns the rows it was seeded with;
+# context-manager protocol is honored because the store uses `with` on both
+# the connection and the cursor.
+class _FakeCursor:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def execute(self, *_a, **_k):
+        pass
+
+    def fetchone(self):
+        return dict(self._rows[0]) if self._rows else None
+
+    def fetchall(self):
+        return [dict(r) for r in self._rows]
+
+
+class _FakeConn:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def cursor(self, *_a, **_k):
+        return _FakeCursor(self._rows)
+
+
+def _fake_connect_returning(rows):
+    def _connect(*_a, **_k):
+        return _FakeConn(rows)
+    return _connect
+
+
+def test_db_failure_degrades_to_memory(monkeypatch, caplog):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://invalid/db")
 
     def boom(*_a, **_k):
-        raise httpx.ConnectError("network down")
+        raise RuntimeError("network down")
 
-    monkeypatch.setattr(governance.httpx, "post", boom)
-    monkeypatch.setattr(governance.httpx, "get", boom)
+    monkeypatch.setattr(governance.psycopg, "connect", boom)
 
     with caplog.at_level(logging.WARNING, logger="pricekeel.governance"):
         row = governance.STORE.insert(kind="exception", deal_id="D-1")
@@ -129,23 +170,33 @@ def test_memory_insert_reports_not_persisted():
     assert row["persisted"] is False
 
 
-def test_supabase_success_reports_persisted(monkeypatch):
-    # Finding 5: a durable Supabase write reports persisted=True.
-    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sk-test")
-
-    class _Resp:
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return [{"id": "u-1", "created_at": "2026-06-11T00:00:00+00:00"}]
-
-    monkeypatch.setattr(governance.httpx, "post",
-                        lambda *a, **k: _Resp())
+def test_db_success_reports_persisted(monkeypatch):
+    # Finding 5: a durable DB write reports persisted=True.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example/db")
+    fixture = {"id": "u-1", "created_at": "2026-06-11T00:00:00+00:00",
+               "kind": "exception", "deal_id": "D-1"}
+    monkeypatch.setattr(governance.psycopg, "connect",
+                        _fake_connect_returning([fixture]))
     row = governance.STORE.insert(kind="exception", deal_id="D-1")
     assert row["id"] == "u-1"
     assert row["persisted"] is True
+
+
+def test_db_list_returns_rows_from_db(monkeypatch):
+    # The new SQL read path returns DB rows, newest first.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example/db")
+    fixture = [
+        {"id": "u-2", "created_at": "2026-06-11T00:00:02+00:00",
+         "kind": "exception", "deal_id": "D-2", "customer_ref": "default",
+         "payload": {}},
+        {"id": "u-1", "created_at": "2026-06-11T00:00:01+00:00",
+         "kind": "exception", "deal_id": "D-1", "customer_ref": "default",
+         "payload": {}},
+    ]
+    monkeypatch.setattr(governance.psycopg, "connect",
+                        _fake_connect_returning(fixture))
+    out = governance.STORE.list(kind="exception")
+    assert [r["deal_id"] for r in out] == ["D-2", "D-1"]
 
 
 # --- 1c. tenant scoping (Finding 3) ------------------------------------------
@@ -178,7 +229,7 @@ def test_exceptions_isolated_across_customers_via_header(client, deal_id):
 
 
 def test_exceptions_response_includes_persisted_flag(client, deal_id):
-    # Memory mode (no Supabase env): persisted must be False, never claimed.
+    # Memory mode (no DATABASE_URL): persisted must be False, never claimed.
     r = client.post("/exceptions",
                     json={"deal_id": deal_id, "requested_discount_pct": 20.0,
                           "justification": "x", "requested_by": "rep@x.com"})
@@ -211,33 +262,6 @@ def test_digest_scoped_by_customer(client, deal_id):
     assert a["stats"]["exceptions_total"] == 1
     assert b["customer"] == "B"
     assert b["stats"]["exceptions_total"] == 0
-
-
-def test_supabase_requests_carry_service_headers(monkeypatch):
-    """Supabase 401s the secret key on browser-like User-Agents; pin ours."""
-    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sk-test")
-    seen = {}
-
-    class _Resp:
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return [{"id": "u-1", "created_at": "2026-06-11T00:00:00+00:00"}]
-
-    def fake_post(url, json=None, headers=None, timeout=None):
-        seen.update(url=url, headers=headers, body=json)
-        return _Resp()
-
-    monkeypatch.setattr(governance.httpx, "post", fake_post)
-    row = governance.STORE.insert(kind="copilot", payload={"x": 1})
-    assert row["id"] == "u-1"
-    assert seen["url"].endswith("/rest/v1/decision_log")
-    h = seen["headers"]
-    assert h["User-Agent"] == "pricekeel-api/1.0"
-    assert h["apikey"] == "sk-test"
-    assert h["Authorization"] == "Bearer sk-test"
 
 
 # --- 2. /exceptions verdicts pinned on the demo book --------------------------
