@@ -1,24 +1,15 @@
 import Link from "next/link";
-import Reveal, { Stagger, StaggerItem } from "@/components/Reveal";
+import Reveal from "@/components/Reveal";
 import HeroHeadline from "@/components/HeroHeadline";
 import LeakageCalculator from "@/components/LeakageCalculator";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
-import DeliverableSection from "@/components/DeliverableSection";
+import WhatYouGet from "@/components/WhatYouGet";
 import FounderStrip from "@/components/FounderStrip";
 
 // Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
-
-function Capability({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="pk-card-3d h-full rounded-xl border border-mist bg-surface p-5 shadow-sm">
-      <h3 className="font-semibold text-fg">{title}</h3>
-      <p className="mt-1 text-sm text-slate">{body}</p>
-    </div>
-  );
-}
 
 export default function Landing() {
   return (
@@ -66,10 +57,11 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 2b. Deliverable section (NEW per 2026-05-30 review) -------------- */}
+      {/* 2b. What it does + what you get, merged into one pillar grid so the
+          four ideas are stated once instead of across two separate grids. */}
       <Reveal inView>
         <section className="mt-14">
-          <DeliverableSection />
+          <WhatYouGet />
         </section>
       </Reveal>
 
@@ -86,39 +78,6 @@ export default function Landing() {
               Open the full calculator →
             </Link>
           </p>
-        </section>
-      </Reveal>
-
-      {/* 4. What it does, 4 cards including Defend the decision. */}
-      <Reveal inView>
-        <section className="mt-14">
-          <h2 className="text-center text-xl font-bold text-fg">What it does</h2>
-          <Stagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StaggerItem className="h-full">
-              <Capability
-                title="Find the leakage"
-                body="Price realization, win rate by discount band, and three views of discount leakage from a plain description to the strongest claim worth acting on."
-              />
-            </StaggerItem>
-            <StaggerItem className="h-full">
-              <Capability
-                title="Find the win point"
-                body="The discount level where win rate stops improving. Everything given beyond it is a list to investigate, not a refund."
-              />
-            </StaggerItem>
-            <StaggerItem className="h-full">
-              <Capability
-                title="Guide the next discount"
-                body="A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why."
-              />
-            </StaggerItem>
-            <StaggerItem className="h-full">
-              <Capability
-                title="Defend the decision"
-                body="Every Pricekeel recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers."
-              />
-            </StaggerItem>
-          </Stagger>
         </section>
       </Reveal>
 
