@@ -131,7 +131,8 @@ The web app is a two-tier funnel (see `docs/design/buyer-funnel.md`):
   PKCE, live Opportunity analysis, and optional completed-Task writeback.
 
 A Next.js `proxy.ts` enforces both gates. Leads and access codes are stored in
-Neon/Postgres in production (run `neon/schema.sql`); without `DATABASE_URL`
+Neon/Postgres in production (run `neon/schema.sql` for a new database, or the
+dated files in `neon/migrations/` for an existing production database); without `DATABASE_URL`
 configured, local dev logs leads to the console and accepts codes from
 `PRICEKEEL_ACCESS_CODES`. See `web/.env.example` for all variables.
 
@@ -176,6 +177,10 @@ Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
 - `SALESFORCE_TOKEN_ENCRYPTION_KEY` = a separate high-entropy secret used for
   application-level AES-256-GCM encryption before OAuth tokens reach Neon
 - `SALESFORCE_API_VERSION` = `67.0` (Summer '26; configurable for future moves)
+
+For the Salesforce CRM workflow on an existing Pricekeel database, apply
+`neon/migrations/2026-08-01-salesforce-crm-workflow.sql` before deploying the
+web changes. The migration is additive, transactional, and safe to rerun.
 
 The browser only ever talks to the Vercel origin; the API URL stays
 server-side. Lock down the API host too (the open CORS policy in `api/main.py`
