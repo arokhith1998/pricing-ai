@@ -606,20 +606,12 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     return df
 
 
-def ingest_verbose(
-    path: str | Path,
-    policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+def _ingest_loaded(
+    df: pd.DataFrame,
+    report: LoadReport,
+    policy_threshold: float,
 ) -> tuple[pd.DataFrame, LoadReport]:
-    """Full pipeline returning the enriched deals AND a LoadReport of what was
-    read, excluded, deduped, decoded, and inferred.
-
-    Pipeline: load → map headers → drop blanks → validate columns → coerce →
-    dedupe → exclude open deals → require enough closed data → resolve → enrich.
-    The report is the customer-facing 'here is what we read from your file'
-    artifact; see data/synthetic/adversarial-fixtures/ for the traps it closes.
-    """
-    report = LoadReport(source=Path(path).name)
-    df = load_any(path, report)
+    """Run the canonical pipeline on an already-loaded frame."""
     df = apply_header_mapping(df, report)
 
     # Drop blank / summary rows that carry no opportunity id.
@@ -649,6 +641,38 @@ def ingest_verbose(
     report.rows_kept = len(df)
     report.above_list_deals = int((df["discount_pct"] < 0).sum())
     return df, report
+
+
+def ingest_frame_verbose(
+    frame: pd.DataFrame,
+    source: str = "in-memory records",
+    policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+) -> tuple[pd.DataFrame, LoadReport]:
+    """In-memory counterpart to ingest_verbose.
+
+    CRM connectors use this path so live opportunity rows never need a
+    temporary file. The validation, disclosure, and enrichment behavior is
+    otherwise identical to a CSV/XLSX diagnostic.
+    """
+    report = LoadReport(source=source)
+    return _ingest_loaded(frame.copy(), report, policy_threshold)
+
+
+def ingest_verbose(
+    path: str | Path,
+    policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+) -> tuple[pd.DataFrame, LoadReport]:
+    """Full pipeline returning the enriched deals AND a LoadReport of what was
+    read, excluded, deduped, decoded, and inferred.
+
+    Pipeline: load → map headers → drop blanks → validate columns → coerce →
+    dedupe → exclude open deals → require enough closed data → resolve → enrich.
+    The report is the customer-facing 'here is what we read from your file'
+    artifact; see data/synthetic/adversarial-fixtures/ for the traps it closes.
+    """
+    report = LoadReport(source=Path(path).name)
+    df = load_any(path, report)
+    return _ingest_loaded(df, report, policy_threshold)
 
 
 def ingest(path: str | Path,

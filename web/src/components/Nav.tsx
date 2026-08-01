@@ -61,6 +61,7 @@ type NavLink = {
 
 const LINKS: NavLink[] = [
   { href: "/sample", label: "Overview", gated: false },
+  { href: "/crm", label: "Salesforce", gated: false },
   { href: "/diagnostic", label: "Diagnostic", gated: true, unlockSlug: "diagnostic" },
   { href: "/guidance", label: "Guidance", gated: true, unlockSlug: "guidance" },
   { href: "/competitor-watch", label: "Competitor watch", gated: true, unlockSlug: "competitor-watch" },

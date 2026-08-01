@@ -97,6 +97,15 @@ export default function TermsPage() {
           Row-level deal data uploaded to the diagnostic is processed in
           memory and not persisted after the analysis completes.
         </p>
+        <p>
+          If you authorize Salesforce, you represent that you have authority to
+          grant the requested access. Pricekeel may read Opportunity data and,
+          only when you explicitly request writeback, create a completed Task
+          related to the selected Opportunity. Live Opportunity rows are not
+          persisted in the Pricekeel database; encrypted OAuth tokens,
+          connection/mapping metadata, and the decision audit trail are retained
+          as described in the Privacy Policy.
+        </p>
       </Section>
 
       <Section id="ai-outputs" title="4. AI outputs">

@@ -5,6 +5,10 @@
 import { requireLead } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
+const API_HEADERS = {
+  "Content-Type": "application/json",
+  "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+};
 // Plan extraction is LLM-bound and pricing pages can be slow to fetch;
 // give the upstream more headroom than the default Vercel route limit.
 export const maxDuration = 60;
@@ -39,13 +43,13 @@ export async function POST(req: Request) {
   if (action === "competitor") {
     return forwardJson(`${API}/matching/competitor`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: API_HEADERS,
       body: JSON.stringify(body),
     });
   }
   return forwardJson(`${API}/matching/compare`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: API_HEADERS,
     body: JSON.stringify(body),
   });
 }

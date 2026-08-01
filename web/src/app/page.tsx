@@ -23,28 +23,28 @@ export default function Landing() {
           <div className="mt-4 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-surface px-3 py-1 text-xs font-semibold text-teal">
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />
-              For VP Pricing teams at $10 to 100M ARR usage-based B2B SaaS
+              For RevOps and Pricing teams at $20 to 100M ARR B2B SaaS
             </span>
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
-            Pricekeel reads your closed deals and shows where discounting buys
-            wins, where it just gives money away, and the discount that earns the
-            most on the next deal. No warehouse, no integration. One CSV.
+            Pricekeel sits on Salesforce, learns where discounting stops buying
+            wins, and brings that evidence into the exception-approval workflow
+            before the next deal is signed.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/sample"
               className="rounded-lg bg-navy px-5 py-3 font-medium text-white transition hover:bg-navy/90"
             >
-              Try it on sample data
+              See the sample analysis
             </Link>
             {/* Demoted to text-link weight per the audit — the gated path
                 should not compete visually with the demo path. */}
             <Link
-              href="/upload"
+              href="/crm"
               className="text-sm font-medium text-muted underline-offset-4 hover:text-teal hover:underline"
             >
-              Or run it on your own CSV →
+              Connect Salesforce →
             </Link>
           </div>
         </section>
@@ -96,11 +96,11 @@ export default function Landing() {
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { name: "Salesforce", status: "csv" },
+              { name: "Salesforce", status: "native" },
               { name: "HubSpot", status: "csv" },
               { name: "Stripe", status: "csv" },
               { name: "Zuora", status: "csv" },
-              { name: "Snowflake", status: "phase3" },
+              { name: "Snowflake", status: "deferred" },
               { name: "Google Sheets", status: "csv" },
             ].map((tool) => (
               <div
@@ -110,35 +110,40 @@ export default function Landing() {
                 <div className="text-sm font-semibold text-fg">{tool.name}</div>
                 <div
                   className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${
-                    tool.status === "csv" ? "text-teal" : "text-amber"
+                    tool.status === "native" ? "text-teal" : tool.status === "csv" ? "text-slate" : "text-amber"
                   }`}
                 >
-                  {tool.status === "csv" ? "via CSV today" : "Connector planned"}
+                  {tool.status === "native"
+                    ? "Native OAuth"
+                    : tool.status === "csv"
+                      ? "CSV onboarding"
+                      : "Not in V1"}
                 </div>
               </div>
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-muted">
-            A CSV export covers every CRM and billing system today; native
-            connectors are on the roadmap with the margin layer.
+            Salesforce is the first live workflow. CSV/XLSX remains the
+            diagnostic and onboarding path for other systems.
           </p>
         </section>
       </Reveal>
 
-      {/* 8. Margin Enhancement teaser — kept ------------------------------ */}
+      {/* 8. Evidence boundary ------------------------------------------------ */}
       <Reveal inView>
         <section className="mt-14 overflow-hidden rounded-xl border border-teal/30 bg-surface p-6 shadow-sm">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <span className="rounded-full border border-teal/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal">
-                On the roadmap
+                V1 boundary
               </span>
-              <h2 className="mt-2 text-xl font-bold text-fg">Margin Enhancement</h2>
+              <h2 className="mt-2 text-xl font-bold text-fg">Discount intelligence from CRM evidence</h2>
               <p className="mt-1 max-w-2xl text-sm text-muted">
-                The planned next layer: connect contracts and CRM to surface
-                margin across the whole book, including special pricing
-                agreements, fixed discounts, renewal uplift left on the table,
-                and price-floor breaches. Design partners shape the priority.
+                Salesforce can support list-to-booked realization, win-rate
+                patterns, and exception governance. True margin requires cost
+                data from billing or ERP; application-level recommendations
+                require product telemetry. Pricekeel does not infer either from
+                CRM fields alone.
               </p>
             </div>
           </div>

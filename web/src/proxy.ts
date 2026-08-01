@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Their own data: requires a valid access code.
-  if (pathname.startsWith("/upload")) {
+  if (pathname.startsWith("/upload") || pathname.startsWith("/crm")) {
     const value = request.cookies.get(ACCESS_COOKIE)?.value;
     if ((await verifyAccessCookieValue(value)).ok) return NextResponse.next();
     const url = request.nextUrl.clone();

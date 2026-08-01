@@ -35,8 +35,8 @@ export default function TrustStrip() {
           </div>
           <p className="mt-0.5 text-xs text-muted">
             The cloud LLM sees only aggregate figures, column headers, document
-            chunks you upload, and your questions. Never row-level data, and
-            always under zero-retention provider terms.
+            chunks you upload, your questions, and customer-named public
+            competitor pages. Never row-level deal data.
           </p>
         </div>
       </div>

@@ -45,20 +45,20 @@ const TIERS: Tier[] = [
     ],
     highlight: true,
     footer:
-      "Founder-led today: monthly CSV intake, and we run the loop and the readouts with you. Live CRM integration when Phase 2 ships.",
+      "Native Salesforce OAuth and live Opportunity analysis. Initial rollout remains founder-led.",
   },
   {
-    name: "Margin Enhancement",
-    audience: "Final phase",
+    name: "Data expansion",
+    audience: "Explicitly deferred",
     body:
-      "The Phase 3 contract and margin layer. Connect Salesforce or HubSpot plus Stripe or Zuora. We read active contracts, special pricing agreements, and renewal terms. Margin gaps across the whole book, not just closed deals.",
+      "Billing/ERP cost data and product telemetry can eventually extend Pricekeel beyond CRM discount intelligence. They are separate data products and are not part of V1.",
     features: [
-      "Native CRM and billing connectors (CSV intake today)",
-      "Active-contract analysis: SPAs, fixed discounts, renewal uplift gaps",
-      "Renewal, expansion, contraction metrics",
-      "Peer benchmarks once the base supports them",
+      "True margin only after a validated cost-data integration",
+      "Application-level recommendations only after usage telemetry",
+      "No blended CRM proxy presented as margin",
+      "No build until the Salesforce workflow is validated",
     ],
-    footer: "On the 2028 roadmap. Design partners shape the connector priority.",
+    footer: "Roadmap context, not a product claim or current sales tier.",
   },
 ];
 
@@ -113,31 +113,31 @@ type Scenario = {
 const SCENARIOS: Scenario[] = [
   {
     when: "Monday, 8:30 AM",
-    who: "Deal-desk Slack",
-    what: "Three new opportunities crossed the policy threshold overnight",
+    who: "Pricing workspace",
+    what: "Live Salesforce refresh shows three opportunities above guardrail",
     detail:
-      "Largest: $480K Enterprise, currently at 22%, model says 14% is the win point for similar deals. Click for the explanation.",
+      "Largest: $480K Enterprise at 22%. The disclosed segment reference is 14%, with the historical band counts and closest won/lost deals attached.",
   },
   {
     when: "Monday, 9:15 AM",
-    who: "VP of Pricing inbox",
-    what: "Weekly digest with three things worth your attention",
+    who: "Executive view",
+    what: "CFO sees realization, win rate, exceptions, and price to retain",
     detail:
-      "Realization down 80 bps. Healthcare segment closed four deals at 19% average discount, eight points above its reference threshold. Top five deals to walk with reps this week.",
+      "Every figure comes from the connected Opportunity history. Sparse cohorts and missing list values are shown as readiness warnings, not hidden.",
   },
   {
     when: "Wednesday, 4:00 PM",
-    who: "Rep in Salesforce",
-    what: "Soft validation on the discount field before submit",
+    who: "Rep in Pricekeel deal desk",
+    what: "Recommendation and override before approval",
     detail:
-      "Below the reference discount, no warning. Above it, a panel surfaces the recommended discount, the expected ACV at the rec, and the top three factors the model is weighing. Override is one click; the override gets logged.",
+      "Accept the recommendation or request an override with justification. The action is appended to the decision log and can write a completed Task back to the Salesforce Opportunity.",
   },
   {
     when: "End of quarter",
     who: "CFO before the board prep",
     what: "Defended-vs-investigate dashboard, updated weekly",
     detail:
-      "What discipline earned the quarter, what to investigate next, every recommendation traceable to the analysis dict. Forwardable as a PDF in two clicks.",
+      "What discipline earned the quarter, what to investigate next, and every approval or rejection traceable to its historical evidence and actor.",
   },
 ];
 
@@ -179,7 +179,7 @@ export default function PricingPage() {
             Built for the conversation, not the credit card.
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted">
-            We sell into pricing teams at $10 to 100M ARR B2B SaaS. That means
+            We sell into pricing and RevOps teams at $20 to 100M ARR B2B SaaS. That means
             an actual scoping call, not a self-serve checkout. Pick the closest
             fit and we will reply within one business day.
           </p>
@@ -314,12 +314,12 @@ export default function PricingPage() {
             </li>
             <li className="rounded-lg border border-mist bg-surface-2 p-4">
               <div className="font-medium text-fg">
-                Margin layer is a different data model
+                CRM evidence has a hard boundary
               </div>
               <p className="mt-1 text-muted">
-                Active contracts, special pricing agreements, renewal terms:
-                that lives in your billing system, not your CRM. Different
-                schema, different metrics, different product.
+                Salesforce supports discount and outcome evidence. Cost-based
+                margin needs billing or ERP; application guidance needs usage
+                telemetry. We label those gaps instead of manufacturing proxies.
               </p>
             </li>
           </ul>
@@ -351,13 +351,11 @@ export default function PricingPage() {
                 How does this integrate with our existing systems?
               </div>
               <p className="mt-1 text-muted">
-                Today: a CSV or Excel export of closed deals from any CRM, plus
-                an XLSX / PDF / DOCX / PPTX of any pricing policy or playbook
-                doc you want our chat to ground its answers in. Tomorrow (Phase
-                2 and Phase 3): native connectors for Salesforce, HubSpot,
-                Stripe, Zuora, Snowflake. Operate runs founder-led in the
-                meantime, so the loop is live (exceptions priced, decisions
-                logged, digest in your inbox) without waiting on integrations.
+                Salesforce connects through real OAuth. Pricekeel reads live
+                Opportunity history, discovers your fields, applies an explicit
+                mapping, and returns the executive, Pricing/RevOps, and deal-desk
+                views. CSV or Excel remains the diagnostic/onboarding path for
+                other CRMs; billing and telemetry connectors are not in V1.
               </p>
             </div>
             <div>
@@ -365,11 +363,11 @@ export default function PricingPage() {
                 What are the security and compliance measures?
               </div>
               <p className="mt-1 text-muted">
-                Row-level deal data is processed in memory and deleted. It is
-                never written to disk and never sent to a cloud LLM. The cloud
-                LLM only ever sees aggregate figures, column header names,
-                document chunks you upload, and your question, all under
-                zero-retention provider terms. Full details on{" "}
+                Salesforce tokens are server-side and encrypted at rest. Live
+                Opportunity rows are processed through the protected pricing
+                service and are not persisted in Pricekeel&apos;s database or sent
+                to a cloud LLM. Decision events and derived evidence are stored
+                so the audit trail survives. Full details on{" "}
                 <a href="/privacy" className="text-teal underline">
                   our privacy page
                 </a>
@@ -391,17 +389,15 @@ export default function PricingPage() {
             </li>
             <li>
               <span className="font-medium text-fg">Pricekeel Operate</span>{" "}
-              today is founder-led: monthly CSV intake, the exception loop in
-              the product, and a readout we walk through with you. Engagement
-              structure and pricing are scoped on the first call; engagements
-              typically start in the low five figures. Once live integration
-              ships, it moves to the standard SaaS contract with ACV scaling
-              on deal volume and policy docs indexed.
+              is a Salesforce-native exception loop: live Opportunity analysis,
+              field mapping, recommendations, accept/override, approval, audit
+              log, and optional Salesforce Task writeback. The initial rollout
+              is founder-led; engagements typically start in the low five figures.
             </li>
             <li>
-              <span className="font-medium text-fg">Margin Enhancement</span> is
-              custom. Connector scope, contract data shape, and benchmark
-              participation drive the number.
+              <span className="font-medium text-fg">Data expansion</span> is not
+              sold as V1. Billing/ERP and product-telemetry work requires its own
+              validated data contract and design decision.
             </li>
           </ul>
         </section>

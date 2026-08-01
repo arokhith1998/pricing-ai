@@ -126,6 +126,9 @@ The web app is a two-tier funnel (see `docs/design/buyer-funnel.md`):
 - `/diagnostic`, `/guidance` — full sample results, gated by the lead.
 - `/upload` — run on your own data, gated by an **access code** issued after
   contact / NDA. Uploaded CSVs are processed and deleted, never stored.
+- `/crm` — native Salesforce workspace, gated by the same customer access
+  code. Uses a Salesforce External Client App, OAuth authorization code +
+  PKCE, live Opportunity analysis, and optional completed-Task writeback.
 
 A Next.js `proxy.ts` enforces both gates. Leads and access codes are stored in
 Neon/Postgres in production (run `neon/schema.sql`); without `DATABASE_URL`
@@ -164,6 +167,15 @@ Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
 - `DATABASE_URL` = your Neon pooled connection string (leads + access codes + decision log). Set the same value on the API (Render).
 - `PRICEKEEL_SECRET` = a long random string (derives the access cookie)
 - `NEXT_PUBLIC_CONTACT_EMAIL` = optional, surfaces a "request access" mailto
+- `SALESFORCE_CLIENT_ID` / `SALESFORCE_CLIENT_SECRET` = the server-side
+  credentials for the Pricekeel Salesforce External Client App
+- `SALESFORCE_OAUTH_REDIRECT_URI` =
+  `https://pricekeel.com/api/salesforce/oauth/callback` (must exactly match ECA)
+- `SALESFORCE_LOGIN_URL` = `https://login.salesforce.com` (or
+  `https://test.salesforce.com` for a sandbox)
+- `SALESFORCE_TOKEN_ENCRYPTION_KEY` = a separate high-entropy secret used for
+  application-level AES-256-GCM encryption before OAuth tokens reach Neon
+- `SALESFORCE_API_VERSION` = `67.0` (Summer '26; configurable for future moves)
 
 The browser only ever talks to the Vercel origin; the API URL stays
 server-side. Lock down the API host too (the open CORS policy in `api/main.py`

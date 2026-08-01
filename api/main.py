@@ -19,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -26,6 +27,7 @@ from pydantic import BaseModel
 
 from pricing import assist, mapping, model  # noqa: F401  (assist used below)
 from pricing import copilot as copilot_mod
+from pricing import crm as crm_mod
 from pricing import docs as docs_mod
 from pricing import governance as governance_mod
 from pricing import matching as matching_mod
@@ -101,6 +103,7 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
     # (POST only — the middleware never limits GET, so reads stay unmetered,
     # same as /recommend.)
     "/exceptions": (30, 60.0),
+    "/crm/": (20, 60.0),
 }
 # (rule, client_ip) -> deque of request timestamps inside the window.
 _RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
@@ -238,7 +241,10 @@ app.add_middleware(
     allow_origins=_origins,
     allow_origin_regex=_origin_regex,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Pricekeel-Key"],
+    allow_headers=[
+        "Content-Type", "Authorization", "X-Pricekeel-Key",
+        "X-Pricekeel-Customer",
+    ],
     allow_credentials=False,
 )
 
@@ -266,8 +272,8 @@ def _load_report_dict(rep) -> dict:
     return json.loads(json.dumps(d, default=str))
 
 
-def _diagnostic_payload(csv_path: str, policy: float) -> dict:
-    res = run(csv_path, policy_threshold=policy)
+def _analysis_payload(res: dict) -> dict:
+    """JSON-safe dashboard payload for CSV and live-CRM analyses."""
     return {
         # "What we read from your file" — ingest disclosures (duplicates
         # dropped, open deals excluded, encoding, unmapped columns, ...).
@@ -277,6 +283,11 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
         "reference_discount": res["reference_discount"],
         "quarter_end": res["quarter_end"],
         "governance": res["governance"],
+        "trend_by_quarter": _records(res["trend_by_quarter"]),
+        "segment_win_points": res["segment_win_points"],
+        "policy_simulations": res["policy_simulations"],
+        "new_vs_renewal": _records(res["new_vs_renewal"]),
+        "rep_discipline": _records(res["rep_discipline"]),
         "win_rate_by_band": _records(res["win_rate_by_band"]),
         "realization_by_segment": _records(res["realization_by_segment"]),
         "top_leak_deals": _records(res["top_leak_deals"]),
@@ -291,7 +302,12 @@ def _diagnostic_payload(csv_path: str, policy: float) -> dict:
         "trade_or_give_deals": _records(res["trade_or_give_deals"]),
         "quarter_end_deals": _records(res["quarter_end_deals"]),
         "packaging_signal_deals": _records(res["packaging_signal_deals"]),
+        "defended_vs_investigate": res["defended_vs_investigate"],
     }
+
+
+def _diagnostic_payload(csv_path: str, policy: float) -> dict:
+    return _analysis_payload(run(csv_path, policy_threshold=policy))
 
 
 @app.get("/")
@@ -868,6 +884,255 @@ def digest(request: Request) -> dict:
                                        customer=_customer_ref(request))
 
 
+# --- Salesforce / CRM-native workflow -------------------------------------
+# OAuth, token refresh, SOQL, and field-level access stay in the Next.js
+# server tier. This API receives canonical rows over the existing shared-secret
+# perimeter, computes deterministic analytics, discards the rows, and persists
+# only workflow events in the append-only decision log.
+
+
+class CRMAnalyzeReq(BaseModel):
+    records: list[dict]
+    policy_threshold_pct: float = 15.0
+
+
+@app.post("/crm/analyze")
+def crm_analyze(req: CRMAnalyzeReq) -> dict:
+    try:
+        result = crm_mod.analyze_records(
+            req.records, policy_threshold_pct=req.policy_threshold_pct,
+        )
+    except crm_mod.CRMDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {
+        "analysis": _analysis_payload(result["analysis"]),
+        "guidance": result["guidance"],
+        "readiness": result["readiness"],
+    }
+
+
+_CRM_EVENTS = {
+    "flagged", "accepted", "override_requested", "approved", "rejected",
+    "outcome_recorded",
+}
+
+
+class CRMWorkflowReq(CRMAnalyzeReq):
+    deal_id: str
+    event: str
+    actor: str = ""
+    justification: str = ""
+    requested_discount_pct: float | None = None
+    outcome: str = ""
+
+
+def _crm_deal_history(customer: str, deal_id: str) -> list[dict]:
+    rows = governance_mod.STORE.list(
+        kind="exception", limit=500, customer_ref=customer,
+    )
+    return [
+        row for row in rows
+        if row.get("deal_id") == deal_id
+        and (row.get("payload") or {}).get("source") == "salesforce_crm"
+    ]
+
+
+@app.post("/crm/workflow")
+def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
+    event = req.event.strip().lower()
+    if event not in _CRM_EVENTS:
+        raise HTTPException(status_code=422, detail="Unsupported CRM workflow event.")
+    if not req.actor.strip():
+        raise HTTPException(status_code=422, detail="actor is required.")
+    if event == "override_requested" and not req.justification.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="An override request requires a justification.",
+        )
+    if event == "outcome_recorded" and req.outcome not in {"closed_won", "closed_lost"}:
+        raise HTTPException(
+            status_code=422,
+            detail="outcome_recorded requires closed_won or closed_lost.",
+        )
+    customer = _customer_ref(request)
+    history = _crm_deal_history(customer, req.deal_id)
+    previous_payload = (history[0].get("payload") or {}) if history else {}
+    previous_event = str(previous_payload.get("event") or "")
+    if event in {"approved", "rejected"} and previous_event != "override_requested":
+        raise HTTPException(
+            status_code=409,
+            detail="Approve or reject only after an override request.",
+        )
+    if event == "outcome_recorded":
+        raise HTTPException(
+            status_code=409,
+            detail="Outcomes are reconciled from Salesforce on the next sync.",
+        )
+    try:
+        guidance = crm_mod.selected_guidance(
+            req.records, req.deal_id,
+            policy_threshold_pct=req.policy_threshold_pct,
+        )
+    except crm_mod.CRMDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    recommended_pct = float(guidance["recommended_discount"]) * 100.0
+    current_pct = float(guidance["current_discount"]) * 100.0
+    if event == "accepted":
+        requested_pct = recommended_pct
+    elif req.requested_discount_pct is not None:
+        requested_pct = float(req.requested_discount_pct)
+    elif event in {"approved", "rejected"}:
+        previous_verdict = previous_payload.get("verdict") or {}
+        requested_pct = float(previous_verdict.get("requested_pct", current_pct))
+    else:
+        requested_pct = current_pct
+    if not (0.0 <= requested_pct <= governance_mod.EXCEPTION_MAX_PCT):
+        raise HTTPException(
+            status_code=422,
+            detail=("requested_discount_pct must be between 0 and "
+                    f"{governance_mod.EXCEPTION_MAX_PCT:g}."),
+        )
+    guardrail_pct = float(guidance["reference_discount"]) * 100.0
+    verdict = {
+        "requested_pct": requested_pct,
+        "recommended_pct": recommended_pct,
+        "guardrail_pct": guardrail_pct,
+        "outside_guardrail": requested_pct > guardrail_pct,
+        "price_to_retain": max(
+            0.0,
+            (requested_pct - recommended_pct) / 100.0
+            * float(guidance["list_acv"]),
+        ),
+        "reference_basis": guidance["reference_basis"],
+        "current_band": guidance["current_band"],
+        "recommended_band": guidance["recommended_band"],
+        "historical_win_rate_at_requested_band": guidance[
+            "win_rate_at_current_band"
+        ],
+        "historical_win_rate_at_recommended_band": guidance[
+            "win_rate_at_recommended_band"
+        ],
+        "caveat": guidance["caveat"],
+    }
+    effective_justification = (
+        req.justification.strip()
+        or str(previous_payload.get("justification") or "")
+    )
+    payload = {
+        "source": "salesforce_crm",
+        "event": event,
+        "deal_id": req.deal_id,
+        "account": guidance["account"],
+        "actor": req.actor.strip(),
+        "justification": effective_justification,
+        "outcome": req.outcome,
+        "verdict": verdict,
+    }
+    row = governance_mod.STORE.insert(
+        kind="exception",
+        deal_id=req.deal_id,
+        payload=payload,
+        decision=event,
+        justification=effective_justification,
+        requested_by=req.actor.strip(),
+        customer_ref=customer,
+    )
+    return {
+        "id": str(row["id"]),
+        "event": event,
+        "guidance": guidance,
+        "verdict": verdict,
+        "created_at": str(row["created_at"]),
+        "persisted": bool(row.get("persisted", False)),
+    }
+
+
+class CRMOutcome(BaseModel):
+    deal_id: str
+    account: str = ""
+    outcome: str
+
+
+class CRMReconcileReq(BaseModel):
+    outcomes: list[CRMOutcome]
+
+
+@app.post("/crm/reconcile")
+def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
+    """Close the loop from Salesforce truth on each live sync.
+
+    Only deals already present in the Pricekeel CRM workflow are eligible; a
+    closed Opportunity that never had a decision is not silently added.
+    """
+    customer = _customer_ref(request)
+    added = []
+    for item in req.outcomes[:5000]:
+        if item.outcome not in {"closed_won", "closed_lost"}:
+            continue
+        history = _crm_deal_history(customer, item.deal_id)
+        if not history:
+            continue
+        latest_payload = history[0].get("payload") or {}
+        if latest_payload.get("event") == "outcome_recorded":
+            continue
+        prior_event = str(latest_payload.get("event") or "")
+        if prior_event not in {"accepted", "approved", "rejected"}:
+            continue
+        payload = {
+            "source": "salesforce_crm",
+            "event": "outcome_recorded",
+            "deal_id": item.deal_id,
+            "account": item.account,
+            "actor": "Salesforce sync",
+            "justification": "Outcome reconciled from Salesforce IsWon/IsClosed.",
+            "outcome": item.outcome,
+            "prior_event": prior_event,
+            "verdict": latest_payload.get("verdict") or {},
+        }
+        row = governance_mod.STORE.insert(
+            kind="exception",
+            deal_id=item.deal_id,
+            payload=payload,
+            decision="outcome_recorded",
+            justification=payload["justification"],
+            requested_by="Salesforce sync",
+            customer_ref=customer,
+        )
+        added.append({
+            "id": str(row["id"]),
+            "deal_id": item.deal_id,
+            "outcome": item.outcome,
+        })
+    return {"added": added, "count": len(added)}
+
+
+@app.get("/crm/workflow")
+def crm_workflow_log(request: Request, limit: int = 100) -> dict:
+    rows = governance_mod.STORE.list(
+        kind="exception",
+        limit=max(1, min(int(limit), 200)),
+        customer_ref=_customer_ref(request),
+    )
+    items = []
+    for row in rows:
+        payload = row.get("payload") or {}
+        if payload.get("source") != "salesforce_crm":
+            continue
+        items.append({
+            "id": str(row.get("id", "")),
+            "deal_id": str(row.get("deal_id", "")),
+            "event": str(payload.get("event", row.get("decision", ""))),
+            "account": str(payload.get("account", "")),
+            "actor": str(payload.get("actor", row.get("requested_by", ""))),
+            "justification": str(payload.get("justification", "")),
+            "outcome": str(payload.get("outcome", "")),
+            "verdict": payload.get("verdict") or {},
+            "created_at": str(row.get("created_at", "")),
+        })
+    return {"items": items[:limit]}
+
+
 # --- Product Matching v1: your pricing page vs your named competitors ------
 # Customer enters their own pricing-page URL + up to ~8 competitor URLs.
 # We fetch each page once (cached), extract structured plans via the LLM in
@@ -878,6 +1143,12 @@ def digest(request: Request) -> dict:
 class CompareReq(BaseModel):
     my_url: str
     competitor_urls: list[str] = []
+
+
+class CompetitorContextReq(BaseModel):
+    url: str
+    competitor_name: str = ""
+    source_type: str = "other"
 
 
 @app.post("/matching/competitor")
@@ -906,6 +1177,34 @@ def matching_compare(req: CompareReq) -> dict:
     competitor_urls = [u.strip() for u in req.competitor_urls if u and u.strip()]
     comp = matching_mod.compare(req.my_url.strip(), competitor_urls)
     return comp.to_dict()
+
+
+@app.post("/matching/context")
+def matching_context(req: CompetitorContextReq) -> dict:
+    """Sourced qualitative context from one customer-named public URL.
+
+    The result carries the source URL and never feeds numerical CRM guidance.
+    """
+    url = req.url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing url")
+    allowed_types = {
+        "pricing", "documentation", "release_notes", "case_study",
+        "funding", "executive_interview", "investor_material", "other",
+    }
+    source_type = req.source_type.strip().lower()
+    if source_type not in allowed_types:
+        raise HTTPException(status_code=422, detail="Unsupported source_type")
+    try:
+        return matching_mod.extract_competitor_context(
+            url,
+            competitor_name=req.competitor_name,
+            source_type=source_type,
+        )
+    except matching_mod.FetchBlocked as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except (ValueError, requests.RequestException) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 # --- Win-probability model + discount guidance (Phase 2 / web M2) -----------

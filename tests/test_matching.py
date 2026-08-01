@@ -308,3 +308,41 @@ def test_extract_plans_from_url_returns_empty_on_block(monkeypatch):
     # a "no plans" message rather than a stack trace.
     assert vendor == ""
     assert plans == []
+
+
+# --- sourced competitor context --------------------------------------------
+
+
+def test_competitor_context_preserves_source_and_bounds_claims(monkeypatch):
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
+    monkeypatch.setattr(
+        matching,
+        "fetch_pricing_page",
+        lambda _url: "Acme announced usage pricing and a new enterprise tier.",
+    )
+    monkeypatch.setattr(
+        matching.assist,
+        "_complete",
+        lambda *_args, **_kwargs: (
+            '{"summary":"Acme changed packaging.","confidence":"high",'
+            '"claims":[{"claim":"Usage pricing announced",'
+            '"confidence":"high","evidence_excerpt":"usage pricing"}]}'
+        ),
+    )
+
+    result = matching.extract_competitor_context(
+        "https://acme.example/investors/q2",
+        competitor_name="Acme",
+        source_type="investor_material",
+    )
+
+    assert result["source_url"] == "https://acme.example/investors/q2"
+    assert result["source_type"] == "investor_material"
+    assert result["confidence"] == "high"
+    assert result["claims"][0]["claim"] == "Usage pricing announced"
+
+
+def test_competitor_context_requires_configured_llm(monkeypatch):
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: False)
+    with pytest.raises(matching.assist.LLMUnavailableError):
+        matching.extract_competitor_context("https://acme.example/pricing")
