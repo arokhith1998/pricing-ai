@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
 import HeroHeadline from "@/components/HeroHeadline";
-import LeakageCalculator from "@/components/LeakageCalculator";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
+import CrmWorkflowPreview from "@/components/CrmWorkflowPreview";
 import MethodologyStrip from "@/components/MethodologyStrip";
 import TrustStrip from "@/components/TrustStrip";
 import WhatYouGet from "@/components/WhatYouGet";
@@ -14,118 +14,89 @@ export const dynamic = "force-static";
 export default function Landing() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      {/* 1. Hero ------------------------------------------------------------ */}
+      {/* One buyer, one problem, two honest next steps. */}
       <Reveal>
-        <section className="py-8 text-center">
+        <section className="py-10 text-center sm:py-14">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal">
+            Salesforce deal guidance for B2B SaaS
+          </p>
           <HeroHeadline />
-          {/* Audience chip — promoted from micro-eyebrow into a substantive
-              subhead so the 'who is this for' answer is immediate. */}
-          <div className="mt-4 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-surface px-3 py-1 text-xs font-semibold text-teal">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />
-              For RevOps and Pricing teams at $20 to 100M ARR B2B SaaS
-            </span>
-          </div>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate">
-            Pricekeel sits on Salesforce, learns where discounting stops buying
-            wins, and brings that evidence into the exception-approval workflow
-            before the next deal is signed.
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate sm:text-lg">
+            Price every discount exception before approval. Pricekeel learns
+            from closed Salesforce Opportunities, recommends a guardrail for
+            the live deal, and records the decision with evidence Finance can audit.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/sample"
-              className="rounded-lg bg-navy px-5 py-3 font-medium text-white transition hover:bg-navy/90"
+              className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg transition hover:-translate-y-0.5 hover:bg-teal/90"
             >
-              See the sample analysis
+              Explore a live sample
             </Link>
-            {/* Demoted to text-link weight per the audit — the gated path
-                should not compete visually with the demo path. */}
             <Link
-              href="/crm"
-              className="text-sm font-medium text-muted underline-offset-4 hover:text-teal hover:underline"
+              href="/contact"
+              className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
-              Connect Salesforce →
+              Request a Salesforce pilot
             </Link>
+          </div>
+          <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
+            <span><strong className="font-semibold text-fg">Built for</strong> RevOps · Deal Desk · Pricing</span>
+            <span><strong className="font-semibold text-fg">ICP</strong> $20–100M ARR · usage or hybrid SaaS</span>
+            <span><strong className="font-semibold text-fg">Buyer</strong> CFO / Finance</span>
           </div>
         </section>
       </Reveal>
 
-      {/* 2. Product preview (NEW) ------------------------------------------ */}
       <Reveal inView>
-        <section className="mt-12">
-          <DiagnosticPreview />
+        <section className="mt-8">
+          <CrmWorkflowPreview />
         </section>
       </Reveal>
 
-      {/* 2b. What it does + what you get, merged into one pillar grid so the
-          four ideas are stated once instead of across two separate grids. */}
       <Reveal inView>
-        <section className="mt-14">
+        <section className="mt-16">
           <WhatYouGet />
         </section>
       </Reveal>
 
-      {/* 3. Leakage calculator. Honest two-number split (gross discount +
-          above-policy slice), math shown, no invented recovery rate. The
-          sample numbers already appear in DiagnosticPreview above, so we cut
-          the previously-here stats strip. Full shareable version at
-          /calculator. */}
       <Reveal inView>
-        <section className="mt-14">
-          <LeakageCalculator />
-          <p className="mt-3 text-center text-sm text-muted">
-            <Link href="/calculator" className="text-teal underline-offset-4 hover:underline">
-              Open the full calculator →
-            </Link>
-          </p>
+        <section className="mt-16">
+          <DiagnosticPreview />
         </section>
       </Reveal>
 
-      {/* 6. Methodology credibility (NEW) ---------------------------------- */}
       <Reveal inView>
-        <section className="mt-14">
+        <section className="mt-16">
           <MethodologyStrip />
         </section>
       </Reveal>
 
-      {/* 7. Stack strip — unchanged --------------------------------------- */}
       <Reveal inView>
-        <section className="mt-14">
-          <p className="text-center text-sm font-medium text-slate">
-            Built for the stack you already run
+        <section className="mt-16">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-teal">
+            The evidence stack
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <h2 className="mt-2 text-center text-xl font-bold text-fg sm:text-2xl">
+            Start with CRM truth. Add context only where it is valid.
+          </h2>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { name: "Salesforce", status: "native" },
-              { name: "HubSpot", status: "csv" },
-              { name: "Stripe", status: "csv" },
-              { name: "Zuora", status: "csv" },
-              { name: "Snowflake", status: "deferred" },
-              { name: "Google Sheets", status: "csv" },
-            ].map((tool) => (
+              { name: "Salesforce", status: "Native OAuth", detail: "Opportunity, Account, product, price, outcome, and approval context." },
+              { name: "Public competitor sources", status: "Cited context", detail: "Pricing pages, releases, case studies, interviews, funding news, and investor calls." },
+              { name: "Billing / ERP", status: "Required for margin", detail: "Cost data is a separate input. Pricekeel never labels a CRM proxy as true margin." },
+              { name: "Product telemetry", status: "Required for application insight", detail: "Usage context extends recommendations only after the data contract is validated." },
+            ].map((source) => (
               <div
-                key={tool.name}
-                className="pk-card-3d flex flex-col items-center justify-center rounded-xl border border-mist bg-surface px-3 py-4 text-center"
+                key={source.name}
+                className="rounded-xl border border-mist bg-surface p-4"
               >
-                <div className="text-sm font-semibold text-fg">{tool.name}</div>
-                <div
-                  className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${
-                    tool.status === "native" ? "text-teal" : tool.status === "csv" ? "text-slate" : "text-amber"
-                  }`}
-                >
-                  {tool.status === "native"
-                    ? "Native OAuth"
-                    : tool.status === "csv"
-                      ? "CSV onboarding"
-                      : "Not in V1"}
-                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-teal">{source.status}</div>
+                <div className="mt-1 text-sm font-semibold text-fg">{source.name}</div>
+                <p className="mt-2 text-xs leading-5 text-muted">{source.detail}</p>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-center text-xs text-muted">
-            Salesforce is the first live workflow. CSV/XLSX remains the
-            diagnostic and onboarding path for other systems.
-          </p>
         </section>
       </Reveal>
 
@@ -150,11 +121,6 @@ export default function Landing() {
         </section>
       </Reveal>
 
-      {/* 8. Slim founder credibility strip. Single horizontal card with
-          photo, name, role, three credibility chips, and a quiet "Connect
-          on LinkedIn" link. The design-partner offer + DM/Email CTAs that
-          used to live here moved to /contact and /pricing, where a hard
-          sales ask is appropriate. The landing should not lead with one. */}
       <Reveal inView>
         <section className="mt-14">
           <FounderStrip />
@@ -165,6 +131,26 @@ export default function Landing() {
       <Reveal inView>
         <section className="mt-10">
           <TrustStrip />
+        </section>
+      </Reveal>
+
+      <Reveal inView>
+        <section className="mt-10 rounded-2xl border border-teal/40 bg-surface px-6 py-8 text-center sm:px-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">Design-partner cohort</p>
+          <h2 className="mt-2 text-2xl font-bold text-fg">Bring one real pricing exception.</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted">
+            We will show how Pricekeel reads the Opportunity, builds the
+            guardrail, adds cited competitor context, and records the decision.
+            No Salesforce credentials are needed for the first walkthrough.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/contact" className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg hover:bg-teal/90">
+              Request the walkthrough
+            </Link>
+            <Link href="/sample" className="rounded-lg border border-mist bg-surface-2 px-5 py-3 font-medium text-fg hover:border-teal">
+              Explore the sample first
+            </Link>
+          </div>
         </section>
       </Reveal>
     </main>

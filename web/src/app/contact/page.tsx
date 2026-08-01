@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = {
   title: "Contact · Pricekeel",
   description:
-    "Reach Adhithya at Pricekeel. Email, LinkedIn, or the lead form for a free diagnostic.",
+    "Request a Pricekeel Salesforce design-partner walkthrough with the founder.",
 };
 
 const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
@@ -22,11 +22,12 @@ export default function ContactPage() {
           Contact
         </p>
         <h1 className="mt-2 text-3xl font-bold text-fg sm:text-4xl">
-          Talk to the founder, not a contact form.
+          Bring one real discount exception.
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
-          Pricekeel is in design-partner mode. Every conversation goes
-          straight to Adhithya. Pick whichever channel is easiest.
+          Pricekeel is in design-partner mode for $20–100M ARR B2B SaaS teams
+          running Salesforce. Every request goes directly to Adhithya. The
+          first walkthrough uses a redacted or hypothetical deal—no credentials required.
         </p>
       </Reveal>
 
@@ -43,7 +44,7 @@ export default function ContactPage() {
               {EMAIL}
             </div>
             <p className="mt-1 text-sm text-muted">
-              The fastest path. NDA on request. I reply within one business day.
+              The fastest path. NDA on request. Expect a reply within one business day.
             </p>
           </a>
           <a
@@ -59,7 +60,7 @@ export default function ContactPage() {
               DM Adhithya
             </div>
             <p className="mt-1 text-sm text-muted">
-              Good for warm intros and quick context-sharing without an inbox.
+              Good for warm introductions and a short note on your pricing workflow.
             </p>
           </a>
           <Link
@@ -73,8 +74,8 @@ export default function ContactPage() {
               Open the sample diagnostic
             </div>
             <p className="mt-1 text-sm text-muted">
-              A worked example on a 2,000-deal synthetic book. Two minutes to
-              skim before you write.
+              A worked example on 2,000 synthetic closed deals. Two minutes to
+              see the evidence layer before you write.
             </p>
           </Link>
         </section>
@@ -83,24 +84,24 @@ export default function ContactPage() {
       <Reveal delay={0.05}>
         <section className="mt-12 rounded-xl border border-mist bg-surface p-6">
           <h2 className="text-lg font-semibold text-fg">
-            What an intro email could say
+            A useful first email
           </h2>
           <p className="mt-1 text-sm text-muted">
             Optional template if a blank cursor is the only thing in the way.
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-ink">
-{`Subject: Pricekeel diagnostic, [Your company]
+{`Subject: Pricekeel Salesforce pilot, [Your company]
 
 Hi Adhithya,
 
-I'm [name], [title] at [company] ($XM ARR, [usage-based / hybrid / seats]).
-Saw your write-up on discount leakage and want to see the methodology run
-on our own deal book.
+I'm [name], [title] at [company] ($XM ARR, [usage-based / hybrid]).
+We use Salesforce and want to improve how [Deal Desk / RevOps / Pricing]
+handles discount exceptions.
 
-We can send a CSV of the last [N] quarters of closed opportunities (won
-and lost). Happy to sign an NDA first.
+A representative deal is about $[ACV], and our current approval flow is
+[one sentence]. The question we want Pricekeel to answer is [question].
 
-What's the next step?
+Can we walk through that deal before discussing a connection?
 `}
           </pre>
         </section>
@@ -109,26 +110,28 @@ What's the next step?
       <Reveal delay={0.05}>
         <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
           <h2 className="text-lg font-semibold text-fg">
-            Three things worth knowing before you write
+            What happens next
           </h2>
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li>
-              <span className="font-medium text-fg">First diagnostic is free.</span>{" "}
-              For design partners, including a 30-minute readout call.
+              <span className="font-medium text-fg">Start without credentials.</span>{" "}
+              The first conversation uses one redacted or hypothetical pricing
+              exception to test the workflow and recommendation logic.
             </li>
             <li>
-              <span className="font-medium text-fg">Your CSV is processed in memory.</span>{" "}
-              Never written to disk on our servers, never sent to a cloud LLM.
-              Aggregates and column names only. Full details on{" "}
+              <span className="font-medium text-fg">Connect only after the workflow fits.</span>{" "}
+              Salesforce OAuth tokens stay server-side and encrypted at rest.
+              Opportunity rows are not sent to a cloud LLM. Full details on{" "}
               <Link href="/trust" className="text-teal underline">
                 /trust
               </Link>
               .
             </li>
             <li>
-              <span className="font-medium text-fg">We are at pre-seed.</span>{" "}
-              Three design partners in the cohort, $5K/month managed cadence
-              for months two through six. Off-ramp at any time.
+              <span className="font-medium text-fg">Scope follows evidence.</span>{" "}
+              If the workflow is useful, we agree on field mapping, success
+              metrics, security review, and a founder-led pilot. Commercial
+              structure is shared after that scoping conversation.
             </li>
           </ul>
         </section>
@@ -136,13 +139,7 @@ What's the next step?
 
       <Reveal delay={0.05}>
         <section className="mt-8 text-center text-sm text-muted">
-          <p>
-            Prefer the founder show? See the{" "}
-            <Link href="/" className="text-teal underline">
-              landing page
-            </Link>{" "}
-            for the bio and credibility chips.
-          </p>
+          <p>Already have a customer access code? <Link href="/crm" className="text-teal underline">Open the Salesforce workspace</Link>.</p>
         </section>
       </Reveal>
     </main>

@@ -1,7 +1,7 @@
 // Next.js 16 renamed `middleware` to `proxy`. Two-tier funnel gate:
 //   public:      /, /sample (teaser), /login, /api/*, static
 //   needs lead:  /diagnostic, /guidance  (full sample results)
-//   needs code:  /upload                  (their own data)
+//   needs code:  /upload, /crm, /competitor-watch (customer workspace)
 //
 // Cookie checks here are signature-only (no DB round-trip per request).
 // Revocation of an access code is enforced by gate.ts on the API routes,
@@ -25,7 +25,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Their own data: requires a valid access code.
-  if (pathname.startsWith("/upload") || pathname.startsWith("/crm")) {
+  if (
+    pathname.startsWith("/upload") ||
+    pathname.startsWith("/crm") ||
+    pathname.startsWith("/competitor-watch")
+  ) {
     const value = request.cookies.get(ACCESS_COOKIE)?.value;
     if ((await verifyAccessCookieValue(value)).ok) return NextResponse.next();
     const url = request.nextUrl.clone();
@@ -34,11 +38,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Full sample results + competitor watch: require a captured lead.
+  // Full sample results: require a captured lead.
   if (
     pathname.startsWith("/diagnostic") ||
-    pathname.startsWith("/guidance") ||
-    pathname.startsWith("/competitor-watch")
+    pathname.startsWith("/guidance")
   ) {
     const value = request.cookies.get(LEAD_COOKIE)?.value;
     if (await verifyLeadCookieValue(value)) {

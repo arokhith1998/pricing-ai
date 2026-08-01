@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getDemoWithFallback, type Diagnostic } from "@/lib/api";
 import { money, pct } from "@/lib/format";
-import { LEAD_COOKIE } from "@/lib/auth";
+import { LEAD_COOKIE, verifyLeadCookieValue } from "@/lib/auth";
 import Summary from "@/components/Summary";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
@@ -73,11 +73,9 @@ function Flow() {
 const UNLOCK_TARGETS: Record<string, string> = {
   diagnostic: "/diagnostic",
   guidance: "/guidance",
-  "competitor-watch": "/competitor-watch",
 };
 
 function unlockLabel(slug: string): string {
-  if (slug === "competitor-watch") return "Competitor watch";
   return slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
@@ -157,8 +155,8 @@ function LeadGate({
           </ul>
         </div>
         <div className="rounded-lg bg-surface-2 p-4">
-          <LeadForm next={nextRoute} />
-          <MagicLinkForm next={nextRoute} />
+          <LeadForm next={nextRoute ?? "/diagnostic"} />
+          <MagicLinkForm next={nextRoute ?? "/diagnostic"} />
         </div>
       </div>
     </section>
@@ -230,11 +228,13 @@ export default async function SamplePage({
   searchParams,
 }: {
   // Next 16 (App Router): searchParams is async. proxy.ts attaches
-  // ?unlock=<diagnostic|guidance|competitor-watch> when it redirects a
+  // ?unlock=<diagnostic|guidance> when it redirects a
   // gated route here; we surface that as a banner + redirect-on-success.
   searchParams: Promise<{ unlock?: string; flash?: string }>;
 }) {
-  const unlocked = Boolean((await cookies()).get(LEAD_COOKIE)?.value);
+  const unlocked = await verifyLeadCookieValue(
+    (await cookies()).get(LEAD_COOKIE)?.value,
+  );
   const { unlock, flash } = await searchParams;
   const validUnlock =
     unlock && Object.prototype.hasOwnProperty.call(UNLOCK_TARGETS, unlock)

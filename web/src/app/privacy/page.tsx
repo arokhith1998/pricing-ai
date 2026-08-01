@@ -205,12 +205,13 @@ export default function PrivacyPage() {
           unlocked the sample diagnostic) and <code>pk_access</code>{" "}
           (remembers that you have entered a valid access code for your own
           data). We do not use advertising, retargeting, or cross-site
-          tracking cookies, and the analytics we use set no cookies at all.
+          tracking cookies. When enabled, our analytics set no cookies at all.
         </p>
         <p>
-          We use Vercel Web Analytics, a cookieless, privacy-preserving
-          first-party analytics service that aggregates page views without
-          cross-site tracking and without advertising cookies.
+          Vercel Web Analytics can be enabled as a cookieless,
+          privacy-preserving first-party analytics service. It aggregates page
+          views without cross-site tracking or advertising cookies. When it is
+          not enabled for the deployment, Pricekeel does not load its script.
         </p>
       </Section>
 

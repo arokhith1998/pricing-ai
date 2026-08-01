@@ -78,7 +78,8 @@ export default function LoginPage() {
         </div>
       </div>
       <p className="mb-6 text-sm text-slate">
-        Enter your access code to run Pricekeel on your own data.
+        Enter your customer access code to open Salesforce, competitor
+        context, or analyze your own data.
       </p>
       <Suspense>
         <LoginForm />

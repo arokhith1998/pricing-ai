@@ -109,7 +109,8 @@ export default function DiagnosticPreview() {
             /sample
           </Link>
           : KPIs, win-rate curve with the calculated win point, and the deal
-          list to investigate. Your numbers come from your own CSV.
+          list to investigate. In the connected workflow, these numbers come
+          from live Salesforce Opportunity history.
         </p>
       </div>
 
@@ -205,7 +206,8 @@ export default function DiagnosticPreview() {
           See the full diagnostic on the sample data →
         </Link>
         <p className="mt-1 text-[11px] text-muted">
-          Live numbers from the bundled sample. Your numbers come from your CSV.
+          Live numbers from the bundled sample. Your workspace reads Salesforce;
+          CSV/XLSX remains available for onboarding and other CRMs.
         </p>
       </div>
     </section>

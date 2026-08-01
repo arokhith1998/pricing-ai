@@ -49,8 +49,14 @@ export default function ExpectedValueChart({
   recommended: number;
 }) {
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-72 min-w-0 w-full">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={1}
+        initialDimension={{ width: 640, height: 288 }}
+      >
         <ComposedChart data={curve} margin={{ top: 28, right: 12, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={MIST} vertical={false} />
           <XAxis

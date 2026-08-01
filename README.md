@@ -170,7 +170,7 @@ Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
 - `SALESFORCE_CLIENT_ID` / `SALESFORCE_CLIENT_SECRET` = the server-side
   credentials for the Pricekeel Salesforce External Client App
 - `SALESFORCE_OAUTH_REDIRECT_URI` =
-  `https://pricekeel.com/api/salesforce/oauth/callback` (must exactly match ECA)
+  `https://www.pricekeel.com/api/salesforce/oauth/callback` (must exactly match ECA)
 - `SALESFORCE_LOGIN_URL` = `https://login.salesforce.com` (or
   `https://test.salesforce.com` for a sandbox)
 - `SALESFORCE_TOKEN_ENCRYPTION_KEY` = a separate high-entropy secret used for
