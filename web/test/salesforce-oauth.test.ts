@@ -49,10 +49,31 @@ describe("Salesforce OAuth attempt", () => {
     );
     const authorization = new URL(attempt.authorizationUrl);
     const state = authorization.searchParams.get("state") ?? "";
-    const tampered = `${state.slice(0, -1)}${state.endsWith("a") ? "b" : "a"}`;
+    const [payload, signature] = state.split(".");
+
+    // Tamper the FIRST character of a segment, never the last. base64url packs
+    // the 32-byte HMAC into 43 characters, so the final character carries only
+    // 4 significant bits and four different characters decode to identical
+    // bytes. Swapping it leaves the signature byte-for-byte unchanged about one
+    // time in sixteen, verification correctly succeeds, and the test would fail
+    // as if signature checking were broken. The first character of any segment
+    // contributes all six of its bits, so changing it always changes the bytes.
+    const swapFirst = (segment: string) =>
+      `${segment[0] === "A" ? "B" : "A"}${segment.slice(1)}`;
 
     expect(
-      verifySalesforceOAuthAttempt(tampered, attempt.cookieValue, "tenant-a"),
+      verifySalesforceOAuthAttempt(
+        `${swapFirst(payload)}.${signature}`,
+        attempt.cookieValue,
+        "tenant-a",
+      ),
+    ).toBeNull();
+    expect(
+      verifySalesforceOAuthAttempt(
+        `${payload}.${swapFirst(signature)}`,
+        attempt.cookieValue,
+        "tenant-a",
+      ),
     ).toBeNull();
   });
 });
