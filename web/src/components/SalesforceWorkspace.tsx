@@ -253,6 +253,7 @@ export default function SalesforceWorkspace({
     () => workspace?.guidance.find((deal) => deal.opportunity_id === selectedId) ?? null,
     [workspace, selectedId],
   );
+  const accessDenied = /access code required|sign in at \/login/i.test(error);
 
   async function saveMapping() {
     setBusy(true); setError(""); setNotice("");
@@ -377,10 +378,22 @@ export default function SalesforceWorkspace({
       </Reveal>
 
       {oauthError ? <div className="rounded-lg border border-coral/40 bg-coral/5 p-3 text-sm text-coral">Salesforce authorization failed ({oauthError.replaceAll("_", " ")}). Try connecting again.</div> : null}
-      {error ? <div role="alert" className="rounded-lg border border-coral/40 bg-coral/5 p-3 text-sm text-coral">{error}</div> : null}
+      {error && !accessDenied ? <div role="alert" className="rounded-lg border border-coral/40 bg-coral/5 p-3 text-sm text-coral">{error}</div> : null}
       {notice ? <div role="status" className="rounded-lg border border-teal/40 bg-teal/5 p-3 text-sm text-fg">{notice}</div> : null}
 
-      {!connection ? (
+      {!connection && accessDenied ? (
+        <Reveal>
+          <section className="rounded-2xl border border-mist bg-surface p-6">
+            <h2 className="text-xl font-semibold text-fg">Sign in to your customer workspace</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate">
+              Your access code selects the customer tenant and its Salesforce connection. Sign in before connecting, mapping, or refreshing an org.
+            </p>
+            <Link href="/login" className="mt-5 inline-flex rounded-lg bg-teal px-5 py-2.5 text-sm font-semibold text-bg">
+              Sign in
+            </Link>
+          </section>
+        </Reveal>
+      ) : !connection ? (
         <Reveal>
           <section className="rounded-2xl border border-mist bg-surface p-6">
             <h2 className="text-xl font-semibold text-fg">Connect a Salesforce org</h2>

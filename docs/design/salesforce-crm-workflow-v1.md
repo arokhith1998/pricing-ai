@@ -296,11 +296,12 @@ Live acceptance status on 2026-08-01:
   mapping rejection, decision logging, same-actor rejection, preservation of
   the originally requested terms, batched outcome reconciliation, durable
   writeback-result logging, and approval/rejection after an Opportunity leaves
-  the open set. The current branch passes 195 Python tests, five TypeScript
-  connector tests, Next lint, and a Next 16.2.12 production build.
-- Disconnect/reconnect, live Task writeback, live token refresh, outcome
-  reconciliation, and a pending off-list decision still require a suitable
-  test fixture and this branch deployed to production.
+  the open set. The merged release passes 195 Python tests, five TypeScript
+  connector tests, Next lint, and a Next 16.2.12 production build. PR #45 is
+  deployed on production `main` at `ccdaf31`.
+- Salesforce disconnect/reconnect, live Task writeback, live token refresh,
+  outcome reconciliation, and a pending off-list decision still require a
+  suitable 30+ closed-outcome test fixture.
 - A local/source-org ECA proves a controlled org only. A packaged ECA and
   subscriber-org install test remain release gates before onboarding an
   external customer.
