@@ -142,6 +142,110 @@ def test_approval_inherits_override_terms(client, monkeypatch):
     assert log[0]["justification"] == "Multi-year strategic logo"
 
 
+def _guidance_then_unavailable(monkeypatch) -> dict:
+    """Live guidance for the first call only, unavailable after that.
+
+    Mirrors the real sequence: the rep requests an override while the deal is
+    open, the opportunity then closes in Salesforce (or the org drops below the
+    evidence floor), and the approver acts once it has left the open-deal set.
+    """
+    calls = {"n": 0}
+
+    def _stub(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _guidance()
+        raise crm.CRMDataError(
+            "The selected open Salesforce opportunity is not usable."
+        )
+
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", _stub)
+    return calls
+
+
+def _request_override(client, actor: str = "Account Executive") -> None:
+    response = client.post("/crm/workflow", json={
+        "records": [{}],
+        "deal_id": "SF-OPEN-001",
+        "actor": actor,
+        "event": "override_requested",
+        "justification": "Multi-year strategic logo",
+        "requested_discount_pct": 22.0,
+    })
+    assert response.status_code == 200
+
+
+def test_decision_uses_recorded_terms_after_the_deal_leaves_the_open_set(
+    client, monkeypatch,
+):
+    calls = _guidance_then_unavailable(monkeypatch)
+    _request_override(client)
+
+    approved = client.post("/crm/workflow", json={
+        "records": [],
+        "deal_id": "SF-OPEN-001",
+        "actor": "Deal Desk",
+        "event": "approved",
+    })
+
+    assert approved.status_code == 200
+    assert approved.json()["verdict"]["requested_pct"] == pytest.approx(22.0)
+    assert calls["n"] == 1, "a decision must not re-derive live guidance"
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "approved"
+    assert log[0]["verdict"]["requested_pct"] == pytest.approx(22.0)
+
+
+def test_rejection_preserves_the_requested_terms(client, monkeypatch):
+    _guidance_then_unavailable(monkeypatch)
+    _request_override(client)
+
+    rejected = client.post("/crm/workflow", json={
+        "records": [],
+        "deal_id": "SF-OPEN-001",
+        "actor": "VP Pricing",
+        "event": "rejected",
+    })
+
+    assert rejected.status_code == 200
+    assert rejected.json()["verdict"]["requested_pct"] == pytest.approx(22.0)
+
+
+def test_approval_cannot_restate_the_requested_discount(client, monkeypatch):
+    _guidance_then_unavailable(monkeypatch)
+    _request_override(client)
+
+    approved = client.post("/crm/workflow", json={
+        "records": [{}],
+        "deal_id": "SF-OPEN-001",
+        "actor": "Deal Desk",
+        "event": "approved",
+        "requested_discount_pct": 8.0,
+    })
+
+    assert approved.status_code == 422
+    assert "cannot be restated" in approved.json()["detail"]
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "override_requested"
+
+
+def test_actor_cannot_approve_their_own_override(client, monkeypatch):
+    _guidance_then_unavailable(monkeypatch)
+    _request_override(client, actor="J. Rivera")
+
+    approved = client.post("/crm/workflow", json={
+        "records": [{}],
+        "deal_id": "SF-OPEN-001",
+        "actor": "  j.   rivera  ",
+        "event": "approved",
+    })
+
+    assert approved.status_code == 409
+    assert "different person" in approved.json()["detail"]
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "override_requested"
+
+
 def test_salesforce_sync_reconciles_outcome_once(client, monkeypatch):
     monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
     accepted = client.post("/crm/workflow", json={
@@ -167,3 +271,103 @@ def test_salesforce_sync_reconciles_outcome_once(client, monkeypatch):
     log = client.get("/crm/workflow").json()["items"]
     assert log[0]["event"] == "outcome_recorded"
     assert log[0]["outcome"] == "closed_won"
+
+
+def test_pending_override_is_not_dropped_when_salesforce_closes_the_deal(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    _request_override(client)
+
+    reconciled = client.post("/crm/reconcile", json={
+        "outcomes": [{
+            "deal_id": "SF-OPEN-001",
+            "account": "Northstar Labs",
+            "outcome": "closed_lost",
+        }],
+    })
+
+    assert reconciled.status_code == 200
+    assert reconciled.json()["count"] == 1
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "outcome_recorded"
+    assert log[0]["outcome"] == "closed_lost"
+
+
+def test_reconcile_batches_latest_history_lookup(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    for deal_id in ("SF-OPEN-001", "SF-OPEN-002"):
+        response = client.post("/crm/workflow", json={
+            "records": [{}],
+            "deal_id": deal_id,
+            "event": "accepted",
+            "actor": "Account Executive",
+        })
+        assert response.status_code == 200
+    original = governance.STORE.latest_by_deal
+    calls = {"n": 0}
+
+    def _counted(**kwargs):
+        calls["n"] += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(governance.STORE, "latest_by_deal", _counted)
+    reconciled = client.post("/crm/reconcile", json={
+        "outcomes": [
+            {"deal_id": "SF-OPEN-001", "outcome": "closed_won"},
+            {"deal_id": "SF-OPEN-002", "outcome": "closed_lost"},
+        ],
+    })
+
+    assert reconciled.status_code == 200
+    assert reconciled.json()["count"] == 2
+    assert calls["n"] == 1
+
+
+def test_salesforce_writeback_result_is_append_only_and_visible(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}],
+        "deal_id": "SF-OPEN-001",
+        "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+
+    audited = client.post("/crm/writeback", json={
+        "deal_id": "SF-OPEN-001",
+        "actor": "Account Executive",
+        "action_event": "accepted",
+        "success": False,
+        "error": "INSUFFICIENT_ACCESS: Task create denied",
+    })
+
+    assert audited.status_code == 200
+    assert audited.json()["event"] == "salesforce_writeback_failed"
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "salesforce_writeback_failed"
+    assert log[0]["writeback"]["success"] is False
+    assert "INSUFFICIENT_ACCESS" in log[0]["writeback"]["error"]
+
+
+def test_deal_history_is_scoped_before_the_limit(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    _request_override(client)
+    for index in range(550):
+        governance.STORE.insert(
+            kind="exception",
+            deal_id=f"NOISE-{index}",
+            payload={"source": "salesforce_crm", "event": "accepted"},
+            decision="accepted",
+            customer_ref="default",
+        )
+
+    approved = client.post("/crm/workflow", json={
+        "records": [],
+        "deal_id": "SF-OPEN-001",
+        "actor": "Deal Desk",
+        "event": "approved",
+    })
+
+    assert approved.status_code == 200
+    assert approved.json()["verdict"]["requested_pct"] == pytest.approx(22.0)

@@ -4,6 +4,7 @@ import {
   CRMUpstreamError,
   getSalesforceWorkflowLog,
   logSalesforceWorkflow,
+  recordSalesforceWriteback,
   type SalesforceWorkflowInput,
 } from "@/lib/salesforce-workspace";
 
@@ -85,6 +86,8 @@ export async function POST(req: Request) {
       success: false,
       task_id: "",
       error: "",
+      audit_persisted: false,
+      audit_error: "",
     };
     if (body.writeback) {
       try {
@@ -107,8 +110,25 @@ export async function POST(req: Request) {
         });
         writeback.success = true;
         writeback.task_id = task.id;
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "Salesforce rejected the Task.";
+        writeback.error = `Pricekeel logged the action, but ${detail}`;
+      }
+      try {
+        const audit = await recordSalesforceWriteback(customer, {
+          deal_id: dealId,
+          actor: actor.slice(0, 200),
+          action_event: event,
+          success: writeback.success,
+          task_id: writeback.task_id,
+          error: writeback.error,
+        });
+        writeback.audit_persisted = Boolean(audit.persisted);
+        if (!writeback.audit_persisted) {
+          writeback.audit_error = "The Salesforce writeback result was not durably persisted.";
+        }
       } catch {
-        writeback.error = "Pricekeel logged the action, but Salesforce Task writeback failed.";
+        writeback.audit_error = "The Salesforce writeback result could not be added to the audit log.";
       }
     }
     return Response.json({ ...result, writeback });

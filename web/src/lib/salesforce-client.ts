@@ -145,14 +145,34 @@ async function apiRequest(
     };
 
   let response = await run(connection);
+  let refreshed = false;
   if (response.status === 401) {
     connection = await refreshConnection(customerRef, connection);
     response = await run(connection);
+    refreshed = true;
   }
   if (!response.ok) {
     const code = response.status;
-    await markSalesforceConnection(customerRef, "error", `API request failed (${code}).`);
-    throw new Error(`Salesforce API request failed (${code}).`);
+    const raw = await response.text().catch(() => "");
+    let detail = "";
+    try {
+      const parsed = JSON.parse(raw) as Array<{ errorCode?: string; message?: string }>;
+      const first = Array.isArray(parsed) ? parsed[0] : null;
+      detail = [first?.errorCode, first?.message].filter(Boolean).join(": ");
+    } catch {
+      detail = raw.trim();
+    }
+    const safeDetail = detail.replace(/[\r\n]+/g, " ").slice(0, 500);
+    const message = `Salesforce API request failed (${code})${safeDetail ? `: ${safeDetail}` : "."}`;
+    const status = code === 401 && refreshed ? "reauth_required" : "error";
+    await markSalesforceConnection(customerRef, status, message);
+    if (status === "reauth_required") {
+      throw new Error("Salesforce authorization was rejected after refresh. Reconnect the org.");
+    }
+    throw new Error(message);
+  }
+  if (connection.status !== "connected") {
+    await markSalesforceConnection(customerRef, "connected", "");
   }
   return response;
 }
