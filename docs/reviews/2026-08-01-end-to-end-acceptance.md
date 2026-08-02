@@ -1,11 +1,11 @@
 # Pricekeel Salesforce end-to-end acceptance record
 
-Status: merge-ready engineering evidence; customer-launch gates remain.
+Status: production-deployed engineering evidence; customer-launch gates remain.
 Recorded: 2026-08-01.
 
 ## Result
 
-The branch is free of known test, lint, TypeScript, and production-build errors.
+The merged release is free of known test, lint, TypeScript, and production-build errors.
 The real production Salesforce connector is verified through OAuth, metadata,
 mapping, encrypted persistence, and bounded sync. The complete live pricing
 decision loop is **not** claimed: the dedicated Developer Edition org has 18
@@ -41,6 +41,8 @@ The Python suite now covers the decision-integrity corrections plus:
 
 Verified against the founder's Salesforce Developer Edition org:
 
+- PR #45 merged to `main` at `ccdaf31` and the attached Vercel production
+  deployment completed successfully;
 - External Client App authorization-code flow with PKCE;
 - API plus offline/refresh scope consent;
 - expected-org binding;
@@ -49,7 +51,13 @@ Verified against the founder's Salesforce Developer Edition org:
 - field mapping save/reload;
 - on-demand Salesforce query and canonical mapping;
 - 18 usable closed and 13 usable open Opportunities;
-- correct analytical block below 30 usable closed outcomes.
+- correct analytical block below 30 usable closed outcomes;
+- post-deploy Salesforce refresh on `www.pricekeel.com/crm` returned the same
+  counts and blocker with no browser console errors;
+- landing, sample, pricing, trust, and contact routes rendered without an
+  application error or browser console error;
+- both temporary internal Pricekeel acceptance codes were revoked after the
+  live check. The Salesforce connection remains encrypted and tenant-bound.
 
 No Salesforce password, OAuth token, encryption key, or Pricekeel access code
 is stored in this record.
@@ -71,13 +79,15 @@ is stored in this record.
   append-only writeback result.
 - A token rejected after a successful refresh becomes `reauth_required`; a
   later healthy request clears a transient connection error.
+- A revoked or missing Pricekeel access code shows a tenant-aware sign-in card
+  instead of a false warning that Salesforce production variables are absent.
 - Next was upgraded from 16.2.6 to 16.2.12 to close the direct current Next
   advisories reported by npm.
 
 ## Known release gates
 
-1. Deploy this branch, then run the live decision/writeback/reconcile lifecycle
-   with 30+ credible closed fixtures and one open fixture.
+1. Run the live decision/writeback/reconcile lifecycle with 30+ credible closed
+   fixtures and one open fixture.
 2. Verify disconnect/revocation and reconnect.
 3. Build and install the packaged ECA through a Salesforce DX managed-package
    release in a subscriber org before connecting an external customer.
