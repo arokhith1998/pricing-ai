@@ -114,20 +114,37 @@ export type SalesforceWorkflowInput = {
   outcome?: "closed_won" | "closed_lost" | "";
 };
 
+type CanonicalRecords = Awaited<
+  ReturnType<typeof fetchSalesforceCanonicalDeals>
+>["records"];
+
+const DECIDES_OVERRIDE = new Set<SalesforceWorkflowInput["event"]>([
+  "approved",
+  "rejected",
+]);
+
 export async function logSalesforceWorkflow(
   customerRef: string,
   input: SalesforceWorkflowInput,
 ) {
   const config = await getSalesforceMapping(customerRef);
-  const source = await fetchSalesforceCanonicalDeals(customerRef, config);
-  if (source.readiness.blockers.length) {
-    throw new Error(source.readiness.blockers.join(" "));
+  // Approve and reject resolve terms Pricekeel already recorded, so they must
+  // not depend on live evidence. Refetching here would block a pending
+  // decision whenever the opportunity closed or the org fell below the
+  // evidence floor, and would make approvals fail during a Salesforce outage.
+  let records: CanonicalRecords = [];
+  if (!DECIDES_OVERRIDE.has(input.event)) {
+    const source = await fetchSalesforceCanonicalDeals(customerRef, config);
+    if (source.readiness.blockers.length) {
+      throw new Error(source.readiness.blockers.join(" "));
+    }
+    records = source.records;
   }
   const response = await crmFetch("/crm/workflow", customerRef, {
     method: "POST",
     body: JSON.stringify({
       ...input,
-      records: source.records,
+      records,
       policy_threshold_pct: config.policy_threshold_pct,
     }),
   });

@@ -937,12 +937,23 @@ def _crm_deal_history(customer: str, deal_id: str) -> list[dict]:
     ]
 
 
+def _normalized_actor(value: str) -> str:
+    """Compare self-asserted actor names ignoring case and inner whitespace.
+
+    Actor is free text until an authenticated identity exists, so this makes
+    the self-approval guard hold for "J. Rivera" vs "j.  rivera". It cannot
+    stop deliberate impersonation; that needs real identity, not a string.
+    """
+    return " ".join(str(value).split()).casefold()
+
+
 @app.post("/crm/workflow")
 def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
     event = req.event.strip().lower()
     if event not in _CRM_EVENTS:
         raise HTTPException(status_code=422, detail="Unsupported CRM workflow event.")
-    if not req.actor.strip():
+    actor = req.actor.strip()
+    if not actor:
         raise HTTPException(status_code=422, detail="actor is required.")
     if event == "override_requested" and not req.justification.strip():
         raise HTTPException(
@@ -958,7 +969,8 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
     history = _crm_deal_history(customer, req.deal_id)
     previous_payload = (history[0].get("payload") or {}) if history else {}
     previous_event = str(previous_payload.get("event") or "")
-    if event in {"approved", "rejected"} and previous_event != "override_requested":
+    decides_override = event in {"approved", "rejected"}
+    if decides_override and previous_event != "override_requested":
         raise HTTPException(
             status_code=409,
             detail="Approve or reject only after an override request.",
@@ -968,53 +980,83 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
             status_code=409,
             detail="Outcomes are reconciled from Salesforce on the next sync.",
         )
-    try:
-        guidance = crm_mod.selected_guidance(
-            req.records, req.deal_id,
-            policy_threshold_pct=req.policy_threshold_pct,
-        )
-    except crm_mod.CRMDataError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-
-    recommended_pct = float(guidance["recommended_discount"]) * 100.0
-    current_pct = float(guidance["current_discount"]) * 100.0
-    if event == "accepted":
-        requested_pct = recommended_pct
-    elif req.requested_discount_pct is not None:
-        requested_pct = float(req.requested_discount_pct)
-    elif event in {"approved", "rejected"}:
-        previous_verdict = previous_payload.get("verdict") or {}
-        requested_pct = float(previous_verdict.get("requested_pct", current_pct))
+    if decides_override:
+        # A decision resolves the terms that were actually requested, so the
+        # recorded override request is authoritative and live guidance is not
+        # consulted at all. Recomputing it here would strand a pending approval
+        # whenever the opportunity leaves the open set (it closed, or the org
+        # dropped below the evidence floor), and a percentage posted at
+        # approval time would silently replace what the rep asked for.
+        if req.requested_discount_pct is not None:
+            raise HTTPException(
+                status_code=422,
+                detail=("Approve or reject decides the recorded override terms; "
+                        "requested_discount_pct cannot be restated at approval."),
+            )
+        if _normalized_actor(actor) == _normalized_actor(
+            previous_payload.get("actor") or ""
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=("This actor requested the override; approving or "
+                        "rejecting it requires a different person."),
+            )
+        verdict = dict(previous_payload.get("verdict") or {})
+        if not verdict:
+            raise HTTPException(
+                status_code=409,
+                detail="The pending override request has no recorded terms to decide.",
+            )
+        guidance: dict = {
+            "opportunity_id": req.deal_id,
+            "account": str(previous_payload.get("account") or ""),
+            "evidence_source": "persisted_override_request",
+        }
     else:
-        requested_pct = current_pct
-    if not (0.0 <= requested_pct <= governance_mod.EXCEPTION_MAX_PCT):
-        raise HTTPException(
-            status_code=422,
-            detail=("requested_discount_pct must be between 0 and "
-                    f"{governance_mod.EXCEPTION_MAX_PCT:g}."),
-        )
-    guardrail_pct = float(guidance["reference_discount"]) * 100.0
-    verdict = {
-        "requested_pct": requested_pct,
-        "recommended_pct": recommended_pct,
-        "guardrail_pct": guardrail_pct,
-        "outside_guardrail": requested_pct > guardrail_pct,
-        "price_to_retain": max(
-            0.0,
-            (requested_pct - recommended_pct) / 100.0
-            * float(guidance["list_acv"]),
-        ),
-        "reference_basis": guidance["reference_basis"],
-        "current_band": guidance["current_band"],
-        "recommended_band": guidance["recommended_band"],
-        "historical_win_rate_at_requested_band": guidance[
-            "win_rate_at_current_band"
-        ],
-        "historical_win_rate_at_recommended_band": guidance[
-            "win_rate_at_recommended_band"
-        ],
-        "caveat": guidance["caveat"],
-    }
+        try:
+            guidance = crm_mod.selected_guidance(
+                req.records, req.deal_id,
+                policy_threshold_pct=req.policy_threshold_pct,
+            )
+        except crm_mod.CRMDataError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        recommended_pct = float(guidance["recommended_discount"]) * 100.0
+        current_pct = float(guidance["current_discount"]) * 100.0
+        if event == "accepted":
+            requested_pct = recommended_pct
+        elif req.requested_discount_pct is not None:
+            requested_pct = float(req.requested_discount_pct)
+        else:
+            requested_pct = current_pct
+        if not (0.0 <= requested_pct <= governance_mod.EXCEPTION_MAX_PCT):
+            raise HTTPException(
+                status_code=422,
+                detail=("requested_discount_pct must be between 0 and "
+                        f"{governance_mod.EXCEPTION_MAX_PCT:g}."),
+            )
+        guardrail_pct = float(guidance["reference_discount"]) * 100.0
+        verdict = {
+            "requested_pct": requested_pct,
+            "recommended_pct": recommended_pct,
+            "guardrail_pct": guardrail_pct,
+            "outside_guardrail": requested_pct > guardrail_pct,
+            "price_to_retain": max(
+                0.0,
+                (requested_pct - recommended_pct) / 100.0
+                * float(guidance["list_acv"]),
+            ),
+            "reference_basis": guidance["reference_basis"],
+            "current_band": guidance["current_band"],
+            "recommended_band": guidance["recommended_band"],
+            "historical_win_rate_at_requested_band": guidance[
+                "win_rate_at_current_band"
+            ],
+            "historical_win_rate_at_recommended_band": guidance[
+                "win_rate_at_recommended_band"
+            ],
+            "caveat": guidance["caveat"],
+        }
     effective_justification = (
         req.justification.strip()
         or str(previous_payload.get("justification") or "")
@@ -1024,7 +1066,10 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         "event": event,
         "deal_id": req.deal_id,
         "account": guidance["account"],
-        "actor": req.actor.strip(),
+        "actor": actor,
+        # Actor is typed by the operator, not proven by an authenticated
+        # session. The audit record says so rather than implying otherwise.
+        "actor_assertion": "self_asserted",
         "justification": effective_justification,
         "outcome": req.outcome,
         "verdict": verdict,
