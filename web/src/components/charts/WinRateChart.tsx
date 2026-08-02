@@ -71,8 +71,14 @@ export default function WinRateChart({
   });
 
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-72 min-w-0 w-full">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={1}
+        initialDimension={{ width: 640, height: 288 }}
+      >
         <ComposedChart data={data} margin={{ top: 28, right: 16, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={MIST} vertical={false} />
           <XAxis

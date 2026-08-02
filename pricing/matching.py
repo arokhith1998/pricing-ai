@@ -266,6 +266,73 @@ def fetch_pricing_page(url: str, *, ttl_seconds: int = _FETCH_TTL_SECONDS) -> st
     return text
 
 
+_CONTEXT_SYSTEM = (
+    "You extract decision-relevant competitive context from one public B2B "
+    "company source. Return ONLY JSON with keys summary (string), confidence "
+    "(high|medium|low), and claims (array of objects with claim, confidence, "
+    "and evidence_excerpt). Use only the supplied page text. Keep at most five "
+    "claims. An evidence excerpt must be a short phrase under 160 characters, "
+    "not a long quotation. Do not infer pricing, product capability, or company "
+    "strategy that the source does not state."
+)
+
+
+def extract_competitor_context(url: str, *, competitor_name: str = "",
+                               source_type: str = "other") -> dict:
+    """Fetch one customer-named public source and extract sourced context.
+
+    This output is deliberately qualitative. The CRM guidance engine never
+    consumes it, so a competitor claim cannot move a discount guardrail.
+    """
+    if not assist.has_llm():
+        raise assist.LLMUnavailableError(
+            "A configured LLM is required to extract competitor context."
+        )
+    page_text = fetch_pricing_page(url)
+    if not page_text.strip():
+        raise ValueError("The source returned no readable public text.")
+    user = json.dumps({
+        "competitor_name": competitor_name,
+        "source_type": source_type,
+        "source_url": url,
+        "page_text": page_text,
+    })
+    raw = assist._complete(  # noqa: SLF001 - shared provider boundary
+        _CONTEXT_SYSTEM, user, json_mode=True, small=True, max_tokens=900,
+    )
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
+        parsed = json.loads(cleaned)
+    confidence = str(parsed.get("confidence") or "medium").lower()
+    if confidence not in {"high", "medium", "low"}:
+        confidence = "medium"
+    claims = []
+    for item in list(parsed.get("claims") or [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        claim = str(item.get("claim") or "").strip()
+        if not claim:
+            continue
+        item_conf = str(item.get("confidence") or confidence).lower()
+        if item_conf not in {"high", "medium", "low"}:
+            item_conf = confidence
+        claims.append({
+            "claim": claim[:1000],
+            "confidence": item_conf,
+            "evidence_excerpt": str(item.get("evidence_excerpt") or "").strip()[:160],
+        })
+    return {
+        "competitor_name": competitor_name.strip(),
+        "source_url": url,
+        "source_type": source_type,
+        "summary": str(parsed.get("summary") or "").strip()[:2000],
+        "confidence": confidence,
+        "claims": claims,
+    }
+
+
 # ---------------------------------------------------------------------------
 # LLM-driven plan extraction (structured JSON)
 

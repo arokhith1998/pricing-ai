@@ -50,7 +50,7 @@ export default function TrustPage() {
             Render, United States (Virginia).
           </li>
           <li>
-            <span className="font-medium text-fg">Database (leads + access codes).</span>{" "}
+            <span className="font-medium text-fg">Database (leads, access codes, encrypted CRM tokens, mappings, and decision log).</span>{" "}
             Neon Postgres, United States (AWS us-east).
           </li>
         </ul>
@@ -65,6 +65,11 @@ export default function TrustPage() {
           <li>
             Row-level deal data uploaded for diagnostics is processed in
             memory and not persisted after the analysis completes.
+          </li>
+          <li>
+            Live Salesforce Opportunity rows are fetched server-to-server and
+            are not persisted in the Pricekeel database. Only connection and
+            mapping metadata, sync health, and decision evidence are retained.
           </li>
           <li>
             Documents you upload to the copilot are chunked + embedded in
@@ -100,6 +105,10 @@ export default function TrustPage() {
             secret) are stored in Vercel/Render encrypted environment
             variable stores and never appear in the codebase.
           </li>
+          <li>
+            Salesforce access and refresh tokens are encrypted with AES-256-GCM
+            before Neon storage and are never exposed to browser JavaScript.
+          </li>
         </ul>
       </Section>
 
@@ -118,7 +127,7 @@ export default function TrustPage() {
           <li>
             Two-tier funnel gate: the captured-lead cookie unlocks the
             sample diagnostic; the access-code cookie unlocks customer
-            data upload. Access codes are issued only after a signed NDA.
+            data upload and CRM workspace. Access codes are issued only after a signed NDA.
           </li>
         </ul>
       </Section>

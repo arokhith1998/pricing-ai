@@ -37,9 +37,9 @@ const SUBPROCESSORS: Sub[] = [
   },
   {
     name: "Neon",
-    purpose: "Postgres database (leads, access codes, decision log)",
+    purpose: "Postgres database (leads, access codes, encrypted CRM tokens, mappings, decision log)",
     region: "United States (AWS us-east)",
-    dataCategory: "Lead contact details, access codes, logged pricing decisions",
+    dataCategory: "Lead contact details, access codes, encrypted Salesforce tokens, connection metadata, logged pricing decisions",
     dpa: "https://neon.com/legal/dpa",
   },
   {

@@ -12,8 +12,9 @@ export default function Footer() {
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <Link href="/sample" className="hover:text-fg">
-            Sample
+            Live sample
           </Link>
+          <Link href="/crm" className="hover:text-fg">Workspace</Link>
           <Link href="/calculator" className="hover:text-fg">
             Calculator
           </Link>

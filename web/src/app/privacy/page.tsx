@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
 // It is NOT legal advice. Fill the [bracketed] entity/jurisdiction fields and
 // have a lawyer review before relying on it.
 
-const EFFECTIVE = "30 May 2026";
+const EFFECTIVE = "1 August 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
 
 // Until incorporation completes, name Pricekeel plainly instead of rendering
@@ -62,6 +62,20 @@ export default function PrivacyPage() {
           <br />
           <span className="text-fg">Legal basis (GDPR):</span> your consent
           (Art. 6(1)(a)) via the consent checkbox on the lead form.
+        </p>
+        <p>
+          <span className="font-medium text-fg">Salesforce connection and live CRM data.</span>{" "}
+          When an authorized customer connects Salesforce, we store the org and
+          user identifiers, instance URL, field mapping, sync health, and OAuth
+          access/refresh tokens. Tokens are encrypted by Pricekeel before they
+          are written to Neon and are never returned to browser JavaScript. Live
+          Opportunity rows are fetched server-to-server, analyzed in memory by
+          the protected pricing service, and not persisted in the Pricekeel
+          database or sent to a cloud LLM.
+          <br />
+          <span className="text-fg">Legal basis (GDPR):</span> performance of
+          the engagement (Art. 6(1)(b)) and our legitimate interest in securing
+          the integration (Art. 6(1)(f)).
         </p>
         <p>
           <span className="font-medium text-fg">Data you upload for analysis.</span>{" "}
@@ -191,12 +205,13 @@ export default function PrivacyPage() {
           unlocked the sample diagnostic) and <code>pk_access</code>{" "}
           (remembers that you have entered a valid access code for your own
           data). We do not use advertising, retargeting, or cross-site
-          tracking cookies, and the analytics we use set no cookies at all.
+          tracking cookies. When enabled, our analytics set no cookies at all.
         </p>
         <p>
-          We use Vercel Web Analytics, a cookieless, privacy-preserving
-          first-party analytics service that aggregates page views without
-          cross-site tracking and without advertising cookies.
+          Vercel Web Analytics can be enabled as a cookieless,
+          privacy-preserving first-party analytics service. It aggregates page
+          views without cross-site tracking or advertising cookies. When it is
+          not enabled for the deployment, Pricekeel does not load its script.
         </p>
       </Section>
 
@@ -210,6 +225,17 @@ export default function PrivacyPage() {
           <li>
             <span className="font-medium text-fg">Access codes:</span> until
             revoked or 12 months after last use, whichever is sooner.
+          </li>
+          <li>
+            <span className="font-medium text-fg">Salesforce OAuth tokens and connection metadata:</span>{" "}
+            until you disconnect the org or the engagement ends. Disconnect
+            triggers best-effort revocation at Salesforce and removes the local
+            connection and encrypted tokens.
+          </li>
+          <li>
+            <span className="font-medium text-fg">Live Salesforce Opportunity rows:</span>{" "}
+            not persisted in the Pricekeel database. They exist only for the
+            duration of the server-to-server analysis request.
           </li>
           <li>
             <span className="font-medium text-fg">Uploaded CSV / document files:</span>{" "}
@@ -237,6 +263,8 @@ export default function PrivacyPage() {
           rest on the database (AES-256 via Neon). Secrets stored in
           encrypted environment-variable stores. Server-side connection-string
           access only to the database; no database credential in the browser.
+          Salesforce OAuth tokens receive an additional application-level
+          AES-256-GCM encryption layer before database storage.
           Multi-factor authentication enforced on every admin account.
           Change management via GitHub pull requests with CI. Point-in-time
           database restore history. The full security posture is at{" "}

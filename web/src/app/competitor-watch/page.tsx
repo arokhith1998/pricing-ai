@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CompetitorContextPanel from "@/components/CompetitorContextPanel";
 import Reveal from "@/components/Reveal";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -165,25 +166,36 @@ export default function CompetitorWatchPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
       <Reveal>
-        <h1 className="text-2xl font-bold text-fg">Competitor watch</h1>
+        <h1 className="text-2xl font-bold text-fg">Competitor context</h1>
         <p className="mt-1 max-w-3xl text-slate">
-          Drop your pricing page URL and up to eight competitor pricing pages.
-          We extract structured plans from each, match yours against theirs,
-          and tell you where you are above or below market, feature by
-          feature.
+          Add named, public evidence—pricing pages, documentation, release
+          notes, case studies, interviews, and quarterly or investor material.
+          Pricekeel keeps the source, capture date, confidence, and extracted
+          claims beside the CRM analysis.
         </p>
         <p className="mt-1 max-w-3xl text-xs text-muted">
-          Customer-named competitors only. We do not scrape the market. Pages
-          fetched once per hour, with <code>robots.txt</code> honored and a
-          kill-switch list for any host that asks us to stop. By submitting a
-          URL you warrant that you have the right to query it under the
-          operator&rsquo;s terms (see{" "}
+          Customer-selected competitors only. We do not crawl the market.
+          Public pages are fetched with <code>robots.txt</code> and SSRF
+          controls enforced. By submitting a URL you warrant that you have the
+          right to query it under the operator&rsquo;s terms (see{" "}
           <a href="/terms" className="underline hover:text-fg">/terms</a>).
-          Plan extraction is AI-assisted; review results before acting.
+          Extraction is AI-assisted and qualitative; competitor claims never
+          alter the numerical discount guardrail.
         </p>
       </Reveal>
 
+      <Reveal delay={0.03}>
+        <CompetitorContextPanel />
+      </Reveal>
+
       <Reveal delay={0.04}>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-fg">Pricing-page comparison</h2>
+          <p className="mt-1 text-sm text-slate">
+            Optionally compare structured public plans and features for your
+            selected competitors. Review the extraction before using it.
+          </p>
+        </div>
         <form
           onSubmit={runCompare}
           className="space-y-3 rounded-xl border border-mist bg-surface p-5"

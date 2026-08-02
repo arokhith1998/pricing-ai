@@ -2,170 +2,101 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { useRef } from "react";
 
-// Brand mark. Keeps the source-of-truth geometry inline so the nav stays
-// crisp at any zoom, while the same geometry also lives at /brand/logo-mark.svg
-// for downloads, social avatars, and external use.
 function KeelMark() {
   return (
     <svg width="34" height="34" viewBox="0 0 64 64" aria-label="Pricekeel">
-      <line
-        x1="10" y1="26" x2="54" y2="26"
-        stroke="#e9f0f8" strokeWidth="3"
-        strokeLinecap="round" opacity="0.88"
-      />
-      <path
-        d="M 14 26 Q 34 60 50 26"
-        fill="none" stroke="#2dd4bf"
-        strokeWidth="5"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
+      <line x1="10" y1="26" x2="54" y2="26" stroke="#e9f0f8" strokeWidth="3" strokeLinecap="round" opacity="0.88" />
+      <path d="M 14 26 Q 34 60 50 26" fill="none" stroke="#2dd4bf" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// Small padlock used in the locked nav state. Same stroke and corner radius
-// as the rest of the nav iconography.
-function LockIcon({ className = "" }: { className?: string }) {
+const LINKS = [
+  { href: "/#workflow", label: "Product" },
+  { href: "/sample", label: "Live sample" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/trust", label: "Trust" },
+] as const;
+
+function isActive(pathname: string, href: string) {
+  if (href.startsWith("/#")) return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function MarketingLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
-    <svg
-      aria-hidden
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
+    <>
+      {LINKS.map((link) => {
+        const active = isActive(pathname, link.href);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              active ? "bg-mist text-fg" : "text-slate hover:bg-mist hover:text-fg"
+            }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+      <Link
+        href="/crm"
+        onClick={onNavigate}
+        className="rounded-lg border border-teal/50 px-3 py-2 text-sm font-semibold text-teal transition hover:bg-teal/10"
+      >
+        Customer workspace
+      </Link>
+    </>
   );
 }
 
-// Nav entries. `gated` links require a captured lead. When the visitor does
-// not have the pk_lead cookie they render in a locked state: padlock icon,
-// muted color, hover tooltip explaining how to unlock. Clicking still works
-// and sends them to /sample with an unlock banner so they always have a
-// next step.
-type NavLink = {
-  href: string;
-  label: string;
-  gated: boolean;
-  unlockSlug?: string; // value passed as ?unlock= when locked
-};
-
-const LINKS: NavLink[] = [
-  { href: "/sample", label: "Overview", gated: false },
-  { href: "/diagnostic", label: "Diagnostic", gated: true, unlockSlug: "diagnostic" },
-  { href: "/guidance", label: "Guidance", gated: true, unlockSlug: "guidance" },
-  { href: "/competitor-watch", label: "Competitor watch", gated: true, unlockSlug: "competitor-watch" },
-];
-
-export default function Nav({ leadUnlocked = false }: { leadUnlocked?: boolean }) {
+export default function Nav() {
   const pathname = usePathname();
+  const mobileMenu = useRef<HTMLDetailsElement>(null);
+
   return (
-    <header className="sticky top-0 z-10 border-b border-mist bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-3">
+    <header className="sticky top-0 z-30 border-b border-mist bg-surface/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Pricekeel home">
           <KeelMark />
           <div>
-            <div className="text-xl font-extrabold tracking-tight leading-none">
-              <span className="text-fg">Price</span>
-              <span className="text-teal">keel</span>
+            <div className="text-xl font-extrabold leading-none tracking-tight">
+              <span className="text-fg">Price</span><span className="text-teal">keel</span>
             </div>
-            {/* Tagline only from md up: it crowds the link row on phones. */}
-            <div className="mt-0.5 hidden text-xs text-slate md:block">
-              Keep your pricing on an even keel.
+            <div className="mt-0.5 hidden text-[11px] text-slate lg:block">
+              Pricing decisions, kept on course.
             </div>
           </div>
         </Link>
-        {/* Smaller text + tighter gaps below sm, and horizontal scroll as the
-            escape hatch, so the four links fit a 390px viewport without a
-            hamburger. */}
-        <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-xs font-medium sm:gap-1 sm:overflow-x-visible sm:text-sm">
-          {LINKS.map((link) => {
-            const active =
-              link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-            const locked = link.gated && !leadUnlocked;
 
-            // When locked, route the click to /sample with the unlock slug
-            // so the user lands on the page that hosts the lead form, with
-            // the banner naming what they were trying to open.
-            const href = locked && link.unlockSlug
-              ? `/sample?unlock=${link.unlockSlug}`
-              : link.href;
-
-            // Locked links use a wrapper so the tooltip can be a sibling
-            // span positioned via group-hover. Active links are never
-            // locked (active means the user is already on the page, which
-            // means they had the cookie when proxy let them in).
-            return (
-              <div key={link.href} className="group relative shrink-0">
-                <Link
-                  href={href}
-                  aria-disabled={locked ? "true" : undefined}
-                  // The tooltip is hover/focus-only, so locked links also
-                  // carry the hint as aria-label + title for touch and
-                  // assistive tech.
-                  aria-label={
-                    locked
-                      ? `${link.label} (locked). Fill the short unlock form on the Overview page to open it.`
-                      : undefined
-                  }
-                  title={
-                    locked
-                      ? `Locked. Fill the short unlock form on the Overview page to open the ${link.label.toLowerCase()} view.`
-                      : undefined
-                  }
-                  className={`relative flex items-center gap-1.5 rounded-lg px-2 py-2 transition sm:px-3 ${
-                    !active && !locked ? "hover:bg-mist" : ""
-                  } ${locked ? "cursor-pointer" : ""}`}
-                >
-                  {active ? (
-                    <motion.span
-                      layoutId="nav-pill"
-                      className="absolute inset-0 rounded-lg bg-navy"
-                      transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                    />
-                  ) : null}
-                  {locked ? (
-                    <LockIcon className="relative text-slate/70 transition group-hover:text-teal" />
-                  ) : null}
-                  <span
-                    className={`relative ${
-                      active
-                        ? "text-white"
-                        : locked
-                          ? "text-slate/70 transition group-hover:text-fg"
-                          : "text-slate hover:text-fg"
-                    }`}
-                  >
-                    {link.label}
-                  </span>
-                </Link>
-                {locked ? (
-                  <span
-                    role="tooltip"
-                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-lg border border-mist bg-surface px-3 py-2 text-xs leading-snug text-fg opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100"
-                  >
-                    <span className="font-semibold text-teal">Locked.</span>{" "}
-                    Fill the short unlock form on the Overview page to open
-                    the {link.label.toLowerCase()} view.
-                    <span
-                      aria-hidden
-                      className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-mist bg-surface"
-                    />
-                  </span>
-                ) : null}
-              </div>
-            );
-          })}
+        <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+          <MarketingLinks pathname={pathname} />
         </nav>
+
+        <details ref={mobileMenu} className="group relative md:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-mist bg-surface-2 px-3 py-2 text-sm font-medium text-fg marker:hidden">
+            Menu
+            <svg aria-hidden className="transition group-open:rotate-180" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <nav aria-label="Mobile primary" className="absolute right-0 top-[calc(100%+0.6rem)] z-40 flex w-64 flex-col gap-1 rounded-xl border border-mist bg-surface p-2 shadow-2xl shadow-black/40">
+            <MarketingLinks
+              pathname={pathname}
+              onNavigate={() => {
+                // Let the link complete its native navigation before hiding
+                // the <details> subtree. Closing it synchronously can remove
+                // the clicked anchor from hit-testing before navigation.
+                window.setTimeout(() => mobileMenu.current?.removeAttribute("open"), 0);
+              }}
+            />
+          </nav>
+        </details>
       </div>
     </header>
   );

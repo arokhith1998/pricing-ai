@@ -1,88 +1,59 @@
 import { Stagger, StaggerItem } from "@/components/Reveal";
 
-// Merged "what it does" capabilities + "what you get" deliverables. Each row is
-// one pillar: the capability on the left, the concrete artifact it produces on
-// the right. Consolidated from the former separate "What it does" cards and
-// DeliverableSection so the four pillars are stated once, not twice (the page
-// was re-treading the same four ideas across two grids).
-const PILLARS: { pillar: string; does: string; artifact: string; get: string }[] = [
+const ROLES = [
   {
-    pillar: "Find the leakage",
-    does:
-      "Price realization, win rate by discount band, and three views of discount leakage, from a plain description to the strongest claim worth acting on.",
-    artifact: "Executive summary",
-    get:
-      "A one-page narrative your CFO reads in two minutes: booked value, price realization, win point, the headline upside, and the top three deals to investigate. Plain English, no jargon.",
+    role: "Deal Desk + RevOps",
+    moment: "Price the live exception",
+    outcome:
+      "See the requested discount beside the recommended guardrail, closest comparable deals, and the expected-value tradeoff. Accept, trade, or override without opening an analyst ticket.",
+    measures: ["Exception cycle time", "Override rate", "Price retained"],
   },
   {
-    pillar: "Find the win point",
-    does:
-      "The discount level where win rate stops improving. Everything given beyond it is a list to investigate, not a refund.",
-    artifact: "Win-curve report",
-    get:
-      "Win rate by discount band with the calculated reference point, the band where bigger discounts stop buying wins. The chart your Head of Pricing forwards to the CRO.",
+    role: "Pricing",
+    moment: "Improve the guardrails",
+    outcome:
+      "Analyze realization and win rate by segment, product, customer, and discount band. Add cited competitor context, then trace every recommendation back to the evidence that produced it.",
+    measures: ["Price realization", "Win rate by band", "Policy drift"],
   },
   {
-    pillar: "Guide the next discount",
-    does:
-      "A win-probability model recommends the discount that maximizes expected value on a given deal, with a plain-language why.",
-    artifact: "Per-deal guidance",
-    get:
-      "For each open opportunity: recommended discount, expected-value lift, win-probability change, and the top three factors the model thinks drive the deal. Decision support for the deal-desk call.",
-  },
-  {
-    pillar: "Defend the decision",
-    does:
-      "Every recommendation is logged with the math behind it. The Copilot answers CFO questions with citations to the source signal, with no LLM-invented numbers.",
-    artifact: "Defended-vs-investigate list",
-    get:
-      "Won deals split into 'discount earned the win' (defend in sales review) and 'discount worth a retrospective look' (route to deal-desk debrief). Sales-friendly framing of the same data.",
+    role: "Finance",
+    moment: "Govern the value given away",
+    outcome:
+      "Track price realization, discounts above policy, retained value, and who approved each exception. Add billing or ERP cost data before calling any output true margin.",
+    measures: ["Realization", "Above-policy value", "Audit coverage"],
   },
 ];
 
 export default function WhatYouGet() {
   return (
-    <section aria-label="What it does and what you walk away with">
+    <section aria-label="Role-specific outcomes">
       <div className="text-center">
         <p className="text-xs font-semibold uppercase tracking-wider text-teal">
-          What it does · what you walk away with
+          One system, three operating views
         </p>
         <h2 className="mt-2 text-xl font-bold text-fg sm:text-2xl">
-          Four answers, four artifacts you can forward unchanged
+          Each buyer sees the decision at their altitude
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
-          Each pillar produces a deliverable a Head of Pricing forwards to the
-          CFO as-is. No dashboard to interpret, no copy-paste cleanup.
+          Reps do not need another dashboard. Pricing needs evidence. Finance
+          needs control. Pricekeel gives each team a view of the same decision
+          record instead of three versions of the truth.
         </p>
       </div>
 
-      <Stagger className="mt-6 grid grid-cols-1 gap-3">
-        {PILLARS.map((p, i) => (
-          <StaggerItem key={p.pillar}>
-            <div className="grid grid-cols-1 gap-4 rounded-xl border border-mist bg-surface p-5 md:grid-cols-[1fr_auto_1.1fr] md:items-center md:gap-5">
-              {/* Capability: what it does */}
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs font-bold tabular-nums text-teal">
-                    {String(i + 1).padStart(2, "0")}
+      <Stagger className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {ROLES.map((item) => (
+          <StaggerItem key={item.role}>
+            <div className="flex h-full flex-col rounded-xl border border-mist bg-surface p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">{item.role}</p>
+              <h3 className="mt-2 text-lg font-semibold text-fg">{item.moment}</h3>
+              <p className="mt-2 flex-1 text-sm leading-6 text-muted">{item.outcome}</p>
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-mist pt-4">
+                {item.measures.map((measure) => (
+                  <span key={measure} className="rounded-full border border-mist bg-surface-2 px-2.5 py-1 text-[10px] font-medium text-slate">
+                    {measure}
                   </span>
-                  <h3 className="text-base font-semibold text-fg">{p.pillar}</h3>
-                </div>
-                <p className="mt-1 text-sm text-slate">{p.does}</p>
-              </div>
-
-              {/* Connector (desktop only) */}
-              <div
-                aria-hidden
-                className="hidden md:block md:h-full md:border-l md:border-mist"
-              />
-
-              {/* Deliverable: what you get */}
-              <div className="rounded-lg border border-mist bg-surface-2 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-teal">
-                  You get · {p.artifact}
-                </p>
-                <p className="mt-1 text-sm text-muted">{p.get}</p>
+                ))}
               </div>
             </div>
           </StaggerItem>

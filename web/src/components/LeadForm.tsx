@@ -156,14 +156,10 @@ export default function LeadForm({ next }: { next?: string } = {}) {
       return;
     }
     if (res.ok) {
-      // If proxy.ts bounced us to /sample with ?unlock=<route>, send the
-      // user back to that route now that the pk_lead cookie is set. Falls
-      // back to refresh() so the on-page sample expands in place.
-      if (next) {
-        router.push(next);
-      } else {
-        router.refresh();
-      }
+      // The response has set the signed lead cookie. Move directly into the
+      // requested surface; a direct sample unlock defaults to Diagnostic so
+      // the visitor is never left wondering what changed on /sample.
+      router.replace(next || "/diagnostic");
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error || "Something went wrong.");
