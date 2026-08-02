@@ -282,7 +282,32 @@ committed or pasted into logs.
 8. Python business-logic and API-perimeter tests, TypeScript lint, Next
    production build, and security checks pass.
 
-Live acceptance criteria 1-5 remain unverified until the founder supplies a
-Salesforce Developer/Sandbox org ECA configuration and production environment
-variables. GitHub push and pull request remain separate from local completion
-until `gh` authentication is restored.
+Live acceptance status on 2026-08-01:
+
+- Criteria 1, 3, and 4 are partially verified in production against the
+  founder's Salesforce Developer Edition org: authorization-code OAuth with
+  PKCE completed, the connection persisted encrypted, field discovery and
+  mapping worked, and a refresh returned 18 usable closed and 13 usable open
+  Opportunities.
+- The 30-closed evidence floor correctly blocked analytical guidance. This is
+  expected product behavior, not an application error. Criterion 5 therefore
+  remains unverified end to end against live Salesforce data.
+- Automated coverage verifies OAuth state/PKCE, token refresh/error behavior,
+  mapping rejection, decision logging, same-actor rejection, preservation of
+  the originally requested terms, batched outcome reconciliation, durable
+  writeback-result logging, and approval/rejection after an Opportunity leaves
+  the open set. The current branch passes 195 Python tests, five TypeScript
+  connector tests, Next lint, and a Next 16.2.12 production build.
+- Disconnect/reconnect, live Task writeback, live token refresh, outcome
+  reconciliation, and a pending off-list decision still require a suitable
+  test fixture and this branch deployed to production.
+- A local/source-org ECA proves a controlled org only. A packaged ECA and
+  subscriber-org install test remain release gates before onboarding an
+  external customer.
+- The workflow actor remains self-asserted text. The V1 same-actor guard is not
+  authenticated separation of duties; SSO plus an approver role/allowlist is a
+  release gate before customers rely on the log as a formal governance control.
+
+Operator and customer procedures are maintained in
+`docs/ops/salesforce-integration-runbook.md` and
+`docs/guides/customer-salesforce-workspace.md`.

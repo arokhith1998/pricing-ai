@@ -317,7 +317,7 @@ export default function SalesforceWorkspace({
     const decidesOverride = event === "approved" || event === "rejected";
     setBusy(true); setError(""); setNotice("");
     try {
-      const result = await jsonFetch<{ writeback: { requested: boolean; success: boolean; error: string } }>(
+      const result = await jsonFetch<{ writeback: { requested: boolean; success: boolean; error: string; audit_error: string } }>(
         "/api/salesforce/workflow",
         {
           method: "POST",
@@ -335,6 +335,7 @@ export default function SalesforceWorkspace({
       );
       const log = await jsonFetch<{ items: WorkflowItem[] }>("/api/salesforce/workflow");
       setWorkflow(log.items);
+      if (result.writeback.audit_error) setError(result.writeback.audit_error);
       setNotice(
         result.writeback.requested
           ? result.writeback.success

@@ -928,13 +928,10 @@ class CRMWorkflowReq(CRMAnalyzeReq):
 
 def _crm_deal_history(customer: str, deal_id: str) -> list[dict]:
     rows = governance_mod.STORE.list(
-        kind="exception", limit=500, customer_ref=customer,
+        kind="exception", deal_id=deal_id, source="salesforce_crm",
+        limit=500, customer_ref=customer,
     )
-    return [
-        row for row in rows
-        if row.get("deal_id") == deal_id
-        and (row.get("payload") or {}).get("source") == "salesforce_crm"
-    ]
+    return rows
 
 
 def _normalized_actor(value: str) -> str:
@@ -1112,17 +1109,27 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     """
     customer = _customer_ref(request)
     added = []
-    for item in req.outcomes[:5000]:
-        if item.outcome not in {"closed_won", "closed_lost"}:
+    outcomes = [
+        item for item in req.outcomes[:5000]
+        if item.outcome in {"closed_won", "closed_lost"}
+    ]
+    latest_by_deal = governance_mod.STORE.latest_by_deal(
+        kind="exception",
+        deal_ids=[item.deal_id for item in outcomes],
+        source="salesforce_crm",
+        customer_ref=customer,
+    )
+    for item in outcomes:
+        latest = latest_by_deal.get(item.deal_id)
+        if not latest:
             continue
-        history = _crm_deal_history(customer, item.deal_id)
-        if not history:
-            continue
-        latest_payload = history[0].get("payload") or {}
+        latest_payload = latest.get("payload") or {}
         if latest_payload.get("event") == "outcome_recorded":
             continue
         prior_event = str(latest_payload.get("event") or "")
-        if prior_event not in {"accepted", "approved", "rejected"}:
+        if prior_event not in {
+            "flagged", "accepted", "override_requested", "approved", "rejected",
+        }:
             continue
         payload = {
             "source": "salesforce_crm",
@@ -1152,6 +1159,64 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     return {"added": added, "count": len(added)}
 
 
+class CRMWritebackReq(BaseModel):
+    deal_id: str
+    actor: str
+    action_event: str
+    success: bool
+    task_id: str = ""
+    error: str = ""
+
+
+@app.post("/crm/writeback")
+def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
+    """Append the Salesforce Task attempt/result without mutating the decision."""
+    if req.action_event not in {"flagged", "accepted", "override_requested", "approved", "rejected"}:
+        raise HTTPException(status_code=422, detail="Unsupported writeback action event.")
+    customer = _customer_ref(request)
+    history = _crm_deal_history(customer, req.deal_id)
+    if not history:
+        raise HTTPException(status_code=409, detail="Writeback requires a recorded decision.")
+    decision_payload = history[0].get("payload") or {}
+    if decision_payload.get("event") != req.action_event:
+        raise HTTPException(
+            status_code=409,
+            detail="Writeback result does not match the latest recorded decision.",
+        )
+    event = "salesforce_writeback_succeeded" if req.success else "salesforce_writeback_failed"
+    payload = {
+        "source": "salesforce_crm_writeback",
+        "event": event,
+        "deal_id": req.deal_id,
+        "account": str(decision_payload.get("account") or ""),
+        "actor": req.actor.strip(),
+        "actor_assertion": "self_asserted",
+        "justification": f"Salesforce Task writeback for {req.action_event}.",
+        "outcome": "",
+        "verdict": decision_payload.get("verdict") or {},
+        "writeback": {
+            "action_event": req.action_event,
+            "success": req.success,
+            "task_id": req.task_id.strip()[:200] if req.success else "",
+            "error": req.error.strip()[:1000] if not req.success else "",
+        },
+    }
+    row = governance_mod.STORE.insert(
+        kind="exception",
+        deal_id=req.deal_id,
+        payload=payload,
+        decision=event,
+        justification=payload["justification"],
+        requested_by=req.actor.strip(),
+        customer_ref=customer,
+    )
+    return {
+        "id": str(row["id"]),
+        "event": event,
+        "persisted": bool(row.get("persisted", False)),
+    }
+
+
 @app.get("/crm/workflow")
 def crm_workflow_log(request: Request, limit: int = 100) -> dict:
     rows = governance_mod.STORE.list(
@@ -1162,7 +1227,7 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
     items = []
     for row in rows:
         payload = row.get("payload") or {}
-        if payload.get("source") != "salesforce_crm":
+        if payload.get("source") not in {"salesforce_crm", "salesforce_crm_writeback"}:
             continue
         items.append({
             "id": str(row.get("id", "")),
@@ -1173,6 +1238,7 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
             "justification": str(payload.get("justification", "")),
             "outcome": str(payload.get("outcome", "")),
             "verdict": payload.get("verdict") or {},
+            "writeback": payload.get("writeback") or {},
             "created_at": str(row.get("created_at", "")),
         })
     return {"items": items[:limit]}

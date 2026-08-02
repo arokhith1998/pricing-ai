@@ -271,3 +271,103 @@ def test_salesforce_sync_reconciles_outcome_once(client, monkeypatch):
     log = client.get("/crm/workflow").json()["items"]
     assert log[0]["event"] == "outcome_recorded"
     assert log[0]["outcome"] == "closed_won"
+
+
+def test_pending_override_is_not_dropped_when_salesforce_closes_the_deal(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    _request_override(client)
+
+    reconciled = client.post("/crm/reconcile", json={
+        "outcomes": [{
+            "deal_id": "SF-OPEN-001",
+            "account": "Northstar Labs",
+            "outcome": "closed_lost",
+        }],
+    })
+
+    assert reconciled.status_code == 200
+    assert reconciled.json()["count"] == 1
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "outcome_recorded"
+    assert log[0]["outcome"] == "closed_lost"
+
+
+def test_reconcile_batches_latest_history_lookup(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    for deal_id in ("SF-OPEN-001", "SF-OPEN-002"):
+        response = client.post("/crm/workflow", json={
+            "records": [{}],
+            "deal_id": deal_id,
+            "event": "accepted",
+            "actor": "Account Executive",
+        })
+        assert response.status_code == 200
+    original = governance.STORE.latest_by_deal
+    calls = {"n": 0}
+
+    def _counted(**kwargs):
+        calls["n"] += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(governance.STORE, "latest_by_deal", _counted)
+    reconciled = client.post("/crm/reconcile", json={
+        "outcomes": [
+            {"deal_id": "SF-OPEN-001", "outcome": "closed_won"},
+            {"deal_id": "SF-OPEN-002", "outcome": "closed_lost"},
+        ],
+    })
+
+    assert reconciled.status_code == 200
+    assert reconciled.json()["count"] == 2
+    assert calls["n"] == 1
+
+
+def test_salesforce_writeback_result_is_append_only_and_visible(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}],
+        "deal_id": "SF-OPEN-001",
+        "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+
+    audited = client.post("/crm/writeback", json={
+        "deal_id": "SF-OPEN-001",
+        "actor": "Account Executive",
+        "action_event": "accepted",
+        "success": False,
+        "error": "INSUFFICIENT_ACCESS: Task create denied",
+    })
+
+    assert audited.status_code == 200
+    assert audited.json()["event"] == "salesforce_writeback_failed"
+    log = client.get("/crm/workflow").json()["items"]
+    assert log[0]["event"] == "salesforce_writeback_failed"
+    assert log[0]["writeback"]["success"] is False
+    assert "INSUFFICIENT_ACCESS" in log[0]["writeback"]["error"]
+
+
+def test_deal_history_is_scoped_before_the_limit(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *args, **kwargs: _guidance())
+    _request_override(client)
+    for index in range(550):
+        governance.STORE.insert(
+            kind="exception",
+            deal_id=f"NOISE-{index}",
+            payload={"source": "salesforce_crm", "event": "accepted"},
+            decision="accepted",
+            customer_ref="default",
+        )
+
+    approved = client.post("/crm/workflow", json={
+        "records": [],
+        "deal_id": "SF-OPEN-001",
+        "actor": "Deal Desk",
+        "event": "approved",
+    })
+
+    assert approved.status_code == 200
+    assert approved.json()["verdict"]["requested_pct"] == pytest.approx(22.0)

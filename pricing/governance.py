@@ -163,9 +163,10 @@ class DecisionStore:
 
     # -- read ----------------------------------------------------------------
     def list(self, *, kind: str | None = None, session_id: str | None = None,
-             since: datetime | None = None, limit: int = 200,
-             newest_first: bool = True,
-             customer_ref: str = "default") -> list[dict]:
+              deal_id: str | None = None, source: str | None = None,
+              since: datetime | None = None, limit: int = 200,
+              newest_first: bool = True,
+              customer_ref: str = "default") -> list[dict]:
         """Rows matching the filters, database and memory merged the same way.
 
         Tenant-scoped: only rows for `customer_ref` are returned (Finding 3).
@@ -183,6 +184,12 @@ class DecisionStore:
                 # payload->>'session_id': extract the JSON field as text.
                 clauses.append("payload->>'session_id' = %s")
                 vals.append(session_id)
+            if deal_id is not None:
+                clauses.append("deal_id = %s")
+                vals.append(deal_id)
+            if source is not None:
+                clauses.append("payload->>'source' = %s")
+                vals.append(source)
             if since is not None:
                 clauses.append("created_at >= %s")
                 vals.append(since)
@@ -202,7 +209,8 @@ class DecisionStore:
         # Memory rows: everything written with no DB configured or during an outage.
         with self._lock:
             mem = [r for r in self._memory
-                   if self._matches(r, kind, session_id, since, customer_ref)]
+                   if self._matches(r, kind, session_id, deal_id, source,
+                                    since, customer_ref)]
         seen = {r.get("id") for r in rows}
         rows.extend(r for r in mem if r.get("id") not in seen)
         rows.sort(key=lambda r: (_parse_iso(r.get("created_at", ""))
@@ -210,9 +218,55 @@ class DecisionStore:
                   reverse=newest_first)
         return rows[:limit]
 
+    def latest_by_deal(self, *, kind: str, deal_ids: list[str],
+                       source: str | None = None,
+                       customer_ref: str = "default") -> dict[str, dict]:
+        """Newest matching row for each requested deal in one database query."""
+        unique = list(dict.fromkeys(str(value) for value in deal_ids if value))[:5000]
+        if not unique:
+            return {}
+        latest: dict[str, dict] = {}
+        url = _db_url()
+        if url is not None:
+            clauses = ["customer_ref = %s", "kind = %s", "deal_id = any(%s)"]
+            vals: list[Any] = [customer_ref, kind, unique]
+            if source is not None:
+                clauses.append("payload->>'source' = %s")
+                vals.append(source)
+            query = (
+                f"select distinct on (deal_id) * from {_TABLE} where "
+                + " and ".join(clauses)
+                + " order by deal_id, created_at desc"
+            )
+            try:
+                with psycopg.connect(url, connect_timeout=_CONNECT_TIMEOUT_S) as conn:
+                    with conn.cursor(row_factory=dict_row) as cur:
+                        cur.execute(query, vals)
+                        fetched = cur.fetchall()
+                latest = {str(row["deal_id"]): _row_out(row) for row in fetched}
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("decision_log batch read fell back to memory: %s", exc)
+        with self._lock:
+            memory = [
+                row for row in self._memory
+                if row.get("deal_id") in unique
+                and self._matches(
+                    row, kind, None, None, source, None, customer_ref,
+                )
+            ]
+        for row in memory:
+            deal = str(row.get("deal_id") or "")
+            current = latest.get(deal)
+            row_time = _parse_iso(row.get("created_at", ""))
+            current_time = _parse_iso(current.get("created_at", "")) if current else None
+            if current is None or (row_time and (current_time is None or row_time > current_time)):
+                latest[deal] = row
+        return latest
+
     @staticmethod
     def _matches(row: dict, kind: str | None, session_id: str | None,
-                 since: datetime | None, customer_ref: str = "default") -> bool:
+                  deal_id: str | None, source: str | None,
+                  since: datetime | None, customer_ref: str = "default") -> bool:
         if row.get("customer_ref", "default") != customer_ref:
             return False
         if kind and row.get("kind") != kind:
@@ -220,6 +274,10 @@ class DecisionStore:
         if session_id is not None:
             if (row.get("payload") or {}).get("session_id") != session_id:
                 return False
+        if deal_id is not None and row.get("deal_id") != deal_id:
+            return False
+        if source is not None and (row.get("payload") or {}).get("source") != source:
+            return False
         if since is not None:
             created = _parse_iso(row.get("created_at", ""))
             if created is None or created < since:

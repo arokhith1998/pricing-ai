@@ -151,6 +151,24 @@ export async function logSalesforceWorkflow(
   return upstreamJson(response);
 }
 
+export async function recordSalesforceWriteback(
+  customerRef: string,
+  input: {
+    deal_id: string;
+    actor: string;
+    action_event: SalesforceWorkflowInput["event"];
+    success: boolean;
+    task_id?: string;
+    error?: string;
+  },
+) {
+  const response = await crmFetch("/crm/writeback", customerRef, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return upstreamJson(response);
+}
+
 export async function getSalesforceWorkflowLog(
   customerRef: string,
   limit = 100,
