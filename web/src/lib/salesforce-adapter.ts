@@ -43,9 +43,22 @@ export type SalesforceReadiness = {
   missing_list_value: number;
   missing_booked_value: number;
   currencies: string[];
+  // How the list (pre-discount) value was resolved across the book. "none" and
+  // an unmapped "line_items" fallback are where the silent-zero-discount risk
+  // lives (Gap 3), so onboarding surfaces this.
+  list_source: "mapped_field" | "line_items" | "none";
   blockers: string[];
   warnings: string[];
 };
+
+// Gap 3 thresholds. When no pre-discount list field is mapped, a book that is
+// mostly missing-list or collapses to ~0 discount is a mapping error, not a
+// real result. These fire a blocker, never a silent zero. They are gated on an
+// unmapped list field so a disciplined seller with a real mapped list field and
+// genuinely low discounts is never over-blocked.
+const MISSING_LIST_BLOCK_SHARE = 0.2;
+const DEGENERATE_LIST_SHARE = 0.9;
+const ZERO_DISCOUNT_EPS = 0.0005;
 
 function asText(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -255,6 +268,21 @@ export async function fetchSalesforceCanonicalDeals(
     };
   });
 
+  return { records, fields, readiness: assessReadiness(records, config) };
+}
+
+// Pure readiness assessment, split out from the network fetch so it is unit
+// testable without a Salesforce round trip.
+export function assessReadiness(
+  records: CanonicalCrmDeal[],
+  config: SalesforceMappingConfig,
+): SalesforceReadiness {
+  const usable = (record: CanonicalCrmDeal) =>
+    record.list_acv !== null &&
+    record.list_acv > 0 &&
+    record.booked_acv !== null &&
+    record.booked_acv >= 0;
+
   const closed = records.filter((record) => record.outcome !== "open");
   const open = records.filter((record) => record.outcome === "open");
   const missingList = records.filter(
@@ -264,20 +292,26 @@ export async function fetchSalesforceCanonicalDeals(
     (record) => record.booked_acv === null || record.booked_acv < 0,
   ).length;
   const currencies = [...new Set(records.map((record) => record.currency_iso).filter(Boolean))];
-  const closedUsable = closed.filter(
-    (record) =>
-      record.list_acv !== null &&
-      record.list_acv > 0 &&
-      record.booked_acv !== null &&
-      record.booked_acv >= 0,
-  ).length;
-  const openUsable = open.filter(
-    (record) =>
-      record.list_acv !== null &&
-      record.list_acv > 0 &&
-      record.booked_acv !== null &&
-      record.booked_acv >= 0,
-  ).length;
+  const closedUsable = closed.filter(usable);
+  const openUsable = open.filter(usable).length;
+
+  const listFieldMapped = Boolean(config.mapping.list_value_field);
+  const hasAnyList = records.some((record) => record.list_acv !== null && record.list_acv > 0);
+  const listSource: SalesforceReadiness["list_source"] = listFieldMapped
+    ? "mapped_field"
+    : hasAnyList
+      ? "line_items"
+      : "none";
+
+  // Share of closed usable deals whose computed discount is ~0. When the list
+  // value is really the booked amount, this collapses to nearly the whole book.
+  const zeroDiscount = closedUsable.filter((record) => {
+    const discount = 1 - (record.booked_acv as number) / (record.list_acv as number);
+    return Math.abs(discount) <= ZERO_DISCOUNT_EPS;
+  }).length;
+  const zeroDiscountShare = closedUsable.length ? zeroDiscount / closedUsable.length : 0;
+  const missingListShare = records.length ? missingList / records.length : 0;
+
   const blockers: string[] = [];
   const warnings: string[] = [];
   if (currencies.length > 1) {
@@ -285,16 +319,28 @@ export async function fetchSalesforceCanonicalDeals(
       `Multiple Salesforce currencies are present (${currencies.join(", ")}); V1 will not combine them.`,
     );
   }
-  if (closedUsable < 30) {
+  if (closedUsable.length < 30) {
     blockers.push(
-      `Only ${closedUsable} usable closed opportunities were found; at least 30 are required.`,
+      `Only ${closedUsable.length} usable closed opportunities were found; at least 30 are required.`,
     );
-  } else if (closedUsable < 500) {
+  } else if (closedUsable.length < 500) {
     warnings.push(
-      `${closedUsable} usable closed opportunities support a directional analysis; 500+ per year is the target for stable operating guidance.`,
+      `${closedUsable.length} usable closed opportunities support a directional analysis; 500+ per year is the target for stable operating guidance.`,
     );
   }
-  if (missingList) {
+
+  // Gap 3: an unmapped list field that resolves to booked, or a book that is
+  // mostly missing list, blocks onboarding with a specific remedy. A mapped
+  // list field is trusted, so honest low-discount books are never over-blocked.
+  if (!listFieldMapped && closedUsable.length > 0 && zeroDiscountShare >= DEGENERATE_LIST_SHARE) {
+    blockers.push(
+      `List value resolves to the booked amount (${Math.round(zeroDiscountShare * 100)} percent of closed deals show no discount). Map a pre-discount Salesforce list field, or add Opportunity Products with true list prices, so discount and leakage are real.`,
+    );
+  } else if (!listFieldMapped && missingListShare >= MISSING_LIST_BLOCK_SHARE) {
+    blockers.push(
+      `No pre-discount list field is mapped and ${missingList} of ${records.length} opportunities have no usable list value. Map an annualized list field, or add Opportunity Products with true list prices.`,
+    );
+  } else if (missingList) {
     warnings.push(
       `${missingList} opportunities have no usable list value. Map an annualized list field or add Opportunity Products.`,
     );
@@ -302,18 +348,16 @@ export async function fetchSalesforceCanonicalDeals(
   if (missingBooked) {
     warnings.push(`${missingBooked} opportunities have no usable booked/quoted value.`);
   }
+
   return {
-    records,
-    fields,
-    readiness: {
-      records_fetched: records.length,
-      closed_usable: closedUsable,
-      open_usable: openUsable,
-      missing_list_value: missingList,
-      missing_booked_value: missingBooked,
-      currencies,
-      blockers,
-      warnings,
-    },
+    records_fetched: records.length,
+    closed_usable: closedUsable.length,
+    open_usable: openUsable,
+    missing_list_value: missingList,
+    missing_booked_value: missingBooked,
+    currencies,
+    list_source: listSource,
+    blockers,
+    warnings,
   };
 }
