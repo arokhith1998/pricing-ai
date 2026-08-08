@@ -45,6 +45,10 @@ def analyze(df, load_report=None,
         "realization_by_segment": metrics.realization_by_segment(df),
         "win_rate_by_band": metrics.win_rate_by_band(df),
         "reference_discount": metrics.reference_discount(df),
+        # Per-value-metric reference cut: a seat discount and a consumption
+        # discount are not the same lever, so the pooled reference is read
+        # alongside each metric's own win point (basis disclosed). Additive.
+        "value_metric_reference": metrics.value_metric_reference_table(df),
         "leakage": metrics.leakage(df, policy_threshold),
         "quarter_end": metrics.quarter_end_effect(df),
         "rep_discipline": metrics.rep_discipline(df),
