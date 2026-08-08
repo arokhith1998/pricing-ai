@@ -398,6 +398,12 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
         "win_prob_at_requested": win_req,
         "win_prob_at_recommended": win_rec,
         "rationale": rationale,
+        # How this verdict was produced. The modeled EV curve is the strong
+        # engine; it currently runs on the demo book. The live Salesforce path
+        # ships a correlational band guardrail (see crm.guidance_for_open_deal),
+        # so every verdict is labeled with its method and nothing is passed off
+        # as more than it is.
+        "method": "modeled_ev_curve",
     }
 
 

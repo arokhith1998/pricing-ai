@@ -1053,6 +1053,10 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
                 "win_rate_at_recommended_band"
             ],
             "caveat": guidance["caveat"],
+            # The live path scores against historical band win rates, not the
+            # modeled EV curve. Labeled so an approver is never shown demo-grade
+            # math implicitly (Gap 2 honesty).
+            "method": "band_guardrail",
         }
     effective_justification = (
         req.justification.strip()
@@ -1338,6 +1342,9 @@ def recommend(req: RecommendReq) -> dict:
         "opportunity_id": req.opportunity_id,
         "account": str(df.loc[idx, "resolved_account_name"]),
         "segment": str(df.loc[idx, "segment"]),
+        # Modeled EV curve on the demo book. Labeled so the live Salesforce
+        # path (band guardrail) is never confused with this stronger engine.
+        "method": "modeled_ev_curve",
         "list_acv": list_acv,
         "current_discount": rec["current_discount"],
         "recommended_discount": rec["recommended_discount"],
