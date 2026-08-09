@@ -301,7 +301,10 @@ def test_exception_verdict_contract_and_ev_delta_sign(client, deal_id):
     assert set(v) == {"requested_pct", "recommended_pct", "floor_pct",
                       "below_floor", "ev_delta_vs_recommended",
                       "win_prob_at_requested", "win_prob_at_recommended",
-                      "rationale"}
+                      "rationale", "method"}
+    # The demo path runs the modeled EV curve; the verdict says so, so it is
+    # never mistaken for the live band guardrail.
+    assert v["method"] == "modeled_ev_curve"
     # Percent 0-100 surface; the model grid tops out at 40.
     assert 0.0 <= v["recommended_pct"] <= 40.0
     # Win probabilities stay 0-1 fractions.

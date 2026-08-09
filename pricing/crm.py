@@ -60,6 +60,30 @@ def _ingest_closed(records: list[dict], policy_threshold: float):
     )
 
 
+# When nearly every closed deal shows zero discount, the mapped list value is
+# almost certainly the net booked amount (the default Salesforce mapping leaves
+# the list field blank and falls back to Amount). The whole diagnostic then
+# reads leakage as invisible, so we refuse rather than show a confident zero.
+# A disciplined seller still has band spread; only a mapping error collapses the
+# entire book onto ~0, so the 90 percent floor does not fire on honest low
+# discounting.
+_DEGENERATE_LIST_SHARE = 0.90
+_ZERO_DISCOUNT_EPS = 0.0005
+
+
+def _guard_degenerate_list(df: pd.DataFrame) -> None:
+    if "discount_pct" not in df.columns or df.empty:
+        return
+    near_zero = float((df["discount_pct"].abs() <= _ZERO_DISCOUNT_EPS).mean())
+    if near_zero >= _DEGENERATE_LIST_SHARE:
+        raise CRMDataError(
+            "List and booked values are near-identical across the book "
+            f"({near_zero * 100:.0f} percent of closed deals show no discount). "
+            "Map a pre-discount Salesforce list field, or add Opportunity "
+            "Products with true list prices, so discount and leakage are real."
+        )
+
+
 def _band_stats(df: pd.DataFrame) -> dict[str, dict]:
     rows = metrics.win_rate_by_band(df)
     return {
@@ -140,6 +164,10 @@ def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
     return {
         "opportunity_id": str(deal.get("opportunity_id") or ""),
         "account": str(deal.get("account_name") or ""),
+        # This live-CRM guidance is a correlational band guardrail, not the
+        # modeled EV curve the demo runs. It is labeled so the workspace can
+        # show the buyer which engine produced the number (Gap 2 honesty).
+        "evidence_source": "band_guardrail",
         "segment": segment,
         "product_tier": str(deal.get("product_tier") or "Unknown"),
         "rep_id": str(deal.get("rep_id") or ""),
@@ -196,6 +224,7 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0) -> 
             "at least 30 are required."
         )
     df, report = _ingest_closed(closed, policy)
+    _guard_degenerate_list(df)
     analysis = diagnostic.analyze(df, report, policy_threshold=policy)
     guidance = [guidance_for_open_deal(df, deal, policy) for deal in open_usable]
     guidance.sort(key=lambda row: (

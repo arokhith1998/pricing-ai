@@ -393,6 +393,61 @@ def segment_reference_table(df: pd.DataFrame,
     return out
 
 
+def value_metric_reference_table(df: pd.DataFrame,
+                                 min_deals: int = SEGMENT_REF_MIN_DEALS,
+                                 min_bands: int = SEGMENT_REF_MIN_BANDS) -> list[dict]:
+    """Per-value-metric reference discounts, with the basis of each disclosed.
+
+    A discount percent does not mean the same thing across value metrics: a seat
+    discount is a straight price concession, while a consumption or hybrid
+    discount blends rate and contract structure. Pooling seats, consumption, and
+    hybrid into one win point mixes incommensurable quantities, so the pooled
+    reference is a weighted average of curves that should be read apart (Campbell:
+    the value metric is the whole game). Each value_metric with sufficient data
+    (SEGMENT_REF_MIN_DEALS / SEGMENT_REF_MIN_BANDS) earns its own win point from
+    the same logic as reference_discount; thin metrics fall back to the global
+    reference WITH an explicit basis disclosure, never silently.
+
+    Additive: the pooled reference_discount and segment table are unchanged; this
+    is a parallel cut a deal desk can read alongside them. Returns one row per
+    value_metric value (plus a "(blank)" row when deals carry no value metric):
+    value_metric, deals, bands_populated, reference_threshold, reference_band,
+    basis.
+    """
+    out: list[dict] = []
+    if "value_metric" not in df.columns or df.empty:
+        return out
+    g_ref = reference_discount(df)
+    vm = df["value_metric"].astype(str).str.strip()
+    blank = vm.str.lower().isin(("", "nan", "none", "null", "na"))
+    for value in sorted(vm[~blank].unique()):
+        sub = df[vm == value]
+        bands = _populated_real_bands(sub)
+        if len(sub) >= min_deals and bands >= min_bands:
+            ref, basis = reference_discount(sub), _BASIS_OWN
+        else:
+            ref, basis = g_ref, _BASIS_FALLBACK
+        out.append({
+            "value_metric": value,
+            "deals": int(len(sub)),
+            "bands_populated": bands,
+            "reference_threshold": float(ref["reference_threshold"]),
+            "reference_band": ref["reference_band"],
+            "basis": basis,
+        })
+    n_blank = int(blank.sum())
+    if n_blank:
+        out.append({
+            "value_metric": "(blank)",
+            "deals": n_blank,
+            "bands_populated": 0,
+            "reference_threshold": float(g_ref["reference_threshold"]),
+            "reference_band": g_ref["reference_band"],
+            "basis": _BASIS_NO_SEGMENT,
+        })
+    return out
+
+
 def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
                         global_rt: float,
                         seg_refs: list[dict] | None = None) -> pd.Series:

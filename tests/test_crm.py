@@ -95,6 +95,18 @@ def test_crm_refuses_thin_history():
         crm.analyze_records(_records()[:20])
 
 
+def test_crm_refuses_degenerate_list():
+    # Simulate the default-mapping failure: list value resolves to the booked
+    # amount, so every closed deal shows zero discount. The engine must refuse
+    # rather than report leakage as invisible.
+    records = _records()
+    for row in records:
+        if row.get("outcome") in {"closed_won", "closed_lost"}:
+            row["list_acv"] = row["booked_acv"]
+    with pytest.raises(crm.CRMDataError, match="near-identical"):
+        crm.analyze_records(records)
+
+
 def test_selected_guidance_rejects_unknown_or_unusable_open_deal():
     with pytest.raises(crm.CRMDataError, match="selected open Salesforce"):
         crm.selected_guidance(_records(), "NOT-THERE")
