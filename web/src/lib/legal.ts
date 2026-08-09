@@ -18,10 +18,16 @@
 export const LEGAL_ENTITY = process.env.NEXT_PUBLIC_LEGAL_ENTITY ?? "[legal entity]";
 export const LEGAL_JURISDICTION =
   process.env.NEXT_PUBLIC_LEGAL_JURISDICTION ?? "[jurisdiction]";
+// Governing law and venue are settled (Delaware) regardless of when the entity
+// is formed, so these default to the real values rather than bracketed
+// placeholders: an unset env var here should not leave the live /terms page
+// showing "[Delaware, USA]". The entity name and jurisdiction above stay
+// bracketed because they genuinely await incorporation. Override via env if the
+// choice of forum ever changes.
 export const GOVERNING_LAW =
-  process.env.NEXT_PUBLIC_GOVERNING_LAW ?? "[Delaware, USA]";
+  process.env.NEXT_PUBLIC_GOVERNING_LAW ?? "Delaware, USA";
 export const LEGAL_VENUE =
-  process.env.NEXT_PUBLIC_LEGAL_VENUE ?? "[New Castle County, Delaware]";
+  process.env.NEXT_PUBLIC_LEGAL_VENUE ?? "New Castle County, Delaware";
 
 // True once the entity name has actually been filled in (i.e. the env var is
 // set to something other than the bracketed placeholder). Useful if a page
