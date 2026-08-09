@@ -1,0 +1,7 @@
+# Never retrieve/deploy org-specific profiles or the connected-app consumer
+# secret material. The External Client App is packaged, but its generated
+# consumer key/secret live in the source org and Vercel env, never in source.
+**/profiles/**
+package.xml
+**/*.eslintrc.json
+**/jsconfig.json

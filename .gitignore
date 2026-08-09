@@ -11,6 +11,11 @@ vault/
 # --- Third-party Obsidian skill + commands copied locally (reproducible from knowledge/) ---
 .claude/skills/obsidian-second-brain/
 .claude/commands/
+# Cross-CLI tooling clones: obsidian second-brain adapters (.agents/) and codex
+# config (.codex/). Reproducible tooling, not product source. NOTE: this is
+# .agents/ (tooling), NOT .claude/agents/ (the committed role-agent fleet).
+.agents/
+.codex/
 # Per-machine Claude Code settings (permissions/env) — not shared.
 .claude/settings.local.json
 # Per-machine MCP server config (local tooling, not product).
