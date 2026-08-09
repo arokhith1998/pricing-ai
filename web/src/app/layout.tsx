@@ -9,9 +9,9 @@ import ScrollProgress from "@/components/ScrollProgress";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
-const DEFAULT_TITLE = "Pricekeel · Salesforce discount intelligence for B2B SaaS";
+const DEFAULT_TITLE = "Pricekeel · Salesforce deal guidance for B2B SaaS";
 const DEFAULT_DESCRIPTION =
-  "Connect Salesforce, analyze discount behavior and price realization, and bring auditable recommendations into the deal-approval workflow.";
+  "Pricekeel prices every discount exception in Salesforce before approval and records the decision with evidence Finance can audit, for usage and hybrid B2B SaaS.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.pricekeel.com"),

@@ -59,20 +59,20 @@ export default function CrmWorkflowPreview() {
               </svg>
             </span>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                 Salesforce opportunity
               </p>
               <p className="text-sm font-semibold text-fg">Northstar Cloud · Expansion</p>
             </div>
           </div>
-          <span className="rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-[11px] font-semibold text-amber">
+          <span className="rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-xs font-semibold text-amber">
             Discount exception pending
           </span>
         </div>
 
         <div className="grid bg-surface lg:grid-cols-[0.8fr_1.35fr_0.95fr]">
           <div className="border-b border-mist p-5 lg:border-b-0 lg:border-r">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Deal context
             </p>
             <dl className="mt-4 space-y-3">
@@ -86,7 +86,7 @@ export default function CrmWorkflowPreview() {
               ))}
             </dl>
             <div className="mt-5 rounded-lg border border-mist bg-surface-2 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal">
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal">
                 External context
               </p>
               <p className="mt-1 text-xs leading-5 text-muted">
@@ -99,12 +99,12 @@ export default function CrmWorkflowPreview() {
           <div className="border-b border-mist p-5 lg:border-b-0 lg:border-r">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal">
                   Pricekeel recommendation
                 </p>
                 <h3 className="mt-1 text-xl font-bold text-fg">Hold at 16%</h3>
               </div>
-              <span className="rounded-md border border-teal/40 bg-teal/10 px-2 py-1 text-[10px] font-semibold text-teal">
+              <span className="rounded-md border border-teal/40 bg-teal/10 px-2 py-1 text-xs font-semibold text-teal">
                 Illustrative deal
               </span>
             </div>
@@ -120,36 +120,36 @@ export default function CrmWorkflowPreview() {
                 ["Price retained", "$29.4K", "text-fg"],
               ].map(([label, value, color]) => (
                 <div key={label} className="rounded-lg border border-mist bg-surface-2 p-3">
-                  <div className="text-[9px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted">{label}</div>
                   <div className={`mt-1 text-sm font-bold tabular-nums sm:text-lg ${color}`}>{value}</div>
                 </div>
               ))}
             </div>
 
             <div className="mt-4 rounded-lg border border-mist bg-surface-2 p-3">
-              <div className="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                 <span>Evidence used</span>
                 <span>47 comparable deals</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-mist">
                 <div className="h-full w-[68%] rounded-full bg-teal" />
               </div>
-              <p className="mt-2 text-[11px] leading-5 text-muted">
+              <p className="mt-2 text-xs leading-5 text-muted">
                 Segment history · deal size · policy
               </p>
             </div>
             <div className="mt-2 rounded-lg border border-mist/70 bg-surface-2/60 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber">
                 Advisory context, does not move the guardrail
               </p>
-              <p className="mt-1 text-[11px] leading-5 text-muted">
+              <p className="mt-1 text-xs leading-5 text-muted">
                 Public competitor sources
               </p>
             </div>
           </div>
 
           <div className="p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Decision controls
             </p>
             <div className="mt-4 space-y-2">
@@ -161,12 +161,17 @@ export default function CrmWorkflowPreview() {
               </button>
             </div>
             <div className="mt-5 border-t border-mist pt-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">On decision</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">On decision</p>
               <ul className="mt-2 space-y-2 text-xs text-muted">
                 <li className="flex gap-2"><span className="text-teal">✓</span> Append audit event</li>
                 <li className="flex gap-2"><span className="text-teal">✓</span> Capture evidence snapshot</li>
                 <li className="flex gap-2"><span className="text-teal">✓</span> Optional Salesforce writeback</li>
               </ul>
+              <p className="mt-3 text-xs leading-5 text-muted">
+                Least-privilege read of Opportunity data. Writeback creates a
+                Salesforce Task only, never an edit to Opportunity fields.
+                OAuth tokens are encrypted and revocable.
+              </p>
             </div>
           </div>
         </div>

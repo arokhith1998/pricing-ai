@@ -47,9 +47,9 @@ function MarketingLinks({ pathname, onNavigate }: { pathname: string; onNavigate
       <Link
         href="/crm"
         onClick={onNavigate}
-        className="rounded-lg border border-teal/50 px-3 py-2 text-sm font-semibold text-teal transition hover:bg-teal/10"
+        className="rounded-lg px-3 py-2 text-sm font-medium text-slate transition hover:text-fg"
       >
-        Customer workspace
+        Customer login
       </Link>
     </>
   );

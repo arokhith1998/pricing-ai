@@ -5,7 +5,7 @@
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "Pricekeel: discount leakage diagnostic for usage-based B2B SaaS";
+  "Pricekeel: Salesforce deal guidance for discount exceptions in usage and hybrid B2B SaaS";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,13 +67,13 @@ export default function Image() {
               letterSpacing: -1,
             }}
           >
-            <span>Find the discount leakage</span>
+            <span>Salesforce deal guidance for</span>
             <span style={{ display: "flex" }}>
-              hiding in your closed-won deals.
+              every discount exception.
             </span>
           </div>
           <div style={{ display: "flex", fontSize: 26, color: "#8ea3bd" }}>
-            Every dollar tied to its math. Defensible to finance.
+            Priced before approval, with evidence Finance can audit.
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export default function Image() {
           }}
         >
           <div style={{ display: "flex", color: "#8ea3bd" }}>
-            For usage-based B2B SaaS, $10M to $100M ARR
+            For usage and hybrid B2B SaaS, $20M to $100M ARR
           </div>
           <div style={{ display: "flex", fontWeight: 700, color: "#2dd4bf" }}>
             pricekeel.com
