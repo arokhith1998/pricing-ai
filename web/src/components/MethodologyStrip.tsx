@@ -76,9 +76,10 @@ export default function MethodologyStrip() {
           Defensible to finance because the math has authors
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
-          Every Pricekeel signal (leakage lenses, win point, packaging signal,
-          trade-or-give, decision log) is grounded in a published framework
-          your Head of Pricing can cite when defending a discount approval.
+          Every signal feeding the Pricekeel decision record, the leakage
+          lens, win point, packaging signal, and trade-or-give, is grounded
+          in a published framework your Head of Pricing can cite when
+          defending a discount approval.
         </p>
       </div>
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
