@@ -89,3 +89,7 @@ Thumbs.db
 **/.obsidian/workspace.json
 # Downloaded community themes — reproducible, not source.
 **/.obsidian/themes/
+
+# Salesforce CLI local state (auth, cache) under the DX project
+salesforce/.sf/
+salesforce/.sfdx/

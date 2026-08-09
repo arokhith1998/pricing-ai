@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>adhithya@pricekeel.com</contactEmail>
+    <description>Pricekeel analyzes authorized Salesforce Opportunity data to provide explainable discount guidance, approval workflow support, and auditable pricing decisions.</description>
+    <distributionState>Packaged</distributionState>
+    <infoUrl>https://www.pricekeel.com/</infoUrl>
+    <isProtected>false</isProtected>
+    <label>Pricekeel</label>
+    <orgScopedExternalApp>00Dak000016fI9t:Pricekeel</orgScopedExternalApp>
+</ExternalClientApplication>
