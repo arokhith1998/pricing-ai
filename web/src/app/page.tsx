@@ -22,9 +22,10 @@ export default function Landing() {
           </p>
           <HeroHeadline />
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate sm:text-lg">
-            Price every discount exception before approval. Pricekeel learns
-            from closed Salesforce Opportunities, recommends a guardrail for
-            the live deal, and records the decision with evidence Finance can audit.
+            Price every discount exception before approval. Pricekeel reads
+            your closed won-and-lost Salesforce Opportunities, recommends a
+            guardrail for the live deal, and records the decision with evidence
+            Finance can audit.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link

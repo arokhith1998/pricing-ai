@@ -39,10 +39,10 @@ const SOURCES: Source[] = [
     url: "https://mitpress.mit.edu/9780262539968/the-ends-game/",
   },
   {
-    author: "Manuel Rivera",
-    work: "SaaS packaging architecture (OpenView · Kyle Poyar)",
+    author: "Marcos Rivera",
+    work: "Street Pricing (Pricing I/O)",
     contribution: "Packaging signal · pricing-page architecture",
-    url: "https://openviewpartners.com/blog/",
+    url: "https://www.amazon.com/Street-Pricing-Playlist-Leaders-SaaS/dp/1737528010",
   },
 ];
 
