@@ -139,7 +139,7 @@ export default function DiagnosticPreview() {
               sub="avg discount 13.8%"
             />
             <Kpi
-              label="Pricing upside"
+              label="Upside to investigate"
               value="$11.2M"
               sub="16.7% of booked"
               accent

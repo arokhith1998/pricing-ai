@@ -1,6 +1,6 @@
 # Pricekeel agent fleet
 
-Eight project agents, invoked by name via the Agent tool. Build/GTM agents run
+Nine project agents, invoked by name via the Agent tool. Build/GTM agents run
 on Sonnet (fast, high-volume); the critic/analyst panel runs on Opus (harder
 judgment). All are grounded in the vault, the Salesforce-decision-integrity
 wedge, and the house rules (no em dashes in generated content; GTM agents draft
@@ -19,6 +19,7 @@ only, never send).
 |---|---|---|
 | **sales-outreach** | Founder-led problem-interview outreach, ICP qualification | Sources ICP-fit accounts against the Aug 1 filters, drafts first-touch messages and interview guides, maintains the objection inventory and funnel tracker. Never sends; the founder presses send. |
 | **customer-success** | Design-partner pilots, onboarding, data readiness | Runs data-readiness reviews, the $15K to $30-60K pilot motion, readout/close, benchmarking-consent language, and recurring-usage measurement. Drafts only; no customer data enters the repo. |
+| **social-media-manager** | LinkedIn + Instagram, founder-brand content | Drafts posts, builds the content calendar, keeps a consistent founder-led voice per the vault LinkedIn strategy. Drafts and schedules only; never publishes or changes account settings without per-item approval. |
 
 ## Panel: critics and analysts (Opus)
 
