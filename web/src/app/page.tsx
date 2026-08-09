@@ -41,6 +41,10 @@ export default function Landing() {
               Explore a sample
             </Link>
           </div>
+          <p className="mx-auto mt-4 max-w-xl text-xs text-muted">
+            Best fit: Salesforce orgs with 500+ closed opportunities a year, a
+            documented discount policy, and an owner for it.
+          </p>
           <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
             <span><strong className="font-semibold text-fg">Built for</strong> RevOps · Deal Desk · Pricing</span>
             <span><strong className="font-semibold text-fg">ICP</strong> $20–100M ARR · usage or hybrid SaaS</span>
@@ -69,12 +73,6 @@ export default function Landing() {
 
       <Reveal inView>
         <section className="mt-16">
-          <MethodologyStrip />
-        </section>
-      </Reveal>
-
-      <Reveal inView>
-        <section className="mt-16">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-teal">
             The evidence stack
           </p>
@@ -92,12 +90,18 @@ export default function Landing() {
                 key={source.name}
                 className="rounded-xl border border-mist bg-surface p-4"
               >
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-teal">{source.status}</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-teal">{source.status}</div>
                 <div className="mt-1 text-sm font-semibold text-fg">{source.name}</div>
                 <p className="mt-2 text-xs leading-5 text-muted">{source.detail}</p>
               </div>
             ))}
           </div>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-xs text-muted">
+            Salesforce access is least-privilege read of Opportunity data.
+            Optional writeback creates a Salesforce Task only, it never edits
+            Opportunity fields. OAuth tokens are encrypted and revocable at
+            any time.
+          </p>
         </section>
       </Reveal>
 
@@ -132,6 +136,14 @@ export default function Landing() {
       <Reveal inView>
         <section className="mt-10">
           <TrustStrip />
+        </section>
+      </Reveal>
+
+      {/* Diligence-grade bibliography: credibility anchor, kept off the
+          critical path by sitting after trust content, right before the ask. */}
+      <Reveal inView>
+        <section className="mt-16">
+          <MethodologyStrip />
         </section>
       </Reveal>
 

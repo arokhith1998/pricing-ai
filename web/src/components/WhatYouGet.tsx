@@ -50,7 +50,7 @@ export default function WhatYouGet() {
               <p className="mt-2 flex-1 text-sm leading-6 text-muted">{item.outcome}</p>
               <div className="mt-5 flex flex-wrap gap-2 border-t border-mist pt-4">
                 {item.measures.map((measure) => (
-                  <span key={measure} className="rounded-full border border-mist bg-surface-2 px-2.5 py-1 text-[10px] font-medium text-slate">
+                  <span key={measure} className="rounded-full border border-mist bg-surface-2 px-2.5 py-1 text-xs font-medium text-slate">
                     {measure}
                   </span>
                 ))}

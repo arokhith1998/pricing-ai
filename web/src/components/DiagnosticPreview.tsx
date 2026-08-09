@@ -37,7 +37,7 @@ function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
     <div className="flex flex-1 flex-col items-center">
       <div className="relative flex h-32 w-full items-end">
         {band.winPoint ? (
-          <div className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-coral/50 bg-bg/90 px-1.5 py-0.5 text-[10px] font-semibold text-coral shadow">
+          <div className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-coral/50 bg-bg/90 px-1.5 py-0.5 text-xs font-semibold text-coral shadow">
             win point
           </div>
         ) : null}
@@ -56,7 +56,7 @@ function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
           aria-label={`Win rate at ${band.label} discount: ${heightPct}%`}
         />
       </div>
-      <div className="mt-1 text-[10px] text-muted">{band.label}</div>
+      <div className="mt-1 text-xs text-muted">{band.label}</div>
     </div>
   );
 }
@@ -78,7 +78,7 @@ function Kpi({
         accent ? "pk-upside-glow border-coral/30 bg-surface" : "border-mist bg-surface-2"
       }`}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+      <div className="text-xs font-semibold uppercase tracking-wider text-muted">
         {label}
       </div>
       <div
@@ -88,7 +88,7 @@ function Kpi({
       >
         {value}
       </div>
-      <div className="text-[10px] text-muted">{sub}</div>
+      <div className="text-xs text-muted">{sub}</div>
     </div>
   );
 }
@@ -120,7 +120,7 @@ export default function DiagnosticPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-coral/60" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber" />
           <span className="h-2.5 w-2.5 rounded-full bg-teal/60" />
-          <div className="ml-2 flex-1 truncate rounded-md border border-mist bg-bg px-2 py-0.5 text-[11px] text-muted">
+          <div className="ml-2 flex-1 truncate rounded-md border border-mist bg-bg px-2 py-0.5 text-xs text-muted">
             pricekeel.com/diagnostic
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function DiagnosticPreview() {
             />
             <Kpi label="Win rate" value="60.8%" sub="2,000 opportunities" />
           </div>
-          <p className="text-[10px] leading-4 text-muted">
+          <p className="text-xs leading-4 text-muted">
             Price realization is dollar-weighted on won deals; average
             discount is deal-count-weighted, so the two figures differ by
             design.
@@ -156,7 +156,7 @@ export default function DiagnosticPreview() {
           <div className="rounded-lg border border-mist bg-surface-2 p-4">
             <div className="mb-3 flex items-baseline justify-between">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Win rate by discount band
                 </div>
                 <div className="text-sm font-semibold text-fg">
@@ -164,7 +164,7 @@ export default function DiagnosticPreview() {
                   buy more wins
                 </div>
               </div>
-              <div className="hidden text-[10px] text-muted sm:block">
+              <div className="hidden text-xs text-muted sm:block">
                 won / discount %
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function DiagnosticPreview() {
 
           {/* mini deals-to-investigate */}
           <div className="rounded-lg border border-mist bg-surface-2 p-4">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted">
               Top deals to investigate
             </div>
             <div className="mt-2 space-y-1.5 text-xs text-ink">
@@ -210,7 +210,7 @@ export default function DiagnosticPreview() {
         >
           See the full diagnostic on the sample data →
         </Link>
-        <p className="mt-1 text-[11px] text-muted">
+        <p className="mt-1 text-xs text-muted">
           Illustrative figures from a synthetic 2,000-deal sample; not
           customer data. Your workspace reads Salesforce; CSV/XLSX remains
           available for onboarding and other CRMs.
