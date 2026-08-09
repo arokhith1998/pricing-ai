@@ -101,7 +101,7 @@ export default function DiagnosticPreview() {
           What you see when you click
         </p>
         <h2 className="mt-2 text-2xl font-bold text-fg sm:text-3xl">
-          The diagnostic, on a live sample of 2,000 closed deals
+          The diagnostic, on a synthetic sample of 2,000 closed deals
         </h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
           Below is the actual structure of the page on{" "}
@@ -139,13 +139,18 @@ export default function DiagnosticPreview() {
               sub="avg discount 13.8%"
             />
             <Kpi
-              label="Upside to investigate"
+              label="Gap to reference win point"
               value="$11.2M"
-              sub="16.7% of booked"
+              sub="Pilot tests actual recovery · 16.7% of booked"
               accent
             />
             <Kpi label="Win rate" value="60.8%" sub="2,000 opportunities" />
           </div>
+          <p className="text-[10px] leading-4 text-muted">
+            Price realization is dollar-weighted on won deals; average
+            discount is deal-count-weighted, so the two figures differ by
+            design.
+          </p>
 
           {/* win curve */}
           <div className="rounded-lg border border-mist bg-surface-2 p-4">
@@ -206,8 +211,9 @@ export default function DiagnosticPreview() {
           See the full diagnostic on the sample data →
         </Link>
         <p className="mt-1 text-[11px] text-muted">
-          Live numbers from the bundled sample. Your workspace reads Salesforce;
-          CSV/XLSX remains available for onboarding and other CRMs.
+          Illustrative figures from a synthetic 2,000-deal sample; not
+          customer data. Your workspace reads Salesforce; CSV/XLSX remains
+          available for onboarding and other CRMs.
         </p>
       </div>
     </section>

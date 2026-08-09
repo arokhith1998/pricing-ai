@@ -29,16 +29,16 @@ export default function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/sample"
+              href="/contact"
               className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg transition hover:-translate-y-0.5 hover:bg-teal/90"
             >
-              Explore a live sample
+              Walk through one discount exception
             </Link>
             <Link
-              href="/contact"
+              href="/sample"
               className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
-              Walk through one discount exception
+              Explore a sample
             </Link>
           </div>
           <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
@@ -138,15 +138,15 @@ export default function Landing() {
       <Reveal inView>
         <section className="mt-10 rounded-2xl border border-teal/40 bg-surface px-6 py-8 text-center sm:px-10">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">Design-partner cohort</p>
-          <h2 className="mt-2 text-2xl font-bold text-fg">Bring one real pricing exception.</h2>
+          <h2 className="mt-2 text-2xl font-bold text-fg">A 20-minute conversation, not a demo.</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted">
-            We will show how Pricekeel reads the Opportunity, builds the
-            guardrail, adds cited competitor context, and records the decision.
-            No Salesforce credentials are needed for the first walkthrough.
+            Tell us how discount exceptions get approved on your team today.
+            No prep, no data, and no Salesforce credentials needed for the
+            first conversation.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/contact" className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg hover:bg-teal/90">
-              Request the walkthrough
+              Walk through one discount exception
             </Link>
             <Link href="/sample" className="rounded-lg border border-mist bg-surface-2 px-5 py-3 font-medium text-fg hover:border-teal">
               Explore the sample first

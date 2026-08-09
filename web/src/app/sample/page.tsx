@@ -144,8 +144,9 @@ function LeadGate({
           </h2>
           <p className="mt-1 text-sm text-slate">
             That is {money(leak.excess_vs_reference_won)} of revenue discounted
-            past the point that wins anything: pricing upside to pursue. The
-            full read-out shows where it is and what to do:
+            past the reference win point: a gap-to-reference estimate a pilot
+            tests for actual recovery. The full read-out shows where it is
+            and what to do:
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-ink">
             <li>• A written executive summary</li>
@@ -170,7 +171,7 @@ function FullSample() {
         title="A worked example. Focus on the coral upside number first."
         body="We ran the diagnostic on a 2,000-deal synthetic book so you can see the shape of the analysis before sending your own data. Read the cards above, skim the summary, then open the Diagnostic or Guidance tabs for the deep view."
         bullets={[
-          "The coral 'Pricing upside to pursue' card is the headline number worth a meeting.",
+          "The coral 'Gap to reference win point' card is the headline number worth a meeting.",
           "The Diagnostic tab shows where it concentrates by segment, BU, and product line.",
           "The Guidance tab picks a single deal and recommends a discount with a plain why.",
         ]}
@@ -287,9 +288,9 @@ export default async function SamplePage({
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
-          label="Pricing upside to pursue"
+          label="Gap to reference win point"
           value={<CountUp to={l.excess_vs_reference_won} format="money" />}
-          sub={`${pct(l.excess_pct_of_booked)} of booked value, discounted past the win point`}
+          sub={`Pilot tests actual recovery · ${pct(l.excess_pct_of_booked)} of booked`}
           accent="coral"
         />
         <MetricCard
@@ -298,6 +299,10 @@ export default async function SamplePage({
           sub={`${o.won.toLocaleString()} won, ${o.lost.toLocaleString()} lost`}
         />
       </section>
+      <p className="mt-2 text-xs text-muted">
+        Price realization is dollar-weighted on won deals; average discount is
+        deal-count-weighted, so the two figures differ by design.
+      </p>
 
       {unlocked ? <FullSample /> : <LeadGate leak={l} />}
     </main>
