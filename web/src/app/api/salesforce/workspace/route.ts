@@ -20,9 +20,24 @@ export async function GET() {
       synced_at: new Date().toISOString(),
     });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Salesforce sync failed." },
-      { status: 502 },
-    );
+    const message = error instanceof Error ? error.message : "Salesforce sync failed.";
+    // A sync failure is usually an expired or revoked token: the client has
+    // already flipped the stored status to reauth_required. Return the current
+    // connection (with that status) as a degraded 200 so the workspace can show
+    // a Reconnect prompt instead of a bare error over a stale "Connected"
+    // banner. Only a genuinely missing connection stays a hard 502.
+    let current = null;
+    try {
+      current = await getSalesforceConnection(customer);
+    } catch {
+      current = null;
+    }
+    if (current) {
+      return Response.json(
+        { connection: publicSalesforceConnection(current), degraded: true, error: message },
+        { status: 200 },
+      );
+    }
+    return Response.json({ error: message }, { status: 502 });
   }
 }

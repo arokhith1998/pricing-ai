@@ -287,7 +287,17 @@ export default function SalesforceWorkspace({
   async function sync() {
     setBusy(true); setError(""); setNotice("");
     try {
-      const result = await jsonFetch<Workspace>("/api/salesforce/workspace");
+      const result = await jsonFetch<Workspace & { degraded?: boolean; error?: string }>(
+        "/api/salesforce/workspace",
+      );
+      // Degraded means the org needs reauthorization. Refresh the connection so
+      // the banner flips to Reconnect, and surface the reason, without wiping
+      // the workspace the user was looking at.
+      if (result.degraded) {
+        if (result.connection) setConnection(result.connection);
+        setError(result.error || "Salesforce needs to be reconnected.");
+        return;
+      }
       setWorkspace(result);
       setConnection(result.connection);
       if (result.guidance.length) {
@@ -383,10 +393,18 @@ export default function SalesforceWorkspace({
             </p>
           </div>
           {connection ? (
-            <div className="rounded-xl border border-teal/30 bg-teal/5 px-4 py-3 text-sm">
-              <div className="font-semibold text-fg">Connected · org {connection.org_id}</div>
-              <div className="mt-1 text-xs text-muted">{connection.instance_url}</div>
-            </div>
+            connection.status === "connected" ? (
+              <div className="rounded-xl border border-teal/30 bg-teal/5 px-4 py-3 text-sm">
+                <div className="font-semibold text-fg">Connected · org {connection.org_id}</div>
+                <div className="mt-1 text-xs text-muted">{connection.instance_url}</div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-coral/40 bg-coral/5 px-4 py-3 text-sm">
+                <div className="font-semibold text-coral">Reconnect Salesforce · org {connection.org_id}</div>
+                <div className="mt-1 text-xs text-muted">{connection.last_error || "The Salesforce session expired or was revoked. Reconnect to resume syncing."}</div>
+                <a href="/api/salesforce/oauth/start" className="mt-3 inline-flex rounded-lg bg-teal px-4 py-2 text-sm font-semibold text-bg">Reconnect Salesforce</a>
+              </div>
+            )
           ) : null}
         </div>
       </Reveal>
