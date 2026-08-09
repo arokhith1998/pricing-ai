@@ -26,6 +26,11 @@ def _base_analysis() -> dict:
             "excess_vs_reference_won": 4_800_000.0,
             "deals_above_reference": 612,
             "excess_pct_of_booked": 0.08,
+            # Segment-aware lens (the headline the diagnostic/CRM screen use;
+            # copilot._opp_excess_leakage reads this, not the global lens).
+            "excess_vs_segment_reference_won": 4_800_000.0,
+            "deals_above_segment_reference": 612,
+            "excess_segment_pct_of_booked": 0.08,
         },
         "defended_vs_investigate": {
             "reference_threshold": 0.09,
@@ -35,7 +40,7 @@ def _base_analysis() -> dict:
             "investigate_deals": 612,
             "defended_pct_of_booked": 0.80,
         },
-        "governance": {"off_policy_no_approver": 87},
+        "governance": {"off_policy_unapproved_won": 87},
         "quarter_end": {"qe_deals": 240, "qe_avg_discount": 0.18,
                         "rest_avg_discount": 0.13, "lift": 0.05,
                         "attributable_discount_won": 420_000.0},
@@ -70,20 +75,29 @@ def _base_analysis() -> dict:
 def test_excess_leakage_recovers_40_pct():
     o = copilot._opp_excess_leakage(_base_analysis())
     assert o is not None
-    # 4.8M * 0.40 = 1.92M
+    # 4.8M * 0.40 = 1.92M, read from the segment-aware lens
     assert abs(o.revenue_impact_usd - 1_920_000.0) < 1.0
     assert o.kind == "reduce_leakage"
-    assert "9.0%" in o.recommended  # reference threshold formatted
-    assert any(ev.type == "leakage" for ev in o.evidence)
+    assert "9.0%" in o.recommended  # global-fallback reference threshold formatted
+    assert "segment" in o.scope.lower()
+    assert any(ev.source == "leakage.excess_vs_segment_reference_won"
+              for ev in o.evidence)
+    assert o.caveat and "not bookable margin" in o.caveat.lower()
 
 
 def test_off_policy_recovers_50_pct_and_flags_no_approver():
     o = copilot._opp_off_policy(_base_analysis())
     assert o is not None
     assert abs(o.revenue_impact_usd - 600_000.0) < 1.0  # 1.2M * 0.50
-    # the no-approver evidence row must be present
-    types = [ev.type for ev in o.evidence]
-    assert "governance" in types
+    # The no-approver evidence row must be present and carry the real count —
+    # this fails if governance.off_policy_unapproved_won is misread as the
+    # nonexistent off_policy_no_approver key (silently drops to 0/absent).
+    gov_evidence = [ev for ev in o.evidence if ev.type == "governance"]
+    assert gov_evidence, "no-approver governance evidence missing"
+    assert "87" in gov_evidence[0].value
+    assert "no recorded approver" in gov_evidence[0].value.lower()
+    assert gov_evidence[0].source == "governance.off_policy_unapproved_won"
+    assert o.caveat and "not bookable margin" in o.caveat.lower()
 
 
 def test_raise_prices_only_emits_high_win_high_realization():

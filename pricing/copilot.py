@@ -85,6 +85,7 @@ class Opportunity:
     confidence: float  # 0-1
     evidence: list[Evidence] = field(default_factory=list)
     methodology: str = ""  # the named framework backing the move
+    caveat: str = ""  # set when revenue_impact_usd assumes a recoverable share
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -122,6 +123,16 @@ def _pct(x: float) -> str:
 
 def _new_id(kind: str) -> str:
     return f"{kind}-{uuid.uuid4().hex[:8]}"
+
+
+# Every Opportunity whose dollar figure applies an assumed recoverable share
+# (40%/50%/20% below) carries this caveat, mirroring the assist.py:141-144
+# discipline: correlational price realization, not cost-based/bookable margin.
+_RECOVERABLE_CAVEAT = (
+    "Correlational price-realization estimate at an assumed recoverable "
+    "share, not bookable margin. Validate deal by deal before treating it "
+    "as committed revenue."
+)
 
 
 def _safe(d: dict, *keys, default=0.0):
@@ -181,15 +192,25 @@ def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
 
 
 def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
-    """Excess vs reference: the headline leakage. Always recommend trimming."""
+    """Excess vs each segment's own reference: the headline leakage.
+
+    The diagnostic disowns the single global reference in favor of the
+    segment-aware lens (metrics.leakage / diagnostic.py print_report) — a
+    seat discount and a consumption discount plateau at different win
+    points, and pooling them overstates segments whose win point sits above
+    the global reference. The copilot reads the same lens the CRM screen
+    shows, so the two never disagree on the headline number.
+    """
     lk = analysis.get("leakage") or {}
-    excess = float(lk.get("excess_vs_reference_won") or 0)
+    excess = float(lk.get("excess_vs_segment_reference_won") or 0)
     if excess <= 0:
         return None
-    pct = float(lk.get("excess_pct_of_booked") or 0)
+    pct = float(lk.get("excess_segment_pct_of_booked") or 0)
+    # No single threshold applies across segments; the global reference is
+    # shown only as an orienting fallback figure in the recommendation text.
     rt = float(lk.get("reference_threshold") or 0)
     band = lk.get("reference_band") or ""
-    n = int(lk.get("deals_above_reference") or 0)
+    n = int(lk.get("deals_above_segment_reference") or 0)
     booked = _safe(analysis, "overview", "booked_acv_won")
 
     # Recovering ALL excess is unrealistic; assume a recoverable share.
@@ -201,23 +222,27 @@ def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
     return Opportunity(
         id=_new_id("excess"),
         kind="reduce_leakage",
-        scope="Whole book — discounts above the reference band",
-        current=f"{_pct(pct)} of booked value discounted past the win point",
-        recommended=f"Tighten approvals above {_pct(rt)} (the {band} band)",
+        scope="Whole book — discounts above each segment's own reference",
+        current=f"{_pct(pct)} of booked value discounted past the "
+                "segment-aware win point",
+        recommended=("Tighten approvals above each segment's own reference "
+                     f"(global fallback {_pct(rt)}, {band} band)"),
         revenue_impact_usd=impact,
         confidence=0.75,
         evidence=[
             Evidence("leakage",
-                     f"{_money(excess)} discounted beyond reference",
-                     "leakage.excess_vs_reference_won"),
+                     f"{_money(excess)} discounted beyond each segment's own reference",
+                     "leakage.excess_vs_segment_reference_won"),
             Evidence("leakage",
-                     f"{n:,} deals priced above the reference threshold",
-                     "leakage.deals_above_reference"),
+                     f"{n:,} deals priced above their segment's reference threshold",
+                     "leakage.deals_above_segment_reference"),
             Evidence("realization",
                      f"Booked ACV {_money(booked)}",
                      "overview.booked_acv_won"),
         ],
-        methodology="Simon-Kucher discount governance (40% recoverable assumption)",
+        methodology=("Simon-Kucher discount governance (40% recoverable "
+                     "assumption); segment-aware reference price (Nagle)"),
+        caveat=_RECOVERABLE_CAVEAT,
     )
 
 
@@ -229,7 +254,7 @@ def _opp_off_policy(analysis: dict) -> Optional[Opportunity]:
         return None
     pt = float(lk.get("policy_threshold") or 0)
     gov = analysis.get("governance") or {}
-    no_approver = int(gov.get("off_policy_no_approver") or 0)
+    no_approver = int(gov.get("off_policy_unapproved_won") or 0)
     recoverable_share = 0.50  # off-policy is the easiest to recover
     impact = off * recoverable_share
 
@@ -242,7 +267,7 @@ def _opp_off_policy(analysis: dict) -> Optional[Opportunity]:
         ev.append(Evidence(
             "governance",
             f"{no_approver:,} off-policy deals closed with no recorded approver",
-            "governance.off_policy_no_approver",
+            "governance.off_policy_unapproved_won",
         ))
 
     return Opportunity(
@@ -255,6 +280,7 @@ def _opp_off_policy(analysis: dict) -> Optional[Opportunity]:
         confidence=0.80,
         evidence=ev,
         methodology="Discount governance — Nagle reference price + approval routing",
+        caveat=_RECOVERABLE_CAVEAT,
     )
 
 
@@ -305,6 +331,7 @@ def _opp_raise_prices(analysis: dict) -> list[Opportunity]:
                          "realization_by_segment"),
             ],
             methodology="Nagle — value-based pricing, EVC headroom",
+            caveat=_RECOVERABLE_CAVEAT,
         ))
     return sorted(opps, key=lambda o: -o.revenue_impact_usd)[:3]
 
@@ -354,6 +381,7 @@ def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
                              f"hierarchy_slices.{dim}"),
                 ],
                 methodology="Reference price (Nagle) + Simon-Kucher governance",
+                caveat=_RECOVERABLE_CAVEAT,
             ))
     return sorted(opps, key=lambda o: -o.revenue_impact_usd)[:5]
 
@@ -383,6 +411,7 @@ def _opp_quarter_end(analysis: dict) -> Optional[Opportunity]:
                      "quarter_end.lift"),
         ],
         methodology="Discount governance — calendar effect mitigation",
+        caveat=_RECOVERABLE_CAVEAT,
     )
 
 
@@ -416,6 +445,7 @@ def _opp_investigate(analysis: dict) -> Optional[Opportunity]:
                      "top_leak_deals"),
         ],
         methodology="Retrospective deal review (Simon-Kucher)",
+        caveat=_RECOVERABLE_CAVEAT,
     )
 
 
@@ -482,9 +512,12 @@ _COPILOT_SYSTEM = (
     "data supports, (3) list the recommended moves with the dollar impact "
     "and confidence taken VERBATIM from the JSON. Do NOT invent numbers, "
     "ratios, percentages, or company names. Do NOT add opportunities that "
-    "are not in the JSON. If the opportunities list is empty, say so "
-    "plainly. Cite the analysis as [A]. Tone: calm, direct, finance-credible, "
-    "no hype, no emoji."
+    "are not in the JSON. If any opportunity object carries a non-empty "
+    "'caveat' field, state once, in your own words, that its dollar figure "
+    "is a correlational estimate at an assumed recoverable share, not "
+    "bookable margin — do not drop this caveat even when tight on words. "
+    "If the opportunities list is empty, say so plainly. Cite the analysis "
+    "as [A]. Tone: calm, direct, finance-credible, no hype, no emoji."
 )
 
 

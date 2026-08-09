@@ -91,6 +91,7 @@ export async function loadSalesforceWorkspace(customerRef: string) {
     body: JSON.stringify({
       records: source.records,
       policy_threshold_pct: config.policy_threshold_pct,
+      list_field_mapped: Boolean(config.mapping.list_value_field),
     }),
   });
   const result = await upstreamJson(response);
@@ -146,6 +147,7 @@ export async function logSalesforceWorkflow(
       ...input,
       records,
       policy_threshold_pct: config.policy_threshold_pct,
+      list_field_mapped: Boolean(config.mapping.list_value_field),
     }),
   });
   return upstreamJson(response);

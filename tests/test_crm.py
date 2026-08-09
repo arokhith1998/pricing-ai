@@ -107,6 +107,22 @@ def test_crm_refuses_degenerate_list():
         crm.analyze_records(records)
 
 
+def test_degenerate_list_guard_skipped_when_field_explicitly_mapped():
+    # Same degenerate (list == booked) book as above, but the customer has
+    # told us they mapped a real pre-discount list field: an honest
+    # near-zero-discount book is not a mapping error, so the guard must be a
+    # no-op (CONTRACT A).
+    records = _records()
+    for row in records:
+        if row.get("outcome") in {"closed_won", "closed_lost"}:
+            row["list_acv"] = row["booked_acv"]
+    with pytest.raises(crm.CRMDataError, match="near-identical"):
+        crm.analyze_records(records, list_field_mapped=False)
+
+    result = crm.analyze_records(records, list_field_mapped=True)
+    assert result["analysis"]["overview"]["opportunities"] == 240
+
+
 def test_selected_guidance_rejects_unknown_or_unusable_open_deal():
     with pytest.raises(crm.CRMDataError, match="selected open Salesforce"):
         crm.selected_guidance(_records(), "NOT-THERE")

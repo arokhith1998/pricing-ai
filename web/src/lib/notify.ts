@@ -200,6 +200,15 @@ export async function sendDigest(
   const subject = `Pricekeel digest · ${digest.customer} · last ${digest.window_days} days`;
 
   const stats = digest.stats;
+  // Demo-book disclosure: when the backend flags book_source === "demo" (see
+  // CONTRACT B), the realization/leakage figures below come from the sample
+  // dataset, not the recipient's own Salesforce book. Say so plainly, up
+  // front, in both the text and HTML bodies. Never silently present demo
+  // numbers as the customer's own.
+  const isDemoBook = digest.book_source === "demo";
+  const demoDisclosure =
+    "Note: the realization and leakage figures in this digest are from Pricekeel's demonstration book, not your own Salesforce data.";
+
   // realization_pct / excess can be null when no book is loaded; skip those
   // rows rather than rendering NaN into a customer-facing email.
   const statRows: [string, string][] = [
@@ -220,6 +229,7 @@ export async function sendDigest(
   const text = [
     digest.headline,
     "",
+    ...(isDemoBook ? [demoDisclosure, ""] : []),
     ...digest.lines.map((l) => `- ${l}`),
     "",
     ...statRows.map(([k, v]) => `${k}: ${v}`),
@@ -242,6 +252,15 @@ export async function sendDigest(
         <tr><td style="padding:8px 32px 0 32px;">
           <h1 style="margin:16px 0 6px 0;font-size:18px;font-weight:700;color:#0d1b2e;">${escapeHtml(digest.headline)}</h1>
         </td></tr>
+        ${
+          isDemoBook
+            ? `<tr><td style="padding:4px 32px 0 32px;">
+          <p style="margin:0 0 4px 0;padding:10px 12px;background:#FDF3E1;border:1px solid #E8A33D;border-radius:8px;font-size:12px;line-height:1.5;color:#0B1727;">
+            <strong>Demo data.</strong> ${escapeHtml(demoDisclosure)}
+          </p>
+        </td></tr>`
+            : ""
+        }
         <tr><td style="padding:4px 32px 0 32px;">
           <ul style="margin:8px 0 0 0;padding:0 0 0 18px;font-size:14px;line-height:1.6;color:#1f2a3d;">
             ${digest.lines.map((l) => `<li style="margin:0 0 6px 0;">${escapeHtml(l)}</li>`).join("\n            ")}

@@ -18,7 +18,10 @@ export async function POST(req: Request) {
   try {
     const upstream = await fetch(`${API}/ask`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+      },
       body: JSON.stringify(body),
     });
     if (!upstream.ok) {

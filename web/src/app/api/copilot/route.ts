@@ -8,6 +8,10 @@
 import { requireLead } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
+const API_HEADERS = {
+  "Content-Type": "application/json",
+  "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+};
 
 async function forwardJson(url: string, init: RequestInit) {
   try {
@@ -32,9 +36,9 @@ export async function GET(req: Request) {
   if (action === "decisions") {
     const sid = url.searchParams.get("session_id") || "";
     return forwardJson(`${API}/copilot/decisions?session_id=${encodeURIComponent(sid)}`,
-                       { method: "GET" });
+                       { method: "GET", headers: API_HEADERS });
   }
-  return forwardJson(`${API}/copilot/canonical`, { method: "GET" });
+  return forwardJson(`${API}/copilot/canonical`, { method: "GET", headers: API_HEADERS });
 }
 
 export async function POST(req: Request) {
@@ -53,13 +57,13 @@ export async function POST(req: Request) {
   if (action === "log") {
     return forwardJson(`${API}/copilot/log`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: API_HEADERS,
       body: JSON.stringify(body),
     });
   }
   return forwardJson(`${API}/copilot/canonical`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: API_HEADERS,
     body: JSON.stringify(body),
   });
 }

@@ -21,7 +21,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "No file provided." }, { status: 400 });
   }
   try {
-    const upstream = await fetch(`${API}/map-headers`, { method: "POST", body: form });
+    const upstream = await fetch(`${API}/map-headers`, {
+      method: "POST",
+      headers: { "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "" },
+      body: form,
+    });
     if (!upstream.ok) {
       const text = await upstream.text().catch(() => "");
       return Response.json(

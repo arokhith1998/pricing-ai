@@ -281,6 +281,10 @@ def _analysis_payload(res: dict) -> dict:
         "overview": res["overview"],
         "leakage": res["leakage"],
         "reference_discount": res["reference_discount"],
+        # Per-value-metric reference cut (list of dicts, already JSON-safe):
+        # {value_metric, deals, bands_populated, reference_threshold,
+        # reference_band, basis}. Forwarded verbatim from diagnostic.analyze.
+        "value_metric_reference": res["value_metric_reference"],
         "quarter_end": res["quarter_end"],
         "governance": res["governance"],
         "trend_by_quarter": _records(res["trend_by_quarter"]),
@@ -880,8 +884,14 @@ def digest(request: Request) -> dict:
             analysis = _DIGEST_BOOK["analysis"]
     except Exception:  # noqa: BLE001 — digest must degrade, not 500
         logger.warning("digest: book diagnostics unavailable", exc_info=True)
-    return governance_mod.build_digest(analysis=analysis, window_days=7,
-                                       customer=_customer_ref(request))
+    result = governance_mod.build_digest(analysis=analysis, window_days=7,
+                                         customer=_customer_ref(request))
+    # CONTRACT B: no per-tenant book is persisted yet, so the book-diagnostics
+    # half above is always computed from the bundled demo CSV regardless of
+    # tenant. Disclose that explicitly so a caller never mistakes these
+    # realization/excess figures for this tenant's own book.
+    result["book_source"] = "demo"
+    return result
 
 
 # --- Salesforce / CRM-native workflow -------------------------------------
@@ -894,6 +904,12 @@ def digest(request: Request) -> dict:
 class CRMAnalyzeReq(BaseModel):
     records: list[dict]
     policy_threshold_pct: float = 15.0
+    # CONTRACT A: the customer has explicitly mapped a real pre-discount
+    # Salesforce list field (not left it defaulting to Amount), so a
+    # near-zero-discount book is honest discounting, not a mapping error.
+    # Skips _guard_degenerate_list when True; the hard block stays on by
+    # default so a silent mapping failure never reads as zero leakage.
+    list_field_mapped: bool = False
 
 
 @app.post("/crm/analyze")
@@ -901,6 +917,7 @@ def crm_analyze(req: CRMAnalyzeReq) -> dict:
     try:
         result = crm_mod.analyze_records(
             req.records, policy_threshold_pct=req.policy_threshold_pct,
+            list_field_mapped=req.list_field_mapped,
         )
     except crm_mod.CRMDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -1014,6 +1031,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
             guidance = crm_mod.selected_guidance(
                 req.records, req.deal_id,
                 policy_threshold_pct=req.policy_threshold_pct,
+                list_field_mapped=req.list_field_mapped,
             )
         except crm_mod.CRMDataError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
