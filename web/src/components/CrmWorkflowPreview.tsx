@@ -18,13 +18,13 @@ const STEPS = [
     number: "02",
     title: "Price the exception",
     body:
-      "The requested discount is compared with the closest historical wins and losses, the segment win curve, policy, and cited public competitor context.",
+      "The requested discount is compared with the closest historical wins and losses, the segment win curve, and policy. Cited public competitor context is shown alongside it as advisory information.",
   },
   {
     number: "03",
     title: "Decide and write back",
     body:
-      "Deal Desk accepts, trades, or overrides. The recommendation, evidence, actor, and reason stay together in an audit trail and can write back to Salesforce.",
+      "Deal Desk accepts the recommendation or requests an override with a reason. The recommendation, evidence, actor, and reason stay together in an audit trail and can write back to Salesforce.",
   },
 ];
 
@@ -42,6 +42,10 @@ export default function CrmWorkflowPreview() {
           Pricekeel participates in the workflow your team already runs. It
           turns CRM history into a recommendation while the deal is still
           changeable, then records what the team decided and why.
+        </p>
+        <p className="mx-auto mt-2 max-w-2xl text-xs leading-5 text-muted">
+          V1 governs the discount on committed and annualized ACV.
+          Commitment-tier and overage-rate awareness are on the roadmap.
         </p>
       </div>
 
@@ -128,10 +132,18 @@ export default function CrmWorkflowPreview() {
                 <span>47 comparable deals</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-mist">
-                <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-teal to-amber" />
+                <div className="h-full w-[68%] rounded-full bg-teal" />
               </div>
               <p className="mt-2 text-[11px] leading-5 text-muted">
-                Segment history · deal size · term · product · policy · public competitor sources
+                Segment history · deal size · policy
+              </p>
+            </div>
+            <div className="mt-2 rounded-lg border border-mist/70 bg-surface-2/60 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber">
+                Advisory context, does not move the guardrail
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-muted">
+                Public competitor sources
               </p>
             </div>
           </div>
@@ -145,10 +157,7 @@ export default function CrmWorkflowPreview() {
                 Accept 16% recommendation
               </button>
               <button type="button" className="w-full rounded-lg border border-mist bg-surface-2 px-3 py-2.5 text-left text-xs font-semibold text-fg">
-                Trade for term or scope
-              </button>
-              <button type="button" className="w-full rounded-lg border border-mist bg-surface-2 px-3 py-2.5 text-left text-xs font-semibold text-fg">
-                Override with a reason
+                Request override with a reason
               </button>
             </div>
             <div className="mt-5 border-t border-mist pt-4">
@@ -177,7 +186,7 @@ export default function CrmWorkflowPreview() {
 
       <div className="mt-5 text-center">
         <Link href="/contact" className="text-sm font-semibold text-teal hover:underline">
-          Request a Salesforce design-partner walkthrough →
+          Walk through one discount exception →
         </Link>
       </div>
     </section>

@@ -22,7 +22,7 @@ const SOURCES: Source[] = [
   },
   {
     author: "Simon-Kucher",
-    work: "Confessions of the Pricing Man (Hermann Simon)",
+    work: "Deal Desk & Discount Governance Practice",
     contribution: "Discount governance · approval routing · packaging",
     url: "https://www.simon-kucher.com/en",
   },
