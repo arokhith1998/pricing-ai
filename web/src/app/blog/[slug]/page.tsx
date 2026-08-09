@@ -59,6 +59,29 @@ export default async function PostPage({
         className="pk-prose mt-8"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+
+      <section className="mt-12 rounded-2xl border border-teal/40 bg-surface px-6 py-8 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">
+          See it on real numbers
+        </p>
+        <h2 className="mt-2 text-xl font-bold text-fg">
+          This is the same math the diagnostic runs on your own book.
+        </h2>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/sample"
+            className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg transition hover:-translate-y-0.5 hover:bg-teal/90"
+          >
+            Explore a live sample
+          </Link>
+          <Link
+            href="/contact"
+            className="rounded-lg border border-mist bg-surface-2 px-5 py-3 font-medium text-fg transition hover:border-teal"
+          >
+            Bring one real discount exception
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

@@ -27,7 +27,7 @@ export default function ContactPage() {
         <p className="mt-3 max-w-2xl text-muted">
           Pricekeel is in design-partner mode for $20–100M ARR B2B SaaS teams
           running Salesforce. Every request goes directly to Adhithya. The
-          first walkthrough uses a redacted or hypothetical deal—no credentials required.
+          first walkthrough uses a redacted or hypothetical deal, no credentials required.
         </p>
       </Reveal>
 

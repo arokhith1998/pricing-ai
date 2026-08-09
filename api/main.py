@@ -104,6 +104,9 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
     # same as /recommend.)
     "/exceptions": (30, 60.0),
     "/crm/": (20, 60.0),
+    # LLM-backed (audit P2 #2): same tier as /ask, /summary, /matching/.
+    "/copilot/canonical": (10, 60.0),
+    "/map-columns": (10, 60.0),
 }
 # (rule, client_ip) -> deque of request timestamps inside the window.
 _RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
@@ -1273,6 +1276,12 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
 # embedding+fuzzy scorer. NOT a market-wide scraper — only the customer's
 # named competitors.
 
+# /matching/compare fans out one LLM call per URL (my_url + each competitor).
+# Cap the total so a large list can't turn one request into an unbounded
+# fetch+LLM bill; "usually 3-8" per the note above.
+MAX_COMPARE_URLS = 8
+
+
 class CompareReq(BaseModel):
     my_url: str
     competitor_urls: list[str] = []
@@ -1308,6 +1317,17 @@ def matching_compare(req: CompareReq) -> dict:
     if not req.my_url.strip():
         raise HTTPException(status_code=400, detail="Missing my_url")
     competitor_urls = [u.strip() for u in req.competitor_urls if u and u.strip()]
+    # Reject BEFORE any fetch/LLM call: my_url + competitor_urls together
+    # drive N+1 page fetches and N+1 LLM extraction calls.
+    total_urls = 1 + len(competitor_urls)
+    if total_urls > MAX_COMPARE_URLS:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Too many URLs ({total_urls}): my_url plus competitor_urls "
+                f"must total at most {MAX_COMPARE_URLS}."
+            ),
+        )
     comp = matching_mod.compare(req.my_url.strip(), competitor_urls)
     return comp.to_dict()
 
