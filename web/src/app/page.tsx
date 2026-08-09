@@ -38,10 +38,13 @@ export default function Landing() {
               href="/sample"
               className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
-              Explore a sample
+              Run the live engine
             </Link>
           </div>
-          <p className="mx-auto mt-4 max-w-xl text-xs text-muted">
+          <p className="mx-auto mt-3 max-w-xl text-xs text-muted">
+            The sample runs the real engine on a synthetic 2,000-deal book.
+          </p>
+          <p className="mx-auto mt-3 max-w-xl text-xs text-muted">
             Best fit: Salesforce orgs with 500+ closed opportunities a year, a
             documented discount policy, and an owner for it.
           </p>
@@ -49,6 +52,16 @@ export default function Landing() {
             <span><strong className="font-semibold text-fg">Built for</strong> RevOps · Deal Desk · Pricing</span>
             <span><strong className="font-semibold text-fg">ICP</strong> $20–100M ARR · usage or hybrid SaaS</span>
             <span><strong className="font-semibold text-fg">Buyer</strong> CFO / Finance</span>
+          </div>
+          <p className="mx-auto mt-3 max-w-2xl text-xs text-muted">
+            V1 governs the discount on committed, annualized ACV. Commitment-tier
+            and overage-rate awareness are on the roadmap.
+          </p>
+          <div className="mx-auto mt-6 max-w-2xl border-t border-mist/60 pt-4 text-xs text-muted">
+            Billing and metering are consolidating into platforms: Stripe
+            acquired Metronome in 2025, and Salesforce agreed to acquire m3ter
+            in 2026. The usage data is getting locked up; the
+            pricing-decision layer on top of it is still open.
           </div>
         </section>
       </Reveal>
@@ -161,7 +174,7 @@ export default function Landing() {
               Walk through one discount exception
             </Link>
             <Link href="/sample" className="rounded-lg border border-mist bg-surface-2 px-5 py-3 font-medium text-fg hover:border-teal">
-              Explore the sample first
+              Run the live engine first
             </Link>
           </div>
         </section>
