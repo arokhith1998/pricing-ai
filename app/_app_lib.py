@@ -152,6 +152,36 @@ def pct(x: float) -> str:
     return f"{x:.1%}"
 
 
+# Calibration spot-check tolerance for the win-probability model (audit P2 #5):
+# the page must not claim "well calibrated / dependable" unless predicted and
+# actual win rates are actually close. 5 points is a generous, documented bound.
+CALIBRATION_TOLERANCE = 0.05
+
+
+def calibration_verdict(mean_pred: float, base_rate: float,
+                        tol: float = CALIBRATION_TOLERANCE) -> tuple[str, bool]:
+    """Plain-language calibration message plus whether it earned a verdict.
+
+    Returns (message, well_calibrated). The "well calibrated / dependable"
+    claim only appears when |mean_pred - base_rate| <= tol; otherwise the
+    message states the numbers with no verdict, so the page never asserts
+    confidence the model doesn't have.
+    """
+    predicted, actual = pct(mean_pred), pct(base_rate)
+    well_calibrated = abs(mean_pred - base_rate) <= tol
+    if well_calibrated:
+        return (
+            "The model is well calibrated: the win rates it predicts line up "
+            f"with what actually happened ({predicted} predicted versus "
+            f"{actual} actual). That makes the guidance below dependable."
+        ), True
+    return (
+        f"Predicted win rate ({predicted}) and actual win rate ({actual}) are "
+        f"more than {pct(tol)} apart. Treat the guidance below as directional "
+        "until the model is retrained on more recent data."
+    ), False
+
+
 # Human-readable labels for every field we might show. No raw snake_case in UI.
 LABELS = {
     "opportunity_id": "Opportunity ID", "account_name": "Account",

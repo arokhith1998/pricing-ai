@@ -37,7 +37,7 @@ export default function Landing() {
               href="/contact"
               className="rounded-lg border border-mist bg-surface px-5 py-3 font-medium text-fg transition hover:border-teal"
             >
-              Request a Salesforce pilot
+              Walk through one discount exception
             </Link>
           </div>
           <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">

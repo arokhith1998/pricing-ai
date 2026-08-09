@@ -238,6 +238,46 @@ def test_matching_prefix_rule_matches_subpaths():
     assert main._rate_rule_for("/recommend") is None
 
 
+def test_llm_backed_routes_have_rate_limits():
+    # Audit P2 #2: /copilot/canonical (POST) and /map-columns are LLM-backed
+    # like /ask, /summary, and /matching/, but were missing from RATE_LIMITS.
+    assert main._rate_rule_for("/copilot/canonical") is not None
+    assert main._rate_rule_for("/map-columns") is not None
+
+
+# --- 3b. /matching/compare URL cap (audit P2 #1) ------------------------------
+
+def test_compare_rejects_too_many_urls_without_calling_engine(client, monkeypatch):
+    def _must_not_be_called(*_args, **_kwargs):
+        raise AssertionError("matching_mod.compare must not run past the URL cap")
+
+    monkeypatch.setattr(main.matching_mod, "compare", _must_not_be_called)
+    urls = [f"https://competitor{i}.example/pricing" for i in range(9)]
+    r = client.post(
+        "/matching/compare",
+        json={"my_url": "https://mine.example/pricing", "competitor_urls": urls},
+    )
+    assert r.status_code == 422
+
+
+def test_compare_allows_urls_at_the_cap(client, monkeypatch):
+    calls = {"n": 0}
+
+    def _fake_compare(my_url, competitor_urls):
+        calls["n"] += 1
+        return type("R", (), {"to_dict": lambda self: {"ok": True}})()
+
+    monkeypatch.setattr(main.matching_mod, "compare", _fake_compare)
+    # my_url (1) + 7 competitors = 8, exactly MAX_COMPARE_URLS.
+    urls = [f"https://competitor{i}.example/pricing" for i in range(7)]
+    r = client.post(
+        "/matching/compare",
+        json={"my_url": "https://mine.example/pricing", "competitor_urls": urls},
+    )
+    assert r.status_code == 200
+    assert calls["n"] == 1
+
+
 # --- 4. load_report in the diagnostic payload ----------------------------------
 
 def test_diagnostic_payload_contains_load_report(client):

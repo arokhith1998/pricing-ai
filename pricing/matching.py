@@ -386,8 +386,10 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         f"PAGE TEXT (verbatim):\n{page_text}\n"
     )
     try:
+        # Structured JSON extraction, same task class as extract_competitor_context
+        # above: the mini model is proven sufficient, so don't pay for gpt-4o here.
         raw = assist._complete(
-            _EXTRACT_SYSTEM, user, json_mode=True, max_tokens=1500,
+            _EXTRACT_SYSTEM, user, json_mode=True, max_tokens=1500, small=True,
         )
         data = json.loads(raw)
     except Exception:  # noqa: BLE001

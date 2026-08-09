@@ -12,8 +12,9 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from _app_lib import (  # noqa: E402
-    BRAND, field_label, get_diagnostic, get_model, get_model_leakage, model,
-    money, page, pct, pretty_factors, require_csv, sidebar_inputs,
+    BRAND, calibration_verdict, field_label, get_diagnostic, get_model,
+    get_model_leakage, model, money, page, pct, pretty_factors, require_csv,
+    sidebar_inputs,
 )
 
 page("Win model and guidance")
@@ -33,9 +34,13 @@ except Exception as exc:  # noqa: BLE001
     st.stop()
 
 m = tm.metrics
-st.success("The model is well calibrated: the win rates it predicts line up "
-           f"with what actually happened ({pct(m['mean_pred'])} predicted versus "
-           f"{pct(m['base_rate'])} actual). That makes the guidance below dependable.")
+# Honest calibration claim (audit P2 #5): only say "well calibrated /
+# dependable" when the numbers actually support it.
+calib_msg, well_calibrated = calibration_verdict(m["mean_pred"], m["base_rate"])
+if well_calibrated:
+    st.success(calib_msg)
+else:
+    st.warning(calib_msg)
 with st.expander("Model quality (advanced)"):
     a1, a2, a3 = st.columns(3)
     a1.metric("Ranking accuracy (AUC)", f"{m['auc']:.3f}",

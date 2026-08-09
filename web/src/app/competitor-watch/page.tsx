@@ -168,7 +168,7 @@ export default function CompetitorWatchPage() {
       <Reveal>
         <h1 className="text-2xl font-bold text-fg">Competitor context</h1>
         <p className="mt-1 max-w-3xl text-slate">
-          Add named, public evidence—pricing pages, documentation, release
+          Add named, public evidence: pricing pages, documentation, release
           notes, case studies, interviews, and quarterly or investor material.
           Pricekeel keeps the source, capture date, confidence, and extracted
           claims beside the CRM analysis.

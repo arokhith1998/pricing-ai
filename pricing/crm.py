@@ -234,9 +234,15 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0,
     _guard_degenerate_list(df, list_field_mapped=list_field_mapped)
     analysis = diagnostic.analyze(df, report, policy_threshold=policy)
     guidance = [guidance_for_open_deal(df, deal, policy) for deal in open_usable]
+    # Rank by the risk-adjusted expected_acv_delta, not the gross price_to_retain.
+    # price_to_retain is a full list-price delta that assumes the deal still
+    # closes at the higher price; expected_acv_delta already discounts that
+    # delta by the win-rate drop the higher band actually carries (asking for
+    # more money lowers close probability). price_to_retain stays in the
+    # payload for the rep to see, but it must not drive priority.
     guidance.sort(key=lambda row: (
         not bool(row["below_guardrail"]),
-        float(row["price_to_retain"]),
+        float(row["expected_acv_delta"]),
     ), reverse=True)
     return {
         "analysis": analysis,

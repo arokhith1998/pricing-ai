@@ -6,13 +6,13 @@ excerpt: Discounting has a saturation point. Below it, a little discount lifts y
 published: true
 ---
 
-There is a comforting story sales tells itself: more discount means more wins. It is true — right up until it isn't.
+There is a comforting story sales tells itself: more discount means more wins. It is true, right up until it isn't.
 
 Plot win rate against discount depth on your own closed deals and you almost always see the same shape: win rate climbs as discount rises from zero, then **flattens**. Past a certain point, deeper discounts buy little or no additional win probability. You are no longer buying wins. You are funding deals that would have closed at a higher price.
 
 ## The saturation point has a name
 
-We call it the **win point** — the discount band where win rate peaks and stops improving. It is not a guess; it falls out of your data once you bucket deals by discount and look at the win rate in each bucket with honest confidence intervals.
+We call it the **win point**: the discount band where win rate peaks and stops improving. It is not a guess; it falls out of your data once you bucket deals by discount and look at the win rate in each bucket with honest confidence intervals.
 
 Two things tend to be true at once:
 
@@ -25,7 +25,7 @@ Average discount hides it. A blended 14% looks reasonable, even though it is a m
 
 ## What to do with it
 
-You do not "claw back" the gap — much of it is correlational, and some deep discounts were genuinely necessary. You **govern toward the win point**: set approval thresholds where the evidence says extra discount stops paying, and make reps trade concessions (term, prepayment, references) for anything past it.
+You do not "claw back" the gap: much of it is correlational, and some deep discounts were genuinely necessary. You **govern toward the win point**: set approval thresholds where the evidence says extra discount stops paying, and make reps trade concessions (term, prepayment, references) for anything past it.
 
 That is the difference between a discount policy pulled from the air and one grounded in your own win curve.
 

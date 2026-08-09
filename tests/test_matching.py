@@ -346,3 +346,22 @@ def test_competitor_context_requires_configured_llm(monkeypatch):
     monkeypatch.setattr(matching.assist, "has_llm", lambda: False)
     with pytest.raises(matching.assist.LLMUnavailableError):
         matching.extract_competitor_context("https://acme.example/pricing")
+
+
+# --- plan extraction uses the cheaper model (audit P2 #3) --------------------
+
+
+def test_extract_plans_from_text_uses_small_model(monkeypatch):
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
+    captured: dict = {}
+
+    def _fake_complete(*args, **kwargs):
+        captured.update(kwargs)
+        return '{"vendor":"Acme","plans":[]}'
+
+    monkeypatch.setattr(matching.assist, "_complete", _fake_complete)
+    page_text = "Acme pricing page. " * 10  # over the 100-char floor
+    matching.extract_plans_from_text(page_text, fallback_vendor="Acme")
+    # Same JSON-extraction task class as extract_competitor_context, which
+    # already uses small=True — plan extraction should not pay for gpt-4o.
+    assert captured.get("small") is True
