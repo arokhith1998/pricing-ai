@@ -59,6 +59,13 @@ export type SalesforceReadiness = {
 const MISSING_LIST_BLOCK_SHARE = 0.2;
 const DEGENERATE_LIST_SHARE = 0.9;
 const ZERO_DISCOUNT_EPS = 0.0005;
+// Ramp / annualization disclosure. The diagnostic treats booked value as
+// annualized ACV, but Salesforce Amount is often total-contract or year-1 ramp
+// value on multiyear deals. We cannot infer an org's convention, so we do not
+// silently transform: we disclose when a material share of the book is
+// multiyear so a misstated discount is caught, not hidden.
+const MULTIYEAR_TERM_MONTHS = 24;
+const MULTIYEAR_DISCLOSE_SHARE = 0.1;
 
 function asText(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -347,6 +354,19 @@ export function assessReadiness(
   }
   if (missingBooked) {
     warnings.push(`${missingBooked} opportunities have no usable booked/quoted value.`);
+  }
+
+  // Ramp / annualization disclosure (live-CRM input boundary). Only counts deals
+  // that actually carry a term, so an unmapped term field never fabricates the
+  // signal.
+  const multiyear = records.filter(
+    (record) => record.term_months !== null && record.term_months >= MULTIYEAR_TERM_MONTHS,
+  ).length;
+  const multiyearShare = records.length ? multiyear / records.length : 0;
+  if (multiyearShare >= MULTIYEAR_DISCLOSE_SHARE) {
+    warnings.push(
+      `${multiyear} opportunities run ${MULTIYEAR_TERM_MONTHS} months or longer. Pricekeel treats booked value as annualized ACV. If your booked field holds total-contract or year-1 ramp value, the discount on those deals is misstated. Confirm the booked field is annualized.`,
+    );
   }
 
   return {

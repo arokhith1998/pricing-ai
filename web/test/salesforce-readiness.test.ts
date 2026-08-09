@@ -69,3 +69,24 @@ describe("assessReadiness list-value integrity (Gap 3)", () => {
     expect(r.blockers.some((b) => /no usable list value|no pre-discount list field/i.test(b))).toBe(true);
   });
 });
+
+describe("assessReadiness ramp / annualization disclosure (input boundary)", () => {
+  it("warns when a material share of the book is multiyear", () => {
+    const records = closedBook(40, (i) => ({
+      list_acv: 100_000,
+      booked_acv: 75_000,
+      term_months: i < 8 ? 36 : 12, // 20 percent multiyear
+    }));
+    const r = assessReadiness(records, MAPPED);
+    expect(r.warnings.some((w) => /annualized ACV|24 months or longer/i.test(w))).toBe(true);
+  });
+
+  it("does not warn on a short-term book, and never fabricates the signal from missing terms", () => {
+    const shortTerm = closedBook(40, () => ({ list_acv: 100_000, booked_acv: 75_000, term_months: 12 }));
+    const noTerm = closedBook(40, () => ({ list_acv: 100_000, booked_acv: 75_000, term_months: null }));
+    for (const book of [shortTerm, noTerm]) {
+      const r = assessReadiness(book, MAPPED);
+      expect(r.warnings.some((w) => /24 months or longer/i.test(w))).toBe(false);
+    }
+  });
+});
