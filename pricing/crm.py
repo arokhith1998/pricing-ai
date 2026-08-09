@@ -71,7 +71,13 @@ _DEGENERATE_LIST_SHARE = 0.90
 _ZERO_DISCOUNT_EPS = 0.0005
 
 
-def _guard_degenerate_list(df: pd.DataFrame) -> None:
+def _guard_degenerate_list(df: pd.DataFrame, *, list_field_mapped: bool = False) -> None:
+    # A customer who has explicitly mapped a real pre-discount list field
+    # told us, out of band, that a near-zero-discount book is honest
+    # discipline rather than the default-mapping failure this guard exists
+    # to catch. Skip the heuristic rather than blocking an honest book.
+    if list_field_mapped:
+        return
     if "discount_pct" not in df.columns or df.empty:
         return
     near_zero = float((df["discount_pct"].abs() <= _ZERO_DISCOUNT_EPS).mean())
@@ -203,7 +209,8 @@ def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
     }
 
 
-def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0) -> dict:
+def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0,
+                    *, list_field_mapped: bool = False) -> dict:
     if not records:
         raise CRMDataError("No Salesforce opportunities were supplied.")
     if len(records) > MAX_CRM_RECORDS:
@@ -224,7 +231,7 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0) -> 
             "at least 30 are required."
         )
     df, report = _ingest_closed(closed, policy)
-    _guard_degenerate_list(df)
+    _guard_degenerate_list(df, list_field_mapped=list_field_mapped)
     analysis = diagnostic.analyze(df, report, policy_threshold=policy)
     guidance = [guidance_for_open_deal(df, deal, policy) for deal in open_usable]
     guidance.sort(key=lambda row: (
@@ -248,8 +255,10 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0) -> 
 
 
 def selected_guidance(records: list[dict], deal_id: str,
-                      policy_threshold_pct: float = 15.0) -> dict:
-    result = analyze_records(records, policy_threshold_pct)
+                      policy_threshold_pct: float = 15.0,
+                      *, list_field_mapped: bool = False) -> dict:
+    result = analyze_records(records, policy_threshold_pct,
+                             list_field_mapped=list_field_mapped)
     for row in result["guidance"]:
         if row["opportunity_id"] == deal_id:
             return row

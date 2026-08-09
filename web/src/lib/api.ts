@@ -130,6 +130,19 @@ export type FindingDeal = {
   discount_amount: number;
 };
 
+// Per-value-metric reference discount partition (UBP MVP). Each row is the
+// reference band computed within deals sharing a value metric (seats,
+// consumption, hybrid, ...), since a single book-wide reference threshold can
+// blend metrics with different willingness to pay. See CONTRACT C.
+export type ValueMetricReference = {
+  value_metric: string;
+  deals: number;
+  bands_populated: number;
+  reference_threshold: number;
+  reference_band: string;
+  basis: string;
+};
+
 // Sales-friendly split of won deals: discount earned vs discount worth
 // investigating. Added 2026-05-30 per the expert review — reports historical
 // fact, no recovery-rate assumption. See pricing/metrics.defended_vs_investigate.
@@ -162,6 +175,9 @@ export type Diagnostic = {
   packaging_signal_deals: FindingDeal[];
   // Defended-vs-investigate split (added 2026-05-30 per expert review).
   defended_vs_investigate: DefendedVsInvestigate;
+  // Per-value-metric reference discount partition (CONTRACT C). Optional so
+  // cached/pre-contract API responses still render.
+  value_metric_reference?: ValueMetricReference[];
 };
 
 export type ModelInfo = {
@@ -303,6 +319,11 @@ export type Digest = {
     realization_pct: number;
     excess_vs_segment_reference: number;
   };
+  // Where the book-level realization/leakage figures in `stats` came from.
+  // "demo" means the sample book, not the recipient's own Salesforce data;
+  // the digest email must disclose that. Optional so a pre-contract cached
+  // response still renders (treated as non-demo).
+  book_source?: "demo" | "live";
 };
 
 // Hung backends should fail the page fast (and let /sample fall back to the

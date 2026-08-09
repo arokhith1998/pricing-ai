@@ -15,7 +15,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "Expected a file upload." }, { status: 400 });
   }
   try {
-    const upstream = await fetch(`${API}/docs/upload`, { method: "POST", body: form });
+    const upstream = await fetch(`${API}/docs/upload`, {
+      method: "POST",
+      headers: { "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "" },
+      body: form,
+    });
     if (!upstream.ok) {
       const text = await upstream.text().catch(() => "");
       return Response.json({ error: text || "Could not parse those docs." }, { status: 502 });

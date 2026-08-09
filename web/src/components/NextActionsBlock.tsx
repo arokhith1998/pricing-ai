@@ -39,7 +39,7 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
   const defendedValue = dvi.defended_value;
   const refThreshold = dvi.reference_threshold;
   const offPolicy = lk.off_policy_leakage_won;
-  const noApprover = (gov as { off_policy_no_approver?: number }).off_policy_no_approver ?? 0;
+  const noApprover = gov.off_policy_unapproved_won ?? 0;
 
   return (
     <section

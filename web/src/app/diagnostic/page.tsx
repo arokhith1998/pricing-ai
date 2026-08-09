@@ -129,6 +129,48 @@ function WinPointWhy({ rd }: { rd: Diagnostic["reference_discount"] }) {
   );
 }
 
+// Compact receipts for the per-value-metric reference discount (CONTRACT C).
+// Renders nothing when the backend has not yet sent a partition (older
+// cached payloads) or when there is only one value metric with no useful
+// split. Each row discloses the basis so the number is never asserted
+// without its provenance.
+function ValueMetricReferenceTable({ rows }: { rows: Diagnostic["value_metric_reference"] }) {
+  if (!rows || rows.length < 2) return null;
+  return (
+    <section className="rounded-xl border border-mist bg-surface p-5">
+      <h2 className="text-lg font-semibold text-fg">Reference discount by value metric</h2>
+      <p className="mt-1 text-sm text-slate">
+        Seats, consumption, and hybrid deals earn discount differently.
+        The book-wide win point above blends them; this splits it out.
+      </p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-mist text-left text-slate">
+              <th className="py-1.5 pr-3 font-medium">Value metric</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Deals</th>
+              <th className="py-1.5 pr-3 text-right font-medium">Win point</th>
+              <th className="py-1.5 font-medium">Basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.value_metric} className="border-b border-mist/60">
+                <td className="py-1.5 pr-3 font-medium text-fg">{row.value_metric}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">{row.deals.toLocaleString()}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-coral">
+                  {row.reference_band} ({pct(row.reference_threshold, 0)})
+                </td>
+                <td className="py-1.5 text-xs text-slate">{row.basis}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export default async function DiagnosticPage() {
   let d: Diagnostic;
   try {
@@ -178,6 +220,12 @@ export default async function DiagnosticPage() {
       <Reveal inView>
         <WinPointWhy rd={d.reference_discount} />
       </Reveal>
+
+      {d.value_metric_reference && d.value_metric_reference.length >= 2 ? (
+        <Reveal inView>
+          <ValueMetricReferenceTable rows={d.value_metric_reference} />
+        </Reveal>
+      ) : null}
 
       <Reveal inView>
         <Card

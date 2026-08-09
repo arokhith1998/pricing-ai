@@ -21,7 +21,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "No file provided." }, { status: 400 });
   }
   try {
-    const upstream = await fetch(`${API}/diagnostic`, { method: "POST", body: form });
+    const upstream = await fetch(`${API}/diagnostic`, {
+      method: "POST",
+      headers: { "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "" },
+      body: form,
+    });
     if (!upstream.ok) {
       return Response.json(
         { error: "Could not analyze that file. Check it against the template." },

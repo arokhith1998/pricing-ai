@@ -184,6 +184,19 @@ def print_report(res: dict) -> None:
         print("   (trend excess uses the single global reference so quarters "
               "stay comparable)")
 
+    # Per-value-metric reference cut: a seat discount and a consumption
+    # discount are not the same lever (Campbell), so each value_metric's own
+    # win point is disclosed alongside the pooled reference above.
+    vmr = res.get("value_metric_reference") or []
+    if vmr:
+        print("\n-- Reference discount by value metric " + "-" * 25)
+        print(f"   {'value_metric':<14}{'reference':>10}  {'basis':<38}"
+              f"{'deals':>7}{'bands':>7}")
+        for r in vmr:
+            print(f"   {str(r['value_metric']):<14}"
+                  f"{_pct(r['reference_threshold']):>10}  "
+                  f"{r['basis']:<38}{r['deals']:>7,}{r['bands_populated']:>7}")
+
     # Wishlist 2a: realization by segment + each segment's own win point.
     seg = res.get("realization_by_segment")
     if seg is not None and not seg.empty:

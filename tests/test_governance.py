@@ -464,7 +464,10 @@ def test_digest_endpoint_reflects_logged_exception(client, deal_id):
     assert r.status_code == 200
     d = r.json()
     assert set(d) == {"customer", "generated_at", "window_days", "headline",
-                      "lines", "stats"}
+                      "lines", "stats", "book_source"}
+    # The book half is demo-derived regardless of tenant until a per-tenant
+    # book is persisted (CONTRACT B).
+    assert d["book_source"] == "demo"
     assert d["window_days"] == 7
     assert d["stats"]["exceptions_total"] == 1
     assert d["stats"]["exceptions_below_floor"] == 1

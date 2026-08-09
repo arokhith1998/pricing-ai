@@ -77,6 +77,15 @@ type Guidance = {
   }>;
 };
 
+type ValueMetricReference = {
+  value_metric: string;
+  deals: number;
+  bands_populated: number;
+  reference_threshold: number;
+  reference_band: string;
+  basis: string;
+};
+
 type Analysis = {
   overview: {
     opportunities: number;
@@ -118,6 +127,9 @@ type Analysis = {
     discount_pct: number;
     excess_discount_dollars: number;
   }>;
+  // Per-value-metric reference discount partition (CONTRACT C). Optional so
+  // an org running against an older cached backend still renders.
+  value_metric_reference?: ValueMetricReference[];
 };
 
 type Workspace = {
@@ -480,7 +492,7 @@ function ReadinessPanel({ readiness }: { readiness: Readiness }) {
 function Executive({ analysis, guidance, workflow }: { analysis: Analysis; guidance: Guidance[]; workflow: WorkflowItem[] }) {
   const currency = guidance[0]?.currency_iso || "USD";
   const flagged = guidance.filter((deal) => !deal.below_guardrail);
-  return <section className="space-y-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Price realization" value={pct(analysis.overview.price_realization_won)} note={`${analysis.overview.won.toLocaleString()} won opportunities`} /><Metric label="Win rate" value={pct(analysis.overview.win_rate)} note={`${analysis.overview.opportunities.toLocaleString()} closed outcomes`} /><Metric label="Open exceptions" value={flagged.length.toLocaleString()} note="Open deals above their reference guardrail" accent={flagged.length > 0} /><Metric label="Price to retain" value={money(flagged.reduce((sum, deal) => sum + deal.price_to_retain, 0), currency)} note="If flagged deals move to the disclosed guardrail" accent /></div><div className="grid gap-4 lg:grid-cols-2"><section className="rounded-xl border border-mist bg-surface p-5"><h2 className="font-semibold text-fg">Win rate by discount band</h2><div className="mt-4 space-y-3">{analysis.win_rate_by_band.map((row) => <div key={row.discount_band}><div className="flex justify-between text-xs text-slate"><span>{row.discount_band} · {row.deals} deals</span><span>{pct(row.win_rate)}</span></div><div className="mt-1 h-2 rounded bg-surface-2"><div className="h-2 rounded bg-teal" style={{ width: `${Math.max(2, row.win_rate * 100)}%` }} /></div></div>)}</div></section><section className="rounded-xl border border-mist bg-surface p-5"><h2 className="font-semibold text-fg">Workflow pulse</h2><div className="mt-4 text-3xl font-bold text-fg">{workflow.length}</div><p className="text-sm text-slate">Pricing actions logged in the current tenant.</p><div className="mt-4 text-sm text-slate">Reference threshold: <strong className="text-fg">{pct(analysis.leakage.reference_threshold)}</strong></div><div className="mt-1 text-sm text-slate">Historical excess to investigate: <strong className="text-fg">{money(analysis.leakage.excess_vs_segment_reference_won, currency)}</strong></div></section></div></section>;
+  return <section className="space-y-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Price realization" value={pct(analysis.overview.price_realization_won)} note={`${analysis.overview.won.toLocaleString()} won opportunities`} /><Metric label="Win rate" value={pct(analysis.overview.win_rate)} note={`${analysis.overview.opportunities.toLocaleString()} closed outcomes`} /><Metric label="Open exceptions" value={flagged.length.toLocaleString()} note="Open deals above their reference guardrail" accent={flagged.length > 0} /><Metric label="Price to retain" value={money(flagged.reduce((sum, deal) => sum + deal.price_to_retain, 0), currency)} note="If flagged deals move to the disclosed guardrail" accent /></div><div className="grid gap-4 lg:grid-cols-2"><section className="rounded-xl border border-mist bg-surface p-5"><h2 className="font-semibold text-fg">Win rate by discount band</h2><div className="mt-4 space-y-3">{analysis.win_rate_by_band.map((row) => <div key={row.discount_band}><div className="flex justify-between text-xs text-slate"><span>{row.discount_band} · {row.deals} deals</span><span>{pct(row.win_rate)}</span></div><div className="mt-1 h-2 rounded bg-surface-2"><div className="h-2 rounded bg-teal" style={{ width: `${Math.max(2, row.win_rate * 100)}%` }} /></div></div>)}</div></section><section className="rounded-xl border border-mist bg-surface p-5"><h2 className="font-semibold text-fg">Workflow pulse</h2><div className="mt-4 text-3xl font-bold text-fg">{workflow.length}</div><p className="text-sm text-slate">Pricing actions logged in the current tenant.</p><div className="mt-4 text-sm text-slate">Reference threshold: <strong className="text-fg">{pct(analysis.leakage.reference_threshold)}</strong></div><div className="mt-1 text-sm text-slate">Historical excess to investigate: <strong className="text-fg">{money(analysis.leakage.excess_vs_segment_reference_won, currency)}</strong></div>{analysis.value_metric_reference && analysis.value_metric_reference.length >= 2 ? <div className="mt-3 border-t border-mist pt-3"><div className="text-xs font-semibold uppercase tracking-wider text-muted">Reference discount by value metric</div><div className="mt-2 space-y-1">{analysis.value_metric_reference.map((row) => <div key={row.value_metric} className="flex items-baseline justify-between gap-3 text-xs text-slate"><span className="font-medium text-ink">{row.value_metric}</span><span className="tabular-nums">{row.reference_band} ({pct(row.reference_threshold)}) · {row.basis}</span></div>)}</div></div> : null}</section></div></section>;
 }
 
 function Pricing({ analysis }: { analysis: Analysis }) {
