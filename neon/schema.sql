@@ -115,3 +115,25 @@ create table if not exists competitor_context_sources (
 
 create index if not exists competitor_context_customer_verified_idx
   on competitor_context_sources (customer_ref, last_verified_at desc);
+
+-- Per-recipient link attribution for cold outreach (2026-08-12). A ref token
+-- appended to an outbound link (e.g. pricekeel.com/?ref=temporal-interview)
+-- is logged here on landing, before any lead-form opt-in. Deliberately thin:
+-- a company/campaign token, the path it landed on, and a timestamp. No IP,
+-- no user agent, no cookie/session id, no free-text fields carried in from
+-- the visitor. Gated behind NEXT_PUBLIC_LINK_TRACKING_ENABLED in the web app
+-- (see .env.example); do not enable until the privacy policy's "What we
+-- collect" section is updated to disclose it (today it only covers UTM
+-- capture tied to lead-form submission, not anonymous landing pings).
+create table if not exists link_clicks (
+  id            uuid primary key default gen_random_uuid(),
+  ref           text not null,
+  utm_source    text not null default '',
+  utm_medium    text not null default '',
+  utm_campaign  text not null default '',
+  landing_path  text not null default '',
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists link_clicks_ref_created_at_idx
+  on link_clicks (ref, created_at desc);

@@ -84,6 +84,36 @@ export async function saveLead(lead: Lead): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Per-recipient link attribution (cold outreach). See neon/schema.sql for the
+// disclosure note. Deliberately no PII: a company/campaign token, the path
+// landed on, optional UTM, and a timestamp.
+
+export type LinkClick = {
+  ref: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  landing_path: string;
+};
+
+const memLinkClicks: LinkClick[] = [];
+
+export async function saveLinkClick(click: LinkClick): Promise<void> {
+  const sql = db();
+  if (!sql) {
+    memLinkClicks.push(click);
+    return;
+  }
+  await sql`
+    insert into link_clicks
+      (ref, utm_source, utm_medium, utm_campaign, landing_path)
+    values
+      (${click.ref}, ${click.utm_source}, ${click.utm_medium},
+       ${click.utm_campaign}, ${click.landing_path})
+  `;
+}
+
 /** Best-effort lookup. Returns true if we have ever captured this email.
  *  Used by the magic-link recovery flow so returning leads do not have to
  *  refill the form on a new device or after their cookie expired. */
