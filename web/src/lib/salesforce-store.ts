@@ -1,10 +1,13 @@
 import "server-only";
 
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
-import {
-  decryptSalesforceSecret,
-  encryptSalesforceSecret,
-} from "@/lib/salesforce-crypto";
+import { decryptCrmSecret, encryptCrmSecret } from "@/lib/crm-crypto";
+
+// This module stays Salesforce-typed on purpose. Slice 1 of
+// docs/design/hubspot-crm-integration.md only repoints storage at the
+// provider-generalized tables; HubSpot gets its own store module, and the
+// shared interface is extracted later, on evidence from two implementations.
+const PROVIDER = "salesforce";
 
 export type SalesforceConnection = {
   customer_ref: string;
@@ -113,8 +116,8 @@ async function decryptConnection(
   const { access_token_encrypted, refresh_token_encrypted, ...safe } = row;
   return {
     ...safe,
-    access_token: await decryptSalesforceSecret(access_token_encrypted),
-    refresh_token: await decryptSalesforceSecret(refresh_token_encrypted),
+    access_token: await decryptCrmSecret(access_token_encrypted),
+    refresh_token: await decryptCrmSecret(refresh_token_encrypted),
   };
 }
 
@@ -129,8 +132,8 @@ export async function saveSalesforceConnection(input: {
   scope?: string;
   issued_at?: string;
 }): Promise<void> {
-  const access = await encryptSalesforceSecret(input.access_token);
-  const refresh = await encryptSalesforceSecret(input.refresh_token);
+  const access = await encryptCrmSecret(input.access_token);
+  const refresh = await encryptCrmSecret(input.refresh_token);
   const now = new Date().toISOString();
   const row: StoredConnection = {
     customer_ref: input.customer_ref,
@@ -159,15 +162,15 @@ export async function saveSalesforceConnection(input: {
     return;
   }
   await sql`
-    insert into salesforce_connections
-      (customer_ref, org_id, user_id, instance_url, access_token_encrypted,
-       refresh_token_encrypted, token_type, scope, issued_at, status,
-       last_error, updated_at)
+    insert into crm_connections
+      (customer_ref, provider, org_id, user_id, instance_url,
+       access_token_encrypted, refresh_token_encrypted, token_type, scope,
+       issued_at, status, last_error, updated_at)
     values
-      (${input.customer_ref}, ${input.org_id}, ${input.user_id},
+      (${input.customer_ref}, ${PROVIDER}, ${input.org_id}, ${input.user_id},
        ${input.instance_url}, ${access}, ${refresh}, ${row.token_type},
        ${row.scope}, ${row.issued_at}, 'connected', '', now())
-    on conflict (customer_ref) do update set
+    on conflict (customer_ref, provider) do update set
       org_id = excluded.org_id,
       user_id = excluded.user_id,
       instance_url = excluded.instance_url,
@@ -181,9 +184,9 @@ export async function saveSalesforceConnection(input: {
       updated_at = now()
   `;
   await sql`
-    insert into salesforce_mappings (customer_ref)
-    values (${input.customer_ref})
-    on conflict (customer_ref) do nothing
+    insert into crm_mappings (customer_ref, provider)
+    values (${input.customer_ref}, ${PROVIDER})
+    on conflict (customer_ref, provider) do nothing
   `;
 }
 
@@ -196,8 +199,8 @@ export async function getSalesforceConnection(
     stored = memoryConnections.get(customerRef);
   } else {
     const rows = await sql`
-      select * from salesforce_connections
-      where customer_ref = ${customerRef}
+      select * from crm_connections
+      where customer_ref = ${customerRef} and provider = ${PROVIDER}
       limit 1
     `;
     if (rows[0]) stored = storedFromRow(rows[0] as Record<string, unknown>);
@@ -218,8 +221,8 @@ export async function updateSalesforceTokens(
 ): Promise<void> {
   const current = await getSalesforceConnection(customerRef);
   if (!current) throw new Error("Salesforce connection not found.");
-  const access = await encryptSalesforceSecret(input.access_token);
-  const refresh = await encryptSalesforceSecret(
+  const access = await encryptCrmSecret(input.access_token);
+  const refresh = await encryptCrmSecret(
     input.refresh_token || current.refresh_token,
   );
   const instanceUrl = input.instance_url || current.instance_url;
@@ -242,13 +245,13 @@ export async function updateSalesforceTokens(
     return;
   }
   await sql`
-    update salesforce_connections
+    update crm_connections
     set access_token_encrypted = ${access},
         refresh_token_encrypted = ${refresh},
         instance_url = ${instanceUrl}, token_type = ${tokenType},
         scope = ${scope}, issued_at = ${issuedAt}, status = 'connected',
         last_error = '', updated_at = now()
-    where customer_ref = ${customerRef}
+    where customer_ref = ${customerRef} and provider = ${PROVIDER}
   `;
 }
 
@@ -268,9 +271,9 @@ export async function markSalesforceConnection(
     return;
   }
   await sql`
-    update salesforce_connections
+    update crm_connections
     set status = ${status}, last_error = ${error.slice(0, 500)}, updated_at = now()
-    where customer_ref = ${customerRef}
+    where customer_ref = ${customerRef} and provider = ${PROVIDER}
   `;
 }
 
@@ -293,11 +296,11 @@ export async function markSalesforceSync(
     return;
   }
   await sql`
-    update salesforce_connections
+    update crm_connections
     set last_sync_at = now(), last_sync_closed = ${closed},
         last_sync_open = ${open}, status = 'connected', last_error = '',
         updated_at = now()
-    where customer_ref = ${customerRef}
+    where customer_ref = ${customerRef} and provider = ${PROVIDER}
   `;
 }
 
@@ -309,7 +312,8 @@ export async function deleteSalesforceConnection(customerRef: string): Promise<v
     return;
   }
   await sql`
-    delete from salesforce_connections where customer_ref = ${customerRef}
+    delete from crm_connections
+    where customer_ref = ${customerRef} and provider = ${PROVIDER}
   `;
 }
 
@@ -325,8 +329,8 @@ export async function getSalesforceMapping(
   }
   const rows = await sql`
     select mapping, policy_threshold_pct, default_value_metric
-    from salesforce_mappings
-    where customer_ref = ${customerRef}
+    from crm_mappings
+    where customer_ref = ${customerRef} and provider = ${PROVIDER}
     limit 1
   `;
   if (!rows[0]) return structuredClone(DEFAULT_SALESFORCE_MAPPING);
@@ -358,12 +362,13 @@ export async function saveSalesforceMapping(
     return;
   }
   await sql`
-    insert into salesforce_mappings
-      (customer_ref, mapping, policy_threshold_pct, default_value_metric)
+    insert into crm_mappings
+      (customer_ref, provider, mapping, policy_threshold_pct,
+       default_value_metric)
     values
-      (${customerRef}, ${JSON.stringify(normalized.mapping)}::jsonb,
+      (${customerRef}, ${PROVIDER}, ${JSON.stringify(normalized.mapping)}::jsonb,
        ${normalized.policy_threshold_pct}, ${normalized.default_value_metric})
-    on conflict (customer_ref) do update set
+    on conflict (customer_ref, provider) do update set
       mapping = excluded.mapping,
       policy_threshold_pct = excluded.policy_threshold_pct,
       default_value_metric = excluded.default_value_metric,

@@ -92,8 +92,12 @@ After changing an environment variable, create a fresh production deployment;
 do not assume an old deployment snapshot inherited it.
 
 Apply `neon/schema.sql` to the production database. Confirm that the following
-tables exist: `access_codes`, `salesforce_connections`,
-`salesforce_mappings`, `decision_log`, and `competitor_context_sources`.
+tables exist: `access_codes`, `crm_connections`, `crm_mappings`,
+`decision_log`, and `competitor_context_sources`. On a database provisioned
+before 2026-08-18, apply
+`neon/migrations/2026-08-18-crm-provider-generalization.sql` first: it renames
+`salesforce_connections` / `salesforce_mappings` and adds the `provider`
+column. The migration is idempotent and preserves existing rows.
 
 ### 5. Provision the customer tenant
 
@@ -205,6 +209,7 @@ approval governance until per-user SSO and an approver role/allowlist ship.
   stored tokens breaks every connection.
 - Revoke the customer's access code when the pilot ends.
 - Use **Disconnect Salesforce** before deleting customer records.
-- Verify the `salesforce_connections` and cascading mapping row are gone.
+- Verify the `crm_connections` row (provider `salesforce`) and its cascading
+  mapping row are gone.
 - Retain the append-only decision record only under the contracted retention
   period and data-handling SOP.

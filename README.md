@@ -174,7 +174,8 @@ Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
   `https://www.pricekeel.com/api/salesforce/oauth/callback` (must exactly match ECA)
 - `SALESFORCE_LOGIN_URL` = `https://login.salesforce.com` (or
   `https://test.salesforce.com` for a sandbox)
-- `SALESFORCE_TOKEN_ENCRYPTION_KEY` = a separate high-entropy secret used for
+- `CRM_TOKEN_ENCRYPTION_KEY` (legacy name `SALESFORCE_TOKEN_ENCRYPTION_KEY`
+  is still read as a fallback) = a separate high-entropy secret used for
   application-level AES-256-GCM encryption before OAuth tokens reach Neon
 - `SALESFORCE_API_VERSION` = `67.0` (Summer '26; configurable for future moves)
 

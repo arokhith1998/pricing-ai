@@ -59,12 +59,19 @@ create table if not exists decision_log (
 create index if not exists decision_log_kind_created_at_idx
   on decision_log (kind, created_at desc);
 
--- Salesforce CRM workflow (2026-08-01). Raw Opportunity rows are never
--- persisted here: the connector queries Salesforce on demand, sends a bounded
--- in-memory payload to FastAPI, and stores only connection/config/sync metadata
--- plus the append-only decision_log above.
-create table if not exists salesforce_connections (
-  customer_ref            text primary key,
+-- CRM workflow (Salesforce 2026-08-01, generalized to any provider
+-- 2026-08-18). Raw CRM records are never persisted here: the connector queries
+-- the CRM on demand, sends a bounded in-memory payload to FastAPI, and stores
+-- only connection/config/sync metadata plus the append-only decision_log above.
+--
+-- Two generic slots carry provider-specific identity, so a second CRM needs no
+-- new columns:
+--   org_id       Salesforce org ID       | HubSpot portal ID
+--   instance_url Salesforce instance URL | HubSpot API base
+create table if not exists crm_connections (
+  customer_ref            text not null,
+  provider                text not null default 'salesforce'
+    check (provider in ('salesforce','hubspot')),
   org_id                  text not null,
   user_id                 text not null default '',
   instance_url            text not null,
@@ -80,21 +87,27 @@ create table if not exists salesforce_connections (
   last_sync_closed        integer not null default 0,
   last_sync_open          integer not null default 0,
   connected_at            timestamptz not null default now(),
-  updated_at              timestamptz not null default now()
+  updated_at              timestamptz not null default now(),
+  primary key (customer_ref, provider)
 );
 
-create table if not exists salesforce_mappings (
-  customer_ref          text primary key references salesforce_connections(customer_ref)
-                         on delete cascade,
+create table if not exists crm_mappings (
+  customer_ref          text not null,
+  provider              text not null default 'salesforce'
+    check (provider in ('salesforce','hubspot')),
   mapping               jsonb not null default '{}'::jsonb,
   policy_threshold_pct  double precision not null default 15.0,
   default_value_metric  text not null default 'hybrid',
   created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now()
+  updated_at            timestamptz not null default now(),
+  primary key (customer_ref, provider),
+  constraint crm_mappings_connection_fkey
+    foreign key (customer_ref, provider)
+    references crm_connections (customer_ref, provider) on delete cascade
 );
 
-create index if not exists salesforce_connections_status_updated_idx
-  on salesforce_connections (status, updated_at desc);
+create index if not exists crm_connections_status_updated_idx
+  on crm_connections (status, updated_at desc);
 
 -- Customer-selected, public competitor evidence. Claims remain qualitative
 -- context and are never an input to the numerical discount guardrail.

@@ -1,5 +1,13 @@
 import "server-only";
 
+// Provider-agnostic token encryption and OAuth state signing for CRM
+// connections. Renamed from salesforce-crypto.ts on 2026-08-18 (slice 1 of
+// docs/design/hubspot-crm-integration.md).
+//
+// The key-derivation strings below are deliberately left as-is. They are salts
+// baked into every token already at rest; changing them would silently make
+// existing ciphertext undecryptable. The rename is surface-only.
+
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { pricekeelSecret } from "@/lib/auth";
 
@@ -17,13 +25,17 @@ function fromB64url(input: string): Uint8Array<ArrayBuffer> {
 }
 
 function encryptionSecret(): string {
-  const value = process.env.SALESFORCE_TOKEN_ENCRYPTION_KEY?.trim();
+  const value =
+    process.env.CRM_TOKEN_ENCRYPTION_KEY?.trim() ||
+    process.env.SALESFORCE_TOKEN_ENCRYPTION_KEY?.trim();
   if (value) return value;
   if (process.env.VERCEL_ENV === "production") {
     throw new Error(
-      "SALESFORCE_TOKEN_ENCRYPTION_KEY is required in production.",
+      "CRM_TOKEN_ENCRYPTION_KEY (or legacy SALESFORCE_TOKEN_ENCRYPTION_KEY) " +
+        "is required in production.",
     );
   }
+  // Salt preserved verbatim: existing dev-mode ciphertext must stay readable.
   return `${pricekeelSecret()}:salesforce-dev-token-key`;
 }
 
@@ -37,7 +49,7 @@ async function aesKey(): Promise<CryptoKey> {
   ]);
 }
 
-export async function encryptSalesforceSecret(value: string): Promise<string> {
+export async function encryptCrmSecret(value: string): Promise<string> {
   const iv = randomBytes(12);
   const plaintext = new TextEncoder().encode(value);
   const ciphertext = await crypto.subtle.encrypt(
@@ -48,10 +60,10 @@ export async function encryptSalesforceSecret(value: string): Promise<string> {
   return `${VERSION}.${b64url(iv)}.${b64url(Buffer.from(ciphertext))}`;
 }
 
-export async function decryptSalesforceSecret(value: string): Promise<string> {
+export async function decryptCrmSecret(value: string): Promise<string> {
   const [version, ivRaw, ciphertextRaw] = value.split(".");
   if (version !== VERSION || !ivRaw || !ciphertextRaw) {
-    throw new Error("Unsupported encrypted Salesforce secret format.");
+    throw new Error("Unsupported encrypted CRM secret format.");
   }
   const plaintext = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromB64url(ivRaw) },
@@ -67,7 +79,7 @@ function stateKey(): Buffer {
     .digest();
 }
 
-export function signSalesforceState(payload: object): string {
+export function signCrmState(payload: object): string {
   const encoded = b64url(Buffer.from(JSON.stringify(payload), "utf8"));
   const signature = createHmac("sha256", stateKey())
     .update(encoded, "utf8")
@@ -75,7 +87,7 @@ export function signSalesforceState(payload: object): string {
   return `${encoded}.${b64url(signature)}`;
 }
 
-export function verifySalesforceState<T>(value: string): T | null {
+export function verifyCrmState<T>(value: string): T | null {
   const [encoded, suppliedRaw] = value.split(".");
   if (!encoded || !suppliedRaw) return null;
   const expected = createHmac("sha256", stateKey())

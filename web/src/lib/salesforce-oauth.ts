@@ -2,9 +2,9 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import {
-  signSalesforceState,
-  verifySalesforceState,
-} from "@/lib/salesforce-crypto";
+  signCrmState,
+  verifyCrmState,
+} from "@/lib/crm-crypto";
 
 export const SALESFORCE_OAUTH_COOKIE = "pk_sf_oauth";
 export const SALESFORCE_OAUTH_MAX_AGE_SECONDS = 10 * 60;
@@ -88,12 +88,12 @@ export function createSalesforceOAuthAttempt(
   url.searchParams.set("client_id", salesforceClientId());
   url.searchParams.set("redirect_uri", salesforceRedirectUri(requestUrl));
   url.searchParams.set("scope", "api refresh_token");
-  url.searchParams.set("state", signSalesforceState(state));
+  url.searchParams.set("state", signCrmState(state));
   url.searchParams.set("code_challenge", pkceChallenge(verifier));
   url.searchParams.set("code_challenge_method", "S256");
   return {
     authorizationUrl: url.toString(),
-    cookieValue: signSalesforceState(attempt),
+    cookieValue: signCrmState(attempt),
   };
 }
 
@@ -102,8 +102,8 @@ export function verifySalesforceOAuthAttempt(
   cookieValue: string,
   expectedCustomer: string,
 ): OAuthAttempt | null {
-  const state = verifySalesforceState<OAuthState>(stateValue);
-  const attempt = verifySalesforceState<OAuthAttempt>(cookieValue);
+  const state = verifyCrmState<OAuthState>(stateValue);
+  const attempt = verifyCrmState<OAuthAttempt>(cookieValue);
   const now = Math.floor(Date.now() / 1000);
   if (
     !state ||
