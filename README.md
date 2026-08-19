@@ -174,6 +174,9 @@ Then deploy `web/` to **Vercel** (set the project Root Directory to `web`) with:
   `https://www.pricekeel.com/api/salesforce/oauth/callback` (must exactly match ECA)
 - `SALESFORCE_LOGIN_URL` = `https://login.salesforce.com` (or
   `https://test.salesforce.com` for a sandbox)
+- `HUBSPOT_CLIENT_ID` / `HUBSPOT_CLIENT_SECRET` /
+  `HUBSPOT_OAUTH_REDIRECT_URI` = the HubSpot public app used for the second
+  native CRM connection. Read-only scopes; private apps are not supported.
 - `CRM_TOKEN_ENCRYPTION_KEY` (legacy name `SALESFORCE_TOKEN_ENCRYPTION_KEY`
   is still read as a fallback) = a separate high-entropy secret used for
   application-level AES-256-GCM encryption before OAuth tokens reach Neon

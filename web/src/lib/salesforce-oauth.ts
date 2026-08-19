@@ -188,7 +188,11 @@ export function salesforceOAuthConfigured(): boolean {
       process.env.SALESFORCE_CLIENT_SECRET?.trim() &&
       (process.env.SALESFORCE_OAUTH_REDIRECT_URI?.trim() ||
         process.env.VERCEL_ENV !== "production") &&
-      (process.env.SALESFORCE_TOKEN_ENCRYPTION_KEY?.trim() ||
+      // Accepts either name. crm-crypto.ts prefers CRM_TOKEN_ENCRYPTION_KEY and
+      // falls back to the Salesforce-era name, so this check must too or a
+      // deployment setting only the new name reports itself unconfigured.
+      (process.env.CRM_TOKEN_ENCRYPTION_KEY?.trim() ||
+        process.env.SALESFORCE_TOKEN_ENCRYPTION_KEY?.trim() ||
         process.env.VERCEL_ENV !== "production") &&
       (process.env.DATABASE_URL?.trim() ||
         process.env.VERCEL_ENV !== "production"),
