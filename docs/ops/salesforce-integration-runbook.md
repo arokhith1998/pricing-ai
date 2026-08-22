@@ -99,6 +99,34 @@ before 2026-08-18, apply
 `salesforce_connections` / `salesforce_mappings` and adds the `provider`
 column. The migration is idempotent and preserves existing rows.
 
+> **ORDER MATTERS. Deploy first, then migrate.**
+>
+> The migration renames tables that running code queries **by name**. Any
+> deployment predating the CRM provider generalization reads
+> `salesforce_connections` / `salesforce_mappings`; the code that reads
+> `crm_connections` / `crm_mappings` ships with that change. Migrating while an
+> older build is still serving breaks **every** live CRM connection read,
+> write, and disconnect until the new build is live.
+>
+> Correct sequence:
+> 1. Deploy the build that reads `crm_*` to both Vercel and Render, and confirm
+>    it is serving.
+> 2. Apply `2026-08-18-crm-provider-generalization.sql`.
+> 3. Verify: `select customer_ref, provider, status from crm_connections;`
+>
+> Between steps 1 and 2 the new build queries tables that have not been renamed
+> yet, so plan this as a short maintenance window rather than a live cutover.
+>
+> **Rollback:** `neon/migrations/2026-08-18-crm-provider-generalization.down.sql`
+> reverses the rename and restores the original single-column keys, constraint
+> names, and index names. It **refuses to run** if any non-Salesforce
+> (for example HubSpot) rows exist, because collapsing the composite key
+> `(customer_ref, provider)` back to `(customer_ref)` would destroy them. If the
+> guard fires, roll forward instead, or export and delete those rows first.
+> Both directions are idempotent, and the round trip was verified against
+> PostgreSQL 16 on 2026-08-22: constraint names, index names, and row data all
+> restore exactly.
+
 ### 5. Provision the customer tenant
 
 Generate a high-entropy, URL-safe access code outside SQL. Insert it with the
