@@ -1,6 +1,6 @@
 # Pricekeel agent fleet
 
-Nine project agents, invoked by name via the Agent tool. Build/GTM agents run
+Eleven project agents, invoked by name via the Agent tool. Build/GTM agents run
 on Sonnet (fast, high-volume); the critic/analyst panel runs on Opus (harder
 judgment). All are grounded in the vault, the Salesforce-decision-integrity
 wedge, and the house rules (no em dashes in generated content; GTM agents draft
@@ -30,9 +30,29 @@ only, never send).
 | **pricing-strategist** | Pricing science (Nagle, Simon-Kucher, Rivera, Ramanujam, Bertini/Koenigsberg, Simon, Poyar, Campbell) | Grounds every recommendation in a named framework and a first-class metric. Guards positioning drift, the commit/ramp/overage requirement, cold-start honesty, and methodology integrity. |
 | **market-sizing-analyst** | TAM/SAM/SOM, category dynamics | Builds defensible bottoms-up market sizing, applies the real ICP funnel, separates wedge SAM from the expansion story, and refuses to let a hand-waved number enter a deck. Web-researches current figures and cites them. |
 
+## Graph nodes (Opus)
+
+These two are not domain experts. They are structural nodes in the change graph, and they
+run on work the other agents produce. See `docs/guides/graph-dev-workflow.md`.
+
+| Agent | Expertise | Responsibilities |
+|---|---|---|
+| **ground** | Premise verification | Runs FIRST on any non-trivial change and on **every externally supplied plan**. Read-only. Labels each factual claim TRUE / FALSE / UNVERIFIABLE with `file:line` evidence, names destructive steps, and emits PROCEED / PROCEED WITH CORRECTIONS / STOP. Treats documentation as a claim, not as evidence. |
+| **skeptic** | Adversarial review | Runs AFTER research or a draft plan and BEFORE implementation. Attacks unsupported claims, correlation sold as causation, scope creep, and proposals to rebuild shipped code. Emits BLOCKING / NON-BLOCKING / CLEAN. Never rewrites the work it critiques. |
+
 ## How to invoke
 Name an agent in a prompt (for example: "have `pricing-strategist` review the
 hero copy", or "have `cfo` and `market-sizing-analyst` rebuild the SAM"). They
 can propose vault notes but do not silently commit strategy changes. NOTE: this
 directory is the committed role-agent fleet; it is distinct from `.agents/`
 (third-party tooling clones, gitignored).
+
+
+## The change graph
+Naming agents ad hoc is fine for small work. For anything non-trivial, follow
+`docs/guides/graph-dev-workflow.md`: ground, then plan, then parallel review, then
+skeptic, then a human gate, then implement, test, commit, record. The routing table there
+says which nodes fire for which kind of change, so the ceremony scales with the stakes.
+
+**The one rule that is not optional:** any plan you did not write, from any source, enters
+at `ground` before anything else runs.
