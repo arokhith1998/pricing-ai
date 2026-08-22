@@ -1,11 +1,29 @@
-# Pricekeel 2GP packaging runbook
+# Pricekeel packaging runbook (unlocked package)
 
-Status: active operator manual, 2026-08-08. Owner: Pricekeel founder/admin.
+Status: active operator manual. Corrected 2026-08-22. Owner: Pricekeel founder/admin.
+
+> **STEPS 1 THROUGH 4 ARE ALREADY DONE. Do not re-run them.**
+>
+> Commit `f04b86a` (2026-08-08) created the package and its first version:
+>
+> | | |
+> |---|---|
+> | Package | `Pricekeel` (**Unlocked**), `0Hoak0000004szVCAQ` |
+> | Version | `0.1.0-1`, subscriber id `04tak000000aPeDAAU` |
+>
+> Both ids are recorded in `salesforce/sfdx-project.json` under `packageAliases`.
+> Re-running `sf package create` produces a **second** package and orphans that
+> alias. The live work starts at **step 5 (install and test in a clean org)**,
+> which has never been run.
+>
+> This doc previously described a **managed** package requiring a registered
+> namespace. That was wrong: the package that exists is unlocked and
+> `sfdx-project.json` carries `"namespace": ""`. Corrected 2026-08-22.
 
 This is the concrete build for the release gate named in
 `salesforce-integration-runbook.md` section 3 ("Package for customer orgs").
 It turns the Pricekeel External Client App (ECA) into a distributable
-second-generation managed package with an install URL a customer admin can use.
+**unlocked** package with an install URL a customer admin can use.
 The DX project lives in `salesforce/`.
 
 Complete this once before connecting the first external customer org. The
@@ -17,10 +35,11 @@ the app installable elsewhere.
 - Salesforce CLI installed: `sf --version`.
 - A durable source org (never delete it while subscribers exist) with **Dev Hub
   enabled** (Setup -> Dev Hub -> Enable).
-- A **registered namespace** linked to that Dev Hub. Managed packages require
-  one. Create a namespace org, register the namespace, and link it in Dev Hub
-  (Setup -> Namespace Registries). Then set `"namespace"` in
-  `salesforce/sfdx-project.json`.
+- **No namespace is required.** Unlocked packages do not need one, and
+  `salesforce/sfdx-project.json` correctly carries `"namespace": ""`. Do not
+  register a namespace org; it is work with no payoff here. A namespace would
+  only be needed if this became a managed package for AppExchange listing,
+  which is explicitly not the distribution model (see the integration runbook).
 - The ECA already created in the source org with distribution state `Packaged`
   and the OAuth settings from the integration runbook (callback
   `https://www.pricekeel.com/api/salesforce/oauth/callback`, scopes `api` and
@@ -49,7 +68,7 @@ secret was written to source. Commit the ECA metadata and the permission set.
 ```bash
 sf package create \
   --name Pricekeel \
-  --package-type Managed \
+  --package-type Unlocked \
   --path force-app \
   --target-dev-hub devhub
 ```
@@ -73,6 +92,15 @@ want to gate installs. The command returns a subscriber package version Id
 (`04t...`). That Id is what customers install.
 
 ## 5. Install and test in a clean org
+
+> **THIS IS THE NEXT ACTION AND IT HAS NEVER BEEN RUN.**
+>
+> `salesforce/config/project-scratch-def.json` was added on 2026-08-08 "for
+> package install testing" and no result has been recorded in git or in
+> `docs/`. Until this passes, the distribution model is unproven: we do not
+> know whether `orgScopedExternalApp = 00Dak000016fI9t:Pricekeel` in the ECA
+> metadata pins the app to its source org at runtime. Commit the outcome here
+> when it is run, pass or fail.
 
 Use a scratch org or a throwaway sandbox that is NOT the source org.
 
@@ -102,6 +130,12 @@ Do not promote until install, authorize, refresh, writeback (if used), and
 uninstall all pass.
 
 ## 6. Promote to released
+
+> Check first whether this already happened:
+> `sf package version list --target-dev-hub devhub` and read `IsReleased`.
+> An unpromoted beta version **cannot** be installed into a customer
+> production org, only scratch, sandbox, or Developer Edition orgs. No promote
+> is recorded in git, so assume beta until confirmed.
 
 ```bash
 sf package version promote --package 04t... --target-dev-hub devhub
