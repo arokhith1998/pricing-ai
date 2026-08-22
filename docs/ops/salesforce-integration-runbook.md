@@ -232,12 +232,50 @@ approval governance until per-user SSO and an approver role/allowlist ship.
 
 ## Rotation and offboarding
 
-- Rotate the ECA client secret and `SALESFORCE_TOKEN_ENCRYPTION_KEY` under a
-  written migration plan; changing the encryption key without re-encrypting
-  stored tokens breaks every connection.
-- Revoke the customer's access code when the pilot ends.
-- Use **Disconnect Salesforce** before deleting customer records.
-- Verify the `crm_connections` row (provider `salesforce`) and its cascading
-  mapping row are gone.
-- Retain the append-only decision record only under the contracted retention
-  period and data-handling SOP.
+> **OFFBOARD IN THIS ORDER. Disconnect first, revoke second.**
+>
+> Revoking the access code first used to break the disconnect: `customerRef()`
+> fell back to `default`, so the disconnect targeted the wrong tenant and the
+> customer's encrypted refresh token stayed in our database and stayed live at
+> Salesforce. The 2026-08-22 opaque-tenant-key change removes that failure mode,
+> but the order below is still the correct one and the only one we test.
+
+1. **Disconnect Salesforce** from the customer's workspace (or `DELETE
+   /api/salesforce/connection`). This revokes at Salesforce and removes the
+   stored tokens.
+2. Verify the `crm_connections` row (provider `salesforce`) and its cascading
+   `crm_mappings` row are gone.
+3. **Then** revoke the customer's access code.
+4. Retain the append-only decision record only under the contracted retention
+   period and the data-handling SOP.
+
+### Access-code rotation is now safe
+
+Since the 2026-08-22 migration, `access_codes.tenant_ref` is an opaque key that
+survives code rotation. Re-issuing or expiring a code no longer orphans that
+customer's CRM connection or decision history. One exception: codes that were
+already in use before that migration keep `tenant_ref = code`, so **rotating a
+pre-2026-08-22 code still moves the tenant.** Check `select code, tenant_ref
+from access_codes` before rotating; if they match, re-key deliberately rather
+than by surprise.
+
+### Encryption-key rotation requires a reconnect, not a migration
+
+`CRM_TOKEN_ENCRYPTION_KEY` cannot be rotated in place. The ciphertext in
+`web/src/lib/crm-crypto.ts` carries a format version but **no key id**, and no
+re-encryption routine exists, so changing the key makes every stored token
+undecryptable.
+
+Treat rotation as a **planned outage**:
+
+1. Notify every connected customer.
+2. Change the key and redeploy.
+3. Every customer reconnects their CRM. There is no way to avoid this today.
+
+Building key-id rotation (a key id prefix plus a decrypt-only
+`CRM_TOKEN_ENCRYPTION_KEY_PREVIOUS`) is deferred until there are enough
+customers to justify it. Until then, do not describe rotation as a background
+migration.
+
+Rotating the **ECA client secret** is separate and does not have this problem:
+it is an org and Vercel operation, and existing refresh tokens survive it.
