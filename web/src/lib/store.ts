@@ -2,6 +2,8 @@
 // DATABASE_URL is set (production); otherwise a dev fallback (in-memory leads,
 // env-list access codes) so local build/verify is not blocked. See
 // neon/schema.sql for the schema.
+import { createHash } from "node:crypto";
+
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { notifyLeadCaptured } from "@/lib/notify";
 
@@ -107,7 +109,31 @@ export async function leadExists(email: string): Promise<boolean> {
   }
 }
 
-export async function isValidAccessCode(code: string): Promise<boolean> {
+// The tenant key used when the visitor has no access code: the shared demo
+// book. Never a real customer's data.
+export const DEFAULT_TENANT_REF = "default";
+
+// Dev-only tenant key derivation, used when DATABASE_URL is unset and access
+// codes come from the PRICEKEEL_ACCESS_CODES env list. Deterministic so a
+// restart keeps the same tenant, and opaque so local dev exercises the same
+// shape as production rather than the old code-as-key behaviour. Pure, so it
+// is directly testable.
+export function devTenantRef(code: string): string {
+  return createHash("sha256").update(`pricekeel-tenant:${code}`).digest("hex").slice(0, 32);
+}
+
+// Validate an access code and return the OPAQUE TENANT KEY it maps to, or null
+// if the code is invalid, revoked, or expired.
+//
+// The tenant key is deliberately NOT the access code. The code is a credential
+// we email and that the runbook expires every 30 days; the tenant key is what
+// crm_connections.customer_ref and decision_log.customer_ref are keyed on.
+// Keying customer data on a rotating credential meant that revoking a code
+// orphaned that customer's CRM tokens and decision history, and that the
+// runbook's own offboarding order (revoke, then disconnect) silently targeted
+// the wrong tenant and left a live refresh token at the CRM.
+// See neon/migrations/2026-08-22-access-code-tenant-ref.sql.
+export async function resolveTenantRef(code: string): Promise<string | null> {
   const sql = db();
   if (!sql) {
     // Dev: a comma-separated PRICEKEEL_ACCESS_CODES env list.
@@ -115,17 +141,17 @@ export async function isValidAccessCode(code: string): Promise<boolean> {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    return list.includes(code);
+    return list.includes(code) ? devTenantRef(code) : null;
   }
   try {
     const rows = await sql`
-      select code, expires_at, revoked, used_at
+      select code, tenant_ref, expires_at, revoked, used_at
       from access_codes where code = ${code} limit 1
     `;
     const data = rows[0];
-    if (!data || data.revoked) return false;
+    if (!data || data.revoked) return null;
     if (data.expires_at && new Date(data.expires_at as string) < new Date()) {
-      return false;
+      return null;
     }
     // Record first use (best-effort; ignore errors).
     if (!data.used_at) {
@@ -138,10 +164,19 @@ export async function isValidAccessCode(code: string): Promise<boolean> {
         /* first-use stamp is best-effort */
       }
     }
-    return true;
+    // A row predating the 2026-08-22 migration has no tenant_ref. Falling back
+    // to the code preserves that tenant's existing rows rather than silently
+    // moving them to a new key, which is the same policy the migration applies.
+    const ref = typeof data.tenant_ref === "string" ? data.tenant_ref.trim() : "";
+    return ref || code;
   } catch (err) {
     // Fail closed: a DB error denies access rather than granting it.
-    console.error("[isValidAccessCode] neon error:", err instanceof Error ? err.message : err);
-    return false;
+    console.error("[resolveTenantRef] neon error:", err instanceof Error ? err.message : err);
+    return null;
   }
 }
+
+export async function isValidAccessCode(code: string): Promise<boolean> {
+  return (await resolveTenantRef(code)) !== null;
+}
+

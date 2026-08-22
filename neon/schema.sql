@@ -25,6 +25,12 @@ create table if not exists leads (
 
 create table if not exists access_codes (
   code        text primary key,
+  -- Opaque tenant key. NEVER the access code itself: the code is a credential
+  -- we email, and it rotates. This is what crm_connections.customer_ref and
+  -- decision_log.customer_ref are keyed on, so a customer survives a code
+  -- rotation with their CRM connection and decision history intact.
+  -- See neon/migrations/2026-08-22-access-code-tenant-ref.sql.
+  tenant_ref  text not null default replace(gen_random_uuid()::text, '-', ''),
   issued_to   text,                       -- prospect / company the code is for
   lead_id     uuid references leads(id),  -- optional link to the lead
   expires_at  timestamptz,                -- null = no expiry
@@ -32,6 +38,9 @@ create table if not exists access_codes (
   revoked     boolean not null default false,
   created_at  timestamptz not null default now()
 );
+
+create unique index if not exists access_codes_tenant_ref_key
+  on access_codes (tenant_ref);
 
 -- Issue a code (generate a random URL-safe token outside SQL, then):
 --   insert into access_codes (code, issued_to, expires_at)
