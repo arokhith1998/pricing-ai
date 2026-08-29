@@ -6,3 +6,9 @@
 {"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
 {"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T19:16:40Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #63"}
+{"ts": "2026-08-29T19:31:36Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T19:31:37Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "QA -> REWORK_REQUIRED: findings 1+2: perimeter split across module boundary, and main.py still owns two components which breaks AC4"}
+{"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #63"}
+{"ts": "2026-08-29T19:47:40Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}

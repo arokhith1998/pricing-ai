@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T19:13:07Z",
+  "updated": "2026-08-29T19:47:40Z",
   "config": {
     "max_concurrent": 2
   },
@@ -11,7 +11,7 @@
       "id": "PK-1",
       "title": "Split api/main.py into routers",
       "agent": "backend-engineer",
-      "status": "IN_PROGRESS",
+      "status": "QA",
       "dependencies": [],
       "owns": [
         "api/main.py"
@@ -29,15 +29,40 @@
         ],
         "ci_run": null
       },
-      "pr": null,
-      "review": null,
+      "pr": 63,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "6 rework items closed; lead re-verified OpenAPI byte-identity, defining modules, stale attrs, tests untouched",
+        "ts": "2026-08-29T19:47:40Z"
+      },
       "blocked_by": null,
       "created": "2026-08-29T18:51:41Z",
-      "updated": "2026-08-29T19:13:07Z",
+      "updated": "2026-08-29T19:47:40Z",
       "notes": [
         {
           "ts": "2026-08-29T19:13:07Z",
           "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-08-29T19:16:40Z",
+          "note": "PR #63"
+        },
+        {
+          "ts": "2026-08-29T19:31:36Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T19:31:37Z",
+          "note": "findings 1+2: perimeter split across module boundary, and main.py still owns two components which breaks AC4"
+        },
+        {
+          "ts": "2026-08-29T19:47:39Z",
+          "note": "PR #63"
+        },
+        {
+          "ts": "2026-08-29T19:47:40Z",
+          "note": "review approve-with-nits"
         }
       ]
     },
