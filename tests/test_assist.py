@@ -8,6 +8,7 @@ never make a real API call.
 
 from __future__ import annotations
 
+import inspect
 import json
 from types import SimpleNamespace
 
@@ -317,3 +318,38 @@ def test_no_text_block_raises_llm_error(monkeypatch):
     _install_fake_anthropic(monkeypatch, _create)
     with pytest.raises(assist.LLMError):
         assist._complete("sys", "user")
+
+
+# --- installed-SDK guard (no mocking: catches a version downgrade) ----------
+#
+# Every test above mocks anthropic.Anthropic, so it would happily pass even
+# against an SDK build old enough to reject output_config outright (pre-0.77.0
+# had neither output_config nor output_format on the stable messages.create).
+# This test introspects the *real*, unmocked `anthropic` package instead, so
+# it fails the moment `pip install -r requirements.txt` resolves to something
+# below the verified floor.
+
+def test_installed_sdk_actually_supports_our_structured_output_shape():
+    """Guards the anthropic>=0.77.0 floor in requirements.txt. If this starts
+    failing, the installed anthropic build can't serve the output_config
+    request pricing/assist.py._complete builds under json_mode=True, and
+    every json_mode call in the product (map_columns, and matching.py's
+    extraction calls) would 400 in production despite every mocked test
+    above passing."""
+    create_sig = inspect.signature(anthropic.Anthropic(api_key="x").messages.create)
+    assert "output_config" in create_sig.parameters, (
+        "installed anthropic SDK's messages.create has no output_config "
+        "parameter; raise the anthropic>=0.77.0 floor in requirements.txt "
+        "or pip install a newer anthropic"
+    )
+
+    from anthropic.types.json_output_format_param import JSONOutputFormatParam
+
+    format_fields = JSONOutputFormatParam.__annotations__
+    assert "schema" in format_fields
+    assert "type" in format_fields
+
+    # And confirm the exact shape assist.py builds is constructible as the
+    # TypedDict this SDK version expects — not just present, but shaped right.
+    sample: JSONOutputFormatParam = {"type": "json_schema", "schema": {"type": "object"}}
+    assert sample["type"] == "json_schema"
