@@ -29,3 +29,6 @@
 {"ts": "2026-08-29T20:43:14Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-08-29T20:47:25Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #65"}
 {"ts": "2026-08-29T20:47:26Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: misattributed transform_schema rationale in load-bearing comments, plus ValueError contract, confidence enum, nullable billed_annually"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}

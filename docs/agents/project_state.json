@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T20:47:26Z",
+  "updated": "2026-08-29T20:53:30Z",
   "config": {
     "max_concurrent": 2
   },
@@ -153,7 +153,7 @@
       "id": "PK-5",
       "title": "Make Anthropic the only LLM provider in the product runtime",
       "agent": "ai-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "QA",
       "dependencies": [],
       "owns": [
         "pricing/assist.py",
@@ -179,14 +179,14 @@
       },
       "pr": 64,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
-        "notes": "2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object",
-        "ts": "2026-08-29T20:26:39Z"
+        "notes": "round-3 nits closed and lead-verified: false rationale removed, LLMConfigError, confidence enum, nullable billed_annually",
+        "ts": "2026-08-29T20:53:30Z"
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T20:47:26Z",
+      "updated": "2026-08-29T20:53:30Z",
       "notes": [
         {
           "ts": "2026-08-29T20:02:12Z",
@@ -211,6 +211,14 @@
         {
           "ts": "2026-08-29T20:47:26Z",
           "note": "misattributed transform_schema rationale in load-bearing comments, plus ValueError contract, confidence enum, nullable billed_annually"
+        },
+        {
+          "ts": "2026-08-29T20:53:30Z",
+          "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:53:30Z",
+          "note": "review approve-with-nits"
         }
       ]
     },
