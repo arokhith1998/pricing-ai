@@ -276,6 +276,37 @@ _CONTEXT_SYSTEM = (
     "strategy that the source does not state."
 )
 
+# JSON Schema for _complete(json_mode=True, json_schema=...) below. Anthropic's
+# structured-outputs subset does not accept a JSON Schema type array (see
+# pricing/assist.py's _json_output_config docstring and PK-5's review); every
+# nullable field here uses the anyOf form instead. Shaped to exactly what
+# extract_competitor_context reads out of `parsed` after this call, not to
+# what the prompt above asks for — every property is required at the object
+# level so the model always includes the key (a value can still be null),
+# consistent with pricing/assist.py's map_columns schema.
+_CONTEXT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "confidence": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "claims": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "claim": {"type": "string"},
+                    "confidence": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "evidence_excerpt": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["claim", "confidence", "evidence_excerpt"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary", "confidence", "claims"],
+    "additionalProperties": False,
+}
+
 
 def extract_competitor_context(url: str, *, competitor_name: str = "",
                                source_type: str = "other") -> dict:
@@ -299,6 +330,7 @@ def extract_competitor_context(url: str, *, competitor_name: str = "",
     })
     raw = assist._complete(  # noqa: SLF001 - shared provider boundary
         _CONTEXT_SYSTEM, user, json_mode=True, small=True, max_tokens=900,
+        json_schema=_CONTEXT_SCHEMA,
     )
     try:
         parsed = json.loads(raw)
@@ -369,6 +401,38 @@ Rules:
 - Return between 0 and 8 plans. If you cannot identify plans confidently, return an empty list.
 """
 
+# JSON Schema for _complete(json_mode=True, json_schema=...) below (see
+# _CONTEXT_SCHEMA above for why anyOf, not a type array, is used for every
+# nullable field). Shaped to exactly what extract_plans_from_text reads out
+# of `data` and passes into Plan(...): name, price_monthly, price_unit,
+# billed_annually, included_usage, features, notes.
+_EXTRACT_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "vendor": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "plans": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "price_monthly": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+                    "price_unit": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "billed_annually": {"type": "boolean"},
+                    "included_usage": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "features": {"type": "array", "items": {"type": "string"}},
+                    "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["name", "price_monthly", "price_unit", "billed_annually",
+                             "included_usage", "features", "notes"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["vendor", "plans"],
+    "additionalProperties": False,
+}
+
 
 def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
     """LLM-extract structured plans from a pricing page text. Best effort.
@@ -390,6 +454,7 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         # above: the mini model is proven sufficient, so don't pay for gpt-4o here.
         raw = assist._complete(
             _EXTRACT_SYSTEM, user, json_mode=True, max_tokens=1500, small=True,
+            json_schema=_EXTRACT_JSON_SCHEMA,
         )
         data = json.loads(raw)
     except Exception:  # noqa: BLE001

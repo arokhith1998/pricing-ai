@@ -15,6 +15,9 @@ model the same way the production path does.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import anthropic
 import pytest
 
 from pricing import matching
@@ -365,3 +368,118 @@ def test_extract_plans_from_text_uses_small_model(monkeypatch):
     # Same JSON-extraction task class as extract_competitor_context, which
     # already uses small=True — plan extraction should not pay for gpt-4o.
     assert captured.get("small") is True
+
+
+# --- structured-output schemas (PK-5 review round 3) -------------------------
+#
+# Both tests above mock matching.assist._complete wholesale — one level
+# above where the real defect lived. That's exactly why the invalid-nullable
+# schema (a JSON Schema type array Anthropic's structured-outputs subset
+# rejects) and the empty-fallback-schema bug were invisible to the existing
+# suite: neither call reaches assist._complete's real json_schema handling
+# or the real Anthropic SDK's request-shape validation. The tests below
+# round-trip the actual schemas through the real SDK strictifier, and mock
+# only at the SDK boundary (anthropic.Anthropic) so assist._complete's own
+# logic — including json_schema being required and the response validation —
+# runs for real.
+
+from anthropic.lib._parse._transform import transform_schema
+
+
+def _fake_message(text: str):
+    return SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])
+
+
+def _install_fake_anthropic(monkeypatch, create_fn):
+    """Mock at the SDK boundary (anthropic.Anthropic), not assist._complete,
+    so pricing/assist.py's real _complete — schema requirement, output_config
+    construction, response parsing/validation — is genuinely exercised."""
+    class _FakeMessages:
+        def create(self, **kwargs):
+            return create_fn(kwargs)
+
+    class _FakeClient:
+        def __init__(self, **kwargs):
+            self.messages = _FakeMessages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
+
+
+def test_context_schema_survives_the_real_sdk_strictifier():
+    transformed = transform_schema(matching._CONTEXT_SCHEMA)  # must not raise
+    assert transformed["type"] == "object"
+    assert transformed["additionalProperties"] is False
+    for field in ("summary", "confidence"):
+        assert {"type": "string"} in transformed["properties"][field]["anyOf"]
+        assert {"type": "null"} in transformed["properties"][field]["anyOf"]
+    claim_item = transformed["properties"]["claims"]["items"]
+    assert claim_item["properties"]["claim"] == {"type": "string"}
+    for field in ("confidence", "evidence_excerpt"):
+        assert {"type": "null"} in claim_item["properties"][field]["anyOf"]
+
+
+def test_plan_extraction_schema_survives_the_real_sdk_strictifier():
+    transformed = transform_schema(matching._EXTRACT_JSON_SCHEMA)  # must not raise
+    assert transformed["type"] == "object"
+    assert transformed["additionalProperties"] is False
+    assert {"type": "null"} in transformed["properties"]["vendor"]["anyOf"]
+    plan_item = transformed["properties"]["plans"]["items"]
+    assert plan_item["properties"]["name"] == {"type": "string"}
+    assert plan_item["properties"]["billed_annually"] == {"type": "boolean"}
+    for field in ("price_monthly", "price_unit", "included_usage", "notes"):
+        assert {"type": "null"} in plan_item["properties"][field]["anyOf"]
+    assert plan_item["properties"]["features"]["type"] == "array"
+
+
+def test_extract_competitor_context_does_not_raise_through_the_real_sdk_boundary(monkeypatch):
+    """Regression for the merge blocker: extract_competitor_context's only
+    try/except wraps json.loads, not the assist._complete call itself, so a
+    ValueError out of _json_output_config (missing schema) used to propagate
+    uncaught and /competitor-context 500'd. This exercises the real
+    assist._complete end to end (SDK mocked, not assist._complete itself) and
+    asserts the call completes and returns a well-shaped result."""
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
+    monkeypatch.setattr(matching, "fetch_pricing_page",
+                         lambda _url: "Acme announced usage pricing and a new enterprise tier.")
+
+    def _create(kwargs):
+        assert kwargs["output_config"]["format"]["schema"] == matching._CONTEXT_SCHEMA
+        return _fake_message(
+            '{"summary":"Acme changed packaging.","confidence":"high",'
+            '"claims":[{"claim":"Usage pricing announced","confidence":"high",'
+            '"evidence_excerpt":"usage pricing"}]}'
+        )
+
+    _install_fake_anthropic(monkeypatch, _create)
+    result = matching.extract_competitor_context(
+        "https://acme.example/investors/q2",
+        competitor_name="Acme",
+        source_type="investor_material",
+    )
+    assert result["confidence"] == "high"
+    assert result["claims"][0]["claim"] == "Usage pricing announced"
+
+
+def test_extract_plans_from_text_does_not_degrade_through_the_real_sdk_boundary(monkeypatch):
+    """Companion regression: extract_plans_from_text's broad try/except
+    turned the same missing-schema ValueError into a silent (fallback, [])
+    forever — still broken, just quietly. This exercises the real
+    assist._complete end to end and asserts plans actually come back."""
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
+
+    def _create(kwargs):
+        assert kwargs["output_config"]["format"]["schema"] == matching._EXTRACT_JSON_SCHEMA
+        return _fake_message(
+            '{"vendor":"Acme","plans":[{"name":"Pro","price_monthly":99,'
+            '"price_unit":"per seat","billed_annually":false,'
+            '"included_usage":"100K events/mo","features":["SSO","API access"],'
+            '"notes":""}]}'
+        )
+
+    _install_fake_anthropic(monkeypatch, _create)
+    page_text = "Acme pricing page. " * 10  # over the 100-char floor
+    vendor, plans = matching.extract_plans_from_text(page_text, fallback_vendor="Acme")
+    assert vendor == "Acme"
+    assert len(plans) == 1
+    assert plans[0].name == "Pro"
+    assert plans[0].price_monthly == 99
