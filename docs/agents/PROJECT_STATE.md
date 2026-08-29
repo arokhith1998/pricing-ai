@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-08-29T20:18:17Z
+Updated: 2026-08-29T20:39:38Z
 
 ## REVIEW
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
@@ -26,3 +26,7 @@ Updated: 2026-08-29T20:18:17Z
   - owns: docs/agents/TASKS.md
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
+- **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
+  - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
+- **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
+  - owns: docs/agents/WORKFLOW.md

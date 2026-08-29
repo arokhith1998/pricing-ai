@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T20:18:17Z",
+  "updated": "2026-08-29T20:39:38Z",
   "config": {
     "max_concurrent": 2
   },
@@ -178,10 +178,15 @@
         "ci_run": null
       },
       "pr": 64,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object",
+        "ts": "2026-08-29T20:26:39Z"
+      },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T20:18:17Z",
+      "updated": "2026-08-29T20:39:38Z",
       "notes": [
         {
           "ts": "2026-08-29T20:02:12Z",
@@ -189,6 +194,18 @@
         },
         {
           "ts": "2026-08-29T20:18:17Z",
+          "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:26:39Z",
+          "note": "review rejected: 2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object"
+        },
+        {
+          "ts": "2026-08-29T20:33:38Z",
+          "note": "unblocked"
+        },
+        {
+          "ts": "2026-08-29T20:39:38Z",
           "note": "PR #64"
         }
       ]
@@ -226,6 +243,66 @@
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
       "updated": "2026-08-29T20:02:03Z",
+      "notes": []
+    },
+    {
+      "id": "PK-7",
+      "title": "Declare openai as a dev-only dependency for the cross-model reviewer",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-5"
+      ],
+      "owns": [
+        "requirements-dev.txt",
+        ".env.example",
+        "tools/oai_panel.py",
+        "tools/oai_panel_pricing_os.py",
+        "tools/oai_launch_panel.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "requirements-dev.txt declares openai, so tools/oai_review.py works from a clean checkout",
+        "the shipped requirements.txt and the API container stay free of openai",
+        ".env.example documents the current ANTHROPIC_SUMMARY_MODEL and ANTHROPIC_MAP_MODEL, not the removed ANTHROPIC_MODEL",
+        "oai_panel docstrings no longer describe the removed LLM_PROVIDER switch"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:20:28Z",
+      "updated": "2026-08-29T20:20:28Z",
+      "notes": []
+    },
+    {
+      "id": "PK-8",
+      "title": "agentctl cannot expand a claim on an in-flight task",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "docs/agents/WORKFLOW.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "a command exists to add or remove owned paths on a task already past READY, with the same collision check assign applies",
+        "the expansion is recorded in the activity log with a reason, since a widened claim is a lead decision worth auditing"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:33:37Z",
+      "updated": "2026-08-29T20:33:37Z",
       "notes": []
     }
   ]

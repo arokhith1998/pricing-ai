@@ -18,3 +18,8 @@
 {"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
 {"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-08-29T20:18:17Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
+{"ts": "2026-08-29T20:20:28Z", "event": "add", "task": "PK-7", "agent": "ai-engineer", "detail": "Declare openai as a dev-only dependency for the cross-model reviewer"}
+{"ts": "2026-08-29T20:26:39Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: 2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object"}
+{"ts": "2026-08-29T20:33:37Z", "event": "add", "task": "PK-8", "agent": "pk-lead", "detail": "agentctl cannot expand a claim on an in-flight task"}
+{"ts": "2026-08-29T20:33:38Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS: unblocked"}
+{"ts": "2026-08-29T20:39:38Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
