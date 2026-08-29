@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "objective": "Stand up the multi-agent engineering org and prove it on a real task",
+  "sprint": "2026-08-29 agent-org phase 1",
+  "updated": "2026-08-29T18:51:43Z",
+  "config": {
+    "max_concurrent": 2
+  },
+  "tasks": [
+    {
+      "id": "PK-1",
+      "title": "Split api/main.py into routers",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "api/main.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "every existing route keeps its path, method, and response shape",
+        "tests/test_api_perimeter.py passes unchanged",
+        "each router file maps to one ownership component in OWNERSHIP.md"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_api_perimeter.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:41Z",
+      "updated": "2026-08-29T18:51:41Z",
+      "notes": []
+    },
+    {
+      "id": "PK-2",
+      "title": "agentctl creates and removes the git worktree on assign/done",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "tools/agentctl.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "assign --worktree creates the worktree and branch from origin/main",
+        "done removes the worktree, and refuses if it has uncommitted changes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_agentctl.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:42Z",
+      "updated": "2026-08-29T18:51:42Z",
+      "notes": []
+    },
+    {
+      "id": "PK-3",
+      "title": "agentctl approve fetches the CI verdict itself",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-2"
+      ],
+      "owns": [
+        "tools/agentctl.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "approve calls gh run list for the task branch instead of trusting a pasted id",
+        "a red or missing run refuses the transition"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_agentctl.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:43Z",
+      "updated": "2026-08-29T18:51:43Z",
+      "notes": []
+    },
+    {
+      "id": "PK-4",
+      "title": "Triage the six open PRs",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "docs/agents/TASKS.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "each of #36 #37 #38 #59 #60 #61 is rebased, closed, or entered as a task with a stated reason"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:43Z",
+      "updated": "2026-08-29T18:51:43Z",
+      "notes": []
+    }
+  ]
+}

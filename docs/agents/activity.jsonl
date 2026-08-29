@@ -1,0 +1,5 @@
+{"ts": "2026-08-29T18:51:41Z", "event": "init", "task": null, "agent": null, "detail": "state initialised"}
+{"ts": "2026-08-29T18:51:41Z", "event": "add", "task": "PK-1", "agent": "backend-engineer", "detail": "Split api/main.py into routers"}
+{"ts": "2026-08-29T18:51:42Z", "event": "add", "task": "PK-2", "agent": "pk-lead", "detail": "agentctl creates and removes the git worktree on assign/done"}
+{"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-3", "agent": "pk-lead", "detail": "agentctl approve fetches the CI verdict itself"}
+{"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-4", "agent": "pk-lead", "detail": "Triage the six open PRs"}
