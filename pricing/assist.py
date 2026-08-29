@@ -6,8 +6,12 @@ computes a number: it narrates figures we already verified, and it maps column
 never row-level customer data. Real-customer use needs the provider's
 zero-retention / DPA terms (aligns with the NDA's no-training clause).
 
-Provider-swappable: defaults to OpenAI (set in .env). Set LLM_PROVIDER=anthropic
-(+ ANTHROPIC_API_KEY) to switch to Claude — no other code change.
+Anthropic only. The product runtime no longer talks to OpenAI (PK-5); the old
+LLM_PROVIDER switch is gone. tools/oai_review.py is a separate, deliberately
+OpenAI adversarial-review script that does not import this module — its
+purpose is a second opinion from a *different* vendor, so it stays put.
+Configure ANTHROPIC_API_KEY (+ optionally ANTHROPIC_SUMMARY_MODEL /
+ANTHROPIC_MAP_MODEL) in .env.
 """
 
 from __future__ import annotations
@@ -24,6 +28,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # hang a Render worker indefinitely (the CTO-review finding). Overridable for
 # ops, never unbounded.
 LLM_TIMEOUT_SECONDS = float(os.environ.get("PRICEKEEL_LLM_TIMEOUT", "60"))
+
+# Two-tier model selection, preserving the old gpt-4o / gpt-4o-mini cost split
+# (pricing/matching.py:390, tests/test_matching.py:366). Neither tier does the
+# job of the "large" reasoning model on purpose: this module only narrates
+# figures the deterministic layer already computed and maps column *names* —
+# not the kind of task that needs the top tier (claude-opus-5). Sonnet 5 is
+# the default for board-facing narrative prose quality; Haiku 4.5 is the
+# small tier for cheap, structured tasks (CSV column mapping, and the
+# JSON-extraction calls in matching.py that share this provider boundary).
+_DEFAULT_SUMMARY_MODEL = "claude-sonnet-5"
+_DEFAULT_MAP_MODEL = "claude-haiku-4-5"
 
 
 class LLMError(RuntimeError):
@@ -49,60 +64,94 @@ def _load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
 _load_dotenv()
 
 
-def _provider() -> str:
-    p = os.environ.get("LLM_PROVIDER", "openai").lower()
-    if p == "anthropic" and os.environ.get("ANTHROPIC_API_KEY"):
-        return "anthropic"
-    return "openai"
-
-
 def has_llm() -> bool:
-    """True if a usable provider key is configured."""
-    if _provider() == "anthropic":
-        return bool(os.environ.get("ANTHROPIC_API_KEY"))
-    return bool(os.environ.get("OPENAI_API_KEY"))
+    """True if a usable Anthropic key is configured."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def _strip_code_fence(text: str) -> str:
+    """Best-effort removal of a ```json ... ``` wrapper. Structured outputs
+    (below) should make this unnecessary, but it's a cheap, harmless second
+    layer against a model that still wraps its JSON in prose fencing."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.removeprefix("```json").removeprefix("```")
+        text = text.removesuffix("```").strip()
+    return text
+
+
+def _json_output_config(json_schema: dict | None) -> dict:
+    """Anthropic structured-outputs config for messages.create(). The older
+    top-level `output_format` parameter is deprecated; this uses the current
+    `output_config={"format": {...}}` shape.
+
+    Callers that know their exact target shape (map_columns, below) pass a
+    real JSON Schema and get it enforced server-side. Callers elsewhere in
+    the codebase that share this provider boundary via `_complete` but only
+    need "a JSON object, not prose" (pricing/matching.py's extraction calls)
+    fall back to a permissive object schema. Either way, `_complete` also
+    validates the result client-side and raises loudly on a miss rather than
+    handing a caller malformed text — see `_complete`.
+    """
+    schema = json_schema or {"type": "object", "additionalProperties": True}
+    return {"format": {"type": "json_schema", "schema": schema}}
 
 
 def _complete(system: str, user: str, *, json_mode: bool = False,
-              max_tokens: int = 800, small: bool = False) -> str:
-    """One completion, provider-agnostic. `small` picks the cheaper model.
+              max_tokens: int = 800, small: bool = False,
+              json_schema: dict | None = None) -> str:
+    """One completion against Anthropic. `small` picks the cheaper model.
 
     Every call carries an explicit timeout (LLM_TIMEOUT_SECONDS). Timeouts and
     connection failures raise LLMUnavailableError so callers can degrade
     cleanly (the API turns it into a 503) instead of hanging a worker.
-    """
-    if _provider() == "anthropic":
-        import anthropic
-        from anthropic import Anthropic
-        model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-        try:
-            msg = Anthropic(timeout=LLM_TIMEOUT_SECONDS).messages.create(
-                model=model, max_tokens=max_tokens, system=system,
-                messages=[{"role": "user", "content": user}])
-        # APITimeoutError subclasses APIConnectionError in the anthropic SDK.
-        except anthropic.APIConnectionError as exc:
-            raise LLMUnavailableError(
-                f"LLM provider (anthropic) unreachable or timed out: {exc}"
-            ) from exc
-        return msg.content[0].text
 
-    import openai
-    from openai import OpenAI
-    model = (os.environ.get("OPENAI_MAP_MODEL", "gpt-4o-mini") if small
-             else os.environ.get("OPENAI_SUMMARY_MODEL", "gpt-4o"))
-    kwargs: dict = {"model": model, "temperature": 0.3,
-                    "messages": [{"role": "system", "content": system},
-                                 {"role": "user", "content": user}]}
+    No sampling parameters (temperature / top_p / top_k) are sent: current
+    Claude models reject them. `thinking` is deliberately not enabled either —
+    this module only narrates numbers the deterministic layer already
+    computed and maps column *names*, neither of which is a reasoning task,
+    and adaptive thinking would add latency and cost against the same
+    LLM_TIMEOUT_SECONDS ceiling for no narration-quality gain.
+    """
+    import anthropic
+    from anthropic import Anthropic
+
+    model = os.environ.get(
+        "ANTHROPIC_MAP_MODEL" if small else "ANTHROPIC_SUMMARY_MODEL",
+        _DEFAULT_MAP_MODEL if small else _DEFAULT_SUMMARY_MODEL,
+    )
+    kwargs: dict = {
+        "model": model, "max_tokens": max_tokens, "system": system,
+        "messages": [{"role": "user", "content": user}],
+    }
     if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
+        kwargs["output_config"] = _json_output_config(json_schema)
     try:
-        client = OpenAI(timeout=LLM_TIMEOUT_SECONDS)
-        return client.chat.completions.create(**kwargs).choices[0].message.content
-    # APITimeoutError subclasses APIConnectionError in the openai SDK.
-    except openai.APIConnectionError as exc:
+        msg = Anthropic(timeout=LLM_TIMEOUT_SECONDS).messages.create(**kwargs)
+    # APITimeoutError subclasses APIConnectionError in the anthropic SDK.
+    except anthropic.APIConnectionError as exc:
         raise LLMUnavailableError(
-            f"LLM provider (openai) unreachable or timed out: {exc}"
+            f"LLM provider (anthropic) unreachable or timed out: {exc}"
         ) from exc
+
+    # Don't assume content[0] is text — filter for the text block instead.
+    text_block = next(
+        (b for b in msg.content if getattr(b, "type", None) == "text"), None)
+    if text_block is None:
+        raise LLMError("Anthropic response contained no text content block")
+    text = text_block.text
+
+    if json_mode:
+        text = _strip_code_fence(text)
+        try:
+            json.loads(text)
+        except json.JSONDecodeError as exc:
+            # Loud, not silent: a caller expecting JSON must never receive
+            # unparseable prose back from this layer.
+            raise LLMError(
+                f"LLM returned non-JSON output despite json_mode=True: {exc}"
+            ) from exc
+    return text
 
 
 # --- executive summary -------------------------------------------------------
@@ -171,12 +220,15 @@ def map_columns(headers: list[str]) -> dict:
         "confident match. Map only confident matches; prefer null over guessing."
     )
     user = json.dumps({"our_fields": targets, "their_headers": headers})
-    raw = _complete(system, user, json_mode=True, small=True, max_tokens=600)
-    try:
-        out = json.loads(raw)
-    except json.JSONDecodeError:
-        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
-        out = json.loads(raw)
+    schema = {
+        "type": "object",
+        "properties": {t["field"]: {"type": ["string", "null"]} for t in targets},
+        "required": [t["field"] for t in targets],
+        "additionalProperties": False,
+    }
+    raw = _complete(system, user, json_mode=True, small=True, max_tokens=600,
+                     json_schema=schema)
+    out = json.loads(raw)  # _complete already guarantees this parses, or raises
     valid = {h for h in headers}
     return {f["field"]: (out.get(f["field"]) if out.get(f["field"]) in valid else None)
             for f in targets}

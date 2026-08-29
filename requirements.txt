@@ -7,8 +7,10 @@ altair>=5.3
 # Phase 2 — win-probability model + native SHAP explanations
 lightgbm>=4.3
 scikit-learn>=1.4
-# LLM assist layer (narrative + CSV column mapping). Provider-swappable.
-openai>=1.40
+# LLM assist layer (narrative + CSV column mapping). Anthropic only (PK-5:
+# moved off OpenAI in the product runtime). openai stays a dev-only dependency
+# of tools/oai_review.py (deliberate second-vendor adversarial review), not
+# pinned here since that script is not part of the deployed app/API surface.
 anthropic>=0.40
 # API (FastAPI wrapper consumed by the Next.js front end)
 fastapi>=0.110

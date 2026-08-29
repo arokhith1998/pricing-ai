@@ -1,9 +1,50 @@
-"""Offline tests for the LLM assist layer (pure helpers only — no network)."""
+"""Offline tests for the LLM assist layer.
+
+Pure-function tests (no network) plus evals against a mocked Anthropic SDK:
+these assert guardrails (JSON validity under json_mode, cheap-tier routing,
+timeout -> LLMUnavailableError, no sampling params), never model prose, and
+never make a real API call.
+"""
 
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
+import anthropic
+import httpx
+import pytest
+
 from pricing import assist
 from pricing.schema import REQUIRED_FIELDS
+
+
+def _fake_message(text: str, *, blocks: list | None = None):
+    """A minimal stand-in for anthropic.types.Message."""
+    content = blocks if blocks is not None else [SimpleNamespace(type="text", text=text)]
+    return SimpleNamespace(content=content)
+
+
+class _FakeMessages:
+    def __init__(self, create_fn):
+        self._create_fn = create_fn
+
+    def create(self, **kwargs):
+        return self._create_fn(kwargs)
+
+
+def _install_fake_anthropic(monkeypatch, create_fn):
+    """Patch anthropic.Anthropic so pricing.assist._complete's local
+    `from anthropic import Anthropic` picks up the fake at call time."""
+    init_kwargs: dict = {}
+
+    class _Fake:
+        def __init__(self, **kwargs):
+            init_kwargs.update(kwargs)
+            self.messages = _FakeMessages(create_fn)
+
+    monkeypatch.setattr(anthropic, "Anthropic", _Fake)
+    return init_kwargs
 
 
 def test_mapping_targets_cover_the_schema():
@@ -44,3 +85,235 @@ def test_summary_facts_tolerates_missing_quarter_end():
     }
     facts = assist.summary_facts(res)            # must not raise
     assert "quarter_end_discount_lift" not in facts
+
+
+# --- Anthropic-only provider evals (mocked SDK, no network) -----------------
+
+def test_has_llm_checks_only_the_anthropic_key(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert assist.has_llm() is False
+    # An OpenAI key alone must not satisfy has_llm(): OpenAI is gone from
+    # the product runtime, this is not a fallback provider anymore.
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-only")
+    assert assist.has_llm() is False
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    assert assist.has_llm() is True
+
+
+def test_json_mode_yields_json_loads_parseable_output(monkeypatch):
+    """The core Gap-1 guarantee: json_mode=True must yield text json.loads
+    accepts, not prose."""
+    def _create(kwargs):
+        return _fake_message('{"CustomerId": "customer_id", "ACV": null}')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    raw = assist._complete("map headers", "{}", json_mode=True, small=True)
+    parsed = json.loads(raw)  # must not raise
+    assert parsed == {"CustomerId": "customer_id", "ACV": None}
+
+
+def test_json_mode_tolerates_a_markdown_fence_but_still_parses(monkeypatch):
+    def _create(kwargs):
+        return _fake_message('```json\n{"a": "b"}\n```')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    raw = assist._complete("sys", "user", json_mode=True)
+    assert json.loads(raw) == {"a": "b"}
+
+
+def test_json_mode_raises_loudly_on_unparseable_output(monkeypatch):
+    """If the model still returns prose under json_mode, that must be a loud
+    failure (LLMError), never silently handed back to a JSON-expecting caller."""
+    def _create(kwargs):
+        return _fake_message("Sure, here is the mapping you asked for: ...")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMError):
+        assist._complete("sys", "user", json_mode=True)
+
+
+def test_json_mode_sends_structured_output_config(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message('{"ok": true}')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    assist._complete("sys", "user", json_mode=True)
+    assert captured["output_config"]["format"]["type"] == "json_schema"
+    assert isinstance(captured["output_config"]["format"]["schema"], dict)
+
+
+def test_map_columns_builds_a_full_field_schema_and_returns_valid_json(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message('{"customer_id": "CustomerId", "acv": null}')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    out = assist.map_columns(["CustomerId", "Amount"])
+    assert isinstance(out, dict)
+    targets = {t["field"] for t in assist.mapping_targets()}
+    assert set(out) == targets
+    schema = captured["output_config"]["format"]["schema"]
+    assert schema["type"] == "object"
+    assert set(schema["properties"]) == targets
+    assert set(schema["required"]) == targets
+    assert schema["additionalProperties"] is False
+
+
+def test_non_json_mode_does_not_set_output_config(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("A plain narrative sentence.")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    text = assist._complete("sys", "user")
+    assert text == "A plain narrative sentence."
+    assert "output_config" not in captured
+
+
+def test_small_true_routes_to_the_cheap_model_by_default(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("ok")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    monkeypatch.delenv("ANTHROPIC_MAP_MODEL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_SUMMARY_MODEL", raising=False)
+    assist._complete("sys", "user", small=True)
+    assert captured["model"] == assist._DEFAULT_MAP_MODEL
+    assert captured["model"] != assist._DEFAULT_SUMMARY_MODEL
+
+
+def test_small_false_routes_to_the_summary_model_by_default(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("ok")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    monkeypatch.delenv("ANTHROPIC_MAP_MODEL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_SUMMARY_MODEL", raising=False)
+    assist._complete("sys", "user", small=False)
+    assert captured["model"] == assist._DEFAULT_SUMMARY_MODEL
+
+
+def test_matching_columns_call_uses_small_tier():
+    """pricing/matching.py:390's comment ("the mini model is proven
+    sufficient") maps, for Anthropic, to small=True routing to the cheap
+    tier. map_columns must keep requesting small=True."""
+    import inspect
+    src = inspect.getsource(assist.map_columns)
+    assert "small=True" in src
+
+
+def test_model_tiers_are_env_overridable(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("ok")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    monkeypatch.setenv("ANTHROPIC_MAP_MODEL", "claude-map-override")
+    monkeypatch.setenv("ANTHROPIC_SUMMARY_MODEL", "claude-summary-override")
+    assist._complete("sys", "user", small=True)
+    assert captured["model"] == "claude-map-override"
+    assist._complete("sys", "user", small=False)
+    assert captured["model"] == "claude-summary-override"
+
+
+def test_no_sampling_parameters_are_sent(monkeypatch):
+    """Current Claude models reject temperature/top_p/top_k; these must never
+    be carried over from the old OpenAI branch."""
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("ok")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    assist._complete("sys", "user")
+    for forbidden in ("temperature", "top_p", "top_k"):
+        assert forbidden not in captured
+
+
+def test_thinking_is_not_enabled_by_default(monkeypatch):
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message("ok")
+
+    _install_fake_anthropic(monkeypatch, _create)
+    assist._complete("sys", "user")
+    assert "thinking" not in captured
+
+
+def test_every_call_carries_the_configured_timeout(monkeypatch):
+    seen_timeouts: list = []
+
+    class _Fake:
+        def __init__(self, **kwargs):
+            seen_timeouts.append(kwargs.get("timeout"))
+            self.messages = _FakeMessages(lambda kwargs: _fake_message("ok"))
+
+    monkeypatch.setattr(anthropic, "Anthropic", _Fake)
+    assist._complete("sys", "user")
+    assert seen_timeouts == [assist.LLM_TIMEOUT_SECONDS]
+
+
+def test_timeout_maps_to_llm_unavailable_error(monkeypatch):
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+
+    def _create(kwargs):
+        raise anthropic.APITimeoutError(request)
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMUnavailableError):
+        assist._complete("sys", "user")
+
+
+def test_connection_failure_maps_to_llm_unavailable_error(monkeypatch):
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+
+    def _create(kwargs):
+        raise anthropic.APIConnectionError(message="boom", request=request)
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMUnavailableError):
+        assist._complete("sys", "user")
+
+
+def test_text_block_extraction_skips_non_text_blocks(monkeypatch):
+    """content[0] is not assumed to be text — a non-text block (e.g. a future
+    tool_use/citations block) ahead of the text block must be skipped, not
+    crash or silently return the wrong block's data."""
+    blocks = [
+        SimpleNamespace(type="server_tool_use", input={"x": 1}),
+        SimpleNamespace(type="text", text="the real narration"),
+    ]
+
+    def _create(kwargs):
+        return _fake_message(None, blocks=blocks)
+
+    _install_fake_anthropic(monkeypatch, _create)
+    assert assist._complete("sys", "user") == "the real narration"
+
+
+def test_no_text_block_raises_llm_error(monkeypatch):
+    def _create(kwargs):
+        return _fake_message(None, blocks=[SimpleNamespace(type="server_tool_use", input={})])
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMError):
+        assist._complete("sys", "user")
