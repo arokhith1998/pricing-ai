@@ -34,6 +34,17 @@ class _FakeMessages:
         return self._create_fn(kwargs)
 
 
+# A minimal, valid schema for tests that need "a json_schema, any schema" to
+# exercise something other than schema *shape* (json_mode=True now requires
+# one — see test_json_mode_without_a_schema_raises_instead_of_guessing_one).
+_ANY_OBJECT_SCHEMA = {
+    "type": "object",
+    "properties": {"a": {"type": "string"}},
+    "required": ["a"],
+    "additionalProperties": False,
+}
+
+
 def _install_fake_anthropic(monkeypatch, create_fn):
     """Patch anthropic.Anthropic so pricing.assist._complete's local
     `from anthropic import Anthropic` picks up the fake at call time."""
@@ -109,7 +120,8 @@ def test_json_mode_yields_json_loads_parseable_output(monkeypatch):
         return _fake_message('{"CustomerId": "customer_id", "ACV": null}')
 
     _install_fake_anthropic(monkeypatch, _create)
-    raw = assist._complete("map headers", "{}", json_mode=True, small=True)
+    raw = assist._complete("map headers", "{}", json_mode=True, small=True,
+                            json_schema=_ANY_OBJECT_SCHEMA)
     parsed = json.loads(raw)  # must not raise
     assert parsed == {"CustomerId": "customer_id", "ACV": None}
 
@@ -119,7 +131,7 @@ def test_json_mode_tolerates_a_markdown_fence_but_still_parses(monkeypatch):
         return _fake_message('```json\n{"a": "b"}\n```')
 
     _install_fake_anthropic(monkeypatch, _create)
-    raw = assist._complete("sys", "user", json_mode=True)
+    raw = assist._complete("sys", "user", json_mode=True, json_schema=_ANY_OBJECT_SCHEMA)
     assert json.loads(raw) == {"a": "b"}
 
 
@@ -131,7 +143,19 @@ def test_json_mode_raises_loudly_on_unparseable_output(monkeypatch):
 
     _install_fake_anthropic(monkeypatch, _create)
     with pytest.raises(assist.LLMError):
-        assist._complete("sys", "user", json_mode=True)
+        assist._complete("sys", "user", json_mode=True, json_schema=_ANY_OBJECT_SCHEMA)
+
+
+def test_json_mode_raises_loudly_on_a_non_object_json_value(monkeypatch):
+    """json.loads happily accepts a bare list/string/number/null, and every
+    json_mode caller here does `.get(...)` on the result. A non-dict parse
+    must be a loud LLMError here, not an AttributeError in the caller."""
+    def _create(kwargs):
+        return _fake_message('["not", "an", "object"]')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMError):
+        assist._complete("sys", "user", json_mode=True, json_schema=_ANY_OBJECT_SCHEMA)
 
 
 def test_json_mode_sends_structured_output_config(monkeypatch):
@@ -142,9 +166,9 @@ def test_json_mode_sends_structured_output_config(monkeypatch):
         return _fake_message('{"ok": true}')
 
     _install_fake_anthropic(monkeypatch, _create)
-    assist._complete("sys", "user", json_mode=True)
+    assist._complete("sys", "user", json_mode=True, json_schema=_ANY_OBJECT_SCHEMA)
     assert captured["output_config"]["format"]["type"] == "json_schema"
-    assert isinstance(captured["output_config"]["format"]["schema"], dict)
+    assert captured["output_config"]["format"]["schema"] == _ANY_OBJECT_SCHEMA
 
 
 def test_map_columns_builds_a_full_field_schema_and_returns_valid_json(monkeypatch):
@@ -159,11 +183,77 @@ def test_map_columns_builds_a_full_field_schema_and_returns_valid_json(monkeypat
     assert isinstance(out, dict)
     targets = {t["field"] for t in assist.mapping_targets()}
     assert set(out) == targets
+    # map_columns is the small/cheap tier's real call site, not just a
+    # source-grep for "small=True" (that would pass with the tiers inverted).
+    assert captured["model"] == assist._DEFAULT_MAP_MODEL
     schema = captured["output_config"]["format"]["schema"]
     assert schema["type"] == "object"
     assert set(schema["properties"]) == targets
     assert set(schema["required"]) == targets
     assert schema["additionalProperties"] is False
+    # Per-field nullable must be the anyOf form, not a JSON Schema type
+    # array: {"type": ["string", "null"]} crashes the real SDK strictifier
+    # (PK-5 review round 2, blocker 1). Checked again, for real, below.
+    for field, prop in schema["properties"].items():
+        assert "anyOf" in prop, f"{field}: expected anyOf nullable, got {prop}"
+        assert {"type": "string"} in prop["anyOf"]
+        assert {"type": "null"} in prop["anyOf"]
+
+
+def test_map_columns_schema_survives_the_real_sdk_strictifier(monkeypatch):
+    """Blocker regression (PK-5 review round 2): mocking the SDK, as every
+    other test here does, would happily accept a schema shape the real API
+    rejects with a 400 — that's exactly how the type-array nullable shipped.
+    This runs the actual schema map_columns builds through the real,
+    unmocked anthropic.lib._parse._transform.transform_schema (the same
+    function messages.create uses to strictify a json_schema format) and
+    asserts it does not raise, and that nullability survives the transform."""
+    from anthropic.lib._parse._transform import transform_schema
+
+    captured: dict = {}
+
+    def _create(kwargs):
+        captured.update(kwargs)
+        return _fake_message('{"customer_id": null}')
+
+    _install_fake_anthropic(monkeypatch, _create)
+    assist.map_columns(["CustomerId"])
+    schema = captured["output_config"]["format"]["schema"]
+
+    transformed = transform_schema(schema)  # must not raise
+
+    assert transformed["type"] == "object"
+    assert transformed["additionalProperties"] is False
+    assert transformed["properties"], "properties must survive the transform"
+    for field, prop in transformed["properties"].items():
+        assert "anyOf" in prop, f"{field} lost its nullable anyOf: {prop}"
+        types = {branch["type"] for branch in prop["anyOf"]}
+        assert types == {"string", "null"}, f"{field}: {types}"
+
+
+def test_json_mode_without_a_schema_raises_instead_of_guessing_one(monkeypatch):
+    """Blocker regression (PK-5 review round 2): the old permissive fallback
+    ({"type": "object", "additionalProperties": True}) survives the real
+    strictifier but the strictifier silently rewrites it to mean "the empty
+    object" (properties={}, additionalProperties forced False) — a caller
+    would get {} back while _complete reported success. There is no safe
+    generic schema, so a missing json_schema under json_mode must be a loud,
+    immediate failure instead."""
+    _install_fake_anthropic(monkeypatch, lambda kwargs: _fake_message("{}"))
+    with pytest.raises(ValueError):
+        assist._complete("sys", "user", json_mode=True)
+
+
+def test_the_old_permissive_fallback_would_have_meant_the_empty_object():
+    """Documents *why* test_json_mode_without_a_schema_raises... exists: the
+    permissive schema this module used to fall back to is not a no-op under
+    the real SDK's strictifier, it's actively wrong."""
+    from anthropic.lib._parse._transform import transform_schema
+
+    old_fallback = {"type": "object", "additionalProperties": True}
+    transformed = transform_schema(old_fallback)
+    assert transformed["properties"] == {}
+    assert transformed["additionalProperties"] is False
 
 
 def test_non_json_mode_does_not_set_output_config(monkeypatch):
@@ -206,15 +296,6 @@ def test_small_false_routes_to_the_summary_model_by_default(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_SUMMARY_MODEL", raising=False)
     assist._complete("sys", "user", small=False)
     assert captured["model"] == assist._DEFAULT_SUMMARY_MODEL
-
-
-def test_matching_columns_call_uses_small_tier():
-    """pricing/matching.py:390's comment ("the mini model is proven
-    sufficient") maps, for Anthropic, to small=True routing to the cheap
-    tier. map_columns must keep requesting small=True."""
-    import inspect
-    src = inspect.getsource(assist.map_columns)
-    assert "small=True" in src
 
 
 def test_model_tiers_are_env_overridable(monkeypatch):
@@ -295,6 +376,37 @@ def test_connection_failure_maps_to_llm_unavailable_error(monkeypatch):
         assist._complete("sys", "user")
 
 
+@pytest.mark.parametrize("status_code", [429, 500, 502, 503, 529])
+def test_rate_limit_and_server_status_errors_map_to_llm_unavailable(monkeypatch, status_code):
+    """429 (rate limit) and 5xx are genuine provider-unavailable conditions,
+    not a request bug; they must degrade the same way a timeout does rather
+    than escape as a raw 500 to our own API layer."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(status_code, request=request)
+
+    def _create(kwargs):
+        raise anthropic.APIStatusError("provider trouble", response=response, body=None)
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(assist.LLMUnavailableError):
+        assist._complete("sys", "user")
+
+
+def test_other_status_errors_are_not_mistaken_for_unavailable(monkeypatch):
+    """A 400 (e.g. a malformed schema, blocker 1's failure mode) is a bug in
+    this module, not the provider being unavailable — it must not be
+    swallowed into a falsely-reassuring LLMUnavailableError/503."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(400, request=request)
+
+    def _create(kwargs):
+        raise anthropic.APIStatusError("bad request", response=response, body=None)
+
+    _install_fake_anthropic(monkeypatch, _create)
+    with pytest.raises(anthropic.APIStatusError):
+        assist._complete("sys", "user")
+
+
 def test_text_block_extraction_skips_non_text_blocks(monkeypatch):
     """content[0] is not assumed to be text — a non-text block (e.g. a future
     tool_use/citations block) ahead of the text block must be skipped, not
@@ -329,13 +441,18 @@ def test_no_text_block_raises_llm_error(monkeypatch):
 # it fails the moment `pip install -r requirements.txt` resolves to something
 # below the verified floor.
 
-def test_installed_sdk_actually_supports_our_structured_output_shape():
-    """Guards the anthropic>=0.77.0 floor in requirements.txt. If this starts
-    failing, the installed anthropic build can't serve the output_config
-    request pricing/assist.py._complete builds under json_mode=True, and
-    every json_mode call in the product (map_columns, and matching.py's
-    extraction calls) would 400 in production despite every mocked test
-    above passing."""
+def test_installed_sdk_has_the_output_config_parameter_at_all():
+    """Guards the anthropic>=0.77.0 floor in requirements.txt (API-surface
+    check only). If this starts failing, the installed anthropic build has
+    no output_config parameter on messages.create at all, and every
+    json_mode call would 400 regardless of schema shape.
+
+    This does NOT guard schema *shape* correctness — a fabricated sample
+    passing this kind of check is exactly how the type-array nullable
+    shipped (PK-5 review round 2). Shape correctness is covered by the
+    round-trip tests below, which run the schemas this module actually
+    builds through the real strictifier.
+    """
     create_sig = inspect.signature(anthropic.Anthropic(api_key="x").messages.create)
     assert "output_config" in create_sig.parameters, (
         "installed anthropic SDK's messages.create has no output_config "
@@ -349,7 +466,14 @@ def test_installed_sdk_actually_supports_our_structured_output_shape():
     assert "schema" in format_fields
     assert "type" in format_fields
 
-    # And confirm the exact shape assist.py builds is constructible as the
-    # TypedDict this SDK version expects — not just present, but shaped right.
-    sample: JSONOutputFormatParam = {"type": "json_schema", "schema": {"type": "object"}}
-    assert sample["type"] == "json_schema"
+
+def test_json_output_config_shape_survives_the_real_sdk_strictifier():
+    """Round-trip _json_output_config's own output (not a hand-picked sample)
+    through the real, unmocked transform_schema and assert it doesn't raise."""
+    from anthropic.lib._parse._transform import transform_schema
+
+    config = assist._json_output_config(_ANY_OBJECT_SCHEMA)
+    assert config["format"]["type"] == "json_schema"
+    transformed = transform_schema(config["format"]["schema"])  # must not raise
+    assert transformed["type"] == "object"
+    assert set(transformed["properties"]) == {"a"}

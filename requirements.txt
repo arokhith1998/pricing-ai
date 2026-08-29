@@ -8,17 +8,7 @@ altair>=5.3
 lightgbm>=4.3
 scikit-learn>=1.4
 # LLM assist layer (narrative + CSV column mapping). Anthropic only (PK-5:
-# moved off OpenAI in the product runtime). openai stays a dev-only dependency
-# of tools/oai_review.py (deliberate second-vendor adversarial review), not
-# pinned here since that script is not part of the deployed app/API surface.
-# 0.77.0 is the true floor for the output_config={"format": {...}} structured-
-# outputs call in pricing/assist.py: verified by diffing the installed wheels
-# for anthropic 0.76.0 (no output_config, no output_format on messages.create)
-# vs 0.77.0 (output_config present; JSONOutputFormatParam already has the
-# required schema/type keys we use). Matches the SDK changelog for 0.77.0
-# (2026-01-29): "migrate sending message format in output_config rather than
-# output_format" / "use output_config for structured outputs". 0.104.1 is what
-# this change was tested against.
+# moved off OpenAI). 0.77.0 is the verified floor for output_config; see PR for the wheel-diff evidence.
 anthropic>=0.77.0
 # API (FastAPI wrapper consumed by the Next.js front end)
 fastapi>=0.110

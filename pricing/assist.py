@@ -85,16 +85,24 @@ def _json_output_config(json_schema: dict | None) -> dict:
     top-level `output_format` parameter is deprecated; this uses the current
     `output_config={"format": {...}}` shape.
 
-    Callers that know their exact target shape (map_columns, below) pass a
-    real JSON Schema and get it enforced server-side. Callers elsewhere in
-    the codebase that share this provider boundary via `_complete` but only
-    need "a JSON object, not prose" (pricing/matching.py's extraction calls)
-    fall back to a permissive object schema. Either way, `_complete` also
-    validates the result client-side and raises loudly on a miss rather than
-    handing a caller malformed text — see `_complete`.
+    Callers MUST pass an explicit, real JSON Schema. There is no permissive
+    "any JSON object" fallback: Anthropic's structured-outputs subset
+    (anthropic.lib._parse._transform.transform_schema) rewrites an object
+    schema with no declared properties to mean the *empty* object, and it
+    silently forces additionalProperties to False no matter what you send.
+    A schema-less fallback would therefore not degrade loudly, it would
+    quietly make the provider return {} while `_complete` reports success —
+    worse than a crash (PK-5 review round 2). Callers that don't have a real
+    schema yet must not be handed one guessed by this module; give them a
+    schema or don't use json_mode.
     """
-    schema = json_schema or {"type": "object", "additionalProperties": True}
-    return {"format": {"type": "json_schema", "schema": schema}}
+    if json_schema is None:
+        raise ValueError(
+            "json_mode=True requires an explicit json_schema (there is no "
+            "safe generic fallback under Anthropic's structured-outputs "
+            "subset; see _json_output_config's docstring)"
+        )
+    return {"format": {"type": "json_schema", "schema": json_schema}}
 
 
 def _complete(system: str, user: str, *, json_mode: bool = False,
@@ -133,6 +141,17 @@ def _complete(system: str, user: str, *, json_mode: bool = False,
         raise LLMUnavailableError(
             f"LLM provider (anthropic) unreachable or timed out: {exc}"
         ) from exc
+    # 429 (rate limit) and 5xx (server-side) are also "provider unavailable"
+    # from a caller's point of view, not a request bug — degrade the same
+    # way a connection failure does instead of leaking as a raw 500. Other
+    # status errors (4xx request bugs, e.g. a malformed schema) are a real
+    # bug in this module and must not be swallowed as a false "unavailable".
+    except anthropic.APIStatusError as exc:
+        if exc.status_code in (429, 500, 502, 503, 529):
+            raise LLMUnavailableError(
+                f"LLM provider (anthropic) returned {exc.status_code}: {exc}"
+            ) from exc
+        raise
 
     # Don't assume content[0] is text — filter for the text block instead.
     text_block = next(
@@ -144,13 +163,22 @@ def _complete(system: str, user: str, *, json_mode: bool = False,
     if json_mode:
         text = _strip_code_fence(text)
         try:
-            json.loads(text)
+            parsed = json.loads(text)
         except json.JSONDecodeError as exc:
             # Loud, not silent: a caller expecting JSON must never receive
             # unparseable prose back from this layer.
             raise LLMError(
                 f"LLM returned non-JSON output despite json_mode=True: {exc}"
             ) from exc
+        # json.loads also accepts a bare list/string/number/null, and every
+        # json_mode caller here does `.get(...)` on the result — a valid but
+        # non-object parse must fail loudly here, not with an AttributeError
+        # three frames away in the caller.
+        if not isinstance(parsed, dict):
+            raise LLMError(
+                "LLM returned valid JSON but not a JSON object under "
+                f"json_mode=True (got {type(parsed).__name__})"
+            )
     return text
 
 
@@ -220,9 +248,17 @@ def map_columns(headers: list[str]) -> dict:
         "confident match. Map only confident matches; prefer null over guessing."
     )
     user = json.dumps({"our_fields": targets, "their_headers": headers})
+    # Anthropic's structured-outputs subset does not accept a JSON Schema
+    # type array (e.g. {"type": ["string", "null"]}) — verified against the
+    # installed SDK's own strictifier, anthropic.lib._parse._transform.
+    # transform_schema, which raises on it. The portable nullable form is
+    # anyOf over the two single types (PK-5 review round 2).
+    def _nullable_string() -> dict:
+        return {"anyOf": [{"type": "string"}, {"type": "null"}]}
+
     schema = {
         "type": "object",
-        "properties": {t["field"]: {"type": ["string", "null"]} for t in targets},
+        "properties": {t["field"]: _nullable_string() for t in targets},
         "required": [t["field"] for t in targets],
         "additionalProperties": False,
     }
