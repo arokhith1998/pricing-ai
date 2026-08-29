@@ -75,6 +75,11 @@ tmp-pytest/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 
+# agentctl writes state atomically via a temp file in the same directory. The
+# handler cleans up on exception but not on a hard kill, and a leftover would
+# otherwise be swept into the next `git add -A`.
+docs/agents/*.tmp
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db

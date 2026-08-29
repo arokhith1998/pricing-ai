@@ -373,3 +373,238 @@ def test_render_marks_the_file_as_generated(ctl, tmp_path):
     text = (tmp_path / "PROJECT_STATE.md").read_text(encoding="utf-8")
     assert "Do not hand-edit" in text
     assert "PK-1" in text
+
+
+# --- review findings: path canonicalization (the blocker) --------------------
+
+@pytest.mark.parametrize("a,b", [
+    # Windows names one file here, so a case-only difference must conflict.
+    ("api/main.py", "API/main.py"),
+    ("pricing/matching.py", "Pricing/Matching.PY"),
+    # Redundant and traversal-equivalent spellings of one path.
+    ("pricing/matching.py", "pricing/./matching.py"),
+    ("pricing/matching.py", "pricing//matching.py"),
+    ("web/src", "web//src/"),
+    # Component claims must fold too.
+    ("api/main.py#CRM", "api/main.py#crm"),
+])
+def test_spelling_variants_of_one_path_still_conflict(a, b):
+    """Regression: six variants of one file all read as non-conflicting, so two
+    agents were assigned the same file and `check` called the board clean."""
+    assert agentctl.paths_conflict(agentctl.normalize_path(a),
+                                   agentctl.normalize_path(b)) is True
+
+
+@pytest.mark.parametrize("raw", [
+    "C:/Pricing-AI/pricing/matching.py",   # drive-qualified
+    r"C:\Pricing-AI\pricing\matching.py",
+    "/pricing/matching.py",                # absolute
+    "api/../pricing/matching.py",          # upward traversal
+    "../outside.py",
+    "pricing/*",                           # unbounded claim
+    "pricing/*.py",
+    "web/[a-z]/x.ts",
+])
+def test_unclaimable_paths_are_refused(raw):
+    with pytest.raises(agentctl.Refused):
+        agentctl.normalize_path(raw)
+
+
+def test_case_variant_claim_is_refused_at_assign(ctl):
+    add_task("PK-1", agent="backend-engineer", owns=["api/main.py"])
+    add_task("PK-2", agent="ai-engineer", owns=["API/main.py"])
+    run(["ready", "PK-1"])
+    run(["assign", "PK-1"])
+    run(["ready", "PK-2"])
+    assert run(["assign", "PK-2"]) == 1
+
+
+# --- review findings: the cap is enforced on every door into active work -----
+
+def _park_two_active(ctl):
+    for i, path in enumerate(["pricing/metrics.py", "web/src"], start=1):
+        add_task(f"PK-{i}", owns=[path])
+        run(["ready", f"PK-{i}"])
+        run(["assign", f"PK-{i}"])
+
+
+def test_cap_blocks_unblock_into_active_work(ctl):
+    """The refusal message tells you to park a task, so unblocking one later
+    must not be the way past the cap."""
+    add_task("PK-9", owns=["neon"])
+    run(["ready", "PK-9"])
+    run(["assign", "PK-9"])
+    run(["block", "PK-9", "--reason", "waiting"])
+    _park_two_active(ctl)
+
+    assert run(["unblock", "PK-9", "--to", "IN_PROGRESS"]) == 1
+    assert agentctl.get_task(agentctl.load_state(), "PK-9")["status"] == "BLOCKED"
+    assert run(["unblock", "PK-9", "--to", "IN_PROGRESS", "--force"]) == 0
+
+
+def test_cap_blocks_a_rejected_review_from_reopening_work(ctl):
+    """A reject is the routine outcome, so it is the likeliest cap bypass."""
+    add_task("PK-9", owns=["neon"])
+    run(["ready", "PK-9"])
+    run(["assign", "PK-9"])
+    run(["start", "PK-9"])
+    run(["review", "PK-9", "--pr", "1"])
+    _park_two_active(ctl)
+
+    assert run(["qa", "PK-9", "--verdict", "reject", "--notes", "no tests"]) == 1
+    assert agentctl.get_task(agentctl.load_state(), "PK-9")["status"] == "REVIEW"
+
+
+def test_cap_blocks_rework(ctl):
+    add_task("PK-9", owns=["neon"])
+    run(["ready", "PK-9"])
+    run(["assign", "PK-9"])
+    run(["start", "PK-9"])
+    run(["review", "PK-9", "--pr", "1"])
+    _park_two_active(ctl)
+    assert run(["rework", "PK-9", "--reason", "scope"]) == 1
+
+
+# --- review findings: the CI gate accepts evidence, not words ----------------
+
+def test_a_word_is_not_a_ci_run_id(ctl):
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    run(["ready", "PK-1"])
+    run(["assign", "PK-1"])
+    run(["start", "PK-1"])
+    run(["review", "PK-1", "--pr", "1"])
+    run(["qa", "PK-1", "--verdict", "approve"])
+
+    assert run(["approve", "PK-1", "--ci-run", "pass"]) == 1
+    assert run(["approve", "PK-1", "--ci-run", "green"]) == 1
+    assert agentctl.get_task(agentctl.load_state(), "PK-1")["status"] == "QA"
+    assert run(["approve", "PK-1", "--ci-run", "33269508479"]) == 0
+
+
+def test_forcing_the_ci_gate_needs_a_reason_and_stays_visible(ctl, capsys):
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    run(["ready", "PK-1"])
+    run(["assign", "PK-1"])
+    run(["start", "PK-1"])
+    run(["review", "PK-1", "--pr", "1"])
+    run(["qa", "PK-1", "--verdict", "approve"])
+
+    assert run(["approve", "PK-1", "--force"]) == 1
+    assert run(["approve", "PK-1", "--force", "--reason", "CI outage"]) == 0
+
+    task = agentctl.get_task(agentctl.load_state(), "PK-1")
+    assert task["tests"]["forced"]["reason"] == "CI outage"
+    capsys.readouterr()
+    assert run(["check"]) == 1
+    assert "FORCED" in capsys.readouterr().out
+
+
+# --- review findings: the human gate leaves a trail --------------------------
+
+def test_merge_records_who_approved(ctl):
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    run(["ready", "PK-1"])
+    run(["assign", "PK-1"])
+    run(["start", "PK-1"])
+    run(["review", "PK-1", "--pr", "1"])
+    run(["qa", "PK-1", "--verdict", "approve"])
+    run(["approve", "PK-1", "--ci-run", "12345"])
+    run(["merged", "PK-1", "--commit", "abc", "--human-approved",
+         "--approver", "adhithya"])
+
+    task = agentctl.get_task(agentctl.load_state(), "PK-1")
+    assert task["human_approval"]["approved"] is True
+    assert task["human_approval"]["approver"] == "adhithya"
+
+
+def test_check_flags_a_merge_that_bypassed_agentctl(ctl, capsys):
+    """Hand-editing status to MERGED must not look like a real merge."""
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    state = agentctl.load_state()
+    state["tasks"][0]["status"] = "MERGED"
+    agentctl.save_state(state)
+
+    assert run(["check"]) == 1
+    out = capsys.readouterr().out
+    assert "no recorded human approval" in out
+    assert "no CI run id" in out
+
+
+# --- review findings: malformed input fails loudly, not with a traceback -----
+
+def test_self_dependency_is_refused(ctl):
+    assert run(["add", "PK-1", "loop", "--agent", "pk-lead",
+                "--depends", "PK-1"]) == 1
+
+
+def test_check_reports_a_dependency_cycle(ctl, capsys):
+    add_task("PK-1", depends=["PK-2"], owns=["pricing/metrics.py"])
+    add_task("PK-2", depends=["PK-1"], owns=["web/src"])
+    assert run(["check"]) == 1
+    assert "dependency cycle" in capsys.readouterr().out
+
+
+def test_task_missing_a_field_refuses_instead_of_crashing(ctl):
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    state = agentctl.load_state()
+    del state["tasks"][0]["status"]
+    agentctl.save_state(state)
+
+    # A KeyError traceback is a worse signal than the repair instruction.
+    assert run(["check"]) == 1
+    assert run(["status"]) == 1
+
+
+def test_log_survives_a_torn_line(ctl, tmp_path, capsys):
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    with (tmp_path / "activity.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write('{"ts": "2026-08-29T00:00:00Z", "event": "sta')
+
+    assert run(["log"]) == 0
+    out = capsys.readouterr().out
+    assert "unparseable" in out
+    assert "PK-1" in out
+
+
+def test_transition_is_logged_only_after_the_state_write_succeeds(ctl, tmp_path,
+                                                                  monkeypatch):
+    """The history must not record a move that failed to persist."""
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    before = (tmp_path / "activity.jsonl").read_text(encoding="utf-8")
+
+    def boom(*a, **k):
+        raise PermissionError("state file held by another process")
+
+    monkeypatch.setattr(agentctl, "_atomic_write", boom)
+    with pytest.raises(PermissionError):
+        run(["ready", "PK-1"])
+
+    assert (tmp_path / "activity.jsonl").read_text(encoding="utf-8") == before
+
+
+# --- review-safety: probing must not be able to reach the live board --------
+
+def test_state_dir_is_overridable_by_environment(tmp_path, monkeypatch):
+    """A reviewer verifying a finding must have somewhere safe to run.
+
+    Regression for ADR-005: a review agent ran real `assign` and `check`
+    commands against the live board, then git-restored to clean up, and a task
+    that was IN_PROGRESS lost its branch, worktree, and claim.
+    """
+    import importlib
+
+    scratch = tmp_path / "probe"
+    monkeypatch.setenv("AGENTCTL_STATE_DIR", str(scratch))
+    probe = importlib.reload(agentctl)
+    try:
+        assert probe.AGENT_DIR == scratch
+        assert probe.STATE_PATH == scratch / "project_state.json"
+        assert probe.main(["add", "PK-1", "probe", "--agent", "code-reviewer",
+                           "--own", "api/main.py"]) == 0
+        # The write landed in the scratch dir, and nowhere near docs/agents.
+        assert (scratch / "project_state.json").exists()
+    finally:
+        monkeypatch.delenv("AGENTCTL_STATE_DIR", raising=False)
+        importlib.reload(agentctl)
+
+    assert agentctl.AGENT_DIR == agentctl.PROJECT_ROOT / "docs" / "agents"

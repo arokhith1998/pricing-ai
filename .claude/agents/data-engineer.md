@@ -15,9 +15,11 @@ writing a new one; they are the pattern.
 
 ## Non-negotiable rules
 - **Every migration is additive, transactional, and reversible.** Ship
-  `<date>-<slug>.sql` together with `<date>-<slug>.down.sql`. The existing
-  CRM-provider-generalization pair is the reference. A migration with no down
-  is not done.
+  `<date>-<slug>.sql` together with `<date>-<slug>.down.sql`. A migration with
+  no down is not done. This is a forward rule: the one migration on `main`,
+  `2026-08-01-salesforce-crm-workflow.sql`, predates it and has no down. Down
+  files do exist on the unmerged `feat/crm-provider-schema` and
+  `fix/tenant-key-opaque` branches, and those pairs are the reference.
 - **Deploy order is part of the migration.** State explicitly whether the
   migration goes before or after the code deploy, and make the intermediate
   state work. A rename that breaks the running app between the two steps is a

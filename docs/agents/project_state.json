@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T18:51:43Z",
+  "updated": "2026-08-29T19:13:07Z",
   "config": {
     "max_concurrent": 2
   },
@@ -11,13 +11,13 @@
       "id": "PK-1",
       "title": "Split api/main.py into routers",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [],
       "owns": [
         "api/main.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/backend-engineer/PK-1",
+      "worktree": ".claude/worktrees/PK-1",
       "acceptance": [
         "every existing route keeps its path, method, and response shape",
         "tests/test_api_perimeter.py passes unchanged",
@@ -33,8 +33,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-08-29T18:51:41Z",
-      "updated": "2026-08-29T18:51:41Z",
-      "notes": []
+      "updated": "2026-08-29T19:13:07Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T19:13:07Z",
+          "note": "claimed 1 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-2",

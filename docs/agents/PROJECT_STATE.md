@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-08-29T18:51:43Z
+Active work: 1/2
+Updated: 2026-08-29T19:13:07Z
 
-## BACKLOG
+## IN_PROGRESS
 - **PK-1** Split api/main.py into routers  (backend-engineer)
   - owns: api/main.py
+
+## BACKLOG
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
   - owns: tools/agentctl.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)

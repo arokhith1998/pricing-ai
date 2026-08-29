@@ -41,7 +41,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-AGENT_DIR = PROJECT_ROOT / "docs" / "agents"
+
+# Point this at a scratch directory to experiment without touching the live
+# board. This exists because it was needed: a review agent verified a finding
+# by running real `assign` and `check` commands against the real state file,
+# then git-restored the directory to clean up, and a live task lost its
+# branch, worktree, and claim. Anyone probing behavior uses this, not the
+# board. See docs/agents/DECISIONS.md ADR-005.
+AGENT_DIR = Path(os.environ.get("AGENTCTL_STATE_DIR",
+                                PROJECT_ROOT / "docs" / "agents"))
 STATE_PATH = AGENT_DIR / "project_state.json"
 LOG_PATH = AGENT_DIR / "activity.jsonl"
 RENDER_PATH = AGENT_DIR / "PROJECT_STATE.md"
@@ -117,6 +125,7 @@ def load_state(path: Path | None = None) -> dict:
                       "or restore from git before continuing.") from exc
     state.setdefault("config", {}).setdefault("max_concurrent", 2)
     state.setdefault("tasks", [])
+    validate_tasks(state)
     return state
 
 
@@ -141,10 +150,30 @@ def _atomic_write(path: Path, text: str) -> None:
         raise
 
 
+# Events queued by a mutation and flushed only after the state write succeeds.
+# The history must not record a transition that failed to persist: on Windows
+# `os.replace` raises PermissionError when a sync client holds the destination,
+# which is exactly the environment this repo documents.
+_PENDING_EVENTS: list[tuple[str, str | None, str | None, str]] = []
+
+
+def queue_event(event: str, task: str | None, agent: str | None,
+                detail: str) -> None:
+    _PENDING_EVENTS.append((event, task, agent, detail))
+
+
+def flush_events() -> None:
+    global _PENDING_EVENTS
+    pending, _PENDING_EVENTS = _PENDING_EVENTS, []
+    for row in pending:
+        log_event(*row)
+
+
 def save_state(state: dict, path: Path | None = None) -> None:
     path = path or STATE_PATH
     state["updated"] = _now()
     _atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+    flush_events()
 
 
 def log_event(event: str, task: str | None, agent: str | None, detail: str,
@@ -160,16 +189,53 @@ def log_event(event: str, task: str | None, agent: str | None, detail: str,
 
 # --- ownership ---------------------------------------------------------------
 
+_GLOB_CHARS = set("*?[]")
+_DRIVE_RE = re.compile(r"^[A-Za-z]:")
+
+
 def normalize_path(raw: str) -> str:
-    """Canonical form of an owned path, optionally with a `#component` suffix."""
+    """Canonical repo-relative form of an owned path, plus optional `#component`.
+
+    Canonicalization is not cosmetic: `paths_conflict` compares these strings,
+    so any spelling variance of one file reads as two files and two agents get
+    assigned the same file with no collision reported. `api/main.py` versus
+    `API/main.py` is the likely case on this Windows repo, where the two names
+    are one file.
+
+    Refuses what cannot be a repo-relative claim: absolute paths, drive-
+    qualified paths, parent traversal, and glob patterns (an unbounded claim
+    cannot be collision-checked, which is the point of declaring one).
+    """
     p = raw.strip().replace("\\", "/")
-    if p.startswith("./"):
-        p = p[2:]
     file_part, _, comp = p.partition("#")
-    file_part = file_part.rstrip("/")
-    if not file_part:
+    file_part, comp = file_part.strip(), comp.strip()
+
+    if _DRIVE_RE.match(file_part) or file_part.startswith("/"):
+        raise Refused(f"Ownership paths are repo-relative, got {raw!r}. "
+                      "Drop the drive letter or leading slash.")
+    if any(ch in _GLOB_CHARS for ch in file_part):
+        raise Refused(f"Ownership paths cannot be glob patterns, got {raw!r}. "
+                      "Name the directory or the files.")
+
+    segments: list[str] = []
+    for seg in file_part.split("/"):
+        if seg in ("", "."):
+            continue
+        if seg == "..":
+            raise Refused(f"Ownership paths cannot traverse upward, got {raw!r}.")
+        segments.append(seg)
+    if not segments:
         raise Refused(f"Not a usable ownership path: {raw!r}")
-    return f"{file_part}#{comp}" if comp else file_part
+
+    cleaned = "/".join(segments)
+    return f"{cleaned}#{comp}" if comp else cleaned
+
+
+def _fold(path: str) -> str:
+    """Comparison key. Case-insensitive, because this repo runs on Windows and
+    a case-only difference names the same file. Over-matching serializes two
+    tasks; under-matching loses an agent's work, so fold."""
+    return path.lower()
 
 
 def paths_conflict(a: str, b: str) -> bool:
@@ -182,8 +248,8 @@ def paths_conflict(a: str, b: str) -> bool:
     ownership is what makes `api/main.py`, a 1400-line file carrying six
     unrelated route groups, shareable at all.
     """
-    fa, _, ca = a.partition("#")
-    fb, _, cb = b.partition("#")
+    fa, _, ca = _fold(a).partition("#")
+    fb, _, cb = _fold(b).partition("#")
     if fa == fb:
         return not (ca and cb) or ca == cb
     # Directory containment, on path-segment boundaries only, so that
@@ -214,7 +280,8 @@ def get_task(state: dict, task_id: str) -> dict:
     raise Refused(f"No such task: {task_id}")
 
 
-def set_status(state: dict, task: dict, new: str, *, note: str = "") -> None:
+def set_status(state: dict, task: dict, new: str, *, note: str = "",
+               force: bool = False) -> None:
     old = task["status"]
     if new not in STATUSES:
         raise Refused(f"Unknown status: {new}")
@@ -222,12 +289,24 @@ def set_status(state: dict, task: dict, new: str, *, note: str = "") -> None:
         legal = ", ".join(sorted(TRANSITIONS[old])) or "nothing, it is terminal"
         raise Refused(f"{task['id']}: {old} -> {new} is not a legal transition. "
                       f"From {old} you may go to: {legal}.")
+    # The cap is enforced here rather than in `assign` alone, because assign is
+    # not the only door into active work: unblock, rework, and a rejected
+    # review all push a task back into it, and a rejected review is routine.
+    if new in ACTIVE_WORK and old not in ACTIVE_WORK and not force:
+        cap = state["config"]["max_concurrent"]
+        if active_count(state, exclude=task["id"]) >= cap:
+            raise Refused(
+                f"{task['id']}: concurrency cap reached, {cap} tasks are "
+                f"already in active work, so {old} -> {new} is refused. "
+                "Finish or park one first. The cap exists because parallel "
+                "agents sharing one checkout overwrite each other. "
+                "Pass --force only with a deliberate reason.")
     task["status"] = new
     task["updated"] = _now()
     if note:
         task.setdefault("notes", []).append({"ts": _now(), "note": note})
-    log_event("status", task["id"], task.get("agent"),
-              f"{old} -> {new}" + (f": {note}" if note else ""))
+    queue_event("status", task["id"], task.get("agent"),
+                f"{old} -> {new}" + (f": {note}" if note else ""))
 
 
 def unmet_dependencies(state: dict, task: dict) -> list[str]:
@@ -248,6 +327,51 @@ def active_count(state: dict, exclude: str | None = None) -> int:
                if t["status"] in ACTIVE_WORK and t["id"] != exclude)
 
 
+REQUIRED_TASK_KEYS = ("id", "title", "status")
+
+
+def validate_tasks(state: dict) -> None:
+    """Fail loudly on a malformed record rather than with a KeyError traceback.
+
+    A torn write can leave a task missing a field, and a stack trace is a worse
+    signal than the repair instruction the corrupt-JSON path already gives.
+    """
+    for i, t in enumerate(state.get("tasks", [])):
+        if not isinstance(t, dict):
+            raise Refused(f"Task at index {i} is not an object. "
+                          f"Repair {STATE_PATH} by hand or restore from git.")
+        missing = [k for k in REQUIRED_TASK_KEYS if k not in t]
+        if missing:
+            raise Refused(
+                f"Task at index {i} ({t.get('id', 'no id')}) is missing "
+                f"{', '.join(missing)}. Repair {STATE_PATH} by hand or restore "
+                "from git.")
+
+
+def _dependency_cycles(state: dict) -> list[list[str]]:
+    """Every dependency cycle, so the lead sees why a task can never start."""
+    deps = {t["id"]: [d for d in t.get("dependencies", []) if d != t["id"]]
+            for t in state["tasks"]}
+    cycles: list[list[str]] = []
+    seen: set[str] = set()
+
+    def walk(node: str, trail: list[str]) -> None:
+        if node in trail:
+            cycle = trail[trail.index(node):] + [node]
+            if not any(set(cycle) == set(c) for c in cycles):
+                cycles.append(cycle)
+            return
+        if node in seen or node not in deps:
+            return
+        for nxt in deps[node]:
+            walk(nxt, trail + [node])
+
+    for task_id in deps:
+        walk(task_id, [])
+        seen.add(task_id)
+    return cycles
+
+
 # --- commands ----------------------------------------------------------------
 
 def cmd_init(args) -> int:
@@ -257,8 +381,8 @@ def cmd_init(args) -> int:
     state = default_state()
     state["objective"] = args.objective or ""
     state["sprint"] = args.sprint or ""
+    queue_event("init", None, None, "state initialised")
     save_state(state)
-    log_event("init", None, None, "state initialised")
     render(state)
     print(f"Initialised {STATE_PATH}")
     return 0
@@ -270,6 +394,9 @@ def cmd_add(args) -> int:
         raise Refused(f"Task id must look like PK-104, got {args.id!r}")
     if any(t["id"] == args.id for t in state["tasks"]):
         raise Refused(f"Task {args.id} already exists")
+    if args.id in (args.depends or []):
+        raise Refused(f"{args.id} cannot depend on itself: it could never "
+                      "reach READY, and the board would show no reason why.")
     task = {
         "id": args.id,
         "title": args.title,
@@ -289,8 +416,8 @@ def cmd_add(args) -> int:
         "notes": [],
     }
     state["tasks"].append(task)
+    queue_event("add", task["id"], task["agent"], task["title"])
     save_state(state)
-    log_event("add", task["id"], task["agent"], task["title"])
     render(state)
     print(f"{args.id} added to BACKLOG"
           + (f", owner {args.agent}" if args.agent else ", unowned"))
@@ -322,13 +449,6 @@ def cmd_assign(args) -> int:
     if not task.get("agent"):
         raise Refused(f"{args.id} needs an owner agent before assignment")
 
-    cap = state["config"]["max_concurrent"]
-    if active_count(state, exclude=args.id) >= cap and not args.force:
-        raise Refused(
-            f"Concurrency cap reached: {cap} tasks are already in active work. "
-            "Finish or park one before assigning another. The cap exists "
-            "because parallel agents sharing one checkout overwrite each other.")
-
     paths = [normalize_path(p) for p in (args.own or [])] or task.get("owns", [])
     if not paths and not args.force:
         raise Refused(f"{args.id}: declare the files or components this task "
@@ -347,7 +467,8 @@ def cmd_assign(args) -> int:
                       or f"agent/{task['agent']}/{task['id']}")
     if args.worktree:
         task["worktree"] = args.worktree
-    set_status(state, task, "ASSIGNED", note=f"claimed {len(paths)} path(s)")
+    set_status(state, task, "ASSIGNED", note=f"claimed {len(paths)} path(s)",
+               force=args.force)
     save_state(state)
     render(state)
     print(f"{args.id} -> ASSIGNED to {task['agent']} on {task['branch']}")
@@ -390,7 +511,8 @@ def cmd_qa(args) -> int:
                       "notes": args.notes or "", "ts": _now()}
     if args.verdict == "reject":
         set_status(state, task, "REWORK_REQUIRED",
-                   note=f"review rejected: {args.notes or ''}")
+                   note=f"review rejected: {args.notes or ''}",
+                   force=args.force)
         save_state(state)
         render(state)
         print(f"{args.id} -> REWORK_REQUIRED (review rejected)")
@@ -405,11 +527,35 @@ def cmd_qa(args) -> int:
 def cmd_approve(args) -> int:
     state = load_state()
     task = get_task(state, args.id)
-    if not args.ci_run and not args.force:
+    if args.force:
+        # A forced approval must stay visible forever. Without this the record
+        # is indistinguishable from a real one at audit time, which makes the
+        # gate decorative.
+        if not args.reason:
+            raise Refused(f"{args.id}: --force on approve requires --reason. "
+                          "A bypassed gate has to say why, permanently.")
+        task["tests"]["ci_run"] = args.ci_run
+        task["tests"]["forced"] = {"reason": args.reason, "ts": _now()}
+        set_status(state, task, "APPROVED",
+                   note=f"APPROVAL FORCED without a verified CI run: {args.reason}")
+        save_state(state)
+        render(state)
+        print(f"{args.id} -> APPROVED (FORCED: {args.reason})")
+        return 0
+
+    if not args.ci_run:
         raise Refused(f"{args.id}: --ci-run is required to leave QA. A green "
                       "CI run id is the evidence; an agent reporting that "
                       "tests pass is not.")
+    # GitHub run ids are numeric. This catches `--ci-run pass`, which would
+    # otherwise satisfy the gate with a word.
+    if not args.ci_run.isdigit():
+        raise Refused(f"{args.id}: {args.ci_run!r} is not a CI run id. Use the "
+                      "numeric id from `gh run list --branch "
+                      f"{task.get('branch') or '<branch>'}`, or --force with "
+                      "--reason if there is genuinely no run.")
     task["tests"]["ci_run"] = args.ci_run
+    task["tests"].pop("forced", None)
     set_status(state, task, "APPROVED", note=f"CI run {args.ci_run}")
     save_state(state)
     render(state)
@@ -425,12 +571,20 @@ def cmd_merged(args) -> int:
             f"{args.id}: merge requires --human-approved. No agent merges to "
             "main on its own authority. Confirm with the product owner, then "
             "rerun with the flag.")
+    # Persist the approval, not just the check. "Human in the loop AND an audit
+    # trail" is the house rule, and a merge that skipped the gate by hand-
+    # editing the JSON must not look identical to one that did not.
     task["merge_commit"] = args.commit
+    task["human_approval"] = {"approved": True,
+                              "approver": args.approver or "product owner",
+                              "ts": _now()}
     set_status(state, task, "MERGED",
-               note=f"merged as {args.commit or 'unknown commit'}")
+               note=(f"merged as {args.commit or 'unknown commit'}, "
+                     f"human-approved by {task['human_approval']['approver']}"))
     save_state(state)
     render(state)
-    print(f"{args.id} -> MERGED")
+    print(f"{args.id} -> MERGED (approved by "
+          f"{task['human_approval']['approver']})")
     return 0
 
 
@@ -460,7 +614,7 @@ def cmd_unblock(args) -> int:
     state = load_state()
     task = get_task(state, args.id)
     task["blocked_by"] = None
-    set_status(state, task, args.to, note="unblocked")
+    set_status(state, task, args.to, note="unblocked", force=args.force)
     save_state(state)
     render(state)
     print(f"{args.id} -> {args.to}")
@@ -481,7 +635,8 @@ def cmd_fail(args) -> int:
 def cmd_rework(args) -> int:
     state = load_state()
     task = get_task(state, args.id)
-    set_status(state, task, "REWORK_REQUIRED", note=args.reason)
+    set_status(state, task, "REWORK_REQUIRED", note=args.reason,
+               force=args.force)
     save_state(state)
     render(state)
     print(f"{args.id} -> REWORK_REQUIRED: {args.reason}")
@@ -494,7 +649,7 @@ def cmd_reassign(args) -> int:
     old = task.get("agent")
     task["agent"] = args.agent
     task["updated"] = _now()
-    log_event("reassign", task["id"], args.agent, f"from {old}")
+    queue_event("reassign", task["id"], args.agent, f"from {old}")
     save_state(state)
     render(state)
     print(f"{args.id} reassigned: {old} -> {args.agent}")
@@ -513,8 +668,23 @@ def cmd_check(args) -> int:
         if t["status"] not in STATUSES:
             problems.append(f"{t['id']}: unknown status {t['status']}")
         for dep in t.get("dependencies", []):
-            if not any(o["id"] == dep for o in state["tasks"]):
+            if dep == t["id"]:
+                problems.append(f"{t['id']} depends on itself, so it can never "
+                                "reach READY")
+            elif not any(o["id"] == dep for o in state["tasks"]):
                 problems.append(f"{t['id']}: dependency {dep} does not exist")
+        # A gate that was forced, or a merge with no recorded approval, has to
+        # stay visible at audit time.
+        if t.get("tests", {}).get("forced"):
+            problems.append(f"{t['id']}: approved on a FORCED gate, reason: "
+                            f"{t['tests']['forced'].get('reason')}")
+        if t["status"] in {"APPROVED", "MERGED", "DONE"} \
+                and not t.get("tests", {}).get("ci_run"):
+            problems.append(f"{t['id']} is {t['status']} with no CI run id")
+        if t["status"] in {"MERGED", "DONE"} and not t.get("human_approval"):
+            problems.append(f"{t['id']} is {t['status']} with no recorded human "
+                            "approval, which means the status was set outside "
+                            "agentctl")
         if t["status"] in CLAIMING - {"BLOCKED"}:
             unmet = unmet_dependencies(state, t)
             if unmet:
@@ -531,6 +701,9 @@ def cmd_check(args) -> int:
     cap = state["config"]["max_concurrent"]
     if active_count(state) > cap:
         problems.append(f"{active_count(state)} tasks in active work, cap is {cap}")
+    for cycle in _dependency_cycles(state):
+        problems.append("dependency cycle, none of these can ever start: "
+                        + " -> ".join(cycle))
     if problems:
         print("FAIL")
         for p in problems:
@@ -559,10 +732,16 @@ def cmd_log(args) -> int:
         return 0
     lines = LOG_PATH.read_text(encoding="utf-8").splitlines()
     for line in lines[-args.n:]:
-        row = json.loads(line)
-        who = row.get("agent") or "-"
-        print(f"{row['ts']}  {row.get('task') or '-':<8}  {who:<20}  "
-              f"{row['event']}: {row['detail']}")
+        # The log is the one file written non-atomically, in a repo whose
+        # documented failure mode is a torn write. One bad line must not make
+        # the entire history unreadable.
+        try:
+            row = json.loads(line)
+            who = row.get("agent") or "-"
+            print(f"{row['ts']}  {row.get('task') or '-':<8}  {who:<20}  "
+                  f"{row['event']}: {row['detail']}")
+        except (json.JSONDecodeError, KeyError):
+            print(f"<unparseable log line> {line[:120]}")
     return 0
 
 
@@ -695,17 +874,24 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--verdict", required=True)
     s.add_argument("--by")
     s.add_argument("--notes")
+    s.add_argument("--force", action="store_true",
+                   help="bypass the concurrency cap when a reject sends a "
+                        "task back into active work")
     s.set_defaults(func=cmd_qa)
 
     s = sub.add_parser("approve", help="QA -> APPROVED (needs a green CI run id)")
     s.add_argument("id")
     s.add_argument("--ci-run", dest="ci_run")
-    s.add_argument("--force", action="store_true")
+    s.add_argument("--force", action="store_true",
+                   help="approve without a verified CI run; requires --reason "
+                        "and is recorded permanently")
+    s.add_argument("--reason", help="why the gate was forced")
     s.set_defaults(func=cmd_approve)
 
     s = sub.add_parser("merged", help="APPROVED -> MERGED (needs --human-approved)")
     s.add_argument("id")
     s.add_argument("--commit")
+    s.add_argument("--approver", help="who approved the merge")
     s.add_argument("--human-approved", dest="human_approved", action="store_true")
     s.set_defaults(func=cmd_merged)
 
@@ -721,6 +907,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("unblock", help="BLOCKED -> a live status")
     s.add_argument("id")
     s.add_argument("--to", default="IN_PROGRESS")
+    s.add_argument("--force", action="store_true",
+                   help="bypass the concurrency cap")
     s.set_defaults(func=cmd_unblock)
 
     s = sub.add_parser("fail", help="move to FAILED, releases ownership")
@@ -731,6 +919,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("rework", help="move to REWORK_REQUIRED")
     s.add_argument("id")
     s.add_argument("--reason", required=True)
+    s.add_argument("--force", action="store_true",
+                   help="bypass the concurrency cap")
     s.set_defaults(func=cmd_rework)
 
     s = sub.add_parser("reassign", help="change the owner agent")

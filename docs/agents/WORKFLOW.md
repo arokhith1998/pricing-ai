@@ -9,12 +9,16 @@ and it refuses illegal moves with an exit code.
 
 ```
 BACKLOG -> READY -> ASSIGNED -> IN_PROGRESS -> REVIEW -> QA -> APPROVED -> MERGED -> DONE
-              ^                       |            |      |
-              |                       v            v      v
-              +------------- REWORK_REQUIRED <-----+------+
-              |
+                                     ^           |       |         |
+                                     |           v       v         v
+                                     +--- REWORK_REQUIRED <--------+
+              ^
    BLOCKED <--+--> FAILED
 ```
+
+`REWORK_REQUIRED` returns to `IN_PROGRESS`, not to `READY`: the task keeps its
+branch, its worktree, and its claim, because the same agent is fixing the same
+work.
 
 | Transition | Gate the tool enforces |
 |---|---|
@@ -23,8 +27,8 @@ BACKLOG -> READY -> ASSIGNED -> IN_PROGRESS -> REVIEW -> QA -> APPROVED -> MERGE
 | `ASSIGNED -> IN_PROGRESS` | None. The agent has started. |
 | `IN_PROGRESS -> REVIEW` | A PR number. Not a claim of doneness. |
 | `REVIEW -> QA` | A reviewer verdict of `approve` or `approve-with-nits`. `reject` routes to `REWORK_REQUIRED`. |
-| `QA -> APPROVED` | A green CI run id. An agent reporting that tests pass is not evidence. |
-| `APPROVED -> MERGED` | `--human-approved`. No agent merges to main on its own authority. |
+| `QA -> APPROVED` | A numeric CI run id, recorded on the task. An agent reporting that tests pass is not evidence. The id is recorded, not yet verified against GitHub; PK-3 closes that. `--force` bypasses it, requires `--reason`, and is flagged by `check` forever after. |
+| `APPROVED -> MERGED` | `--human-approved`, recorded on the task with the approver. No agent merges to main on its own authority. |
 | `MERGED -> DONE` | None. Releases the ownership claim. |
 
 `FAILED` and `DONE` release the claim. `BLOCKED` keeps it, because the work is
@@ -58,15 +62,18 @@ python tools/agentctl.py check               # validate every invariant
 
 ## Git and isolation
 
-Branch name: `agent/<role>/<TASK-ID>`, for example `agent/backend/PK-104`.
-`agentctl assign` sets it automatically from the owner agent and task id.
+Branch name: `agent/<agent-name>/<TASK-ID>`, for example
+`agent/backend-engineer/PK-104`. `agentctl assign` builds it from the owner
+agent's exact name, so the segment is `backend-engineer`, not `backend`. Use
+the same string when you create the worktree, or the recorded branch will not
+be the one that exists and QA will fetch CI for the wrong ref.
 
 Each task with active file work gets its own git worktree so that two agents
 never share a checkout:
 
 ```powershell
 git fetch origin
-git worktree add .claude/worktrees/PK-104 -b agent/backend/PK-104 origin/main
+git worktree add .claude/worktrees/PK-104 -b agent/backend-engineer/PK-104 origin/main
 python tools/agentctl.py assign PK-104 --worktree .claude/worktrees/PK-104 --own pricing/matching.py
 ```
 
@@ -120,14 +127,18 @@ second-model findings in. Never send customer data through it.
 ## QA gate
 
 1. Re-run the task's required suites locally and paste the real output.
-2. Fetch the CI verdict: `gh run list --branch agent/backend/PK-104 --limit 3`.
+2. Fetch the CI verdict: `gh run list --branch agent/backend-engineer/PK-104 --limit 3`.
    A green run id is required to leave QA.
 3. Check each acceptance criterion against real behavior, not against the
    diff's intent.
 4. Run the full Python suite for regressions, plus `npm test`, `npx eslint`,
    `npx tsc --noEmit` and `npm run build` in `web/` for web tasks.
 5. Migrations get an up and a down applied against a scratch database. Every
-   file in `neon/migrations/` has a `.down.sql` for this reason.
+   **new** migration ships with a `.down.sql`. This is a forward rule, not a
+   description of the tree: on `main` there is one migration,
+   `neon/migrations/2026-08-01-salesforce-crm-workflow.sql`, and it has no
+   down. Do not instruct an agent to run a down that does not exist, and do
+   not let one claim it passed. Backfilling that down is its own task.
 6. Report failures with the actual output. Never round a failure up to a pass.
 
 ## Failure recovery

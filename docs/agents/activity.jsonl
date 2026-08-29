@@ -3,3 +3,6 @@
 {"ts": "2026-08-29T18:51:42Z", "event": "add", "task": "PK-2", "agent": "pk-lead", "detail": "agentctl creates and removes the git worktree on assign/done"}
 {"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-3", "agent": "pk-lead", "detail": "agentctl approve fetches the CI verdict itself"}
 {"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-4", "agent": "pk-lead", "detail": "Triage the six open PRs"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

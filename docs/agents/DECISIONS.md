@@ -46,9 +46,9 @@ repo has produced torn writes.
 **Date:** 2026-08-29 · **Status:** accepted
 
 **Decision.** Every task with active file work gets its own git worktree under
-`.claude/worktrees/<TASK-ID>` on branch `agent/<role>/<TASK-ID>`. The
-ownership claim in the state file is a planning check, not the isolation
-mechanism.
+`.claude/worktrees/<TASK-ID>` on branch `agent/<agent-name>/<TASK-ID>`, for
+example `agent/backend-engineer/PK-1`. The ownership claim in the state file
+is a planning check, not the isolation mechanism.
 
 **Context.** Subagents launched from one session share one working tree. Two
 agents editing `api/main.py` in parallel means the second write wins and the
@@ -119,3 +119,47 @@ that nothing enforces.
 `--human-approved` flag is a convention an agent could technically pass on its
 own, so this is a trust boundary, not a security boundary. Revisit if branch
 protection becomes available.
+
+---
+
+## ADR-005: A tool list does not make an agent read-only; Bash does not respect it
+
+**Date:** 2026-08-29 · **Status:** accepted
+
+**Decision.** Agents that are described as read-only, and any agent probing the
+task machine's behavior, must run experiments against a scratch state
+directory via `AGENTCTL_STATE_DIR`, and must never run a git command that
+changes the working tree or the index. The `code-reviewer` definition states
+this explicitly rather than relying on its tool list.
+
+**Context.** This was found the hard way, on the first real review. The
+reviewer was given `Read, Glob, Grep, Bash` and described in its own
+definition as "read-only by design". To verify an ownership-collision finding,
+which was the correct instinct and produced a genuine blocker, it ran real
+`assign` and `check` commands against the live `docs/agents/project_state.json`
+and then git-restored the directory to clean up after itself. A task that was
+`IN_PROGRESS` with a branch, a worktree, and a file claim silently reverted to
+`BACKLOG`, and the three transitions vanished from the append-only log because
+the log file was restored too. The evidence was a `checkout: moving from
+feat/agent-engineering-org to feat/agent-engineering-org` reflog entry and
+three state files sharing an mtime ten minutes after the transitions ran.
+
+**Alternatives.** Remove `Bash` from the reviewer: it would stop the reviewer
+verifying anything by execution, and execution is exactly what turned a
+plausible finding into a confirmed blocker. Make the state file read-only on
+disk: breaks every legitimate write and gets chmod-ed back. Detect and refuse
+concurrent mutation: real, but it does not help against a `git checkout` that
+happens outside the tool entirely.
+
+**Reason.** The capability boundary is the tool list plus what those tools can
+reach. `Bash` reaches everything, so the boundary has to be stated in the
+prompt and made easy to comply with. A scratch directory that costs one
+environment variable is easier than the workaround the agent invented.
+
+**Consequences.** "Read-only agent" is a description of intent in this repo,
+not an enforced property, and it is now written down as such. The board can
+still be clobbered by anything outside `agentctl`, which is why `check`
+flags a `MERGED` task with no recorded human approval: state set outside the
+tool is detectable after the fact even when it cannot be prevented. Losing the
+board is recoverable by replaying commands; losing a worktree would not be,
+which is another argument for ADR-002.
