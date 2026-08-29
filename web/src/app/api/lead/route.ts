@@ -22,9 +22,16 @@ export async function POST(req: Request) {
 
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-  // Honeypot: real visitors never see or fill a "website" field. Bots that
+  // Honeypot: real visitors never see or fill this field. Bots that
   // autofill every input do. Accept and silently drop so the bot cannot
-  // tell the submission went nowhere.
+  // tell the submission went nowhere: this response is byte-for-byte the
+  // same 200 {ok:true} a real save returns below, on the same status code,
+  // with no extra work done first, so there is no body or gross-timing
+  // signal to key off. Do not add a distinguishing field or delay here.
+  // The client (LeadForm) does not trust this response as proof of an
+  // unlock either; it watches whether the follow-up navigation actually
+  // leaves the gated page, since that is the only place a real signal
+  // exists (the lead cookie set below, which this branch skips).
   if (str(body.website)) {
     return Response.json({ ok: true });
   }
