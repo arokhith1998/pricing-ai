@@ -7,7 +7,11 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-08-29T19:47:40Z
+Updated: 2026-08-29T20:18:17Z
+
+## REVIEW
+- **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
+  - owns: pricing/assist.py, requirements.txt
 
 ## QA
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
@@ -20,3 +24,5 @@ Updated: 2026-08-29T19:47:40Z
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)
   - owns: docs/agents/TASKS.md
+- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md

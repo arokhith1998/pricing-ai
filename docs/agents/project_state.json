@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T19:47:40Z",
+  "updated": "2026-08-29T20:18:17Z",
   "config": {
     "max_concurrent": 2
   },
@@ -147,6 +147,85 @@
       "blocked_by": null,
       "created": "2026-08-29T18:51:43Z",
       "updated": "2026-08-29T18:51:43Z",
+      "notes": []
+    },
+    {
+      "id": "PK-5",
+      "title": "Make Anthropic the only LLM provider in the product runtime",
+      "agent": "ai-engineer",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "pricing/assist.py",
+        "requirements.txt"
+      ],
+      "branch": "agent/ai-engineer/PK-5",
+      "worktree": ".claude/worktrees/PK-5",
+      "acceptance": [
+        "LLM_PROVIDER and the OpenAI branch are gone; anthropic is the only path",
+        "json_mode produces valid JSON via structured outputs, not prose",
+        "small=True routes to a cheaper model tier, preserving the mapper cost saving",
+        "model ids are current and env-overridable; no temperature param (400 on current models)",
+        "text extraction tolerates non-text leading content blocks",
+        "LLMUnavailableError still maps timeouts and connection failures to 503",
+        "openai removed from requirements.txt"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_assist.py",
+          "tests/test_matching.py"
+        ],
+        "ci_run": null
+      },
+      "pr": 64,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:02:03Z",
+      "updated": "2026-08-29T20:18:17Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T20:02:12Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-08-29T20:18:17Z",
+          "note": "PR #64"
+        }
+      ]
+    },
+    {
+      "id": "PK-6",
+      "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-5"
+      ],
+      "owns": [
+        "web/src/app/privacy",
+        "web/src/app/trust",
+        "web/src/app/subprocessors",
+        "web/src/app/licenses",
+        "gtm/security-one-pager.md",
+        "docs/ops/incident-response.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "no customer-facing page names OpenAI as the LLM subprocessor",
+        "subprocessor entry carries Anthropic's real DPA URL and is dated",
+        "licenses page reflects the actual dependency set",
+        "claims stay inside the evidence boundary; no new capability implied"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:02:03Z",
+      "updated": "2026-08-29T20:02:03Z",
       "notes": []
     }
   ]

@@ -12,3 +12,9 @@
 {"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #63"}
 {"ts": "2026-08-29T19:47:40Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T20:02:03Z", "event": "add", "task": "PK-5", "agent": "ai-engineer", "detail": "Make Anthropic the only LLM provider in the product runtime"}
+{"ts": "2026-08-29T20:02:03Z", "event": "add", "task": "PK-6", "agent": "web-engineer", "detail": "Update trust, privacy and subprocessor disclosures to name Anthropic"}
+{"ts": "2026-08-29T20:02:11Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T20:18:17Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
