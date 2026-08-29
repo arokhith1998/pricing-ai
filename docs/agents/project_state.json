@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T20:39:38Z",
+  "updated": "2026-08-29T20:47:26Z",
   "config": {
     "max_concurrent": 2
   },
@@ -153,7 +153,7 @@
       "id": "PK-5",
       "title": "Make Anthropic the only LLM provider in the product runtime",
       "agent": "ai-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [],
       "owns": [
         "pricing/assist.py",
@@ -186,7 +186,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T20:39:38Z",
+      "updated": "2026-08-29T20:47:26Z",
       "notes": [
         {
           "ts": "2026-08-29T20:02:12Z",
@@ -207,6 +207,10 @@
         {
           "ts": "2026-08-29T20:39:38Z",
           "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:47:26Z",
+          "note": "misattributed transform_schema rationale in load-bearing comments, plus ValueError contract, confidence enum, nullable billed_annually"
         }
       ]
     },
@@ -304,6 +308,49 @@
       "created": "2026-08-29T20:33:37Z",
       "updated": "2026-08-29T20:33:37Z",
       "notes": []
+    },
+    {
+      "id": "PK-9",
+      "title": "Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "web/src/components/FounderStrip.tsx",
+        "web/src/components/FounderCta.tsx",
+        "web/src/app/privacy",
+        "web/src/app/terms",
+        "web/src/app/trust",
+        "web/src/app/competitor-watch"
+      ],
+      "branch": "agent/web-engineer/PK-9",
+      "worktree": ".claude/worktrees/PK-9",
+      "acceptance": [
+        "FounderCta.tsx deleted; nothing imports it; build and lint clean",
+        "founder role line reads M.S. Marketing Analytics (pricing), Simon Business School",
+        "no visible link text is a raw URL path; all seven read as prose",
+        "every href target is unchanged; only the anchor text changes",
+        "no em dashes; no new or altered product claims"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 65,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:43:12Z",
+      "updated": "2026-08-29T20:47:25Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T20:43:13Z",
+          "note": "claimed 6 path(s)"
+        },
+        {
+          "ts": "2026-08-29T20:47:25Z",
+          "note": "PR #65"
+        }
+      ]
     }
   ]
 }
