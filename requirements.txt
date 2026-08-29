@@ -8,7 +8,9 @@ altair>=5.3
 lightgbm>=4.3
 scikit-learn>=1.4
 # LLM assist layer (narrative + CSV column mapping). Anthropic only (PK-5:
-# moved off OpenAI). 0.77.0 is the verified floor for output_config; see PR for the wheel-diff evidence.
+# moved off OpenAI). 0.77.0 (2026-01-29 changelog: "use output_config for
+# structured outputs") is the verified floor for output_config on
+# messages.create; below it, that parameter does not exist.
 anthropic>=0.77.0
 # API (FastAPI wrapper consumed by the Next.js front end)
 fastapi>=0.110

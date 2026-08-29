@@ -283,19 +283,29 @@ _CONTEXT_SYSTEM = (
 # extract_competitor_context reads out of `parsed` after this call, not to
 # what the prompt above asks for — every property is required at the object
 # level so the model always includes the key (a value can still be null),
-# consistent with pricing/assist.py's map_columns schema.
+# consistent with pricing/assist.py's map_columns schema. `confidence` is
+# constrained to an enum (both here and per-claim below) rather than left as
+# a free string: the code silently rewrites any other value to "medium",
+# and per the explainability convention a silent, untraceable rewrite is
+# exactly what to remove when the schema can enforce it up front instead.
+# The normalization at :340/:350 stays as a backstop for values that predate
+# this schema or a provider that doesn't honor it.
+_CONFIDENCE = {"anyOf": [
+    {"type": "string", "enum": ["high", "medium", "low"]}, {"type": "null"},
+]}
+
 _CONTEXT_SCHEMA = {
     "type": "object",
     "properties": {
         "summary": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "confidence": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "confidence": _CONFIDENCE,
         "claims": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
                     "claim": {"type": "string"},
-                    "confidence": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "confidence": _CONFIDENCE,
                     "evidence_excerpt": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                 },
                 "required": ["claim", "confidence", "evidence_excerpt"],
@@ -386,7 +396,7 @@ JSON schema:
       "name": "string — plan name as written on the page",
       "price_monthly": number or null,
       "price_unit": "string — 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
-      "billed_annually": boolean,
+      "billed_annually": boolean or null,
       "included_usage": "string — e.g. '100K events / mo', '1 TB', 'unlimited'",
       "features": ["string", "string", "..."],
       "notes": "string — any caveats, 'contact sales' flag, etc."
@@ -397,6 +407,7 @@ JSON schema:
 Rules:
 - If the page lists 'Contact us' instead of a price, set price_monthly=null and notes='custom pricing'.
 - Convert annual prices to monthly equivalent if both stated.
+- If the page never states a billing cadence for a plan, set billed_annually=null — do not guess.
 - Keep features short (≤ 8 words each). Aim for the high-signal product features, not boilerplate.
 - Return between 0 and 8 plans. If you cannot identify plans confidently, return an empty list.
 """
@@ -418,7 +429,13 @@ _EXTRACT_JSON_SCHEMA = {
                     "name": {"type": "string"},
                     "price_monthly": {"anyOf": [{"type": "number"}, {"type": "null"}]},
                     "price_unit": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-                    "billed_annually": {"type": "boolean"},
+                    # Nullable, not a plain boolean: under constrained
+                    # decoding a required non-nullable boolean forces the
+                    # model to guess true/false even when the page never
+                    # states a cadence, and that guess becomes a structured
+                    # competitor pricing "fact". Downstream already tolerates
+                    # null (bool(p.get("billed_annually") or False)).
+                    "billed_annually": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
                     "included_usage": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                     "features": {"type": "array", "items": {"type": "string"}},
                     "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},

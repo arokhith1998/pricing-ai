@@ -50,6 +50,15 @@ class LLMUnavailableError(LLMError):
     this to a 503 instead of letting a worker hang or 500."""
 
 
+class LLMConfigError(LLMError):
+    """A caller of this module got the call contract wrong (e.g. json_mode
+    without a json_schema) — a code bug here, not a provider failure and
+    not a client's fault. Deliberately NOT a ValueError: api/main.py catches
+    (ValueError, requests.RequestException) and turns it into a 422 with
+    str(exc) as the client-visible detail, which would misattribute an
+    internal programming error to the caller's input."""
+
+
 def _load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
     if not path.exists():
         return
@@ -86,21 +95,25 @@ def _json_output_config(json_schema: dict | None) -> dict:
     `output_config={"format": {...}}` shape.
 
     Callers MUST pass an explicit, real JSON Schema. There is no permissive
-    "any JSON object" fallback: Anthropic's structured-outputs subset
-    (anthropic.lib._parse._transform.transform_schema) rewrites an object
-    schema with no declared properties to mean the *empty* object, and it
-    silently forces additionalProperties to False no matter what you send.
+    "any JSON object" fallback: the API's structured-outputs subset uses
+    constrained decoding against the schema you send, and an object schema
+    with no declared properties constrains the model to producing nothing —
+    it does not mean "any object", it is useless for getting real data back.
     A schema-less fallback would therefore not degrade loudly, it would
-    quietly make the provider return {} while `_complete` reports success —
-    worse than a crash (PK-5 review round 2). Callers that don't have a real
-    schema yet must not be handed one guessed by this module; give them a
-    schema or don't use json_mode.
+    quietly make the provider return {} (or equivalent) while `_complete`
+    reports success — worse than a crash (PK-5 review round 2). Callers that
+    don't have a real schema yet must not be handed one guessed by this
+    module; give them a schema or don't use json_mode. (This module does not
+    call anthropic.lib._parse._transform.transform_schema itself, and
+    `output_config` is sent to the API as the raw dict you build — see the
+    tests for how that function is used offline instead, as a pre-flight
+    check against the SDK's own encoding of the documented schema subset.)
     """
     if json_schema is None:
-        raise ValueError(
-            "json_mode=True requires an explicit json_schema (there is no "
-            "safe generic fallback under Anthropic's structured-outputs "
-            "subset; see _json_output_config's docstring)"
+        raise LLMConfigError(
+            "json_mode=True requires an explicit json_schema keyword "
+            "argument; there is no safe generic fallback under the API's "
+            "structured-outputs subset (see _json_output_config's docstring)"
         )
     return {"format": {"type": "json_schema", "schema": json_schema}}
 
@@ -248,11 +261,14 @@ def map_columns(headers: list[str]) -> dict:
         "confident match. Map only confident matches; prefer null over guessing."
     )
     user = json.dumps({"our_fields": targets, "their_headers": headers})
-    # Anthropic's structured-outputs subset does not accept a JSON Schema
-    # type array (e.g. {"type": ["string", "null"]}) — verified against the
-    # installed SDK's own strictifier, anthropic.lib._parse._transform.
-    # transform_schema, which raises on it. The portable nullable form is
-    # anyOf over the two single types (PK-5 review round 2).
+    # The API's structured-outputs subset does not accept a JSON Schema type
+    # array (e.g. {"type": ["string", "null"]}) for constrained decoding.
+    # anthropic.lib._parse._transform.transform_schema is not on this
+    # runtime path (output_config is sent to the API as the raw dict below,
+    # unmodified by the SDK) — but it's a static encoding of that documented
+    # subset, and it raises on a type array, which is why the tests use it
+    # offline as a pre-flight check on this exact schema. The portable
+    # nullable form is anyOf over the two single types (PK-5 review round 2).
     def _nullable_string() -> dict:
         return {"anyOf": [{"type": "string"}, {"type": "null"}]}
 

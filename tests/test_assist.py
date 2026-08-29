@@ -202,12 +202,18 @@ def test_map_columns_builds_a_full_field_schema_and_returns_valid_json(monkeypat
 
 def test_map_columns_schema_survives_the_real_sdk_strictifier(monkeypatch):
     """Blocker regression (PK-5 review round 2): mocking the SDK, as every
-    other test here does, would happily accept a schema shape the real API
-    rejects with a 400 — that's exactly how the type-array nullable shipped.
-    This runs the actual schema map_columns builds through the real,
-    unmocked anthropic.lib._parse._transform.transform_schema (the same
-    function messages.create uses to strictify a json_schema format) and
-    asserts it does not raise, and that nullability survives the transform."""
+    other test here does, would happily accept a schema shape the live API
+    rejects — that's exactly how the type-array nullable shipped. There is
+    no offline way to call the live API's constrained-decoding validator
+    directly, so this uses the closest available proxy instead:
+    anthropic.lib._parse._transform.transform_schema, a static encoding of
+    the documented structured-outputs subset the SDK itself ships. It is
+    NOT on this module's runtime path (output_config goes to the API as the
+    raw dict we build, unmodified by the SDK; transform_schema is only used
+    by the SDK's separate output_format/parse/stream/count_tokens helpers) —
+    but it raises on exactly the shapes the documented subset forbids, so
+    "does it survive transform_schema" is a real, checkable pre-flight
+    signal for "will the live API accept this", run here offline and free."""
     from anthropic.lib._parse._transform import transform_schema
 
     captured: dict = {}
@@ -233,21 +239,27 @@ def test_map_columns_schema_survives_the_real_sdk_strictifier(monkeypatch):
 
 def test_json_mode_without_a_schema_raises_instead_of_guessing_one(monkeypatch):
     """Blocker regression (PK-5 review round 2): the old permissive fallback
-    ({"type": "object", "additionalProperties": True}) survives the real
-    strictifier but the strictifier silently rewrites it to mean "the empty
-    object" (properties={}, additionalProperties forced False) — a caller
-    would get {} back while _complete reported success. There is no safe
-    generic schema, so a missing json_schema under json_mode must be a loud,
-    immediate failure instead."""
+    ({"type": "object", "additionalProperties": True}) is not "any object"
+    under constrained decoding against a schema with no declared properties
+    — it is useless for getting real data back. There is no safe generic
+    schema, so a missing json_schema under json_mode must be a loud,
+    immediate LLMConfigError (a caller-contract bug, not a ValueError: see
+    LLMConfigError's docstring for why api/main.py's ValueError -> 422
+    handling would misattribute this to the client)."""
     _install_fake_anthropic(monkeypatch, lambda kwargs: _fake_message("{}"))
-    with pytest.raises(ValueError):
+    with pytest.raises(assist.LLMConfigError):
         assist._complete("sys", "user", json_mode=True)
 
 
 def test_the_old_permissive_fallback_would_have_meant_the_empty_object():
-    """Documents *why* test_json_mode_without_a_schema_raises... exists: the
-    permissive schema this module used to fall back to is not a no-op under
-    the real SDK's strictifier, it's actively wrong."""
+    """Documents *why* test_json_mode_without_a_schema_raises... exists.
+    anthropic.lib._parse._transform.transform_schema is not called on this
+    module's runtime path (see test_map_columns_schema_survives_the_real_
+    sdk_strictifier's docstring) but is a static encoding of the documented
+    structured-outputs subset: run offline here, it shows the permissive
+    schema this module used to fall back to collapses to the *empty* object
+    (properties={}, additionalProperties forced False), not "any object" —
+    the fallback was actively wrong, not just unverified."""
     from anthropic.lib._parse._transform import transform_schema
 
     old_fallback = {"type": "object", "additionalProperties": True}

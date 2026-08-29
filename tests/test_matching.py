@@ -374,16 +374,22 @@ def test_extract_plans_from_text_uses_small_model(monkeypatch):
 #
 # Both tests above mock matching.assist._complete wholesale — one level
 # above where the real defect lived. That's exactly why the invalid-nullable
-# schema (a JSON Schema type array Anthropic's structured-outputs subset
-# rejects) and the empty-fallback-schema bug were invisible to the existing
-# suite: neither call reaches assist._complete's real json_schema handling
-# or the real Anthropic SDK's request-shape validation. The tests below
-# round-trip the actual schemas through the real SDK strictifier, and mock
-# only at the SDK boundary (anthropic.Anthropic) so assist._complete's own
-# logic — including json_schema being required and the response validation —
-# runs for real.
-
-from anthropic.lib._parse._transform import transform_schema
+# schema (a JSON Schema type array the API's structured-outputs subset
+# rejects under constrained decoding) and the empty-fallback-schema bug were
+# invisible to the existing suite: neither call reaches assist._complete's
+# real json_schema handling. There is no offline way to call the live API's
+# own schema validator, so the tests below round-trip the actual schemas
+# through anthropic.lib._parse._transform.transform_schema instead — a
+# static encoding of the documented structured-outputs subset the SDK ships,
+# NOT something invoked on this request path (output_config goes to the API
+# as the raw dict assist.py builds; transform_schema is only used by the
+# SDK's separate output_format/parse/stream/count_tokens helpers). It raises
+# on exactly the shapes the documented subset forbids, so it's a real,
+# checkable pre-flight proxy for "will the live API accept this," run here
+# offline and free. Separately, the tests also mock at the SDK boundary
+# (anthropic.Anthropic), not assist._complete, so assist._complete's own
+# logic — json_schema being required, response parsing/validation — runs
+# for real end to end.
 
 
 def _fake_message(text: str):
@@ -405,27 +411,44 @@ def _install_fake_anthropic(monkeypatch, create_fn):
     monkeypatch.setattr(anthropic, "Anthropic", _FakeClient)
 
 
+def _assert_nullable_confidence_enum(prop: dict) -> None:
+    """confidence must be constrained to high/medium/low (nullable), not a
+    free string — the code silently rewrites anything else to "medium",
+    and the schema should make that rewrite unreachable rather than routine."""
+    assert {"type": "null"} in prop["anyOf"]
+    string_branch = next(b for b in prop["anyOf"] if b.get("type") == "string")
+    assert string_branch.get("enum") == ["high", "medium", "low"]
+
+
 def test_context_schema_survives_the_real_sdk_strictifier():
+    from anthropic.lib._parse._transform import transform_schema
+
     transformed = transform_schema(matching._CONTEXT_SCHEMA)  # must not raise
     assert transformed["type"] == "object"
     assert transformed["additionalProperties"] is False
-    for field in ("summary", "confidence"):
-        assert {"type": "string"} in transformed["properties"][field]["anyOf"]
-        assert {"type": "null"} in transformed["properties"][field]["anyOf"]
+    assert {"type": "string"} in transformed["properties"]["summary"]["anyOf"]
+    assert {"type": "null"} in transformed["properties"]["summary"]["anyOf"]
+    _assert_nullable_confidence_enum(transformed["properties"]["confidence"])
     claim_item = transformed["properties"]["claims"]["items"]
     assert claim_item["properties"]["claim"] == {"type": "string"}
-    for field in ("confidence", "evidence_excerpt"):
-        assert {"type": "null"} in claim_item["properties"][field]["anyOf"]
+    _assert_nullable_confidence_enum(claim_item["properties"]["confidence"])
+    assert {"type": "null"} in claim_item["properties"]["evidence_excerpt"]["anyOf"]
 
 
 def test_plan_extraction_schema_survives_the_real_sdk_strictifier():
+    from anthropic.lib._parse._transform import transform_schema
+
     transformed = transform_schema(matching._EXTRACT_JSON_SCHEMA)  # must not raise
     assert transformed["type"] == "object"
     assert transformed["additionalProperties"] is False
     assert {"type": "null"} in transformed["properties"]["vendor"]["anyOf"]
     plan_item = transformed["properties"]["plans"]["items"]
     assert plan_item["properties"]["name"] == {"type": "string"}
-    assert plan_item["properties"]["billed_annually"] == {"type": "boolean"}
+    # Nullable, not a plain boolean: a page that never states billing
+    # cadence must be able to say so, not force the model to guess
+    # true/false (that guess would become a structured competitor fact).
+    assert {"type": "boolean"} in plan_item["properties"]["billed_annually"]["anyOf"]
+    assert {"type": "null"} in plan_item["properties"]["billed_annually"]["anyOf"]
     for field in ("price_monthly", "price_unit", "included_usage", "notes"):
         assert {"type": "null"} in plan_item["properties"][field]["anyOf"]
     assert plan_item["properties"]["features"]["type"] == "array"
@@ -434,7 +457,8 @@ def test_plan_extraction_schema_survives_the_real_sdk_strictifier():
 def test_extract_competitor_context_does_not_raise_through_the_real_sdk_boundary(monkeypatch):
     """Regression for the merge blocker: extract_competitor_context's only
     try/except wraps json.loads, not the assist._complete call itself, so a
-    ValueError out of _json_output_config (missing schema) used to propagate
+    missing-schema error out of _json_output_config (ValueError at the time
+    this was found, LLMConfigError as of PK-5 round 3) used to propagate
     uncaught and /competitor-context 500'd. This exercises the real
     assist._complete end to end (SDK mocked, not assist._complete itself) and
     asserts the call completes and returns a well-shaped result."""
@@ -462,7 +486,7 @@ def test_extract_competitor_context_does_not_raise_through_the_real_sdk_boundary
 
 def test_extract_plans_from_text_does_not_degrade_through_the_real_sdk_boundary(monkeypatch):
     """Companion regression: extract_plans_from_text's broad try/except
-    turned the same missing-schema ValueError into a silent (fallback, [])
+    turned the same missing-schema error into a silent (fallback, [])
     forever — still broken, just quietly. This exercises the real
     assist._complete end to end and asserts plans actually come back."""
     monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
