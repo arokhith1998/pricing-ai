@@ -7,13 +7,15 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-08-29T20:53:30Z
+Updated: 2026-08-29T21:32:33Z
 
 ## REVIEW
+- **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
+  - owns: web/src/components/LeadForm.tsx, web/src/app/api/lead/route.ts
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
   - owns: web/src/components/FounderStrip.tsx, web/src/components/FounderCta.tsx, web/src/app/privacy, web/src/app/terms, web/src/app/trust, web/src/app/competitor-watch
 
-## QA
+## APPROVED
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
   - owns: api/main.py
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)

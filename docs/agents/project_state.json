@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T20:53:30Z",
+  "updated": "2026-08-29T21:32:33Z",
   "config": {
     "max_concurrent": 2
   },
@@ -11,7 +11,7 @@
       "id": "PK-1",
       "title": "Split api/main.py into routers",
       "agent": "backend-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "api/main.py"
@@ -27,7 +27,7 @@
         "required": [
           "tests/test_api_perimeter.py"
         ],
-        "ci_run": null
+        "ci_run": "33271704443"
       },
       "pr": 63,
       "review": {
@@ -38,7 +38,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T18:51:41Z",
-      "updated": "2026-08-29T19:47:40Z",
+      "updated": "2026-08-29T21:32:32Z",
       "notes": [
         {
           "ts": "2026-08-29T19:13:07Z",
@@ -63,6 +63,10 @@
         {
           "ts": "2026-08-29T19:47:40Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T21:32:32Z",
+          "note": "CI run 33271704443"
         }
       ]
     },
@@ -153,7 +157,7 @@
       "id": "PK-5",
       "title": "Make Anthropic the only LLM provider in the product runtime",
       "agent": "ai-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "pricing/assist.py",
@@ -175,7 +179,7 @@
           "tests/test_assist.py",
           "tests/test_matching.py"
         ],
-        "ci_run": null
+        "ci_run": "33274590015"
       },
       "pr": 64,
       "review": {
@@ -186,7 +190,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T20:53:30Z",
+      "updated": "2026-08-29T21:32:33Z",
       "notes": [
         {
           "ts": "2026-08-29T20:02:12Z",
@@ -219,6 +223,10 @@
         {
           "ts": "2026-08-29T20:53:30Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T21:32:33Z",
+          "note": "CI run 33274590015"
         }
       ]
     },
@@ -357,6 +365,47 @@
         {
           "ts": "2026-08-29T20:47:25Z",
           "note": "PR #65"
+        }
+      ]
+    },
+    {
+      "id": "PK-10",
+      "title": "Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "web/src/components/LeadForm.tsx",
+        "web/src/app/api/lead/route.ts"
+      ],
+      "branch": "agent/web-engineer/PK-10",
+      "worktree": ".claude/worktrees/PK-10",
+      "acceptance": [
+        "a success response that does not result in navigation still clears the loading state and shows a message",
+        "the honeypot no longer produces a 200 that the client treats as an unlock",
+        "the honeypot field is not autofillable by password managers or Chrome",
+        "bots still cannot distinguish rejection from success",
+        "a lead that saves but whose cookie does not stick surfaces an error instead of hanging"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": null
+      },
+      "pr": 66,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T21:18:00Z",
+      "updated": "2026-08-29T21:32:32Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T21:18:02Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-08-29T21:32:32Z",
+          "note": "PR #66"
         }
       ]
     }

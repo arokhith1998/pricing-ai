@@ -32,3 +32,10 @@
 {"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
 {"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T21:18:00Z", "event": "add", "task": "PK-10", "agent": "web-engineer", "detail": "Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy"}
+{"ts": "2026-08-29T21:18:02Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T21:18:02Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-08-29T21:18:03Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #66"}
+{"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 33271704443"}
+{"ts": "2026-08-29T21:32:33Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 33274590015"}
