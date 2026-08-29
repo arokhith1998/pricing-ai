@@ -55,8 +55,8 @@ export default function TrustPage() {
           </li>
         </ul>
         <p>
-          The complete subprocessor list with DPA links is at{" "}
-          <a className="text-teal underline" href="/subprocessors">/subprocessors</a>.
+          The complete subprocessor list with DPA links is on our{" "}
+          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>.
         </p>
       </Section>
 
