@@ -1,4 +1,4 @@
-"""Model component: /model, /deals, /recommend — win-probability model
+"""Model component: /model, /deals, /recommend: win-probability model
 quality, the guidance picker's deal list, and per-deal discount guidance.
 
 The trained model + ingested demo book are cached in api/shared.py, not
@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pricing import model
-from api.shared import _engine, _records
+from api.shared import engine, records
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ FEATURE_LABELS = {
 @router.get("/model")
 def model_info() -> dict:
     """Win-probability model quality + what drives it (plain labels)."""
-    _df, tm = _engine()
+    _df, tm = engine()
     fi = model.feature_importance(tm)
     total = float(fi["gain"].sum()) or 1.0
     importance = [
@@ -59,12 +59,12 @@ def model_info() -> dict:
 @router.get("/deals")
 def deals(limit: int = 40) -> dict:
     """Candidate deals for the guidance picker (largest won deals first)."""
-    df, _tm = _engine()
+    df, _tm = engine()
     won = df[df["is_won"]].sort_values("list_acv", ascending=False).head(limit)
     cols = ["opportunity_id", "resolved_account_name", "segment", "industry",
             "product_tier", "list_acv", "discount_pct", "competitor_present",
             "is_quarter_end"]
-    return {"deals": _records(won[cols])}
+    return {"deals": records(won[cols])}
 
 
 def _explain_factors(tm: "model.TrainedModel", df: pd.DataFrame, idx,
@@ -106,7 +106,7 @@ class RecommendReq(BaseModel):
 @router.post("/recommend")
 def recommend(req: RecommendReq) -> dict:
     """Per-deal discount guidance: recommended discount, expected value, why."""
-    df, tm = _engine()
+    df, tm = engine()
     matches = df.index[df["opportunity_id"] == req.opportunity_id]
     if len(matches) == 0:
         raise HTTPException(status_code=404, detail="Unknown opportunity_id")
@@ -137,7 +137,7 @@ def recommend(req: RecommendReq) -> dict:
         # similar deals, the segment's win-rate-by-band curve segment, and the
         # model-confidence numbers for the caveat. The panel must stand up in a
         # pricing committee, so every element is observed, not asserted.
-        "comparables": _records(model.comparable_deals(df, idx)),
+        "comparables": records(model.comparable_deals(df, idx)),
         "band_context": model.band_context(df, idx, rec["recommended_discount"]),
         "confidence": {
             "auc": tm.metrics["auc"],
@@ -145,5 +145,5 @@ def recommend(req: RecommendReq) -> dict:
             "base_rate": tm.metrics["base_rate"],
             "n_train": tm.metrics["n_train"],
         },
-        "curve": _records(curve),
+        "curve": records(curve),
     }

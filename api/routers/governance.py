@@ -7,9 +7,16 @@ number is deterministic; storage via pricing/governance.py (Neon when
 configured, in-memory fallback).
 
 Percent convention (documented contract): requested_discount_pct and every
-*_pct field in the verdict and digest are percent 0-100 — 22.5 means a
+*_pct field in the verdict and digest are percent 0-100: 22.5 means a
 22.5 percent discount, the default floor_pct is 15.0. Win probabilities are
 0-1 fractions; ev_delta_vs_recommended is dollars.
+
+`_customer_ref` (tenant scoping) is owned by the perimeter component and
+stays defined in api/main.py (see api/main.py's docstring). It is reached
+here via a deferred `from api import main` inside each endpoint, the same
+pattern api/routers/diagnostic.py uses for `_read_capped`, because a
+module-level import would try to import api.main while it is still
+mid-import (main.py imports this router).
 """
 
 from __future__ import annotations
@@ -21,8 +28,7 @@ from pydantic import BaseModel
 
 from pricing import governance as governance_mod
 from pricing.diagnostic import run
-from api.routers.perimeter import _customer_ref
-from api.shared import DEMO_CSV, _engine
+from api.shared import DEMO_CSV, engine
 
 logger = logging.getLogger("pricekeel.api")
 
@@ -48,6 +54,7 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
     in the in-memory fallback (database unset or unreachable) — the response
     never claims durability it does not have (Finding 5). The write is scoped to the
     caller's tenant via X-Pricekeel-Customer (Finding 3)."""
+    from api import main  # deferred: see module docstring
     if not (0.0 <= req.requested_discount_pct
             <= governance_mod.EXCEPTION_MAX_PCT):
         raise HTTPException(
@@ -56,7 +63,7 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
                     f"{governance_mod.EXCEPTION_MAX_PCT:g} (percent of list "
                     f"price; the modeled discount range)."),
         )
-    df, tm = _engine()
+    df, tm = engine()
     matches = df.index[df["opportunity_id"] == req.deal_id]
     if len(matches) == 0:
         raise HTTPException(status_code=404, detail="Unknown deal_id")
@@ -79,7 +86,7 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
         decision="below_floor" if verdict["below_floor"] else "within_floor",
         justification=req.justification,
         requested_by=req.requested_by,
-        customer_ref=_customer_ref(request),
+        customer_ref=main._customer_ref(request),
     )
     return {"id": str(row["id"]), "verdict": verdict,
             "created_at": str(row["created_at"]),
@@ -90,9 +97,10 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
 def list_exceptions(request: Request, limit: int = 50) -> dict:
     """Recent exception requests, newest first, with their logged verdicts.
     Scoped to the caller's tenant via X-Pricekeel-Customer (Finding 3)."""
+    from api import main  # deferred: see module docstring
     rows = governance_mod.STORE.list(kind="exception",
                                      limit=max(1, min(int(limit), 200)),
-                                     customer_ref=_customer_ref(request))
+                                     customer_ref=main._customer_ref(request))
     items = []
     for r in rows:
         p = r.get("payload") or {}
@@ -109,7 +117,7 @@ def list_exceptions(request: Request, limit: int = 50) -> dict:
 
 
 # The digest needs the loaded book's diagnostic aggregates; cache the run
-# keyed on the CSV's mtime (same pattern as api.shared._engine) so an
+# keyed on the CSV's mtime (same pattern as api.shared.engine) so an
 # unmetered GET is not a full ingest+diagnostic every time.
 _DIGEST_BOOK: dict = {"mtime": None, "analysis": None}
 
@@ -120,6 +128,7 @@ def digest(request: Request) -> dict:
     plus the loaded book's diagnostic aggregates. Deterministic, no LLM.
     Discount/realization figures are percent 0-100, matching /exceptions.
     Scoped to the caller's tenant via X-Pricekeel-Customer (Finding 3)."""
+    from api import main  # deferred: see module docstring
     analysis = None
     try:
         if DEMO_CSV.exists():
@@ -130,10 +139,10 @@ def digest(request: Request) -> dict:
                     analysis=run(str(DEMO_CSV), policy_threshold=0.15),
                 )
             analysis = _DIGEST_BOOK["analysis"]
-    except Exception:  # noqa: BLE001 — digest must degrade, not 500
+    except Exception:  # noqa: BLE001  (digest must degrade, not 500)
         logger.warning("digest: book diagnostics unavailable", exc_info=True)
     result = governance_mod.build_digest(analysis=analysis, window_days=7,
-                                         customer=_customer_ref(request))
+                                         customer=main._customer_ref(request))
     # CONTRACT B: no per-tenant book is persisted yet, so the book-diagnostics
     # half above is always computed from the bundled demo CSV regardless of
     # tenant. Disclose that explicitly so a caller never mistakes these

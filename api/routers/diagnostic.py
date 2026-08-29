@@ -1,8 +1,8 @@
 """Diagnostic component: /demo, /diagnostic, /map-headers, /map-columns,
-/summary — the CSV/XLSX upload + AI-assisted mapping path.
+/summary: the CSV/XLSX upload + AI-assisted mapping path.
 
 `_read_capped` (the upload byte-cap backstop) is owned by the perimeter
-component and stays defined in api/main.py — see the note there. The import
+component and stays defined in api/main.py; see the note there. The import
 below is deferred to inside each endpoint (rather than at module load time)
 because api/main.py imports this router, so a module-level `from api import
 main` here would try to import a module that is still mid-import (main.py
@@ -23,7 +23,7 @@ from pydantic import BaseModel
 
 from pricing import assist, mapping
 from pricing.diagnostic import run
-from api.shared import DEMO_CSV, _diagnostic_payload
+from api.shared import DEMO_CSV, diagnostic_payload
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ router = APIRouter()
 @router.get("/demo")
 def demo(policy: float = 0.15) -> dict:
     """Diagnostic on the bundled synthetic dataset (for the demo UI)."""
-    return _diagnostic_payload(str(DEMO_CSV), policy)
+    return diagnostic_payload(str(DEMO_CSV), policy)
 
 
 def _read_upload(file: UploadFile, content: bytes, *, nrows: int | None = None) -> pd.DataFrame:
@@ -96,7 +96,7 @@ async def diagnostic(
         df.to_csv(tmp.name, index=False)
         path = tmp.name
     try:
-        return _diagnostic_payload(path, policy)
+        return diagnostic_payload(path, policy)
     finally:
         try:
             os.unlink(path)

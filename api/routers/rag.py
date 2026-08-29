@@ -1,4 +1,4 @@
-"""RAG component: /docs/upload, /ask — Ask-your-Pricekeel (Phase 3.0).
+"""RAG component: /docs/upload, /ask: Ask-your-Pricekeel (Phase 3.0).
 
 Docs + analysis + (optional) web RAG. `MAX_UPLOAD_BYTES`/`_read_capped` (the
 perimeter upload cap) stay owned by api/main.py; see that module's note.
@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from pricing import docs as docs_mod
 from pricing import rag as rag_mod
-from api.shared import DEMO_CSV, _diagnostic_payload
+from api.shared import DEMO_CSV, diagnostic_payload
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ _DOC_STORE_TTL_SECONDS = int(
 
 
 def _doc_store_expire_old(now: float | None = None) -> None:
-    """Drop sessions older than TTL. O(n) — fine at the cap of 500 sessions."""
+    """Drop sessions older than TTL. O(n), fine at the cap of 500 sessions."""
     now = now if now is not None else _time.time()
     cutoff = now - _DOC_STORE_TTL_SECONDS
     for sid in [s for s, (ts, _) in _DOC_STORE.items() if ts < cutoff]:
@@ -164,7 +164,7 @@ class AskReq(BaseModel):
 def ask_endpoint(req: AskReq) -> dict:
     """RAG over analysis + uploaded docs + (optional) web search."""
     chunks = _doc_store_get(req.session_id) if req.session_id else []
-    analysis = req.analysis if req.analysis is not None else _diagnostic_payload(
+    analysis = req.analysis if req.analysis is not None else diagnostic_payload(
         str(DEMO_CSV), 0.15,
     )
     ans = rag_mod.ask(req.question, analysis, chunks, use_web=req.use_web)

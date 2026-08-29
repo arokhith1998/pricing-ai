@@ -10,6 +10,13 @@ tests/test_crm.py's `monkeypatch.setattr(main.crm_mod, "selected_guidance",
 ...)` keeps working: it patches the shared pricing.crm module object, which
 is the same object this file calls through, so the patch is visible here
 regardless of which file the route handler lives in.
+
+`_customer_ref` (tenant scoping) is owned by the perimeter component and
+stays defined in api/main.py (see api/main.py's docstring). It is reached
+here via a deferred `from api import main` inside each endpoint, the same
+pattern api/routers/diagnostic.py uses for `_read_capped`, because a
+module-level import would try to import api.main while it is still
+mid-import (main.py imports this router).
 """
 
 from __future__ import annotations
@@ -19,8 +26,7 @@ from pydantic import BaseModel
 
 from pricing import crm as crm_mod
 from pricing import governance as governance_mod
-from api.routers.perimeter import _customer_ref
-from api.shared import _analysis_payload
+from api.shared import analysis_payload
 
 router = APIRouter()
 
@@ -46,7 +52,7 @@ def crm_analyze(req: CRMAnalyzeReq) -> dict:
     except crm_mod.CRMDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return {
-        "analysis": _analysis_payload(result["analysis"]),
+        "analysis": analysis_payload(result["analysis"]),
         "guidance": result["guidance"],
         "readiness": result["readiness"],
     }
@@ -87,6 +93,7 @@ def _normalized_actor(value: str) -> str:
 
 @router.post("/crm/workflow")
 def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
+    from api import main  # deferred: see module docstring
     event = req.event.strip().lower()
     if event not in _CRM_EVENTS:
         raise HTTPException(status_code=422, detail="Unsupported CRM workflow event.")
@@ -103,7 +110,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
             status_code=422,
             detail="outcome_recorded requires closed_won or closed_lost.",
         )
-    customer = _customer_ref(request)
+    customer = main._customer_ref(request)
     history = _crm_deal_history(customer, req.deal_id)
     previous_payload = (history[0].get("payload") or {}) if history else {}
     previous_event = str(previous_payload.get("event") or "")
@@ -253,7 +260,8 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     Only deals already present in the Pricekeel CRM workflow are eligible; a
     closed Opportunity that never had a decision is not silently added.
     """
-    customer = _customer_ref(request)
+    from api import main  # deferred: see module docstring
+    customer = main._customer_ref(request)
     added = []
     outcomes = [
         item for item in req.outcomes[:5000]
@@ -317,9 +325,10 @@ class CRMWritebackReq(BaseModel):
 @router.post("/crm/writeback")
 def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
     """Append the Salesforce Task attempt/result without mutating the decision."""
+    from api import main  # deferred: see module docstring
     if req.action_event not in {"flagged", "accepted", "override_requested", "approved", "rejected"}:
         raise HTTPException(status_code=422, detail="Unsupported writeback action event.")
-    customer = _customer_ref(request)
+    customer = main._customer_ref(request)
     history = _crm_deal_history(customer, req.deal_id)
     if not history:
         raise HTTPException(status_code=409, detail="Writeback requires a recorded decision.")
@@ -365,10 +374,11 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
 
 @router.get("/crm/workflow")
 def crm_workflow_log(request: Request, limit: int = 100) -> dict:
+    from api import main  # deferred: see module docstring
     rows = governance_mod.STORE.list(
         kind="exception",
         limit=max(1, min(int(limit), 200)),
-        customer_ref=_customer_ref(request),
+        customer_ref=main._customer_ref(request),
     )
     items = []
     for row in rows:
