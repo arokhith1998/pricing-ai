@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+// How long we wait, after a 200 from /api/lead, for the redirect to
+// /diagnostic (or `next`) to actually carry us off this page before we
+// stop trusting it and surface an error instead. See the note at the
+// `router.replace` call below for why a 200 does not guarantee an unlock.
+export const UNLOCK_TIMEOUT_MS = 2500;
 
 const ROLE_FUNCTIONS = [
   "Pricing",
@@ -76,8 +82,27 @@ export default function LeadForm({ next }: { next?: string } = {}) {
   const [consent, setConsent] = useState(false);
   // Honeypot for the server's bot check: humans never see this field, bots
   // that autofill every input do. The API silently drops submissions where
-  // it is non-empty.
+  // it is non-empty (see route.ts, which on purpose returns the exact same
+  // 200/{ok:true} a real success gets, so a bot cannot tell rejection from
+  // acceptance by status or body). We do NOT use `name="website"` on the
+  // input below: Chrome and password managers routinely fill a field named
+  // "website" with the page URL even with autoComplete="off", which trips
+  // this for real visitors. See the input for the mitigation.
   const [website, setWebsite] = useState("");
+
+  // True from the moment a 200 comes back from /api/lead until either this
+  // component unmounts (the redirect actually left the page) or the
+  // watchdog below fires. Lets us tell a genuine unlock from a submission
+  // that "succeeded" but never actually unlocked anything.
+  const mountedRef = useRef(true);
+  const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+      if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    },
+    [],
+  );
 
   // Capture UTM tags from the URL; the API stores them with the lead so
   // LinkedIn / blog / outbound attribution actually works. Derived from the
@@ -156,10 +181,25 @@ export default function LeadForm({ next }: { next?: string } = {}) {
       return;
     }
     if (res.ok) {
-      // The response has set the signed lead cookie. Move directly into the
-      // requested surface; a direct sample unlock defaults to Diagnostic so
-      // the visitor is never left wondering what changed on /sample.
+      // A 200 here does NOT guarantee the lead cookie is actually set: the
+      // honeypot path returns the identical response on purpose (see the
+      // `website` state above), and even a genuine save can succeed while
+      // the Set-Cookie is dropped by the browser (third-party cookie
+      // blocking, a broken proxy, etc). So we start the navigation but do
+      // not simply trust it. proxy.ts re-checks the cookie for /diagnostic
+      // and, if it is missing, redirects straight back to this same
+      // /sample page, which Next.js does not remount since we are already
+      // on it. Without a fallback that leaves `busy` stuck forever with no
+      // explanation. If we are still mounted after a beat, the
+      // unlock did not happen; say so and let the visitor try again.
       router.replace(next || "/diagnostic");
+      unlockTimerRef.current = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setBusy(false);
+        setError(
+          "That did not unlock. Please check that your browser allows cookies and try again.",
+        );
+      }, UNLOCK_TIMEOUT_MS);
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error || "Something went wrong.");
@@ -172,14 +212,20 @@ export default function LeadForm({ next }: { next?: string } = {}) {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      {/* Honeypot: visually hidden, removed from tab order and a11y tree. */}
+      {/* Honeypot: visually hidden, removed from tab order and a11y tree.
+          Deliberately not named/labelled anything a form-filler would read
+          as "website", "url", or "homepage": Chrome and password managers
+          autofill those from the page URL even with autoComplete="off",
+          which trips this for real visitors. autoComplete="new-password"
+          is the strongest signal browsers currently honor for "do not
+          autofill this field with saved data". */}
       <input
         type="text"
-        name="website"
+        name="pk-hp-token"
         value={website}
         onChange={(e) => setWebsite(e.target.value)}
         tabIndex={-1}
-        autoComplete="off"
+        autoComplete="new-password"
         aria-hidden="true"
         className="absolute -left-[9999px] h-0 w-0 opacity-0"
       />
