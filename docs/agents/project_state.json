@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-29T21:32:33Z",
+  "updated": "2026-08-30T18:28:43Z",
   "config": {
     "max_concurrent": 2
   },
@@ -372,12 +372,9 @@
       "id": "PK-10",
       "title": "Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/components/LeadForm.tsx",
-        "web/src/app/api/lead/route.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-10",
       "worktree": ".claude/worktrees/PK-10",
       "acceptance": [
@@ -391,13 +388,18 @@
         "required": [
           "web/test"
         ],
-        "ci_run": null
+        "ci_run": "33276328808"
       },
       "pr": 66,
-      "review": null,
+      "review": {
+        "verdict": "approve",
+        "by": "pk-lead",
+        "notes": "lead-verified: honeypot rename, watchdog cleanup, route byte-identical for bots",
+        "ts": "2026-08-29T23:46:19Z"
+      },
       "blocked_by": null,
       "created": "2026-08-29T21:18:00Z",
-      "updated": "2026-08-29T21:32:32Z",
+      "updated": "2026-08-29T23:46:20Z",
       "notes": [
         {
           "ts": "2026-08-29T21:18:02Z",
@@ -406,6 +408,63 @@
         {
           "ts": "2026-08-29T21:32:32Z",
           "note": "PR #66"
+        },
+        {
+          "ts": "2026-08-29T23:46:19Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-08-29T23:46:19Z",
+          "note": "CI run 33276328808"
+        },
+        {
+          "ts": "2026-08-29T23:46:20Z",
+          "note": "merged as ee43a6f, human-approved by adhithya (explicit: make it live)"
+        }
+      ],
+      "merge_commit": "ee43a6f",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: make it live)",
+        "ts": "2026-08-29T23:46:20Z"
+      }
+    },
+    {
+      "id": "PK-11",
+      "title": "Guidance asserts 'barely moves the odds of winning' without checking it",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "web/src/components/GuidanceClient.tsx"
+      ],
+      "branch": "agent/web-engineer/PK-11",
+      "worktree": ".claude/worktrees/PK-11",
+      "acceptance": [
+        "the barely-moves clause is computed from win_prob_at_rec vs win_prob_at_current, not implied by recommended<current",
+        "when the win-probability change exceeds the threshold the copy states the actual change instead",
+        "the sentence never contradicts the win-probability stat tile rendered below it",
+        "an audit of guidance and diagnostic copy lists every other claim asserted without being computed"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": null
+      },
+      "pr": 67,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-30T18:20:07Z",
+      "updated": "2026-08-30T18:28:43Z",
+      "notes": [
+        {
+          "ts": "2026-08-30T18:20:10Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-08-30T18:28:43Z",
+          "note": "PR #67"
         }
       ]
     }

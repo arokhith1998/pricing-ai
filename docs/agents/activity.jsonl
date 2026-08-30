@@ -39,3 +39,12 @@
 {"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #66"}
 {"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 33271704443"}
 {"ts": "2026-08-29T21:32:33Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 33274590015"}
+{"ts": "2026-08-29T23:46:19Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-08-29T23:46:19Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 33276328808"}
+{"ts": "2026-08-29T23:46:20Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as ee43a6f, human-approved by adhithya (explicit: make it live)"}
+{"ts": "2026-08-29T23:46:20Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-08-30T18:20:07Z", "event": "add", "task": "PK-11", "agent": "web-engineer", "detail": "Guidance asserts 'barely moves the odds of winning' without checking it"}
+{"ts": "2026-08-30T18:20:09Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-30T18:20:10Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-08-30T18:20:10Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-30T18:28:43Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #67"}

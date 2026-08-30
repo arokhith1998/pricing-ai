@@ -7,11 +7,11 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-08-29T21:32:33Z
+Updated: 2026-08-30T18:28:43Z
 
 ## REVIEW
-- **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
-  - owns: web/src/components/LeadForm.tsx, web/src/app/api/lead/route.ts
+- **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+  - owns: web/src/components/GuidanceClient.tsx
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
   - owns: web/src/components/FounderStrip.tsx, web/src/components/FounderCta.tsx, web/src/app/privacy, web/src/app/terms, web/src/app/trust, web/src/app/competitor-watch
 
@@ -34,3 +34,6 @@ Updated: 2026-08-29T21:32:33Z
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
   - owns: docs/agents/WORKFLOW.md
+
+## DONE
+- **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
