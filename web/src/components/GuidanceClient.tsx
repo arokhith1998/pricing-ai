@@ -160,6 +160,16 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
   );
 }
 
+// Below this many percentage points of change in win probability, the
+// headline sentence calls the move "barely" moving the odds. Chosen as a
+// materiality cut, not a statistical one: the confidence caveat below the
+// headline already tells the reader this model calibrates within a few
+// points of the actual win rate, so a 1-2 point shift reads as noise a
+// reasonable rep would not act on. Above the threshold the sentence must
+// name the actual change instead of describing it as negligible, since
+// that is exactly the deal where the tradeoff being made is real.
+export const WIN_PROB_BARELY_THRESHOLD_PTS = 2;
+
 function ConfidenceCaveat({ c }: { c: Confidence }) {
   return (
     <div className="mt-5 rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-slate">
@@ -209,6 +219,14 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
   }, [selected]);
 
   const lower = rec ? rec.recommended_discount < rec.current_discount : false;
+  // Percentage-point change in win probability, derived from the same
+  // rounded integers the stat tile below renders (pct0 of each probability),
+  // not from rounding the raw difference. Rounding the raw difference and
+  // rounding each tile value independently can disagree by a point, which is
+  // exactly the contradiction this component exists to prevent.
+  const recPts = rec ? Math.round(rec.win_prob_at_rec * 100) : 0;
+  const curPts = rec ? Math.round(rec.win_prob_at_current * 100) : 0;
+  const dWinPts = rec ? recPts - curPts : 0;
 
   return (
     <div className="space-y-6">
@@ -252,8 +270,27 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               </span>{" "}
               {lower ? (
                 <>
-                  from {pct0(rec.current_discount)}. That gives up less price while
-                  barely moving the odds of winning, for about{" "}
+                  from {pct0(rec.current_discount)}
+                  {!Number.isFinite(dWinPts) ? (
+                    <>
+                      . That changes the discount, for about{" "}
+                    </>
+                  ) : Math.abs(dWinPts) <= WIN_PROB_BARELY_THRESHOLD_PTS ? (
+                    <>
+                      . That gives up less price while barely moving the odds
+                      of winning, for about{" "}
+                    </>
+                  ) : dWinPts < 0 ? (
+                    <>
+                      , for a {Math.abs(dWinPts)} point drop in
+                      win probability, worth about{" "}
+                    </>
+                  ) : (
+                    <>
+                      , which also lifts the odds of winning by{" "}
+                      {dWinPts} points, for about{" "}
+                    </>
+                  )}
                   <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
                   more in expected value.
                 </>
