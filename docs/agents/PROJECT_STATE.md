@@ -6,16 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/2
-Updated: 2026-09-11T23:14:51Z
-
-## REWORK_REQUIRED
-- **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
-  - owns: web/src/components/GuidanceClient.tsx
+Active work: 0/2
+Updated: 2026-09-11T23:28:40Z
 
 ## APPROVED
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
   - owns: api/main.py
+- **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+  - owns: web/src/components/GuidanceClient.tsx
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
   - owns: pricing/assist.py, requirements.txt
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
@@ -23,6 +21,8 @@ Updated: 2026-09-11T23:14:51Z
 
 ## BACKLOG
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
+- **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
+- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
   - owns: tools/agentctl.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
