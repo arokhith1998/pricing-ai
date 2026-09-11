@@ -58,3 +58,17 @@
 {"ts": "2026-09-11T23:25:00Z", "event": "add", "task": "PK-14", "agent": "web-engineer", "detail": "Close the asserted-not-computed claims found by the PK-11 audit"}
 {"ts": "2026-09-11T23:28:40Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-09-11T23:28:40Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 34657865423"}
+{"ts": "2026-09-11T23:37:30Z", "event": "add", "task": "PK-15", "agent": "ai-engineer", "detail": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more"}
+{"ts": "2026-09-11T23:37:30Z", "event": "add", "task": "PK-16", "agent": "backend-engineer", "detail": "Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference"}
+{"ts": "2026-09-11T23:39:30Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as 8c52e7c, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:30Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:31Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 95aa3d6, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:32Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:32Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 885aa46, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:33Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:34Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as ca47c67, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:34Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:40:35Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:36Z", "event": "status", "task": "PK-7", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "BACKLOG -> READY"}

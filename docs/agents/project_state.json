@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-09-11T23:28:40Z",
+  "updated": "2026-09-11T23:40:37Z",
   "config": {
     "max_concurrent": 2
   },
@@ -11,11 +11,9 @@
       "id": "PK-1",
       "title": "Split api/main.py into routers",
       "agent": "backend-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "api/main.py"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-1",
       "worktree": ".claude/worktrees/PK-1",
       "acceptance": [
@@ -38,7 +36,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T18:51:41Z",
-      "updated": "2026-08-29T21:32:32Z",
+      "updated": "2026-09-11T23:39:30Z",
       "notes": [
         {
           "ts": "2026-08-29T19:13:07Z",
@@ -67,8 +65,18 @@
         {
           "ts": "2026-08-29T21:32:32Z",
           "note": "CI run 33271704443"
+        },
+        {
+          "ts": "2026-09-11T23:39:30Z",
+          "note": "merged as 8c52e7c, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
         }
-      ]
+      ],
+      "merge_commit": "8c52e7c",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:30Z"
+      }
     },
     {
       "id": "PK-2",
@@ -157,12 +165,9 @@
       "id": "PK-5",
       "title": "Make Anthropic the only LLM provider in the product runtime",
       "agent": "ai-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "pricing/assist.py",
-        "requirements.txt"
-      ],
+      "owns": [],
       "branch": "agent/ai-engineer/PK-5",
       "worktree": ".claude/worktrees/PK-5",
       "acceptance": [
@@ -190,7 +195,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T21:32:33Z",
+      "updated": "2026-09-11T23:39:32Z",
       "notes": [
         {
           "ts": "2026-08-29T20:02:12Z",
@@ -227,14 +232,24 @@
         {
           "ts": "2026-08-29T21:32:33Z",
           "note": "CI run 33274590015"
+        },
+        {
+          "ts": "2026-09-11T23:39:31Z",
+          "note": "merged as 95aa3d6, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
         }
-      ]
+      ],
+      "merge_commit": "95aa3d6",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:31Z"
+      }
     },
     {
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-5"
       ],
@@ -262,14 +277,14 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-08-29T20:02:03Z",
+      "updated": "2026-09-11T23:40:35Z",
       "notes": []
     },
     {
       "id": "PK-7",
       "title": "Declare openai as a dev-only dependency for the cross-model reviewer",
       "agent": "ai-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-5"
       ],
@@ -296,7 +311,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-08-29T20:20:28Z",
-      "updated": "2026-08-29T20:20:28Z",
+      "updated": "2026-09-11T23:40:36Z",
       "notes": []
     },
     {
@@ -329,16 +344,9 @@
       "id": "PK-9",
       "title": "Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/components/FounderStrip.tsx",
-        "web/src/components/FounderCta.tsx",
-        "web/src/app/privacy",
-        "web/src/app/terms",
-        "web/src/app/trust",
-        "web/src/app/competitor-watch"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-9",
       "worktree": ".claude/worktrees/PK-9",
       "acceptance": [
@@ -361,7 +369,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:43:12Z",
-      "updated": "2026-09-11T23:12:21Z",
+      "updated": "2026-09-11T23:39:33Z",
       "notes": [
         {
           "ts": "2026-08-29T20:43:13Z",
@@ -378,8 +386,18 @@
         {
           "ts": "2026-09-11T23:12:21Z",
           "note": "CI run 33274371933"
+        },
+        {
+          "ts": "2026-09-11T23:39:32Z",
+          "note": "merged as 885aa46, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
         }
-      ]
+      ],
+      "merge_commit": "885aa46",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:32Z"
+      }
     },
     {
       "id": "PK-10",
@@ -446,11 +464,9 @@
       "id": "PK-11",
       "title": "Guidance asserts 'barely moves the odds of winning' without checking it",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/components/GuidanceClient.tsx"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-11",
       "worktree": ".claude/worktrees/PK-11",
       "acceptance": [
@@ -474,7 +490,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-30T18:20:07Z",
-      "updated": "2026-09-11T23:28:40Z",
+      "updated": "2026-09-11T23:39:34Z",
       "notes": [
         {
           "ts": "2026-08-30T18:20:10Z",
@@ -499,14 +515,24 @@
         {
           "ts": "2026-09-11T23:28:40Z",
           "note": "CI run 34657865423"
+        },
+        {
+          "ts": "2026-09-11T23:39:34Z",
+          "note": "merged as ca47c67, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
         }
-      ]
+      ],
+      "merge_commit": "ca47c67",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:34Z"
+      }
     },
     {
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-9"
       ],
@@ -529,7 +555,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-09-11T23:12:34Z",
+      "updated": "2026-09-11T23:40:37Z",
       "notes": []
     },
     {
@@ -562,7 +588,7 @@
       "id": "PK-14",
       "title": "Close the asserted-not-computed claims found by the PK-11 audit",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-11"
       ],
@@ -586,7 +612,66 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:25:00Z",
-      "updated": "2026-09-11T23:25:00Z",
+      "updated": "2026-09-11T23:40:37Z",
+      "notes": []
+    },
+    {
+      "id": "PK-15",
+      "title": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "pricing/model.py trains LightGBM with monotone_constraints=+1 on discount_pct (0 on all other features) and monotone_constraints_method=advanced",
+        "for every deal in data/synthetic/deals.csv the /recommend curve is non-decreasing in discount; a test asserts this on a 300-deal sample",
+        "zero recommendations on the sample lower the discount while raising win_prob_at_rec above win_prob_at_current by more than 2 points; a test asserts this",
+        "holdout AUC stays within 0.03 of the unconstrained model on the sample (baseline 0.640; measured 0.619 with the constraint on 2026-09-11) and the model docstring states the constraint and why: discount is endogenous, high discounts mark deals already in trouble, so an unconstrained tree reads the marker as the cause",
+        "tests/test_model.py and tests/test_defended_vs_investigate.py pass; the /sample figures the landing page quotes (67.1M, 11.2M, 81.4%, 60.8%) are unchanged because the diagnostic does not use the model"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_model.py",
+          "tests/test_api_perimeter.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-09-11T23:37:29Z",
+      "updated": "2026-09-11T23:37:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-16",
+      "title": "Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "_opp_over_discounted_slices in pricing/copilot.py measures each slice against a reference consistent with the headline leakage figure (segment-aware, or the slice's own win point when it has >= 100 deals and >= 3 bands), and the evidence line names which reference was used",
+        "the whole-book, business-unit, and product-line opportunities no longer sum to more than the headline excess-vs-segment-reference figure, or the caveat states that slices overlap the whole-book figure and are not additive",
+        "the defended opportunity's revenue_impact_usd is not booked ACV; it is either 0 with the booked value in evidence, or the field is renamed so the UI cannot present defended value as upside",
+        "no em dashes in any user-facing string in pricing/copilot.py or pricing/diagnostic.py (repo rule); use commas, periods, colons",
+        "tests/test_copilot.py pins the slice reference choice and the non-additivity caveat"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-09-11T23:37:30Z",
+      "updated": "2026-09-11T23:37:30Z",
       "notes": []
     }
   ]

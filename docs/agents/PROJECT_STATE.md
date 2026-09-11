@@ -7,34 +7,32 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-09-11T23:28:40Z
+Updated: 2026-09-11T23:40:37Z
 
-## APPROVED
-- **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
-  - owns: api/main.py
-- **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
-  - owns: web/src/components/GuidanceClient.tsx
-- **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
-  - owns: pricing/assist.py, requirements.txt
-- **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
-  - owns: web/src/components/FounderStrip.tsx, web/src/components/FounderCta.tsx, web/src/app/privacy, web/src/app/terms, web/src/app/trust, web/src/app/competitor-watch
+## READY
+- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
+- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
+- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
+- **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
+  - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 
 ## BACKLOG
-- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
-- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
+- **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer)
+- **PK-16** Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference  (backend-engineer)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
   - owns: tools/agentctl.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)
   - owns: docs/agents/TASKS.md
-- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
-  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
-- **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
-  - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
   - owns: docs/agents/WORKFLOW.md
 
 ## DONE
+- **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
+- **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+- **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
+- **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
