@@ -3,12 +3,14 @@
 // PK-11: the headline sentence on the guidance page hardcoded "barely
 // moving the odds of winning" for every discount-lowering recommendation
 // without checking win_prob_at_current / win_prob_at_rec, which are
-// rendered in the stat tile directly below it. On about 2% of deals the
-// odds move by more than a rounding error and the sentence contradicted
-// the number on screen. These tests render the real component (not a
-// pure-function extraction of the copy logic) because the acceptance bar
-// is "the sentence must never contradict the stat tile below it" -- that
-// is only actually checked by asserting on both together.
+// rendered in the stat tile directly below it. Beyond WIN_PROB_BARELY_
+// THRESHOLD_PTS (a 2-point move) the sentence must name the actual change
+// instead of calling it negligible. A second bug let the headline round the
+// raw difference while the stat tile rounded each probability independently,
+// so the two could disagree by a point. These tests render the real
+// component (not a pure-function extraction of the copy logic) because the
+// acceptance bar is "the sentence must never contradict the stat tile below
+// it" -- that is only actually checked by asserting on both together.
 //
 // Written as plain React.createElement calls (no JSX) so this file can
 // stay a .ts file and does not need to touch vitest.config.mts's test-file
@@ -17,7 +19,7 @@ import { createElement } from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import GuidanceClient from "@/components/GuidanceClient";
+import GuidanceClient, { WIN_PROB_BARELY_THRESHOLD_PTS } from "@/components/GuidanceClient";
 import type { Deal, Recommendation } from "@/lib/api";
 
 const deal: Deal = {
@@ -76,12 +78,14 @@ describe("GuidanceClient headline vs. the win-probability stat tile", () => {
     vi.unstubAllGlobals();
   });
 
-  it("calls it 'barely moving the odds' only when the change is at or below the threshold (1 point)", async () => {
+  it(`calls it 'barely moving the odds' only when the change is at or below the threshold (${WIN_PROB_BARELY_THRESHOLD_PTS} points)`, async () => {
+    const winProbAtCurrent = 0.3;
+    const winProbAtRec = winProbAtCurrent - WIN_PROB_BARELY_THRESHOLD_PTS / 100; // exactly at the threshold
     const rec = makeRecommendation({
       current_discount: 0.14,
       recommended_discount: 0.04,
-      win_prob_at_current: 0.3,
-      win_prob_at_rec: 0.29, // -1 point, within WIN_PROB_BARELY_THRESHOLD_PTS
+      win_prob_at_current: winProbAtCurrent,
+      win_prob_at_rec: winProbAtRec,
     });
     await renderWithRecommendation(rec);
 
@@ -90,8 +94,27 @@ describe("GuidanceClient headline vs. the win-probability stat tile", () => {
 
     // Consistency check against the stat tile: both numbers it renders
     // must be the exact values the headline's claim was checked against.
-    screen.getByText(/29%/);
+    screen.getByText(/28%/);
     screen.getByText(/was 30% at the current discount/i);
+  });
+
+  it("computes the headline delta from the same rounded percentages the stat tile shows, not the raw difference (0.344 -> 0.318)", async () => {
+    // Pre-fix, Math.round((0.318 - 0.344) * 100) = -3, so the headline said
+    // "3 point drop" while the tile (independently rounded) showed 34% -> 32%,
+    // a 2-point move. Deriving the headline from the same rounded integers
+    // the tile renders makes the two agree by construction.
+    const rec = makeRecommendation({
+      current_discount: 0.14,
+      recommended_discount: 0.04,
+      win_prob_at_current: 0.344,
+      win_prob_at_rec: 0.318,
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/32%/);
+    screen.getByText(/was 34% at the current discount/i);
+    screen.getByText(/barely moving the odds of winning/i);
+    expect(screen.queryByText(/point drop in win probability/i)).toBeNull();
   });
 
   it("states the actual drop instead of 'barely' once win probability falls more than the threshold", async () => {
@@ -109,6 +132,50 @@ describe("GuidanceClient headline vs. the win-probability stat tile", () => {
     // The stat tile the headline must not contradict.
     screen.getByText(/33%/);
     screen.getByText(/was 40% at the current discount/i);
+  });
+
+  it("names the actual rise in win probability when a lowering recommendation still improves the odds", async () => {
+    const rec = makeRecommendation({
+      current_discount: 0.14,
+      recommended_discount: 0.04,
+      win_prob_at_current: 0.3,
+      win_prob_at_rec: 0.37, // discount goes down, win probability goes up
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/lifts the odds of winning by 7 points/i);
+    expect(screen.queryByText(/barely moving the odds of winning/i)).toBeNull();
+    expect(screen.queryByText(/point drop in win probability/i)).toBeNull();
+
+    // The stat tile the headline must not contradict.
+    screen.getByText(/37%/);
+    screen.getByText(/was 30% at the current discount/i);
+  });
+
+  it("falls back to claim-free wording instead of guessing when the win-probability delta is not finite", async () => {
+    const rec = makeRecommendation({
+      current_discount: 0.14,
+      recommended_discount: 0.04,
+      win_prob_at_current: 0.3,
+    });
+    // Simulates a malformed API response missing win_prob_at_rec. Built by
+    // hand rather than via JSON.stringify(rec) with win_prob_at_rec set to
+    // NaN: JSON has no NaN literal, so JSON.stringify silently coerces NaN
+    // (and Infinity) to null, which then coerces to 0 in arithmetic instead
+    // of staying non-finite, defeating the point of this test.
+    const payload: Record<string, unknown> = { ...rec };
+    delete payload.win_prob_at_rec;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
+    );
+    render(createElement(GuidanceClient, { deals: [deal] }));
+    await waitFor(() => screen.getByText(/model suggests/i));
+
+    screen.getByText(/that changes the discount, for about/i);
+    expect(screen.queryByText(/barely moving the odds of winning/i)).toBeNull();
+    expect(screen.queryByText(/point drop in win probability/i)).toBeNull();
+    expect(screen.queryByText(/lifts the odds of winning/i)).toBeNull();
   });
 
   it("does not claim a discount was lowered, or say anything about win odds, when the recommendation raises it", async () => {

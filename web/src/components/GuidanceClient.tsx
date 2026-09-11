@@ -219,10 +219,14 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
   }, [selected]);
 
   const lower = rec ? rec.recommended_discount < rec.current_discount : false;
-  // Percentage-point change in win probability, computed (not asserted) so
-  // the headline sentence can never say something the stat tile below it
-  // contradicts.
-  const dWinPts = rec ? (rec.win_prob_at_rec - rec.win_prob_at_current) * 100 : 0;
+  // Percentage-point change in win probability, derived from the same
+  // rounded integers the stat tile below renders (pct0 of each probability),
+  // not from rounding the raw difference. Rounding the raw difference and
+  // rounding each tile value independently can disagree by a point, which is
+  // exactly the contradiction this component exists to prevent.
+  const recPts = rec ? Math.round(rec.win_prob_at_rec * 100) : 0;
+  const curPts = rec ? Math.round(rec.win_prob_at_current * 100) : 0;
+  const dWinPts = rec ? recPts - curPts : 0;
 
   return (
     <div className="space-y-6">
@@ -267,20 +271,24 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               {lower ? (
                 <>
                   from {pct0(rec.current_discount)}
-                  {Math.abs(dWinPts) <= WIN_PROB_BARELY_THRESHOLD_PTS ? (
+                  {!Number.isFinite(dWinPts) ? (
+                    <>
+                      . That changes the discount, for about{" "}
+                    </>
+                  ) : Math.abs(dWinPts) <= WIN_PROB_BARELY_THRESHOLD_PTS ? (
                     <>
                       . That gives up less price while barely moving the odds
                       of winning, for about{" "}
                     </>
                   ) : dWinPts < 0 ? (
                     <>
-                      , for a {Math.round(Math.abs(dWinPts))} point drop in
+                      , for a {Math.abs(dWinPts)} point drop in
                       win probability, worth about{" "}
                     </>
                   ) : (
                     <>
                       , which also lifts the odds of winning by{" "}
-                      {Math.round(dWinPts)} points, for about{" "}
+                      {dWinPts} points, for about{" "}
                     </>
                   )}
                   <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
