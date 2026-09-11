@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-08-30T18:28:43Z",
+  "updated": "2026-09-11T23:14:51Z",
   "config": {
     "max_concurrent": 2
   },
@@ -329,7 +329,7 @@
       "id": "PK-9",
       "title": "Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "web/src/components/FounderStrip.tsx",
@@ -350,13 +350,18 @@
       ],
       "tests": {
         "required": [],
-        "ci_run": null
+        "ci_run": "33274371933"
       },
       "pr": 65,
-      "review": null,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "AC1-5 verified: FounderCta deleted with no importers, retracted 626M/1200+ figures gone, credential line matches AC verbatim, seven path-as-link-text anchors fixed with hrefs byte-identical, no em dashes. Nits: competitor-watch:181 'operator's terms (see our Terms)' ambiguity; follow-ups outside owned paths: founder-action-checklist.md:97 stale, seed-deck-outline.md:98 credential mismatch",
+        "ts": "2026-09-11T23:12:20Z"
+      },
       "blocked_by": null,
       "created": "2026-08-29T20:43:12Z",
-      "updated": "2026-08-29T20:47:25Z",
+      "updated": "2026-09-11T23:12:21Z",
       "notes": [
         {
           "ts": "2026-08-29T20:43:13Z",
@@ -365,6 +370,14 @@
         {
           "ts": "2026-08-29T20:47:25Z",
           "note": "PR #65"
+        },
+        {
+          "ts": "2026-09-11T23:12:20Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-09-11T23:12:21Z",
+          "note": "CI run 33274371933"
         }
       ]
     },
@@ -433,7 +446,7 @@
       "id": "PK-11",
       "title": "Guidance asserts 'barely moves the odds of winning' without checking it",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [],
       "owns": [
         "web/src/components/GuidanceClient.tsx"
@@ -453,10 +466,15 @@
         "ci_run": null
       },
       "pr": 67,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "BLOCKER: dWinPts rounds the raw difference while the stat tile rounds each pct independently, so the headline disagrees with the tile in ~24% of cases (e.g. 0.344->0.318 says 3 pts, tile shows 34%->32%). MAJOR: AC4 audit lists no other uncomputed claims; three found (GuidanceClient:75 'won and lost', diagnostic/page.tsx:211 'climbs then flattens', GuidanceClient:286 'more in expected value' vs coral negative-uplift accent). MINOR: threshold applied pre-rounding; NaN falls into the optimistic branch; rise branch untested; test file outside owns; exported unused constant; imprecise test header.",
+        "ts": "2026-09-11T23:14:51Z"
+      },
       "blocked_by": null,
       "created": "2026-08-30T18:20:07Z",
-      "updated": "2026-08-30T18:28:43Z",
+      "updated": "2026-09-11T23:14:51Z",
       "notes": [
         {
           "ts": "2026-08-30T18:20:10Z",
@@ -465,8 +483,42 @@
         {
           "ts": "2026-08-30T18:28:43Z",
           "note": "PR #67"
+        },
+        {
+          "ts": "2026-09-11T23:14:51Z",
+          "note": "review rejected: BLOCKER: dWinPts rounds the raw difference while the stat tile rounds each pct independently, so the headline disagrees with the tile in ~24% of cases (e.g. 0.344->0.318 says 3 pts, tile shows 34%->32%). MAJOR: AC4 audit lists no other uncomputed claims; three found (GuidanceClient:75 'won and lost', diagnostic/page.tsx:211 'climbs then flattens', GuidanceClient:286 'more in expected value' vs coral negative-uplift accent). MINOR: threshold applied pre-rounding; NaN falls into the optimistic branch; rise branch untested; test file outside owns; exported unused constant; imprecise test header."
         }
       ]
+    },
+    {
+      "id": "PK-12",
+      "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-9"
+      ],
+      "owns": [],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "competitor-watch/page.tsx:181 no longer reads as if the operator's terms are Pricekeel's",
+        "docs/reviews/founder-action-checklist.md:97 no longer claims FounderCta.tsx exists",
+        "vault/GTM/seed-deck-outline.md:98 credential matches the site: M.S. Marketing Analytics (pricing), Simon Business School",
+        "no em dashes in any changed line"
+      ],
+      "tests": {
+        "required": [
+          "web: npm test, npx eslint, npx tsc --noEmit, npm run build"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-09-11T23:12:34Z",
+      "updated": "2026-09-11T23:12:34Z",
+      "notes": []
     }
   ]
 }
