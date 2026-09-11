@@ -8,12 +8,17 @@ library/version drift without being meaningless.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from pricing import model
 from pricing.generate import generate
 from pricing.ingest import ingest
+
+ROOT = Path(__file__).resolve().parents[1]
+DEALS_CSV = ROOT / "data" / "synthetic" / "deals.csv"
 
 
 @pytest.fixture(scope="module")
@@ -24,9 +29,30 @@ def trained(tmp_path_factory):
     return df, model.train(df)
 
 
+@pytest.fixture(scope="module")
+def trained_on_deals_csv():
+    """Train once on the real synthetic deals fixture (not the generator),
+    so the monotone-constraint evals below run against the exact data the
+    2026-09-11 measurement (100% declining curves, 151/300 inverted recs) was
+    taken on.
+    """
+    df = ingest(DEALS_CSV)
+    return df, model.train(df)
+
+
+@pytest.fixture(scope="module")
+def sample_300(trained_on_deals_csv):
+    df, tm = trained_on_deals_csv
+    sample = df.sample(n=min(300, len(df)), random_state=7)
+    return df, tm, sample
+
+
 def test_auc_clears_floor(trained):
     _df, tm = trained
-    # observed ~0.64; floor well below to tolerate drift but reject a coin flip
+    # Baseline measured 2026-09-11 on data/synthetic/deals.csv: 0.640
+    # unconstrained, 0.619 with the discount_pct monotone constraint (see
+    # test_holdout_auc_within_floor_with_constraint below). This floor stays
+    # well under both so ordinary drift does not flake the suite.
     assert tm.metrics["auc"] > 0.60
 
 
@@ -121,3 +147,80 @@ def test_recommend_discount_maximizes_expected_acv(trained):
     curve = rec["curve"]
     assert rec["expected_acv_at_rec"] >= curve["expected_acv"].iloc[-1] - 1e-6
     assert rec["expected_acv_at_rec"] == pytest.approx(curve["expected_acv"].max())
+
+
+# -- PK-15: discount_pct monotone constraint -------------------------------
+#
+# Finding (measured 2026-09-11, 300-deal sample of data/synthetic/deals.csv,
+# unconstrained model): 100% of /recommend win-probability curves decline
+# somewhere, 90% swing more than 30 points peak-to-trough, and 151/300 (50%)
+# of recommendations lowered the discount while claiming win probability rose
+# by more than 2 points (e.g. OPP-00280: 40% -> 11%, P(win) 31% -> 74%). Root
+# cause: discount is endogenous (reps discount more on deals already in
+# trouble), so an unconstrained tree reads the marker as the cause.
+#
+# Fix: monotone_constraints=+1 on discount_pct (0 elsewhere),
+# monotone_constraints_method="advanced". With the constraint: 0 declining
+# curves, 0 inverted recommendations, holdout AUC moves 0.640 -> 0.619, and
+# OPP-00280 becomes 40% -> 10% with P(win) 42% -> 40%, the true leakage story.
+
+
+def test_recommend_curves_are_non_decreasing_in_discount(sample_300):
+    """Every /recommend win-probability curve must never fall as discount
+    rises. Tolerance 1e-9 allows float roundoff only, not a real decline."""
+    df, tm, sample = sample_300
+    for idx in sample.index:
+        X_row = tm.X_all.loc[[idx]]
+        rec = model.recommend_discount(tm, X_row, float(df.loc[idx, "list_acv"]))
+        win_prob = rec["curve"]["win_prob"].to_numpy()
+        diffs = np.diff(win_prob)
+        assert diffs.min() >= -1e-9, (
+            f"{df.loc[idx, 'opportunity_id']}: win_prob declined by "
+            f"{-diffs.min():.4f} somewhere on the discount grid"
+        )
+
+
+def test_no_recommendation_lowers_discount_while_raising_win_prob(sample_300):
+    """Zero recommendations may lower the discount by more than 0.5 points
+    while claiming win_prob_at_rec beats the curve's win prob at the
+    deal's current discount by more than 2 points (0.02). That inversion is
+    exactly the leakage-flavored guidance PK-15 exists to kill."""
+    df, tm, sample = sample_300
+    violations = []
+    for idx in sample.index:
+        X_row = tm.X_all.loc[[idx]]
+        rec = model.recommend_discount(tm, X_row, float(df.loc[idx, "list_acv"]))
+        curve = rec["curve"]
+        cur_i = int((curve["discount"] - rec["current_discount"]).abs().idxmin())
+        win_prob_at_current = float(curve["win_prob"].iloc[cur_i])
+        lowered_by = rec["current_discount"] - rec["recommended_discount"]
+        raised_by = rec["win_prob_at_rec"] - win_prob_at_current
+        if lowered_by > 0.005 and raised_by > 0.02:
+            violations.append((df.loc[idx, "opportunity_id"], lowered_by, raised_by))
+    assert violations == []
+
+
+def test_holdout_auc_within_floor_with_constraint(trained_on_deals_csv):
+    """AUC floor on the real deals.csv split, not a pin. Baseline measured
+    2026-09-11: 0.640 unconstrained, 0.619 with the discount_pct monotone
+    constraint (advanced method). 0.60 is a floor well under both so routine
+    library or data drift does not flake this suite; it still rejects a
+    model that has collapsed to a coin flip."""
+    _df, tm = trained_on_deals_csv
+    assert tm.metrics["auc"] >= 0.60
+
+
+def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
+    """The trained booster's own params, not just the Python call site, carry
+    +1 on discount_pct and 0 everywhere else, using the position derived from
+    the prepared feature order (never a hardcoded index)."""
+    _df, tm = trained_on_deals_csv
+    params = tm.model.booster_.params
+    assert params.get("monotone_constraints_method") == "advanced"
+    constraints = params.get("monotone_constraints")
+    assert constraints is not None
+    assert len(constraints) == len(tm.features)
+    expected = [1 if f == "discount_pct" else 0 for f in tm.features]
+    assert constraints == expected
+    assert constraints[tm.features.index("discount_pct")] == 1
+    assert sum(constraints) == 1

@@ -14,9 +14,24 @@ Design choices:
     (`predict(pred_contrib=True)`) — no extra `shap` dependency, exact for the
     tree, and the foundation for per-deal "why" in enterprise (explainability >
     accuracy).
+  * `discount_pct` carries a monotone constraint of +1 (0 on every other
+    feature), with `monotone_constraints_method="advanced"`. Discount is
+    endogenous: reps discount harder on deals already in trouble, so an
+    unconstrained tree learns "high discount" as a marker of a losing deal and
+    reports P(win) falling as discount rises, for every deal, on every curve.
+    That is a correlation read as a cause. The constraint forces the model to
+    treat a larger discount as never hurting the deal's own odds, which is the
+    only causally defensible direction here: it costs AUC (holdout moves from
+    0.640 unconstrained to 0.619 constrained, measured 2026-09-11 on
+    data/synthetic/deals.csv) in exchange for a win curve that cannot invert
+    itself.
   * Discount guidance maximizes expected ACV = P(win | discount) x list x
     (1 - discount). Because the win curve saturates, the optimum sits where the
-    marginal win gain stops covering the marginal price given away.
+    marginal win gain stops covering the marginal price given away: with the
+    constraint, that gain is always non-negative, so the optimum is the
+    smallest discount whose win-probability gain still buys back more revenue
+    than the price given away, not an artifact of a curve that dips and
+    recovers.
 
 CLI:  python -m pricing.model data/synthetic/deals.csv
 """
@@ -90,7 +105,12 @@ def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedMo
     X_tr, X_te, y_tr, y_te = train_test_split(
         X, y, test_size=test_size, random_state=seed, stratify=y)
 
-    clf = LGBMClassifier(**_PARAMS)
+    # +1 on discount_pct, 0 elsewhere, derived from the actual prepared column
+    # order so the constraint never drifts out of sync with the feature list.
+    monotone = [1 if col == "discount_pct" else 0 for col in X.columns]
+    params = dict(_PARAMS, monotone_constraints=monotone,
+                  monotone_constraints_method="advanced")
+    clf = LGBMClassifier(**params)
     clf.fit(X_tr, y_tr, categorical_feature=cat)
 
     p_te = clf.predict_proba(X_te)[:, 1]
