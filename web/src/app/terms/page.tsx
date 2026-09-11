@@ -91,7 +91,7 @@ export default function TermsPage() {
           Pricekeel does not use Customer Data to train any model and does not
           sell or share Customer Data with third parties for their own
           purposes, except subprocessors necessary to provide the Service
-          (listed at <a className="text-teal underline" href="/subprocessors">/subprocessors</a>).
+          (listed on our <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>).
         </p>
         <p>
           Row-level deal data uploaded to the diagnostic is processed in

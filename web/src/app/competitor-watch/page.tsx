@@ -178,7 +178,7 @@ export default function CompetitorWatchPage() {
           Public pages are fetched with <code>robots.txt</code> and SSRF
           controls enforced. By submitting a URL you warrant that you have the
           right to query it under the operator&rsquo;s terms (see{" "}
-          <a href="/terms" className="underline hover:text-fg">/terms</a>).
+          <a href="/terms" className="underline hover:text-fg">our Terms</a>).
           Extraction is AI-assisted and qualitative; competitor claims never
           alter the numerical discount guardrail.
         </p>

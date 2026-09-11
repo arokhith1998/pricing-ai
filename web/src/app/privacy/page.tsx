@@ -46,10 +46,10 @@ export default function PrivacyPage() {
         <span className="text-fg">{ENTITY_DESCRIPTION}</span>{" "}
         (&ldquo;we&rdquo;) collects, why, and
         what we do with it. We keep data collection to the minimum needed to
-        run the product, and we publish the full subprocessor list at{" "}
-        <a className="text-teal underline" href="/subprocessors">/subprocessors</a>{" "}
-        and the security posture at{" "}
-        <a className="text-teal underline" href="/trust">/trust</a>.
+        run the product, and we publish the full subprocessor list on our{" "}
+        <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
+        and the security posture on our{" "}
+        <a className="text-teal underline" href="/trust">Trust page</a>.
       </p>
 
       <Section id="categories" title="What we collect and why">
@@ -173,8 +173,8 @@ export default function PrivacyPage() {
         <p>
           We use a small set of subprocessors (hosting, database, LLM
           provider, email host, DNS). The full current list with regions
-          and DPA links is at{" "}
-          <a className="text-teal underline" href="/subprocessors">/subprocessors</a>.
+          and DPA links is on our{" "}
+          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>.
           They process data only on our instructions and only to provide
           their service to us.
         </p>
@@ -267,8 +267,8 @@ export default function PrivacyPage() {
           AES-256-GCM encryption layer before database storage.
           Multi-factor authentication enforced on every admin account.
           Change management via GitHub pull requests with CI. Point-in-time
-          database restore history. The full security posture is at{" "}
-          <a className="text-teal underline" href="/trust">/trust</a>.
+          database restore history. The full security posture is on our{" "}
+          <a className="text-teal underline" href="/trust">Trust page</a>.
         </p>
       </Section>
 
