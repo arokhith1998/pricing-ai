@@ -48,12 +48,16 @@ OUT_DIR.mkdir(exist_ok=True)
 # Images embed as data URIs: render_pdf uses set_content, so a relative src
 # would never resolve and the slide would print an empty box.
 def _img(name: str) -> str:
+    """Embed an asset as a data URI. Screenshots ship as JPEG: the same panel as
+    PNG roughly tripled the PDF, and the intake upload endpoint is size
+    sensitive."""
     path = ASSETS / name
     if not path.exists():
         print(f"  WARNING: missing asset {path.name}, slide will render without it")
         return ""
+    mime = "image/jpeg" if path.suffix.lower() in (".jpg", ".jpeg") else "image/png"
     b64 = base64.b64encode(path.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{b64}"
+    return f"data:{mime};base64,{b64}"
 
 
 DECK_CSS = INVESTOR_CSS + """
@@ -258,7 +262,7 @@ def deck_html() -> str:
     slides.append(("Product, live", f"""
       <h2 class="section">This is the product, running. <span class="slate" style="font-weight:600;">Not a mockup.</span></h2>
       <div class="shot-wrap narrow">
-        <img class="shot" src="{_img('product-recommendation.png')}" alt="Pricekeel guidance surface"/>
+        <img class="shot" src="{_img('product-recommendation.jpg')}" alt="Pricekeel guidance surface"/>
       </div>
       <div class="caption">
         The guidance surface on the bundled synthetic book. The recommendation names the deal,
@@ -272,7 +276,7 @@ def deck_html() -> str:
     slides.append(("Explainability", f"""
       <h2 class="section">The explanation is the deliverable. <span class="slate" style="font-weight:600;">Accuracy is not the moat.</span></h2>
       <div class="shot-wrap short">
-        <img class="shot" src="{_img('product-evidence.png')}" alt="Comparable deals and win rate by discount band"/>
+        <img class="shot" src="{_img('product-evidence.jpg')}" alt="Comparable deals and win rate by discount band"/>
       </div>
       <div class="two-col" style="margin-top:5mm;">
         <div class="flag good">
