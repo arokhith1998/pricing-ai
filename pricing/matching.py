@@ -276,6 +276,47 @@ _CONTEXT_SYSTEM = (
     "strategy that the source does not state."
 )
 
+# JSON Schema for _complete(json_mode=True, json_schema=...) below. Anthropic's
+# structured-outputs subset does not accept a JSON Schema type array (see
+# pricing/assist.py's _json_output_config docstring and PK-5's review); every
+# nullable field here uses the anyOf form instead. Shaped to exactly what
+# extract_competitor_context reads out of `parsed` after this call, not to
+# what the prompt above asks for — every property is required at the object
+# level so the model always includes the key (a value can still be null),
+# consistent with pricing/assist.py's map_columns schema. `confidence` is
+# constrained to an enum (both here and per-claim below) rather than left as
+# a free string: the code silently rewrites any other value to "medium",
+# and per the explainability convention a silent, untraceable rewrite is
+# exactly what to remove when the schema can enforce it up front instead.
+# The normalization at :340/:350 stays as a backstop for values that predate
+# this schema or a provider that doesn't honor it.
+_CONFIDENCE = {"anyOf": [
+    {"type": "string", "enum": ["high", "medium", "low"]}, {"type": "null"},
+]}
+
+_CONTEXT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "confidence": _CONFIDENCE,
+        "claims": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "claim": {"type": "string"},
+                    "confidence": _CONFIDENCE,
+                    "evidence_excerpt": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["claim", "confidence", "evidence_excerpt"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary", "confidence", "claims"],
+    "additionalProperties": False,
+}
+
 
 def extract_competitor_context(url: str, *, competitor_name: str = "",
                                source_type: str = "other") -> dict:
@@ -299,6 +340,7 @@ def extract_competitor_context(url: str, *, competitor_name: str = "",
     })
     raw = assist._complete(  # noqa: SLF001 - shared provider boundary
         _CONTEXT_SYSTEM, user, json_mode=True, small=True, max_tokens=900,
+        json_schema=_CONTEXT_SCHEMA,
     )
     try:
         parsed = json.loads(raw)
@@ -354,7 +396,7 @@ JSON schema:
       "name": "string — plan name as written on the page",
       "price_monthly": number or null,
       "price_unit": "string — 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
-      "billed_annually": boolean,
+      "billed_annually": boolean or null,
       "included_usage": "string — e.g. '100K events / mo', '1 TB', 'unlimited'",
       "features": ["string", "string", "..."],
       "notes": "string — any caveats, 'contact sales' flag, etc."
@@ -365,9 +407,48 @@ JSON schema:
 Rules:
 - If the page lists 'Contact us' instead of a price, set price_monthly=null and notes='custom pricing'.
 - Convert annual prices to monthly equivalent if both stated.
+- If the page never states a billing cadence for a plan, set billed_annually=null — do not guess.
 - Keep features short (≤ 8 words each). Aim for the high-signal product features, not boilerplate.
 - Return between 0 and 8 plans. If you cannot identify plans confidently, return an empty list.
 """
+
+# JSON Schema for _complete(json_mode=True, json_schema=...) below (see
+# _CONTEXT_SCHEMA above for why anyOf, not a type array, is used for every
+# nullable field). Shaped to exactly what extract_plans_from_text reads out
+# of `data` and passes into Plan(...): name, price_monthly, price_unit,
+# billed_annually, included_usage, features, notes.
+_EXTRACT_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "vendor": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "plans": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "price_monthly": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+                    "price_unit": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    # Nullable, not a plain boolean: under constrained
+                    # decoding a required non-nullable boolean forces the
+                    # model to guess true/false even when the page never
+                    # states a cadence, and that guess becomes a structured
+                    # competitor pricing "fact". Downstream already tolerates
+                    # null (bool(p.get("billed_annually") or False)).
+                    "billed_annually": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+                    "included_usage": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "features": {"type": "array", "items": {"type": "string"}},
+                    "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["name", "price_monthly", "price_unit", "billed_annually",
+                             "included_usage", "features", "notes"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["vendor", "plans"],
+    "additionalProperties": False,
+}
 
 
 def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
@@ -390,6 +471,7 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         # above: the mini model is proven sufficient, so don't pay for gpt-4o here.
         raw = assist._complete(
             _EXTRACT_SYSTEM, user, json_mode=True, max_tokens=1500, small=True,
+            json_schema=_EXTRACT_JSON_SCHEMA,
         )
         data = json.loads(raw)
     except Exception:  # noqa: BLE001
