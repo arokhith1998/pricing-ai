@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-09-11T23:40:37Z",
+  "updated": "2026-09-11T23:59:15Z",
   "config": {
     "max_concurrent": 2
   },
@@ -619,11 +619,14 @@
       "id": "PK-15",
       "title": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more",
       "agent": "ai-engineer",
-      "status": "BACKLOG",
+      "status": "REVIEW",
       "dependencies": [],
-      "owns": [],
-      "branch": null,
-      "worktree": null,
+      "owns": [
+        "pricing/model.py",
+        "tests/test_model.py"
+      ],
+      "branch": "agent/ai-engineer/PK-15",
+      "worktree": ".claude/worktrees/PK-15",
       "acceptance": [
         "pricing/model.py trains LightGBM with monotone_constraints=+1 on discount_pct (0 on all other features) and monotone_constraints_method=advanced",
         "for every deal in data/synthetic/deals.csv the /recommend curve is non-decreasing in discount; a test asserts this on a 300-deal sample",
@@ -638,12 +641,21 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 68,
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:37:29Z",
-      "updated": "2026-09-11T23:37:29Z",
-      "notes": []
+      "updated": "2026-09-11T23:59:15Z",
+      "notes": [
+        {
+          "ts": "2026-09-11T23:53:23Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-09-11T23:59:15Z",
+          "note": "PR #68"
+        }
+      ]
     },
     {
       "id": "PK-16",

@@ -72,3 +72,7 @@
 {"ts": "2026-09-11T23:40:36Z", "event": "status", "task": "PK-7", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:53:23Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:53:23Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-09-11T23:53:24Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-09-11T23:59:15Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #68"}

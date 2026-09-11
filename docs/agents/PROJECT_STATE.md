@@ -7,7 +7,11 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-09-11T23:40:37Z
+Updated: 2026-09-11T23:59:15Z
+
+## REVIEW
+- **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
+  - owns: pricing/model.py, tests/test_model.py
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -19,7 +23,6 @@ Updated: 2026-09-11T23:40:37Z
 
 ## BACKLOG
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
-- **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer)
 - **PK-16** Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference  (backend-engineer)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
   - owns: tools/agentctl.py
