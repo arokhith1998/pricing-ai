@@ -4,7 +4,7 @@ created: 2026-09-11
 updated: 2026-09-11
 type: gtm
 tags: [gtm, fundraising, investor, llama-ventures, email, draft]
-status: draft
+status: active
 related: ["[[verdict-2026-09-11]]", "[[session-2026-09-11]]"]
 confidence: high
 ai-first: true
@@ -12,7 +12,16 @@ ai-first: true
 
 ## For future Claude
 
-Draft only. Not sent. Founder approves before anything goes out.
+Live as an Outlook reply draft in adhithya@pricekeel.com, threaded onto the Llama
+Ventures confirmation email. Draft id
+`AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AEEZ2BNj5IUC3T3Pf5G6fPQAAReqqyAAA`.
+To: info@llamaventures.vc and notifier@llamaventures.vc.
+
+**Not sent, and the deck is not attached.** The Outlook toolset cannot add
+attachments, and its send path explicitly rejects messages with them, so the PDF
+goes on by hand in Outlook before sending:
+`decks/Pricekeel-Pre-Seed-Deck-2026-09.pdf`. Sending it without the attachment
+would be worse than not sending it, since delivering the deck is half the point.
 
 Reply to the Llama Ventures intake confirmation. It does two jobs in one message:
 delivers the deck their upload endpoint refused, and corrects three factual marks
