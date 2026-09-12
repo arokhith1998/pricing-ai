@@ -232,6 +232,14 @@ fluency into an audience of the exact CFO and Head of Pricing buyer.
 **Name the gaps without being asked:** no operator scar story from inside a
 mid-market RevOps org, and a solo founder. Say how each is being closed.
 
+**Concede the operating experience, never the domain.** Learned the hard way on
+2026-09-11: the line "I do not have that background" was rhetorically strong and
+got scored as "non-domain founder" by an investor's agent, on a founder holding an
+M.S. in Pricing. The correct sentence, and it is one sentence: "I have the domain
+training, an M.S. in Pricing, and none of the operator scars: I have never run a
+deal desk or carried a quota." Say both halves in the same breath, every time, so
+neither half can be recorded alone. See [[verdict-2026-09-11]].
+
 # 10. The ask
 
 To be set by the founder before the session. The structure: amount, use of funds,

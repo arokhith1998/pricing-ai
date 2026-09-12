@@ -46,6 +46,23 @@ PDF overclaim what the conversation carefully did not.
 
 ---
 
+# 0. What the 11 Sep session changed
+
+Four corrections from [[verdict-2026-09-11]], to apply before the next intake.
+
+1. **Lead with the wedge-reselection story.** It was the only thing scored green
+   on founder-market fit and it did not appear until message five. It belongs in
+   the opener: the retrospective diagnostic was built, worked, and was unsellable
+   because nothing in the buyer's week depended on it, so the wedge was reselected
+   against four criteria (weekly cadence, an existing ritual and owner, data
+   already in the CRM, useful to one customer with no network).
+2. **Never concede the domain, only the operating experience.** One sentence, both
+   halves together. See section 8.
+3. **Competitive positioning and moat get their own short message.** Buried in a
+   long multi-topic message, they were scored as never discussed.
+4. **Send the deck early**, not at the end. Product signal came back blank because
+   the artifact never arrived.
+
 # 1. Opening message
 
 > Pricekeel is the decision system of record for pricing. V1 prices every discount
@@ -179,17 +196,20 @@ PDF overclaim what the conversation carefully did not.
 
 # 8. Team and founder-market fit (name the gaps)
 
-> Adhithya Bhaskar, solo founder. M.S. in Pricing from Simon Business School,
-> building a pricing product. I reason in the same frameworks the buyer uses to
-> defend decisions in committee: Nagle on reference price and economic value,
-> Simon-Kucher on discount governance, Campbell on the value metric, Poyar on
-> usage-based benchmarks. I am the human embodiment of the explainability thesis,
-> which is the category I am claiming.
+> Adhithya Bhaskar, solo founder. I have the domain training and none of the
+> operator scars, and I want both halves on the record in the same breath, because
+> stated apart they get recorded apart.
 >
-> The gaps, before you ask. I have no operator scar story from inside a mid-market
-> RevOps organization, so every design-partner conversation is also the fastest way
-> I close that gap. And I am solo, which is why feasibility got retired
-> single-handed but demand will not. Distribution is founder-led: a LinkedIn
+> The training is an M.S. in Pricing from Simon Business School, so I reason in the
+> frameworks the buyer uses to defend decisions in committee: Nagle on reference
+> price and economic value, Simon-Kucher on discount governance, Campbell on the
+> value metric, Poyar on usage-based benchmarks. That is why the engine maps every
+> metric to a named framework and why an LLM is never allowed to produce a number
+> in it.
+>
+> The scars I do not have: I have never run a deal desk or carried a quota, so
+> every design-partner conversation is partly me buying that context. And I am
+> solo, which is why feasibility got retired single-handed but demand will not. Distribution is founder-led: a LinkedIn
 > credibility engine turning framework fluency into an audience of exactly the CFO
 > and Head of Pricing buyer I sell to.
 
