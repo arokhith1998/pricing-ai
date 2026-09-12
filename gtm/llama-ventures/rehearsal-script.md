@@ -71,7 +71,7 @@ Four corrections from [[verdict-2026-09-11]], to apply before the next intake.
 > lost history, records the human decision with evidence Finance can audit, and
 > reconciles the outcome when the deal closes.
 >
-> The buyer is a CFO or Head of Pricing at a $20M to $100M ARR B2B SaaS company on
+> The buyer is a CFO or Head of Pricing at a $10M to $100M ARR B2B SaaS company on
 > usage-based or hybrid pricing. Today they approve discount exceptions blind:
 > no defensible reference price, discipline living in spreadsheets, and points of
 > price realization leaking deal by deal. They cannot defend a discount in
@@ -148,16 +148,30 @@ Four corrections from [[verdict-2026-09-11]], to apply before the next intake.
 
 # 5. Market (bottoms-up, volunteer the small SAM)
 
-> Bottoms-up only. Roughly 17,000 US SaaS companies, 15 to 20 percent in the $20M
-> to $100M ARR band, roughly 48 percent on usage-based or hybrid pricing, then the
-> Salesforce gate, a 500-closed-outcomes data bar, a policy owner, a champion, and
-> a CFO buyer. That nets to roughly 3,000 to 3,600 qualified accounts. At a $40K to
-> $60K ACV, which is a pre-pilot hypothesis, wedge SAM is roughly $120M to $215M.
+> Bottoms-up, and I will give you the post-funnel number rather than the flattering
+> one. Roughly 17,000 US B2B SaaS companies. 15 to 20 percent sit in the $10M to
+> $100M ARR band on usage-based or hybrid pricing, which is about 3,000 to 3,600
+> accounts and implies a $120M to $215M SAM. That is the layer most decks stop at,
+> and it is not my wedge.
 >
-> I will volunteer the problem: that wedge SAM is small by construction. The bridge
-> to a fund-returner is four labeled assumptions, never merged with the wedge.
-> Two to three times ACV from capability pillars two through six. Rising
-> usage-based-pricing adoption. A widening ARR band. And the largest, a Phase 3
+> Applying the gates that actually decide whether I can serve an account, 500 plus
+> closed outcomes a year, data readiness, a policy owner, a champion and a CFO
+> buyer, collapses it four to six times: roughly 350 to 480 US accounts and an
+> $11M to $29M wedge SAM at an assumed $30K to $60K ACV. That is the CSV path, any
+> CRM. Apply the Salesforce gate on top, since Salesforce is only about 40 percent
+> of that pool, and what the live workflow serves today is roughly 130 to 190
+> accounts and $4M to $11M.
+>
+> The band carries a gate: servability is deal volume, not ARR. A high-velocity
+> $12M ARR company with 600 closed opportunities qualifies; a $30M ARR company
+> closing twelve enterprise deals a year does not.
+>
+> So the wedge alone is not a venture case and I will not pretend otherwise. The
+> case is a multiplier stack of roughly 15 to 40 times on the Tier A wedge, reaching
+> $300M to $1B+: relaxing the usage-only gate about 2x, relaxing the band to $10M to
+> $250M about 1.5 to 2x, 2 to 3x ACV from capability pillars two through six,
+> geography beyond the US and India about 2 to 3x, and rising usage-based adoption.
+> None of that is merged into the wedge. The largest single lever is a Phase 3
 > port into mid-market distribution and manufacturing negotiated pricing, a
 > hypothesis $350M to $850M US SAM at a $60K to $120K ACV. That port transfers the
 > spine, win probability, price realization, explainability, the decision log, but

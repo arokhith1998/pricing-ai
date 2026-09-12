@@ -390,63 +390,68 @@ def deck_html() -> str:
 
     # -------------------------------------------------------------- 10. Market
     slides.append(("Market", """
-      <h2 class="section">Bottoms-up, and the wedge is small on purpose.</h2>
-      <div class="two-col">
-        <div>
-          <div class="funnel">
-            <div class="row"><span class="lab">US B2B SaaS companies</span><span class="val">~17,000</span></div>
-            <div class="row"><span class="lab">In the $20M to $100M ARR band, 15 to 20%</span><span class="val">~2,900</span></div>
-            <div class="row"><span class="lab">On usage-based or hybrid pricing, ~48%</span><span class="val">~1,400</span></div>
-            <div class="row last"><span class="lab">After the Salesforce gate, a 500-closed-outcome data bar, a policy owner, a champion and a CFO buyer</span><span class="val">~3,000 to 3,600 qualified</span></div>
-          </div>
-          <div class="caption">
-            The qualified count runs above the band subtotal because it is drawn across the
-            full addressable set rather than the single-band slice shown. Full derivation in
-            the appendix on request.
-          </div>
-        </div>
-        <div>
-          <div class="card">
-            <div class="k">Wedge SAM <span class="tier assumed">Assumed ACV</span></div>
-            <div class="v">$120M to $215M</div>
-            <div class="sub">At a $40K to $60K ACV. The ACV is a hypothesis, pre-pilot.</div>
-          </div>
-          <div class="card" style="margin-top:4mm;">
-            <div class="k">The bridge, four labeled assumptions</div>
-            <div class="sub" style="color:var(--ink);">
-              1. Two to three times ACV from capability pillars two through six.<br/>
-              2. Rising usage-based-pricing adoption.<br/>
-              3. A widening ARR band.<br/>
-              4. Largest: a port into negotiated pricing for mid-market distribution and
-              manufacturing. A hypothesis $350M to $850M US SAM at a $60K to $120K ACV.
-            </div>
-          </div>
-        </div>
+      <h2 class="section">Bottoms-up, post-funnel. <span class="slate" style="font-weight:600;">The wedge is very small, and I will show you why.</span></h2>
+      <p class="lead-in">
+        Most decks stop at the band and the value metric. That layer gives roughly 3,000 to
+        3,600 US accounts and a $120M to $215M SAM. Applying the operational gates that
+        actually decide whether we can serve an account collapses it four to six times, so
+        the honest wedge is the bottom row, not the top one.
+      </p>
+      <div class="funnel">
+        <div class="row"><span class="lab">US B2B SaaS companies</span><span class="val">~17,000</span></div>
+        <div class="row"><span class="lab">In the $10M to $100M ARR band, 15 to 20%, on usage-based or hybrid pricing</span><span class="val">~3,000 to 3,600</span></div>
+        <div class="row"><span class="lab">Tier A, after 500+ closed outcomes a year, data readiness, a policy owner, a champion and a CFO buyer. CSV path, any CRM</span><span class="val">~350 to 480</span></div>
+        <div class="row last"><span class="lab">Tier B, after the Salesforce gate. What the live workflow serves today</span><span class="val">~130 to 190</span></div>
+      </div>
+      <div class="cards cols-3" style="margin-top:5mm;">
+        <div class="card"><div class="k">Pre-funnel, shown for depth only</div><div class="v small">$120M to $215M</div>
+          <div class="sub">Band and value metric alone. Never our headline.</div></div>
+        <div class="card accent"><div class="k">Tier A wedge SAM <span class="tier assumed">Assumed ACV</span></div><div class="v small">$11M to $29M</div>
+          <div class="sub">Any CRM, via the CSV path. At a $30K to $60K ACV, pre-pilot.</div></div>
+        <div class="card accent"><div class="k">Tier B, today <span class="tier assumed">Assumed ACV</span></div><div class="v small">$4M to $11M</div>
+          <div class="sub">Salesforce-native. Salesforce is only ~40% of the qualified pool.</div></div>
       </div>
       <div class="flag">
-        <b>Said before it is discovered.</b> The wedge SAM is small by construction, and the
-        bridge is assumptions, never merged with the wedge. The $5.5B to $6B price-optimization
-        and CPQ TAM is gravity, not our market.
+        <b>So the wedge alone is not a venture case, and I am not going to pretend it is.</b>
+        The case is the expansion stack on the next slide. The gate that binds is deal volume,
+        not ARR: a high-velocity $12M ARR company with 600 closed opportunities is servable and
+        a $30M ARR company closing twelve enterprise deals a year is not. The $5.5B to $6B
+        price-optimization and CPQ TAM is gravity, not our market.
       </div>
     """))
 
     # ------------------------------------------------------------ 11. Expansion
     slides.append(("Expansion", """
-      <h2 class="section">The engine ports to where the decision volume is combinatorial.</h2>
+      <h2 class="section">Where the venture case actually lives.</h2>
       <p class="lead-in">
-        The spine transfers: win probability, price realization, explainability, the decision
-        log. The unit of decision is the same, a negotiated price on a specific account.
+        A multiplier stack on the $11M to $29M Tier A wedge, roughly 15 to 40 times, reaching
+        $300M to $1B+. Every multiplier is a labeled assumption and none of them are merged
+        into the wedge number on the previous slide.
       </p>
+      <div class="cards cols-5" style="grid-template-columns:repeat(5,1fr);">
+        <div class="card"><div class="k">Usage-only gate</div><div class="v small">~2x</div>
+          <div class="sub">Serve seat-based books too.</div></div>
+        <div class="card"><div class="k">ARR band</div><div class="v small">~1.5 to 2x</div>
+          <div class="sub">Relax to $10M to $250M.</div></div>
+        <div class="card"><div class="k">ACV</div><div class="v small">2 to 3x</div>
+          <div class="sub">Pillars two through six.</div></div>
+        <div class="card"><div class="k">Geography</div><div class="v small">~2 to 3x</div>
+          <div class="sub">Beyond US and India.</div></div>
+        <div class="card accent"><div class="k">Adjacency</div><div class="v small">Largest</div>
+          <div class="sub">Negotiated pricing below.</div></div>
+      </div>
+      <h2 class="section" style="font-size:22px; margin-top:6mm;">The largest lever: negotiated pricing outside SaaS.</h2>
       <div class="two-col">
         <div>
           <div class="card accent">
-            <div class="k">Why this segment, specifically</div>
+            <div class="k">Why this segment</div>
             <div class="v small">Thousands of SKUs. Hundreds of<br/>product lines. Large account books.</div>
             <div class="sub">
               Component suppliers and industrial manufacturers price the same part differently
               across hundreds of negotiated accounts. SKUs times product lines times accounts is
-              a decision volume no committee can hold in its head, which is exactly where a
-              decision system of record compounds rather than merely reports.
+              a decision volume no committee can hold in its head, which is where a decision
+              record compounds rather than merely reports. Hypothesis $350M to $850M US SAM at
+              a $60K to $120K ACV.
             </div>
           </div>
         </div>
@@ -454,10 +459,10 @@ def deck_html() -> str:
           <div class="card coral">
             <div class="k">Why not now, stated plainly</div>
             <div class="sub" style="color:var(--ink);">
-              <b>It is a second engine, not a second segment.</b> The objective flips from win
+              <b>A second engine, not a second segment.</b> The objective flips from win
               probability to pocket margin, the grain drops from the deal to the SKU line, and
-              it needs true cost data and ERP connectors that we deliberately do not have.<br/><br/>
-              <b>It is incumbent home turf.</b> Vendavo, PROS and Zilliant have twenty-year head
+              it needs true cost data and ERP connectors we deliberately do not have.<br/><br/>
+              <b>Incumbent home turf.</b> Vendavo, PROS and Zilliant have twenty-year head
               starts there. Our wedge exists because they ignore mid-market SaaS usage-based
               pricing. Entering early trades the market where we are uniquely positioned for the
               one where we are weakest.
@@ -467,8 +472,8 @@ def deck_html() -> str:
       </div>
       <div class="flag good">
         <b>The gate is explicit.</b> No cost, SKU or cost-plus capability gets built until a
-        SaaS pilot is paying. This is a proven-engine port with prerequisites, not a
-        second bet running in parallel.
+        SaaS pilot is paying. A proven-engine port with prerequisites, not a second bet running
+        in parallel.
       </div>
     """))
 

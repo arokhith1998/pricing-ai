@@ -186,12 +186,21 @@ negotiated account books.
    combinatorial decision volume, and that is exactly where a decision system of
    record compounds. Present it as the expansion thesis with prerequisites, name
    the segment rather than the logos, and keep the build gate at a paying SaaS pilot.
-2. **The band widened.** The vault's qualified-account funnel and the $120M to
-   $215M wedge SAM were computed on a $20M to $100M ARR band. Moving to $10M to
-   $100M changes that math and, at the low end, weakens the 500-closed-outcomes
-   data bar, because a $10M ARR company may not have enough closed deals to serve.
-   Either recompute the funnel or state the band as $10M to $100M with the note
-   that the servable set is gated by deal volume, not by ARR alone.
+2. **The band was never actually $20M to $100M. Resolved 2026-09-11.** The sourced
+   derivation in [[2026-06-10-panel-review-tam-sam-som]] always used $10M to $100M,
+   so the narrower band in the old deck, on the site and in the agent definitions
+   was drift with nothing computed behind it. Restored to $10M to $100M everywhere,
+   with the gate that actually binds stated alongside it: servability is deal
+   volume, not ARR.
+
+3. **The bigger error, found while fixing the band.** The market slide quoted
+   roughly 3,000 to 3,600 qualified accounts and a $120M to $215M SAM immediately
+   after listing the operational gates. That is the figure from *before* those
+   gates. [[2026-08-09-two-tier-sizing-crm-agnostic-and-india]] puts the post-funnel
+   US wedge at ~350 to 480 accounts and $11M to $29M (any CRM), or ~130 to 190
+   accounts and $4M to $11M Salesforce-native, and instructs reporting the
+   post-funnel number with the expansion bridge shown separately. The deck now
+   does. See [[2026-09-11-arr-band-and-post-funnel-sizing]].
 
 ---
 

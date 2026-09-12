@@ -27,7 +27,7 @@ on-page "evidence boundary" section. Specific hazards to avoid:
 - Do not imply autonomous price-setting. The wedge preserves requested terms, shows
   evidence, and records the human decision.
 - Do not overclaim "learns from your data" in a way that hides the cold-start reality
-  (a $20-100M ARR customer has hundreds of deals, not thousands).
+  (a $10-100M ARR customer has hundreds of deals, not thousands).
 - Never present a CRM proxy as true margin; the site already discloses billing/ERP is
   required for margin. Keep that disclosure intact.
 

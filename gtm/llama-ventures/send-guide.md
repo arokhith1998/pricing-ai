@@ -19,7 +19,7 @@ Checklist first, reasoning second.
 
 # The artifact
 
-`decks/Pricekeel-Pre-Seed-Deck.pdf`, 16 slides, A4 landscape, about 540 KB.
+`decks/Pricekeel-Pre-Seed-Deck.pdf`, 16 slides, A4 landscape, about 330 KB.
 Built by `python tools/build_investor_deck.py`.
 
 Rename on send to `Pricekeel-Pre-Seed-Deck-2026-09.pdf`. A dated filename sits
@@ -67,7 +67,7 @@ defensibility slide conceding the copyable feature before claiming the moat.
 you email to strangers and it reads as inexperience. The footer carries
 "Pricekeel · Pre-seed · <date>" instead, which is the useful half.
 
-**10. Keep it under a few MB and do not embed video.** Met. About 540 KB. The
+**10. Keep it under a few MB and do not embed video.** Met. About 330 KB. The
 walkthrough recording is a separate hosted link, never an attachment.
 
 **11. Date it and version it.** Met. Every footer carries the build date, and the
@@ -101,11 +101,14 @@ Convert to MP4 before hosting if the platform prefers it:
       deck's slide 14 and slide 1 status line both change.
 - [ ] Acquisition figures on slide 3 re-verified if more than a quarter has passed
       since 2026-08-09.
-- [ ] Decide the ARR band. The deck, the live site, and the SAM derivation all say
-      $20M to $100M. The founder's stated target is $10M to $100M. Widening it
-      changes the qualified-account funnel and weakens the 500-closed-outcome data
-      bar at the low end, so either recompute the funnel or state the band as
-      $10M to $100M with servability gated on deal volume rather than ARR.
+- [x] ARR band resolved 2026-09-11: **$10M to $100M, servability gated on deal
+      volume rather than ARR**. The sourced derivation always used $10M to $100M;
+      the $20M to $100M that had spread through the deck, the site and the agent
+      definitions was drift. Fixed everywhere. See
+      `vault/Decisions/2026-09-11-arr-band-and-post-funnel-sizing.md`.
+- [ ] Check the market slide still reports the **post-funnel** wedge ($11M to $29M
+      Tier A, $4M to $11M Tier B), never the $120M to $215M pre-funnel layer as a
+      headline. That layer may appear only to show funnel depth.
 - [ ] Renamed to `Pricekeel-Pre-Seed-Deck-2026-09.pdf`.
 - [ ] Opened once in a plain PDF viewer, not just the build check PNGs.
 
@@ -114,8 +117,8 @@ Convert to MP4 before hosting if the platform prefers it:
 # Order of operations for Llama Ventures
 
 1. Rebuild and read the deck end to end.
-2. Resolve the ARR band question above, because the intake agent will ask about
-   market and a number that disagrees with the live site is an avoidable hit.
+2. Confirm the market slide reports the post-funnel wedge. The band question is
+   settled; the live risk now is quoting the pre-funnel SAM as a headline.
 3. Run the rehearsal in [[rehearsal-script]].
 4. Start the real session, upload this deck, not the May one.
 5. Finalize only on explicit founder approval.

@@ -50,7 +50,7 @@ export default function Landing() {
           </p>
           <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
             <span><strong className="font-semibold text-fg">Built for</strong> RevOps · Deal Desk · Pricing</span>
-            <span><strong className="font-semibold text-fg">ICP</strong> $20–100M ARR · usage or hybrid SaaS</span>
+            <span><strong className="font-semibold text-fg">ICP</strong> $10–100M ARR · usage or hybrid SaaS</span>
             <span><strong className="font-semibold text-fg">Buyer</strong> CFO / Finance</span>
           </div>
           <p className="mx-auto mt-3 max-w-2xl text-xs text-muted">

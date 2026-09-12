@@ -179,7 +179,7 @@ export default function PricingPage() {
             Built for the conversation, not the credit card.
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted">
-            We sell into pricing and RevOps teams at $20 to 100M ARR B2B SaaS. That means
+            We sell into pricing and RevOps teams at $10 to 100M ARR B2B SaaS. That means
             an actual scoping call, not a self-serve checkout. Pick the closest
             fit and we will reply within one business day.
           </p>

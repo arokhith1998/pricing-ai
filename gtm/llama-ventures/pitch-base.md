@@ -53,7 +53,8 @@ the dimensions that actually score well (product, founder-market fit, why-now).
 **HYPOTHESIS, labeled as such every time**
 - ACV of $30K to $60K for the wedge. Pre-pilot, no customer has paid this.
 - The $15K paid pilot with 50% credited to the annual contract.
-- Wedge SAM of $120M to $215M US.
+- Wedge SAM: $11M to $29M US post-funnel (any CRM), $4M to $11M Salesforce-native
+  today. The $120M to $215M figure is the pre-funnel layer and is never the headline.
 - The Phase 3 distribution and manufacturing adjacency at $350M to $850M US SAM.
 - NRR, LTV/CAC, CAC payback, and every expansion number. Zero customers means
   zero observed retention.
@@ -86,7 +87,7 @@ decision record.
 
 # 2. The problem
 
-Mid-market B2B SaaS companies between $20M and $100M ARR approve discount
+Mid-market B2B SaaS companies between $10M and $100M ARR approve discount
 exceptions blind. There is no defensible reference price, pricing discipline lives
 in spreadsheets and tribal memory, and points of price realization leak deal by
 deal. The buyer, a CFO or Head of Pricing, cannot defend a discount in a committee
@@ -167,17 +168,34 @@ accumulation, and the clock is the acquisition window above.
 
 # 6. Market (bottoms-up only, never a share of a top-down TAM)
 
-The ICP funnel: roughly 17,000 US SaaS companies, 15 to 20 percent in the $20M to
-$100M ARR band, roughly 48 percent on usage-based or hybrid pricing, minus the
-Salesforce gate, the 500-closed-outcomes data bar, a policy owner, a champion, and
-a CFO buyer. That nets to roughly 3,000 to 3,600 qualified accounts.
+**Report the post-funnel number. Never the pre-funnel one.** This is the single
+easiest place to overstate, and it was overstated in the 11 Sep session. See
+[[2026-09-11-arr-band-and-post-funnel-sizing]].
 
-Wedge SAM: roughly $120M to $215M at a $40K to $60K ACV. The ACV is a
-**hypothesis, pre-pilot**.
+The funnel, in layers:
+- Roughly 17,000 US B2B SaaS companies.
+- 15 to 20 percent in the **$10M to $100M ARR band** on usage-based or hybrid
+  pricing: roughly 3,000 to 3,600. **This is the pre-funnel layer.** At a $40K to
+  $60K ACV it implies $120M to $215M, and that number may be shown only to
+  illustrate funnel depth.
+- **Tier A**, after 500+ closed outcomes a year, data readiness, a policy owner, a
+  champion and a CFO buyer: roughly **350 to 480 US accounts**, wedge SAM
+  **$11M to $29M** at a $30K to $60K ACV. This is the CSV path and works with any CRM.
+- **Tier B**, after the Salesforce gate, which is only about 40 percent of the
+  qualified pool: roughly **130 to 190 US accounts**, **$4M to $11M**. This is what
+  the live workflow serves today.
 
-The wedge SAM is small by construction. That is intentional and should be said
-before it is discovered. The bridge to a fund-returner runs on four labeled
-assumptions, never merged with the wedge:
+Every ACV-derived figure is a **hypothesis, pre-pilot**.
+
+**The band travels with its gate.** The band is $10M to $100M, and servability is
+gated on deal volume, not ARR. A high-velocity $12M ARR company with 600 closed
+opportunities is servable; a $30M ARR company closing twelve enterprise deals a
+year is not. Never state the band without the gate.
+
+So the wedge is not merely small, it is very small, and the venture case rests
+entirely on the expansion stack. Say that plainly rather than let it be discovered.
+The stack is a multiplier chain of roughly 15 to 40x on the Tier A wedge, reaching
+$300M to $1B+, and no multiplier is ever merged into the wedge:
 1. 2 to 3x ACV from capability pillars 2 through 6.
 2. Rising usage-based pricing adoption.
 3. A widening ARR band.
