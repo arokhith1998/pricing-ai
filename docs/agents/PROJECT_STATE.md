@@ -7,9 +7,9 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-09-11T23:59:15Z
+Updated: 2026-09-12T00:05:42Z
 
-## REVIEW
+## QA
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
   - owns: pricing/model.py, tests/test_model.py
 
