@@ -7,11 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-09-12T00:10:25Z
-
-## APPROVED
-- **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
-  - owns: pricing/model.py, tests/test_model.py
+Updated: 2026-09-15T22:17:38Z
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -37,5 +33,6 @@ Updated: 2026-09-12T00:10:25Z
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+- **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)

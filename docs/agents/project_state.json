@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-09-12T00:10:25Z",
+  "updated": "2026-09-15T22:17:38Z",
   "config": {
     "max_concurrent": 2
   },
@@ -619,12 +619,9 @@
       "id": "PK-15",
       "title": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more",
       "agent": "ai-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "pricing/model.py",
-        "tests/test_model.py"
-      ],
+      "owns": [],
       "branch": "agent/ai-engineer/PK-15",
       "worktree": ".claude/worktrees/PK-15",
       "acceptance": [
@@ -650,7 +647,7 @@
       },
       "blocked_by": null,
       "created": "2026-09-11T23:37:29Z",
-      "updated": "2026-09-12T00:10:25Z",
+      "updated": "2026-09-15T22:17:38Z",
       "notes": [
         {
           "ts": "2026-09-11T23:53:23Z",
@@ -667,8 +664,18 @@
         {
           "ts": "2026-09-12T00:10:25Z",
           "note": "CI run 34660616795"
+        },
+        {
+          "ts": "2026-09-15T22:17:38Z",
+          "note": "merged as a977dd0, human-approved by adhithya (explicit: yeah, 2026-09-15)"
         }
-      ]
+      ],
+      "merge_commit": "a977dd0",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yeah, 2026-09-15)",
+        "ts": "2026-09-15T22:17:38Z"
+      }
     },
     {
       "id": "PK-16",

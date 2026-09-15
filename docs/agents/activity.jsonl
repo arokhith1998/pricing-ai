@@ -78,3 +78,5 @@
 {"ts": "2026-09-11T23:59:15Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #68"}
 {"ts": "2026-09-12T00:05:42Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-09-12T00:10:25Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 34660616795"}
+{"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as a977dd0, human-approved by adhithya (explicit: yeah, 2026-09-15)"}
+{"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
