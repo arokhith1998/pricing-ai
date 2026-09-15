@@ -189,6 +189,12 @@ export type ModelInfo = {
     brier: number;
     base_rate: number;
     mean_pred: number;
+    // Which holdout produced these numbers: "time" (the latest closes, so the
+    // model is graded on deals that closed after everything it trained on) or
+    // "random_stratified", the fallback when close dates are unusable. Optional
+    // so a cached pre-contract API response still renders.
+    split?: string;
+    test_from?: string | null;
   };
   feature_importance: { feature: string; label: string; share: number }[];
   model_leakage: {
@@ -246,6 +252,10 @@ export type Confidence = {
   mean_pred: number;
   base_rate: number;
   n_train: number;
+  // See ModelInfo.metrics.split. A random-split fallback must never be
+  // described to the user as validation on later deals.
+  split?: string;
+  test_from?: string | null;
 };
 
 export type Recommendation = {

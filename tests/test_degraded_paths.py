@@ -8,10 +8,15 @@ status the API returns to the user.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+import pandas as pd
 import requests
 
 from pricing import assist, copilot, mapping, matching, rag
+from pricing.ingest import ingest_frame_verbose
+
+DEALS_CSV = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "deals.csv"
 
 
 class _Unreadable:
@@ -101,6 +106,34 @@ def test_extract_plans_logs_llm_failure(monkeypatch, caplog):
     assert "plan extraction failed: RuntimeError" in caplog.text
 
 
+def test_blocked_url_is_reported_as_blocked_not_as_no_plans(monkeypatch, caplog):
+    def refuse(_url):
+        raise matching.FetchBlocked("https://blocked.example/pricing",
+                                    "robots.txt disallows /pricing")
+
+    monkeypatch.setattr(matching, "fetch_pricing_page", refuse)
+    with caplog.at_level(logging.WARNING, logger="pricekeel.matching"):
+        vendor, plans, status = matching._extract_with_status("https://blocked.example/pricing")
+    assert (vendor, plans, status) == ("", [], "blocked")
+    assert "blocked.example refused: FetchBlocked" in caplog.text
+
+
+def test_compare_names_the_pages_it_could_not_read(monkeypatch):
+    monkeypatch.setattr(matching.assist, "has_llm", lambda: False)
+
+    def refuse(url):
+        raise matching.FetchBlocked(url, "robots.txt disallows /pricing")
+
+    monkeypatch.setattr(matching, "fetch_pricing_page", refuse)
+    comp = matching.compare("https://mine.example/pricing",
+                            ["https://a.example/pricing", "https://b.example/pricing"])
+    payload = comp.to_dict()
+    assert [s["status"] for s in payload["sources"]] == ["blocked"] * 3
+    assert [s["role"] for s in payload["sources"]] == ["mine", "competitor", "competitor"]
+    # The user reads the summary, not the server log.
+    assert "3 of 3 pricing pages could not be read" in payload["summary"]
+
+
 def test_summary_failure_is_logged(monkeypatch, caplog):
     monkeypatch.setattr(matching.assist, "has_llm", lambda: True)
     monkeypatch.setattr(matching.assist, "_complete", _boom)
@@ -108,6 +141,26 @@ def test_summary_failure_is_logged(monkeypatch, caplog):
         text = matching._summarize_matches("Me", [], [], [])
     assert "summary unavailable" in text
     assert "summary failed: RuntimeError" in caplog.text
+
+
+# -- ingest ------------------------------------------------------------------
+
+def test_blank_list_price_is_counted_and_disclosed():
+    """A blank list price leaves discount, realization and band NaN, so the row
+    drops out of every leakage metric while still counting as a deal. The load
+    report has to say so, the way it already does for a blank booked value."""
+    raw = pd.read_csv(DEALS_CSV, dtype=str)
+    raw.loc[:4, "list_acv"] = ""
+    _df, report = ingest_frame_verbose(raw, source="blank-list-price fixture")
+    assert report.blank_list_acv == 5
+    assert "blank or zero list price" in report.summary()
+
+
+def test_clean_book_reports_no_blank_list_prices():
+    raw = pd.read_csv(DEALS_CSV, dtype=str)
+    _df, report = ingest_frame_verbose(raw, source="clean fixture")
+    assert report.blank_list_acv == 0
+    assert "blank or zero list price" not in report.summary()
 
 
 # -- mapping -----------------------------------------------------------------

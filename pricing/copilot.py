@@ -301,10 +301,12 @@ def _opp_raise_prices(analysis: dict) -> list[Opportunity]:
     # dicts after JSON round-trip. Normalize.
     try:
         rows = rs.to_dict(orient="records") if hasattr(rs, "to_dict") else list(rs)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         # A malformed frame must not pass silently as "no headroom anywhere".
+        # Exception type only: a pandas message can quote a cell value, and
+        # row-level customer data does not leave this process, not even to a log.
         logger.warning("copilot: realization_by_segment unreadable, raise-price "
-                       "opportunities skipped", exc_info=True)
+                       "opportunities skipped: %s", type(exc).__name__)
         return []
     opps: list[Opportunity] = []
     for row in rows:
@@ -357,9 +359,9 @@ def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
     for dim, frame in slices.items():
         try:
             rows = frame.to_dict(orient="records") if hasattr(frame, "to_dict") else list(frame)
-        except Exception:  # noqa: BLE001
-            logger.warning("copilot: hierarchy_slices.%s unreadable, slice skipped",
-                           dim, exc_info=True)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("copilot: hierarchy_slices.%s unreadable, slice "
+                           "skipped: %s", dim, type(exc).__name__)
             continue
         for row in rows:
             disc = float(row.get("avg_discount") or 0)
@@ -430,9 +432,9 @@ def _opp_investigate(analysis: dict) -> Optional[Opportunity]:
         return None
     try:
         rows = top.to_dict(orient="records") if hasattr(top, "to_dict") else list(top)
-    except Exception:  # noqa: BLE001
-        logger.warning("copilot: top_leak_deals unreadable, investigate card skipped",
-                       exc_info=True)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("copilot: top_leak_deals unreadable, investigate card "
+                       "skipped: %s", type(exc).__name__)
         return None
     if not rows:
         return None

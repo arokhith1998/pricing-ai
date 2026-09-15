@@ -54,8 +54,9 @@ PRODUCT SURFACE (live on main):
   off-policy, beyond-win-point); quarter-end effect; governance gaps; top
   deals to investigate.
 - /guidance — pick a deal -> recommended discount + expected-value uplift +
-  win probability + top factors (LightGBM SHAP) + EV curve. AUC ~0.64,
-  calibrated.
+  win probability + top factors (LightGBM SHAP) + EV curve. Time-ordered
+  holdout AUC 0.614, Brier skill +0.037 against a constant-base-rate
+  baseline.
 - /upload — CSV / Excel upload with mapping review UI. Four-layer column
   mapper: synonyms dict -> rapidfuzz -> local fastembed embeddings -> cloud
   LLM fallback. Hierarchy fields (BU / line / family / SKU) auto-slice

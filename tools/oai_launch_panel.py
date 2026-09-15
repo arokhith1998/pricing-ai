@@ -46,8 +46,10 @@ BRIEF = """
    (Rivera), trade-or-give (Simon-Kucher), quarter-end effect, governance
    gaps, top deals to investigate.
 4. `/guidance` — LightGBM win-probability model + SHAP factors. Per-deal
-   recommended discount, expected-value uplift, calibrated win probability.
-   AUC ~0.64, calibration is the highlighted card.
+   recommended discount, expected-value uplift, per-deal win probability.
+   Time-ordered holdout AUC 0.614, Brier skill +0.037 against a
+   constant-base-rate baseline. Calibration is the thin margin, not the
+   headline.
 5. `/upload` — CSV / XLSX upload with the four-layer mapper (synonyms →
    rapidfuzz → fastembed → cloud LLM fallback). Hierarchy fields (BU /
    line / family / SKU) auto-slice the diagnostic when populated.

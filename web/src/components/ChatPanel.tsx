@@ -28,7 +28,15 @@ type CanonicalQ = { id: string; label: string; hint: string };
 
 type Message =
   | { role: "user"; text: string }
-  | { role: "assistant"; text: string; citations: Citation[]; usedWeb: boolean }
+  | {
+      role: "assistant";
+      text: string;
+      citations: Citation[];
+      usedWeb: boolean;
+      // "off" | "ok" | "unconfigured" | "error" from the API. A web lookup
+      // that failed must not render the same as one that found nothing.
+      webStatus?: string;
+    }
   | {
       role: "copilot";
       qid: string;
@@ -337,6 +345,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
           text: data.text || "(no answer)",
           citations: data.citations || [],
           usedWeb: !!data.used_web,
+          webStatus: data.web_status,
         },
       ]);
     } catch (e) {
@@ -527,6 +536,16 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                       {m.usedWeb ? (
                         <span className="text-[10px] text-muted">
                           web search was used
+                        </span>
+                      ) : m.webStatus === "error" ? (
+                        <span className="text-[10px] text-muted">
+                          web research failed, so this answer uses your own data
+                          only
+                        </span>
+                      ) : m.webStatus === "unconfigured" ? (
+                        <span className="text-[10px] text-muted">
+                          web research is not configured on this server, so this
+                          answer uses your own data only
                         </span>
                       ) : null}
                     </div>

@@ -495,7 +495,7 @@ def investor_html() -> str:
             <li><b>Time-ordered holdout.</b> The latest 25% of closes are scored, so the model is graded the way it is used: on deals that closed after everything it trained on.</li>
             <li><b>SHAP per-deal contributions.</b> Every recommendation names the factor: raises win chance, or lowers it.</li>
             <li><b>Expected-value curve.</b> Recommended discount maximizes <span class="kbd">list × (1 minus discount) × P(win)</span> across a sweep.</li>
-            <li><b>AUC 0.564 on the bundled book</b>, time-ordered holdout. The 2026-05-30 reviewer note called 0.64 fine for deal-guidance support, and that 0.64 came from an easier random split. Accuracy is not the moat. The explanation chain is.</li>
+            <li><b>AUC 0.614 on the bundled book</b>, time-ordered holdout, with a Brier skill of +0.037 against a constant that just quotes the win rate. The 2026-05-30 reviewer note called 0.64 fine for deal-guidance support, and that 0.64 came from an easier random split. Accuracy is not the moat. The explanation chain is.</li>
           </ul>
         </div>
         <div>
@@ -1021,24 +1021,27 @@ def technical_html() -> str:
       <table>
         <thead><tr><th>Feature</th><th>Gain</th><th>Why it matters</th></tr></thead>
         <tbody>
-          <tr><td><code>list_acv</code></td><td>2,382</td><td>Bigger deals close differently. Buyer composition differs.</td></tr>
-          <tr><td><code>quantity</code></td><td>1,723</td><td>Per-seat vs platform mix proxy.</td></tr>
-          <tr><td><code>discount_pct</code></td><td>608</td><td>The lever the rep controls, and the one feature the model is constrained on.</td></tr>
-          <tr><td><code>competitor_present</code></td><td>512</td><td>Multi-vendor deals discount more.</td></tr>
-          <tr><td><code>industry</code></td><td>474</td><td>Cohort effect. Fintech, healthcare, media accept discounts differently.</td></tr>
-          <tr><td><code>region</code></td><td>388</td><td>Geo-cohort effect.</td></tr>
+          <tr><td><code>competitor_present</code></td><td>410</td><td>Multi-vendor deals discount more and close differently.</td></tr>
+          <tr><td><code>list_acv</code></td><td>382</td><td>Bigger deals close differently. Buyer composition differs.</td></tr>
+          <tr><td><code>industry</code></td><td>251</td><td>Cohort effect. Fintech, healthcare, media accept discounts differently.</td></tr>
+          <tr><td><code>discount_pct</code></td><td>236</td><td>The lever the rep controls, and the one feature the model is constrained on.</td></tr>
+          <tr><td><code>quantity</code></td><td>163</td><td>Per-seat vs platform mix proxy.</td></tr>
+          <tr><td><code>region</code></td><td>93</td><td>Geo-cohort effect.</td></tr>
         </tbody>
       </table>
 
       <h3>Holdout and calibration</h3>
       <p>Time-ordered holdout: the earliest 1,500 closes train, the latest 500 (closing from
         2025-04-03) are scored, so no training deal closed after a deal it is graded on. There
-        is no post-hoc calibration step. On the bundled book the model predicts a mean 59.5%
-        win rate against an actual 65.8%, a 6.3 point gap in line with the quarter-to-quarter
-        swing in win rate on this book (55.3% to 65.4%) rather than a systematic bias.</p>
+        is no post-hoc calibration step. On the bundled book the model predicts a mean 59.3%
+        win rate against an actual 65.8%. Much of that 6.5 point gap is the quarter-to-quarter
+        swing in win rate on this book (55.3% to 65.4%). The average is the easy test, though:
+        the one that matters is whether a per-deal probability beats simply quoting the win
+        rate, and there the margin is thin, Brier 0.221 against 0.230 for that constant.</p>
 
       <h3>Headline metrics on the bundled sample</h3>
-      <p><b>AUC 0.564</b> on the time-ordered holdout. Brier 0.247. n_train 1,500. n_test 500.
+      <p><b>AUC 0.614</b> on the time-ordered holdout. Brier 0.221 against 0.230 for a constant
+        that quotes the training win rate, so a Brier skill of +0.037. n_train 1,500. n_test 500.
         The 2026-05-30 launch-readiness panel flagged AUC 0.64 as fine for deal-guidance use;
         that 0.64 came from a random split, which on this book reports anywhere from 0.551 to
         0.670 depending on the seed. The time-ordered number is the one to hold us to.
@@ -1237,7 +1240,7 @@ class Opportunity:
         test in <code>web/src/proxy.ts</code> (small, hand-readable).</p>
 
       <div class="flag good">
-        <b>What we will not claim.</b> We have no real-customer validation yet. AUC 0.56 is the
+        <b>What we will not claim.</b> We have no real-customer validation yet. AUC 0.61 is the
         synthetic book. On real data it may go up (cleaner signal, more features) or down (noisier
         outcomes). The methodology is honest. The wedge says: send your CSV, see what the engine
         reports. The customer is the one who validates it.

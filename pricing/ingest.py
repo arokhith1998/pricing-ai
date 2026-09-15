@@ -60,6 +60,7 @@ class LoadReport:
     above_list_deals: int = 0         # booked > list: a pricing-power signal
     currencies: list[str] = field(default_factory=list)  # symbols seen in money
     blank_booked: int = 0             # rows with no parseable booked value
+    blank_list_acv: int = 0           # rows with no usable list price
     # Header-mapping provenance: which incoming column each canonical field came
     # from, and which incoming columns we left unmapped. Makes a mis-map visible.
     field_sources: dict[str, str] = field(default_factory=dict)  # field -> "header (layer)"
@@ -101,6 +102,12 @@ class LoadReport:
             out.append(
                 f"  {self.blank_booked} deal(s) with a blank / unparseable booked "
                 "value (excluded from dollar totals)"
+            )
+        if self.blank_list_acv:
+            out.append(
+                f"  {self.blank_list_acv} deal(s) with a blank or zero list price "
+                "(excluded from discount, realization and leakage, but still "
+                "counted in the deal total)"
             )
         if self.unmapped_columns:
             out.append(
@@ -633,6 +640,13 @@ def _ingest_loaded(
     df = _coerce_types(df)             # money / dates / outcome / booleans
     if "booked_acv" in df.columns:
         report.blank_booked = int(df["booked_acv"].isna().sum())
+    if "list_acv" in df.columns:
+        # Blank or zero list price leaves realization, discount_pct and band
+        # NaN in enrich(), so the row silently leaves every band and leakage
+        # metric while still counting in overview's deal count. Disclose it
+        # the way blank_booked is disclosed.
+        list_acv = pd.to_numeric(df["list_acv"], errors="coerce")
+        report.blank_list_acv = int((list_acv.isna() | (list_acv == 0)).sum())
     df = _exclude_open(df, report)     # non-closed pipeline rows
     _require_enough(df)                # ≥1 row, ≥ MIN_CLOSED_DEALS closed
 

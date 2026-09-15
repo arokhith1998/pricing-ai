@@ -24,8 +24,11 @@ DEALS_CSV = ROOT / "data" / "synthetic" / "deals.csv"
 
 @pytest.fixture(scope="module")
 def trained(tmp_path_factory):
+    # Seed 11, not 7: data/synthetic/deals.csv IS generate(n=2000, seed=7), so
+    # seeding this fixture the same way made the floors below one gate wearing
+    # two names. An independent draw is what makes them two gates.
     csv = tmp_path_factory.mktemp("data") / "deals.csv"
-    generate(n=2000, seed=7).to_csv(csv, index=False)
+    generate(n=2000, seed=11).to_csv(csv, index=False)
     df = ingest(csv)
     return df, model.train(df)
 
@@ -51,25 +54,46 @@ def sample_300(trained_on_deals_csv):
 
 def test_auc_clears_floor(trained):
     _df, tm = trained
-    # The holdout is time-ordered (latest 25% of closes). Measured 2026-09-15
-    # on data/synthetic/deals.csv: 0.564 constrained, 0.561 unconstrained. The
-    # random split PK-15 measured (0.619) sat inside a seed-to-seed range of
-    # 0.551 to 0.670, so no single holdout AUC here is precise to better than
-    # about 0.05. Floor 0.53 is the PK-15 rule (unconstrained baseline minus
-    # 0.03) applied to the time split; see
+    # An independent draw (seed 11), scored on a time-ordered holdout: AUC
+    # 0.631 measured 2026-09-15. A single 500-row holdout carries a 95% CI
+    # roughly 0.10 wide, so this floor sits well below the measurement instead
+    # of beside it. The tight floor belongs on the pinned fixture, where the
+    # baseline was actually measured: see
     # test_holdout_auc_within_floor_with_constraint below.
-    assert tm.metrics["auc"] > 0.53
+    assert tm.metrics["auc"] > 0.55
 
 
 def test_model_is_calibrated(trained):
     _df, tm = trained
-    # Mean predicted win prob should track the actual holdout base rate.
+    # This is a BIAS check, not a calibration check: a model that predicts the
+    # base rate for every deal passes it perfectly, and so does one whose
+    # per-deal probabilities are worthless. The gate that actually bites is
+    # test_probabilities_beat_a_constant below.
     # 0.08, not 0.05: a time holdout carries its own quarter's win rate, and
-    # quarterly win rates on this book swing from 0.553 to 0.654. Forward
-    # folds measured gaps of -0.012, +0.064 and -0.066 (2026-09-15). 0.08
-    # still fails a model miscalibrated beyond that seasonal noise.
+    # quarterly win rates on this book swing from 0.553 to 0.654. Measured
+    # 2026-09-15: -0.019 on this fixture, -0.065 on the pinned one.
     assert abs(tm.metrics["mean_pred"] - tm.metrics["base_rate"]) < 0.08
     assert tm.metrics["brier"] < 0.26
+
+
+def test_probabilities_beat_a_constant(trained):
+    """The gate that bites. Brier under 0.26 and a small mean-pred gap are
+    both satisfied by a model that just predicts the training book's win rate
+    for every deal, so neither says the per-deal probabilities are worth
+    quoting. Brier skill does: the model's Brier measured against that
+    constant's. Negative means a Head of Pricing is better served by "this
+    book wins 59% of the time" than by anything the model says about a
+    specific deal, and this product quotes per-deal probabilities in the
+    guidance panel.
+
+    Measured 2026-09-15: +0.046 on this fixture, +0.037 on the pinned one.
+    At the previous capacity (250 trees / 15 leaves / min_child 50) the same
+    book scored -0.075, worse than the constant, while every other gate in
+    this file passed. That is why this test exists.
+    """
+    _df, tm = trained
+    assert tm.metrics["brier"] < tm.metrics["brier_constant"]
+    assert tm.metrics["brier_skill"] > 0.0
 
 
 def test_predictions_in_unit_interval(trained):
@@ -217,14 +241,16 @@ def test_no_recommendation_lowers_discount_while_raising_win_prob(sample_300):
 
 
 def test_holdout_auc_within_floor_with_constraint(trained_on_deals_csv):
-    """AUC floor on the real deals.csv split, not a pin. PK-15's rule: the
-    unconstrained baseline minus a 0.03 acceptance band. On PK-15's random
-    split that was 0.640 - 0.03 = 0.61. The holdout is now time-ordered, where
-    the baseline measured 2026-09-15 is 0.561 unconstrained and 0.564 with the
-    constraint, so the same rule gives 0.53. A real regression beyond the band
-    still fails; routine library or data drift does not flake this suite."""
+    """AUC floor on the pinned fixture, not a pin. PK-15's rule: the
+    unconstrained baseline minus a 0.03 acceptance band. Measured 2026-09-15
+    at the current capacity, time-ordered holdout: 0.621 unconstrained, 0.614
+    with the discount_pct monotone constraint, so the rule gives 0.59. Stated
+    instead as skill retained above chance, 0.5 + 0.75 * (0.621 - 0.5) = 0.591,
+    the two framings agree here, which they did not at the old capacity. A real
+    regression beyond the band still fails; routine library or data drift does
+    not flake this suite."""
     _df, tm = trained_on_deals_csv
-    assert tm.metrics["auc"] >= 0.53
+    assert tm.metrics["auc"] >= 0.59
 
 
 def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
@@ -259,6 +285,10 @@ def test_holdout_is_the_most_recent_deals(trained_on_deals_csv):
     assert test_dates.min().date().isoformat() == tm.metrics["test_from"]
     assert tm.metrics["n_test"] == int(tm.holdout.sum())
     assert tm.metrics["n_train"] + tm.metrics["n_test"] == len(df)
+    # The ordering guarantee covers dated rows only, so the count of rows it
+    # could not order is part of the claim, not a footnote.
+    assert tm.metrics["n_undated_train"] == 0
+    assert tm.metrics["test_share"] == pytest.approx(0.25, abs=0.01)
 
 
 def test_undated_book_falls_back_to_random_split_and_says_so(trained, caplog):

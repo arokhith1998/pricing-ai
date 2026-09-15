@@ -63,29 +63,24 @@ def retrieve_doc_chunks(chunks: list[Chunk], query: str,
     return scored[:top_k]
 
 
-def web_search(query: str, max_results: int = 4) -> list[dict]:
-    """Web search via Perplexity (preferred) or Tavily (fallback).
+def search_web(query: str, max_results: int = 4) -> tuple[list[dict], str]:
+    """Web search plus a status the caller can surface.
 
     Preference order:
       1. PERPLEXITY_API_KEY -> Perplexity Sonar online (LLM-grounded answer +
          citations baked in; one rich result the model can quote).
       2. TAVILY_API_KEY    -> Tavily search results (n separate snippets).
-      3. Neither key       -> [] (caller treats web as unavailable).
+      3. Neither key       -> ([], "unconfigured").
 
     The result list shape stays the same across providers:
       [{"title": str, "content": str, "url": str}, ...]
-    """
-    return search_web(query, max_results)[0]
-
-
-def search_web(query: str, max_results: int = 4) -> tuple[list[dict], str]:
-    """Web search plus a status the caller can surface.
 
     Status is "ok" (the provider answered, possibly with zero results),
     "unconfigured" (no provider key), or "error" (the provider call failed,
     and it is logged). An empty list alone cannot tell these apart, and a
     user who asked for web research must not read a failure as "the web
-    had nothing".
+    had nothing". There is deliberately no status-free wrapper: a caller
+    that cannot see the status will not handle it.
     """
     if os.environ.get("PERPLEXITY_API_KEY"):
         results = _web_perplexity(query, max_results)

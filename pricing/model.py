@@ -10,6 +10,12 @@ Design choices:
     exclude its algebraic twins (booked_acv, price_realization, discount_amount,
     off_policy) and anything that encodes the outcome or the close date
     (cycle_days). Training on booked_acv would let the model cheat.
+    One deliberate exception: `is_quarter_end` is derived from close_date
+    (pricing/ingest.py), so strictly it is known only at close. At quote time a
+    rep knows the expected close date, which is why it stays, but on a real
+    book whether a deal actually lands in the quarter-end window is partly
+    determined by whether it closes at all. Treat it as a known quote-time
+    approximation, not as a clean quote-time feature.
   * Explainability via LightGBM's NATIVE SHAP contributions
     (`predict(pred_contrib=True)`) — no extra `shap` dependency, exact for the
     tree, and the foundation for per-deal "why" in enterprise (explainability >
@@ -23,16 +29,18 @@ Design choices:
     treat a larger discount as never hurting the deal's own odds, which is the
     only causally defensible direction here. On the random holdout PK-15
     measured (2026-09-11, data/synthetic/deals.csv) it cost AUC, 0.640 to
-    0.619; on the time-ordered holdout below it costs nothing (0.561
-    unconstrained vs 0.564 constrained, 2026-09-15), so the win curve that
-    cannot invert itself comes free.
+    0.619. On the time-ordered holdout at the capacity set below it costs
+    0.007 (0.621 unconstrained vs 0.614 constrained, 2026-09-15), inside the
+    noise of a holdout whose 95% CI is about 0.10 wide. Cheap, not free.
   * The holdout is the latest 25% of closes, not a random sample. Deals are
     time-ordered and the model scores deals that have not closed yet, so a
     random split lets it learn from deals that closed after the ones it is
     graded on and overstates how well it ranks. On the synthetic book the two
     splits land within noise of each other (random-split AUC across 20 seeds
-    ranges 0.551 to 0.670) because the generator has no drift; real books
-    drift, which is exactly when a random split would flatter. A book with no
+    ranged 0.551 to 0.670 at the pre-2026-09-15 capacity) because the
+    generator has no drift: here the time split validates the pipeline rather
+    than demonstrating drift robustness. Real books drift, which is exactly
+    when a random split would flatter. A book with no
     usable close dates falls back to a random stratified holdout, logged and
     recorded in metrics["split"].
   * Discount guidance maximizes expected ACV = P(win | discount) x list x
@@ -75,11 +83,21 @@ NUMERIC = ["list_acv", "discount_pct", "term_months", "quantity",
            "is_quarter_end", "competitor_present"]
 TARGET = "is_won"
 
-# Regularized: shallow leaves + large leaf minimum + L2 keep the model off
-# high-cardinality numeric noise (list_acv, quantity) and improve holdout AUC.
+# Capacity is set by forward-fold skill, not by holdout AUC. The previous
+# 250 trees / 15 leaves / min_child 50 was tuned against a random holdout,
+# which is tuning against the test set, and it overfit this book: across 5
+# expanding forward folds it scored AUC 0.604 with a Brier SKILL of -0.020,
+# meaning its probabilities lost to simply quoting the training win rate.
+# Measured 2026-09-15 on data/synthetic/deals.csv, same folds throughout:
+#   250/15/50   AUC 0.604 (se 0.023)  Brier 0.2430  skill -0.020
+#   100/7/150   AUC 0.643 (se 0.018)  Brier 0.2242  skill +0.059
+#   50/7/150    AUC 0.651 (se 0.018)  Brier 0.2244  skill +0.059
+#   50/5/200    AUC 0.649 (se 0.013)  Brier 0.2259  skill +0.053
+# The smaller model both ranks better and earns its probabilities. Tune this
+# against folds, never against the single holdout the tests gate on.
 _PARAMS = dict(
-    n_estimators=250, learning_rate=0.05, num_leaves=15,
-    min_child_samples=50, subsample=0.8, colsample_bytree=0.7,
+    n_estimators=50, learning_rate=0.05, num_leaves=7,
+    min_child_samples=150, subsample=0.8, colsample_bytree=0.7,
     reg_lambda=1.0, random_state=7, n_jobs=-1, verbosity=-1,
 )
 
@@ -119,10 +137,22 @@ def _holdout_mask(df: pd.DataFrame, y: pd.Series, test_size: float,
     """Choose the evaluation holdout. Returns (mask, split, test_from).
 
     Time split when close dates allow it: every deal closed on or after the
-    cutoff is scored, everything earlier (and anything undated) trains, so no
-    training deal closed after a scored one. Falls back to a random stratified
-    split, loudly, when there are no usable dates or either side would hold a
-    single outcome class (AUC is undefined there).
+    cutoff is scored, everything earlier trains. The ordering guarantee covers
+    dated rows: an undated row trains by choice, since dropping it would throw
+    away signal, and metrics["n_undated_train"] counts them so the guarantee is
+    never overstated. Ties at the cutoff all land in the holdout, so a single
+    day never straddles the boundary.
+
+    If the latest slice holds a single outcome class (AUC is undefined there)
+    the cutoff walks earlier rather than abandoning time order, and only a book
+    where no cutoff works at all falls back to a random stratified split,
+    loudly. That fallback reintroduces exactly the leakage this function
+    exists to prevent, so it is always visible in metrics["split"].
+
+    Deliberately not grouped by account: 241 of 300 accounts appear on both
+    sides of the split, but no account-derived field is a feature, and when
+    scoring a live quote you do know that account's closed history. Grouping
+    would measure a colder start than the product actually has.
     """
     n = len(df)
     reason = "no close_date column"
@@ -132,13 +162,27 @@ def _holdout_mask(df: pd.DataFrame, y: pd.Series, test_size: float,
         if len(dated):
             undated = n - len(dated)
             pos = min(max(int(n * (1.0 - test_size)) - undated, 0), len(dated) - 1)
-            cutoff = dated.iloc[pos]
-            mask = (dates >= cutoff).to_numpy()
             yv = y.to_numpy()
-            if (0 < mask.sum() < n and len(np.unique(yv[mask])) == 2
-                    and len(np.unique(yv[~mask])) == 2):
-                return mask, "time", cutoff.date().isoformat()
-            reason = "time holdout would be empty or single-class"
+            # Walk the cutoff earlier while a side is single-class: a bigger
+            # holdout still beats giving up the ordering guarantee. Stop once
+            # the holdout would pass half the book, which is no longer a
+            # holdout.
+            for p in range(pos, -1, -1):
+                cutoff = dated.iloc[p]
+                mask = (dates >= cutoff).to_numpy()
+                if mask.sum() > n * 0.5:
+                    break
+                if (0 < mask.sum() < n and len(np.unique(yv[mask])) == 2
+                        and len(np.unique(yv[~mask])) == 2):
+                    share = mask.sum() / n
+                    if abs(share - test_size) > 0.10:
+                        # Usually means undated rows crowded out the holdout.
+                        logger.warning(
+                            "model: time holdout is %.0f%% of the book, not the "
+                            "requested %.0f%% (%d undated rows train)",
+                            share * 100, test_size * 100, undated)
+                    return mask, "time", cutoff.date().isoformat()
+            reason = "no time cutoff leaves both outcomes on both sides"
         else:
             reason = "close_date has no parseable dates"
     logger.warning("model: %s, falling back to a random stratified holdout", reason)
@@ -171,13 +215,30 @@ def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedMo
         "auc": float(roc_auc_score(y_te, p_te)),
         "avg_precision": float(average_precision_score(y_te, p_te)),
         "brier": float(brier_score_loss(y_te, p_te)),
+        # The only baseline that matters for a quoted probability: predicting
+        # the training book's win rate for every deal. A model whose Brier is
+        # worse than this one has probabilities that are not worth quoting,
+        # however good its ranking is.
+        "brier_constant": float(brier_score_loss(
+            y_te, np.full(len(y_te), float(y_tr.mean())))),
         "base_rate": float(y_te.mean()),
         # calibration: mean predicted vs actual win rate on holdout
         "mean_pred": float(p_te.mean()),
         # "time" (latest closes held out) or "random_stratified" (fallback)
         "split": split,
         "test_from": test_from,
+        "test_share": float(holdout.sum() / len(holdout)),
+        # Rows the time split could not order, which therefore train unordered.
+        "n_undated_train": int(
+            pd.to_datetime(df["close_date"], errors="coerce").isna().sum()
+        ) if split == "time" and "close_date" in df.columns else 0,
     }
+    # Positive means the probabilities beat the constant; negative means they
+    # lose to it. Reported, not just asserted, because it is the number that
+    # decides whether a per-deal win probability may be shown at all.
+    metrics["brier_skill"] = float(
+        1.0 - metrics["brier"] / metrics["brier_constant"]
+    ) if metrics["brier_constant"] else 0.0
     return TrainedModel(model=clf, features=list(X.columns),
                         categorical=cat, metrics=metrics, X_all=X,
                         holdout=holdout)

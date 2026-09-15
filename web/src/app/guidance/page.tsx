@@ -86,7 +86,7 @@ export default async function GuidancePage() {
                 {m.auc.toFixed(2)}
               </div>
               <div className="text-xs text-slate">
-                area under ROC curve · capped by irreducible noise
+                area under ROC curve, on deals that closed after training
               </div>
             </div>
             <div>

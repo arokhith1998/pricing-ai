@@ -49,6 +49,8 @@ from pricing import assist
 from pricing._safe_fetch import UnsafeFetchError, safe_get
 from pricing.docs import embed_texts
 
+logger = logging.getLogger("pricekeel.matching")
+
 # ---------------------------------------------------------------------------
 # Data shapes
 
@@ -96,6 +98,10 @@ class Comparison:
     competitor_plans: list[Plan]
     matches: list[Match]
     summary: str = ""
+    # One entry per URL: {url, role, status, plans_found}. A comparison table
+    # cannot show what we could not read, so the caller gets told which pages
+    # are missing and why instead of seeing a confident partial table.
+    sources: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -104,6 +110,7 @@ class Comparison:
             "competitor_plans": [p.to_dict() for p in self.competitor_plans],
             "matches": [m.to_dict() for m in self.matches],
             "summary": self.summary,
+            "sources": self.sources,
         }
 
 
@@ -477,8 +484,7 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         data = json.loads(raw)
     except Exception as exc:  # noqa: BLE001
         # Zero plans reads as "this page lists no plans". Record the real cause.
-        logging.getLogger("pricekeel.matching").warning(
-            "matching: plan extraction failed: %s", type(exc).__name__)
+        logger.warning("matching: plan extraction failed: %s", type(exc).__name__)
         return fallback_vendor, []
 
     vendor = (data.get("vendor") or fallback_vendor or "").strip()
@@ -520,13 +526,35 @@ def _safe_float(x) -> Optional[float]:
     return v
 
 
-def extract_plans_from_url(url: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
-    """Convenience: fetch + extract. Returns ("", []) on refusal, network, or parse failure."""
+def _extract_with_status(url: str, *,
+                         fallback_vendor: str = "") -> tuple[str, list[Plan], str]:
+    """Fetch and extract, plus why the result is empty when it is.
+
+    Status is "ok", "blocked" (robots.txt, kill switch, or the SSRF guard),
+    "fetch_error" (network or HTTP), or "no_plans" (the page read fine and
+    carried nothing extractable, which is a real answer, not a failure).
+    Zero plans with no status is indistinguishable from a page we never read.
+    """
+    host = urlparse(url).netloc or "url"
     try:
         text = fetch_pricing_page(url)
-    except (FetchBlocked, requests.RequestException):
-        return fallback_vendor, []
-    return extract_plans_from_text(text, fallback_vendor=fallback_vendor)
+    except (FetchBlocked, UnsafeFetchError) as exc:
+        logger.warning("matching: %s refused: %s", host, type(exc).__name__)
+        return fallback_vendor, [], "blocked"
+    except requests.RequestException as exc:
+        logger.warning("matching: %s fetch failed: %s", host, type(exc).__name__)
+        return fallback_vendor, [], "fetch_error"
+    vendor, plans = extract_plans_from_text(text, fallback_vendor=fallback_vendor)
+    return vendor, plans, ("ok" if plans else "no_plans")
+
+
+def extract_plans_from_url(url: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
+    """Convenience: fetch + extract. Returns ("", []) on refusal, network, or parse failure.
+
+    Callers that need to tell those apart use `_extract_with_status`.
+    """
+    vendor, plans, _status = _extract_with_status(url, fallback_vendor=fallback_vendor)
+    return vendor, plans
 
 
 # ---------------------------------------------------------------------------
@@ -671,14 +699,24 @@ def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
     The LLM gets the structured comparison output (no raw page HTML) and
     is asked for a one-paragraph plain-language read for the dashboard.
     """
-    my_vendor, my_plans = extract_plans_from_url(my_url)
+    my_vendor, my_plans, my_status = _extract_with_status(my_url)
+    sources = [{"url": my_url, "role": "mine", "status": my_status,
+                "plans_found": len(my_plans)}]
     all_competitor_plans: list[Plan] = []
     for cu in competitor_urls:
-        _, plans = extract_plans_from_url(cu)
+        _vendor, plans, status = _extract_with_status(cu)
         all_competitor_plans.extend(plans)
+        sources.append({"url": cu, "role": "competitor", "status": status,
+                        "plans_found": len(plans)})
 
     matches = match_plans(my_plans, all_competitor_plans)
     summary = _summarize_matches(my_vendor, my_plans, all_competitor_plans, matches)
+    unread = [s for s in sources if s["status"] in ("blocked", "fetch_error")]
+    if unread:
+        reasons = ", ".join(sorted({s["status"] for s in unread}))
+        summary = (f"Pricekeel: {len(unread)} of {len(sources)} pricing pages "
+                   f"could not be read ({reasons}); the comparison below covers "
+                   f"the rest. ") + summary
 
     return Comparison(
         my_vendor=my_vendor or "Your pricing",
@@ -686,6 +724,7 @@ def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
         competitor_plans=all_competitor_plans,
         matches=matches,
         summary=summary,
+        sources=sources,
     )
 
 
@@ -720,6 +759,5 @@ def _summarize_matches(my_vendor: str, my_plans: list[Plan],
             _SUMMARY_SYSTEM, json.dumps(payload, default=str), max_tokens=350,
         ).strip()
     except Exception as exc:  # noqa: BLE001
-        logging.getLogger("pricekeel.matching").warning(
-            "matching: summary failed: %s", type(exc).__name__)
+        logger.warning("matching: summary failed: %s", type(exc).__name__)
         return "Pricekeel: summary unavailable; the comparison data is in the table."
