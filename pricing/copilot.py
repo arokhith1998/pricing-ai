@@ -16,11 +16,14 @@ logged with its math; defensible to finance." That promise lives here.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 from pricing import assist
+
+logger = logging.getLogger("pricekeel.copilot")
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +302,9 @@ def _opp_raise_prices(analysis: dict) -> list[Opportunity]:
     try:
         rows = rs.to_dict(orient="records") if hasattr(rs, "to_dict") else list(rs)
     except Exception:  # noqa: BLE001
+        # A malformed frame must not pass silently as "no headroom anywhere".
+        logger.warning("copilot: realization_by_segment unreadable, raise-price "
+                       "opportunities skipped", exc_info=True)
         return []
     opps: list[Opportunity] = []
     for row in rows:
@@ -352,6 +358,8 @@ def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
         try:
             rows = frame.to_dict(orient="records") if hasattr(frame, "to_dict") else list(frame)
         except Exception:  # noqa: BLE001
+            logger.warning("copilot: hierarchy_slices.%s unreadable, slice skipped",
+                           dim, exc_info=True)
             continue
         for row in rows:
             disc = float(row.get("avg_discount") or 0)
@@ -423,6 +431,8 @@ def _opp_investigate(analysis: dict) -> Optional[Opportunity]:
     try:
         rows = top.to_dict(orient="records") if hasattr(top, "to_dict") else list(top)
     except Exception:  # noqa: BLE001
+        logger.warning("copilot: top_leak_deals unreadable, investigate card skipped",
+                       exc_info=True)
         return None
     if not rows:
         return None

@@ -441,7 +441,7 @@ def investor_html() -> str:
         <div class="step"><div class="num">03</div><div class="name">Diagnose</div>
           <div class="sub">Compute overview, leakage, reference threshold, segment realization, governance gaps.</div></div>
         <div class="step"><div class="num">04</div><div class="name">Model and explain</div>
-          <div class="sub">LightGBM win probability, isotonic calibration, SHAP factors, expected-value curve.</div></div>
+          <div class="sub">LightGBM win probability, SHAP factors, expected-value curve.</div></div>
         <div class="step"><div class="num">05</div><div class="name">Narrate</div>
           <div class="sub">Deterministic Python extractors build Opportunity objects. LLM only writes the prose.</div></div>
       </div>
@@ -492,10 +492,10 @@ def investor_html() -> str:
         <div>
           <ul class="bullets">
             <li><b>LightGBM binary classifier.</b> Predicts <span class="kbd">won</span> from deal features. Lives in <span class="kbd">pricing/model.py</span>.</li>
-            <li><b>Isotonic calibration.</b> Holdout split, so predicted 70% means 70% in expectation.</li>
+            <li><b>Time-ordered holdout.</b> The latest 25% of closes are scored, so the model is graded the way it is used: on deals that closed after everything it trained on.</li>
             <li><b>SHAP per-deal contributions.</b> Every recommendation names the factor: raises win chance, or lowers it.</li>
             <li><b>Expected-value curve.</b> Recommended discount maximizes <span class="kbd">list × (1 minus discount) × P(win)</span> across a sweep.</li>
-            <li><b>AUC 0.640 on the bundled book.</b> Reviewer note: fine for deal-guidance support. Accuracy is not the moat. The explanation chain is.</li>
+            <li><b>AUC 0.564 on the bundled book</b>, time-ordered holdout. The 2026-05-30 reviewer note called 0.64 fine for deal-guidance support, and that 0.64 came from an easier random split. Accuracy is not the moat. The explanation chain is.</li>
           </ul>
         </div>
         <div>
@@ -600,7 +600,7 @@ def investor_html() -> str:
         <div class="group">
           <h4>Engine, Python</h4>
           <p><b>LightGBM</b>, gradient-boosted win probability.<br/>
-             <b>scikit-learn</b>, isotonic calibration, splits, metrics.<br/>
+             <b>scikit-learn</b>, splits and metrics.<br/>
              <b>SHAP</b>, per-deal feature contributions.<br/>
              <b>pandas, numpy</b>, deterministic metric math.<br/>
              <b>FastAPI</b>, the engine endpoints.</p>
@@ -1012,31 +1012,37 @@ def technical_html() -> str:
     section_4 = """
       <h2>4. Model layer</h2>
       <p><code>pricing/model.py</code> trains a LightGBM binary classifier that predicts
-        <code>won</code> from deal features. The classifier is wrapped in isotonic calibration so the
-        predicted probabilities are interpretable as expected win rates, not raw scores.</p>
+        <code>won</code> from deal features. Probabilities come straight from the classifier;
+        there is no post-hoc calibration layer, so the calibration gap reported below is the
+        model's own.</p>
 
       <h3>Features</h3>
       <p>Inputs the classifier sees, top six by gain on the bundled book:</p>
       <table>
         <thead><tr><th>Feature</th><th>Gain</th><th>Why it matters</th></tr></thead>
         <tbody>
-          <tr><td><code>discount_pct</code></td><td>1,962</td><td>The lever the rep controls. Biggest single signal.</td></tr>
-          <tr><td><code>list_acv</code></td><td>1,805</td><td>Bigger deals close differently. Buyer composition differs.</td></tr>
-          <tr><td><code>quantity</code></td><td>1,517</td><td>Per-seat vs platform mix proxy.</td></tr>
-          <tr><td><code>industry</code></td><td>495</td><td>Cohort effect. Fintech, healthcare, media accept discounts differently.</td></tr>
-          <tr><td><code>competitor_present</code></td><td>433</td><td>Multi-vendor deals discount more.</td></tr>
-          <tr><td><code>region</code></td><td>316</td><td>Geo-cohort effect.</td></tr>
+          <tr><td><code>list_acv</code></td><td>2,382</td><td>Bigger deals close differently. Buyer composition differs.</td></tr>
+          <tr><td><code>quantity</code></td><td>1,723</td><td>Per-seat vs platform mix proxy.</td></tr>
+          <tr><td><code>discount_pct</code></td><td>608</td><td>The lever the rep controls, and the one feature the model is constrained on.</td></tr>
+          <tr><td><code>competitor_present</code></td><td>512</td><td>Multi-vendor deals discount more.</td></tr>
+          <tr><td><code>industry</code></td><td>474</td><td>Cohort effect. Fintech, healthcare, media accept discounts differently.</td></tr>
+          <tr><td><code>region</code></td><td>388</td><td>Geo-cohort effect.</td></tr>
         </tbody>
       </table>
 
-      <h3>Calibration</h3>
-      <p>Holdout split (75 vs 25), then isotonic regression on the holdout predictions. After
-        calibration a predicted 70% win probability means 70% of similar deals actually win.</p>
+      <h3>Holdout and calibration</h3>
+      <p>Time-ordered holdout: the earliest 1,500 closes train, the latest 500 (closing from
+        2025-04-03) are scored, so no training deal closed after a deal it is graded on. There
+        is no post-hoc calibration step. On the bundled book the model predicts a mean 59.5%
+        win rate against an actual 65.8%, a 6.3 point gap in line with the quarter-to-quarter
+        swing in win rate on this book (55.3% to 65.4%) rather than a systematic bias.</p>
 
       <h3>Headline metrics on the bundled sample</h3>
-      <p><b>AUC 0.640.</b> Brier 0.230. n_train 1,500. n_test 500. The 2026-05-30 launch-readiness
-        panel explicitly flagged AUC 0.64 as fine for deal-guidance use. Accuracy is not the moat.
-        The explanation chain is.</p>
+      <p><b>AUC 0.564</b> on the time-ordered holdout. Brier 0.247. n_train 1,500. n_test 500.
+        The 2026-05-30 launch-readiness panel flagged AUC 0.64 as fine for deal-guidance use;
+        that 0.64 came from a random split, which on this book reports anywhere from 0.551 to
+        0.670 depending on the seed. The time-ordered number is the one to hold us to.
+        Accuracy is not the moat. The explanation chain is.</p>
 
       <h3>Per-deal explainability</h3>
       <p><code>explain(tm, X_row)</code> returns SHAP-style contributions (using LightGBM's
@@ -1231,7 +1237,7 @@ class Opportunity:
         test in <code>web/src/proxy.ts</code> (small, hand-readable).</p>
 
       <div class="flag good">
-        <b>What we will not claim.</b> We have no real-customer validation yet. AUC 0.64 is the
+        <b>What we will not claim.</b> We have no real-customer validation yet. AUC 0.56 is the
         synthetic book. On real data it may go up (cleaner signal, more features) or down (noisier
         outcomes). The methodology is honest. The wedge says: send your CSV, see what the engine
         reports. The customer is the one who validates it.

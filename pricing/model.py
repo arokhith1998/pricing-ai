@@ -21,10 +21,20 @@ Design choices:
     reports P(win) falling as discount rises, for every deal, on every curve.
     That is a correlation read as a cause. The constraint forces the model to
     treat a larger discount as never hurting the deal's own odds, which is the
-    only causally defensible direction here: it costs AUC (holdout moves from
-    0.640 unconstrained to 0.619 constrained, measured 2026-09-11 on
-    data/synthetic/deals.csv) in exchange for a win curve that cannot invert
-    itself.
+    only causally defensible direction here. On the random holdout PK-15
+    measured (2026-09-11, data/synthetic/deals.csv) it cost AUC, 0.640 to
+    0.619; on the time-ordered holdout below it costs nothing (0.561
+    unconstrained vs 0.564 constrained, 2026-09-15), so the win curve that
+    cannot invert itself comes free.
+  * The holdout is the latest 25% of closes, not a random sample. Deals are
+    time-ordered and the model scores deals that have not closed yet, so a
+    random split lets it learn from deals that closed after the ones it is
+    graded on and overstates how well it ranks. On the synthetic book the two
+    splits land within noise of each other (random-split AUC across 20 seeds
+    ranges 0.551 to 0.670) because the generator has no drift; real books
+    drift, which is exactly when a random split would flatter. A book with no
+    usable close dates falls back to a random stratified holdout, logged and
+    recorded in metrics["split"].
   * Discount guidance maximizes expected ACV = P(win | discount) x list x
     (1 - discount). Because the win curve saturates, the optimum sits where the
     marginal win gain stops covering the marginal price given away: with the
@@ -39,6 +49,7 @@ CLI:  python -m pricing.model data/synthetic/deals.csv
 from __future__ import annotations
 
 import argparse
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -55,6 +66,8 @@ from sklearn.model_selection import train_test_split
 from pricing import metrics
 from pricing.ingest import ingest
 from pricing.schema import band_for
+
+logger = logging.getLogger("pricekeel.model")
 
 # Features available at quote time. Categorical first, then numeric.
 CATEGORICAL = ["segment", "region", "industry", "product_tier", "value_metric"]
@@ -97,13 +110,51 @@ class TrainedModel:
     categorical: list[str]
     metrics: dict
     X_all: pd.DataFrame  # full feature frame (for category-consistent scoring)
+    # Row mask over the training frame: True for deals scored in the holdout.
+    holdout: np.ndarray | None = None
+
+
+def _holdout_mask(df: pd.DataFrame, y: pd.Series, test_size: float,
+                  seed: int) -> tuple[np.ndarray, str, str | None]:
+    """Choose the evaluation holdout. Returns (mask, split, test_from).
+
+    Time split when close dates allow it: every deal closed on or after the
+    cutoff is scored, everything earlier (and anything undated) trains, so no
+    training deal closed after a scored one. Falls back to a random stratified
+    split, loudly, when there are no usable dates or either side would hold a
+    single outcome class (AUC is undefined there).
+    """
+    n = len(df)
+    reason = "no close_date column"
+    if "close_date" in df.columns:
+        dates = pd.to_datetime(df["close_date"], errors="coerce")
+        dated = dates.dropna().sort_values(kind="mergesort")
+        if len(dated):
+            undated = n - len(dated)
+            pos = min(max(int(n * (1.0 - test_size)) - undated, 0), len(dated) - 1)
+            cutoff = dated.iloc[pos]
+            mask = (dates >= cutoff).to_numpy()
+            yv = y.to_numpy()
+            if (0 < mask.sum() < n and len(np.unique(yv[mask])) == 2
+                    and len(np.unique(yv[~mask])) == 2):
+                return mask, "time", cutoff.date().isoformat()
+            reason = "time holdout would be empty or single-class"
+        else:
+            reason = "close_date has no parseable dates"
+    logger.warning("model: %s, falling back to a random stratified holdout", reason)
+    _tr, te = train_test_split(np.arange(n), test_size=test_size,
+                               random_state=seed, stratify=y)
+    mask = np.zeros(n, dtype=bool)
+    mask[te] = True
+    return mask, "random_stratified", None
 
 
 def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedModel:
-    """Train the win-probability model and evaluate on a stratified holdout."""
+    """Train the win-probability model and evaluate on the latest closes."""
     X, y, cat, _num = prepare(df)
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=test_size, random_state=seed, stratify=y)
+    holdout, split, test_from = _holdout_mask(df, y, test_size, seed)
+    X_tr, X_te = X[~holdout], X[holdout]
+    y_tr, y_te = y[~holdout], y[holdout]
 
     # +1 on discount_pct, 0 elsewhere, derived from the actual prepared column
     # order so the constraint never drifts out of sync with the feature list.
@@ -123,9 +174,13 @@ def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedMo
         "base_rate": float(y_te.mean()),
         # calibration: mean predicted vs actual win rate on holdout
         "mean_pred": float(p_te.mean()),
+        # "time" (latest closes held out) or "random_stratified" (fallback)
+        "split": split,
+        "test_from": test_from,
     }
     return TrainedModel(model=clf, features=list(X.columns),
-                        categorical=cat, metrics=metrics, X_all=X)
+                        categorical=cat, metrics=metrics, X_all=X,
+                        holdout=holdout)
 
 
 def predict_win_prob(tm: TrainedModel, X: pd.DataFrame) -> np.ndarray:
@@ -288,6 +343,8 @@ def main() -> None:
     print("  WIN-PROBABILITY MODEL")
     print("=" * 60)
     print(f"train/test      : {m['n_train']:,} / {m['n_test']:,}")
+    print(f"holdout         : {m['split']}"
+          + (f", closes from {m['test_from']}" if m["test_from"] else ""))
     print(f"ROC AUC         : {m['auc']:.3f}")
     print(f"avg precision   : {m['avg_precision']:.3f}  (base rate {m['base_rate']:.3f})")
     print(f"Brier score     : {m['brier']:.4f}  (lower is better)")

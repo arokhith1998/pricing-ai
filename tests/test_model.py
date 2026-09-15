@@ -8,6 +8,7 @@ library/version drift without being meaningless.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -50,17 +51,24 @@ def sample_300(trained_on_deals_csv):
 
 def test_auc_clears_floor(trained):
     _df, tm = trained
-    # Baseline measured 2026-09-11 on data/synthetic/deals.csv: 0.640
-    # unconstrained, 0.619 with the discount_pct monotone constraint (see
-    # test_holdout_auc_within_floor_with_constraint below). This floor stays
-    # well under both so ordinary drift does not flake the suite.
-    assert tm.metrics["auc"] > 0.60
+    # The holdout is time-ordered (latest 25% of closes). Measured 2026-09-15
+    # on data/synthetic/deals.csv: 0.564 constrained, 0.561 unconstrained. The
+    # random split PK-15 measured (0.619) sat inside a seed-to-seed range of
+    # 0.551 to 0.670, so no single holdout AUC here is precise to better than
+    # about 0.05. Floor 0.53 is the PK-15 rule (unconstrained baseline minus
+    # 0.03) applied to the time split; see
+    # test_holdout_auc_within_floor_with_constraint below.
+    assert tm.metrics["auc"] > 0.53
 
 
 def test_model_is_calibrated(trained):
     _df, tm = trained
-    # mean predicted win prob should track the actual holdout base rate
-    assert abs(tm.metrics["mean_pred"] - tm.metrics["base_rate"]) < 0.05
+    # Mean predicted win prob should track the actual holdout base rate.
+    # 0.08, not 0.05: a time holdout carries its own quarter's win rate, and
+    # quarterly win rates on this book swing from 0.553 to 0.654. Forward
+    # folds measured gaps of -0.012, +0.064 and -0.066 (2026-09-15). 0.08
+    # still fails a model miscalibrated beyond that seasonal noise.
+    assert abs(tm.metrics["mean_pred"] - tm.metrics["base_rate"]) < 0.08
     assert tm.metrics["brier"] < 0.26
 
 
@@ -209,14 +217,14 @@ def test_no_recommendation_lowers_discount_while_raising_win_prob(sample_300):
 
 
 def test_holdout_auc_within_floor_with_constraint(trained_on_deals_csv):
-    """AUC floor on the real deals.csv split, not a pin. Baseline measured
-    2026-09-11: 0.640 unconstrained, 0.619 with the discount_pct monotone
-    constraint (advanced method). The floor is 0.61: the 0.640 unconstrained
-    baseline minus the 0.03 acceptance band, so a real regression beyond the
-    accepted AUC cost still fails while routine library or data drift does
-    not flake this suite."""
+    """AUC floor on the real deals.csv split, not a pin. PK-15's rule: the
+    unconstrained baseline minus a 0.03 acceptance band. On PK-15's random
+    split that was 0.640 - 0.03 = 0.61. The holdout is now time-ordered, where
+    the baseline measured 2026-09-15 is 0.561 unconstrained and 0.564 with the
+    constraint, so the same rule gives 0.53. A real regression beyond the band
+    still fails; routine library or data drift does not flake this suite."""
     _df, tm = trained_on_deals_csv
-    assert tm.metrics["auc"] >= 0.61
+    assert tm.metrics["auc"] >= 0.53
 
 
 def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
@@ -233,3 +241,30 @@ def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
     assert constraints == expected
     assert constraints[tm.features.index("discount_pct")] == 1
     assert sum(constraints) == 1
+
+
+# -- Time-ordered holdout ----------------------------------------------------
+
+
+def test_holdout_is_the_most_recent_deals(trained_on_deals_csv):
+    """Deals are time-ordered, so the holdout must be the latest closes: every
+    training deal closed strictly before every scored deal. A random split
+    would let the model learn from the future of the deals it is graded on."""
+    df, tm = trained_on_deals_csv
+    assert tm.metrics["split"] == "time"
+    dates = df["close_date"]
+    train_dates = dates[~tm.holdout].dropna()
+    test_dates = dates[tm.holdout]
+    assert train_dates.max() < test_dates.min()
+    assert test_dates.min().date().isoformat() == tm.metrics["test_from"]
+    assert tm.metrics["n_test"] == int(tm.holdout.sum())
+    assert tm.metrics["n_train"] + tm.metrics["n_test"] == len(df)
+
+
+def test_undated_book_falls_back_to_random_split_and_says_so(trained, caplog):
+    df, _tm = trained
+    with caplog.at_level(logging.WARNING, logger="pricekeel.model"):
+        tm = model.train(df.drop(columns=["close_date"]))
+    assert tm.metrics["split"] == "random_stratified"
+    assert tm.metrics["test_from"] is None
+    assert "random stratified holdout" in caplog.text

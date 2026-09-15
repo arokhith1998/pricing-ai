@@ -14,12 +14,17 @@ header strings, never any row data. See docs/design/richer-ingest.md.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Optional
 
 import rapidfuzz
 
 from pricing.schema import FIELDS
+
+logger = logging.getLogger("pricekeel.mapping")
+# The embedding layer fails the same way for every header, so warn once.
+_EMBED_FAILURE_LOGGED = False
 
 # Curated synonyms per canonical field. Lowercase, deterministic, easy to grow.
 SYNONYMS: dict[str, list[str]] = {
@@ -244,6 +249,7 @@ def _field_embeds():
 
 def embedding_match(header: str, threshold: float = 0.55) -> Optional[tuple[str, float]]:
     """Cosine match of the header against every field's description+synonyms."""
+    global _EMBED_FAILURE_LOGGED
     try:
         import numpy as np
         m = _model()
@@ -255,8 +261,14 @@ def embedding_match(header: str, threshold: float = 0.55) -> Optional[tuple[str,
         score = float(sims[idx])
         if score >= threshold:
             return (names[idx], score)
-    except Exception:
+    except Exception as exc:
         # If fastembed isn't available at runtime, this layer just no-ops.
+        # The mapper still works on the other layers, but an operator needs
+        # to know the semantic layer is off.
+        if not _EMBED_FAILURE_LOGGED:
+            logger.warning("mapping: embedding layer unavailable, skipping: %s",
+                           type(exc).__name__)
+            _EMBED_FAILURE_LOGGED = True
         return None
     return None
 
@@ -327,8 +339,11 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
                     for f, h in (llm_map or {}).items():
                         if h and h not in claimed and f in unmatched_fields:
                             _claim(f, h, "llm", "low")
-            except Exception:
-                pass
+            except Exception as exc:
+                # Unmatched fields already show confidence "none" to the user;
+                # the operator still needs to know the LLM layer failed.
+                logger.warning("mapping: LLM fallback failed for %d headers: %s",
+                               len(unmatched_headers), type(exc).__name__)
 
     # Always include every field key.
     out_mapping: dict[str, Optional[str]] = {

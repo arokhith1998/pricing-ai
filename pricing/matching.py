@@ -32,6 +32,7 @@ Honest constraints:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -474,7 +475,10 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
             json_schema=_EXTRACT_JSON_SCHEMA,
         )
         data = json.loads(raw)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        # Zero plans reads as "this page lists no plans". Record the real cause.
+        logging.getLogger("pricekeel.matching").warning(
+            "matching: plan extraction failed: %s", type(exc).__name__)
         return fallback_vendor, []
 
     vendor = (data.get("vendor") or fallback_vendor or "").strip()
@@ -715,5 +719,7 @@ def _summarize_matches(my_vendor: str, my_plans: list[Plan],
         return assist._complete(
             _SUMMARY_SYSTEM, json.dumps(payload, default=str), max_tokens=350,
         ).strip()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger("pricekeel.matching").warning(
+            "matching: summary failed: %s", type(exc).__name__)
         return "Pricekeel: summary unavailable; the comparison data is in the table."
