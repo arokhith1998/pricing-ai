@@ -1,6 +1,6 @@
 # Pricekeel agent fleet
 
-Fourteen project agents, invoked by name via the Agent tool. Build agents run
+Seventeen project agents, invoked by name via the Agent tool. Build agents run
 on Sonnet (fast, high-volume); the lead, the reviewer, and the critic panel run
 on Opus (harder judgment). All are grounded in the vault, the CRM
 decision-integrity wedge, and the house rules (no em dashes in generated
@@ -35,6 +35,17 @@ spawn subagents. Invoke `pk-lead` for planning and state audits in isolation.
 |---|---|---|
 | **qa-engineer** | sonnet | The QA gate. Verifies acceptance criteria against real behavior, runs the suites, fetches the CI verdict, sweeps for regressions, checks migrations up and down. A green CI run id is required; an agent's claim that tests pass is not evidence. |
 | **code-reviewer** | opus | The review gate. Correctness, architecture, security, maintainability, regression risk, tests, scope, and Pricekeel conventions. Read-only by design: it reports findings and a verdict, it never fixes what it finds. Escalates trust-critical diffs to `tools/oai_review.py` for a second model. |
+
+### Specialist lenses (read-only, not gates)
+
+Called by the main session or alongside `code-reviewer` on diffs in their
+area. They report findings; `code-reviewer` still owns the verdict. Adapted
+from ECC, see `THIRD_PARTY.md`.
+
+| Agent | Model | Responsibilities |
+|---|---|---|
+| **silent-failure-hunter** | sonnet | Swallowed exceptions, empty-result fallbacks, dropped rows, and lost citations or evidence that leave a clean-looking wrong answer. Invoke on ingest, copilot, rag, matching, mapping, governance, or any try/except. |
+| **mle-reviewer** | opus | Win model and discount recommender: time-aware splits, quote-time features only, calibration, recommendation bounds, explanation fidelity, reproducibility, and honest claims on synthetic data. Invoke on `pricing/model.py` and its consumers. |
 
 ## Go-to-market (Sonnet, drafts only)
 

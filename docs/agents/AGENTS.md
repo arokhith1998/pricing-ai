@@ -61,6 +61,16 @@ isolation; run the dispatch loop yourself in the main session.
 | `qa-engineer` | sonnet | `tests/**`, `web/test/**`, CI verdicts | Passes a task on an agent's claim instead of a CI run id. |
 | `code-reviewer` | opus | nothing, read-only | Fixes what it finds. A reviewer that patches is not a gate. |
 
+### Specialist lenses (read-only, not gates)
+
+| Agent | Model | Owns | Never |
+|---|---|---|---|
+| `silent-failure-hunter` | sonnet | nothing, read-only | Holds a verdict. Its findings feed `code-reviewer`. |
+| `mle-reviewer` | opus | nothing, read-only | Holds a verdict. Its findings feed `code-reviewer` and `ai-engineer`. |
+
+Neither participates in `agentctl` transitions. `code-reviewer` should call
+for them on diffs in their area, and fold their findings into its verdict.
+
 ### Product and research (unchanged, advisory)
 
 `pricing-strategist`, `market-sizing-analyst`, `cfo`, `cto`. They set
