@@ -189,6 +189,12 @@ export type ModelInfo = {
     brier: number;
     base_rate: number;
     mean_pred: number;
+    // Brier of a constant that just quotes the training book's win rate, and
+    // the model's skill against it. Positive skill is what earns the right to
+    // show a per-deal probability at all; the mean_pred/base_rate pair above
+    // is an average that a constant predictor matches perfectly.
+    brier_constant?: number;
+    brier_skill?: number;
     // Which holdout produced these numbers: "time" (the latest closes, so the
     // model is graded on deals that closed after everything it trained on) or
     // "random_stratified", the fallback when close dates are unusable. Optional

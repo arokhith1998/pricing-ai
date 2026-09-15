@@ -95,6 +95,8 @@ TARGET = "is_won"
 #   50/5/200    AUC 0.649 (se 0.013)  Brier 0.2259  skill +0.053
 # The smaller model both ranks better and earns its probabilities. Tune this
 # against folds, never against the single holdout the tests gate on.
+# These were measured with n_jobs=-1, which is nondeterministic: the ordering
+# and the signs reproduce, the third decimal does not.
 _PARAMS = dict(
     n_estimators=50, learning_rate=0.05, num_leaves=7,
     min_child_samples=150, subsample=0.8, colsample_bytree=0.7,

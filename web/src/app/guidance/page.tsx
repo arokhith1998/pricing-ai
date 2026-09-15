@@ -69,15 +69,29 @@ export default async function GuidancePage() {
             should match reality.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-lg border border-teal/30 bg-surface-2 p-3">
-              <div className="text-sm font-medium text-teal">
-                Calibration ← lead with this
+            {m.brier_skill !== undefined ? (
+              <div className="rounded-lg border border-teal/30 bg-surface-2 p-3">
+                <div className="text-sm font-medium text-teal">
+                  Skill over guessing ← lead with this
+                </div>
+                <div className="mt-1 text-xl font-bold tabular-nums text-fg">
+                  {m.brier_skill > 0 ? "+" : ""}
+                  {m.brier_skill.toFixed(3)}
+                </div>
+                <div className="text-xs text-slate">
+                  how much better a per-deal probability is than quoting the
+                  book&apos;s win rate. Above zero is what earns the number
+                </div>
               </div>
+            ) : null}
+            <div>
+              <div className="text-sm text-slate">Average bias</div>
               <div className="mt-1 text-xl font-bold tabular-nums text-fg">
                 {pct(m.mean_pred)} vs {pct(m.base_rate)}
               </div>
               <div className="text-xs text-slate">
-                predicted vs actual win rate (the only thing finance cares about)
+                predicted vs actual win rate across all held-out deals. An
+                average only: it says nothing about any single deal
               </div>
             </div>
             <div>
@@ -86,7 +100,9 @@ export default async function GuidancePage() {
                 {m.auc.toFixed(2)}
               </div>
               <div className="text-xs text-slate">
-                area under ROC curve, on deals that closed after training
+                {m.split === "random_stratified"
+                  ? "area under ROC curve, on a random holdout: this book's close dates could not be used"
+                  : "area under ROC curve, on deals that closed after training"}
               </div>
             </div>
             <div>

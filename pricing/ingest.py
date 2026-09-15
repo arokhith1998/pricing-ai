@@ -252,6 +252,11 @@ def apply_header_mapping(df: pd.DataFrame,
     cols = list(df.columns)
     result = mapping.map_headers(cols, llm_fallback=False, use_embeddings=False)
     mapped, confidence, used = result["mapping"], result["confidence"], result["used"]
+    if report is not None:
+        # A mapper layer that did not run belongs in the artifact the customer
+        # actually reads, alongside blank_booked and blank_list_acv, not only
+        # in a response field no upload UI renders.
+        report.notes.extend(result["notes"])
     required = set(REQUIRED_FIELDS)
 
     rename: dict[str, str] = {}

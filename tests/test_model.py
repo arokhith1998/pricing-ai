@@ -76,24 +76,34 @@ def test_model_is_calibrated(trained):
     assert tm.metrics["brier"] < 0.26
 
 
-def test_probabilities_beat_a_constant(trained):
-    """The gate that bites. Brier under 0.26 and a small mean-pred gap are
-    both satisfied by a model that just predicts the training book's win rate
-    for every deal, so neither says the per-deal probabilities are worth
-    quoting. Brier skill does: the model's Brier measured against that
-    constant's. Negative means a Head of Pricing is better served by "this
-    book wins 59% of the time" than by anything the model says about a
-    specific deal, and this product quotes per-deal probabilities in the
-    guidance panel.
+def test_probabilities_beat_a_constant(trained, trained_on_deals_csv):
+    """The gate that bites, asserted on BOTH books, because it only bites on
+    one of them.
 
-    Measured 2026-09-15: +0.046 on this fixture, +0.037 on the pinned one.
-    At the previous capacity (250 trees / 15 leaves / min_child 50) the same
-    book scored -0.075, worse than the constant, while every other gate in
-    this file passed. That is why this test exists.
+    Brier under 0.26 and a small mean-pred gap are both satisfied by a model
+    that just predicts the training book's win rate for every deal, so neither
+    says the per-deal probabilities are worth quoting. Brier skill does: the
+    model's Brier against that constant's. Negative means a Head of Pricing is
+    better served by "this book wins 59% of the time" than by anything the
+    model says about a specific deal, and the guidance panel quotes per-deal
+    probabilities.
+
+    Measured 2026-09-15 on the time-ordered holdout, old capacity
+    (250 trees / 15 leaves / min_child 50) to current (50 / 7 / 150):
+
+        pinned deals.csv    -0.0746 -> +0.0368
+        generated seed 11   +0.0025 -> +0.0458
+
+    The regression this test exists to catch only showed on the pinned book.
+    An earlier version of this test asserted on the generated fixture alone,
+    where the old capacity scored +0.0025 and would have sailed through. A
+    gate that misses the failure it was written for is not a gate, so both
+    books are asserted here.
     """
-    _df, tm = trained
-    assert tm.metrics["brier"] < tm.metrics["brier_constant"]
-    assert tm.metrics["brier_skill"] > 0.0
+    for label, (_df, tm) in (("seed-11", trained),
+                             ("deals.csv", trained_on_deals_csv)):
+        assert tm.metrics["brier"] < tm.metrics["brier_constant"], label
+        assert tm.metrics["brier_skill"] > 0.0, label
 
 
 def test_predictions_in_unit_interval(trained):
@@ -298,3 +308,46 @@ def test_undated_book_falls_back_to_random_split_and_says_so(trained, caplog):
     assert tm.metrics["split"] == "random_stratified"
     assert tm.metrics["test_from"] is None
     assert "random stratified holdout" in caplog.text
+
+
+def test_recommendation_distribution_and_support_are_pinned(sample_300):
+    """What the product actually recommends, pinned so a model change cannot
+    move it unobserved.
+
+    The 2026-09-15 capacity fix (250/15/50 to 50/7/150) cut the mean
+    recommendation from 0.124 to 0.069, the maximum across the book from 0.27
+    to 0.10, and took the share recommending exactly 0% from 0.6% to about
+    11%. That was an improvement, since the generator saturates its win curve
+    by roughly a 10% discount and the old 0.27 recommendations were overfit
+    noise, but it reached users with nothing in the suite noticing. A Head of
+    Pricing rerunning the same book sees every number move.
+
+    Second half is the tripwire for a known latent hazard: recommend_discount
+    sweeps a fixed 0 to 40% grid for every deal with no per-segment support
+    bound, so nothing in the code stops it recommending deeper than that
+    segment has ever given. Nothing does today (largest here 0.10, against a
+    p99 of 0.244 in the tightest segment: SMB 0.244, MidMarket 0.306,
+    Enterprise 0.363), and this fails the moment that stops being true.
+
+    Measured 2026-09-15 on this 300-deal sample: mean 0.069, median 0.090,
+    max 0.100, 11.3% at exactly zero, zero deals beyond segment p99.
+    """
+    df, tm, sample = sample_300
+    p99 = df.groupby("segment")["discount_pct"].quantile(0.99)
+    recs = []
+    for idx in sample.index:
+        rec = model.recommend_discount(tm, tm.X_all.loc[[idx]],
+                                       float(df.loc[idx, "list_acv"]))
+        d = rec["recommended_discount"]
+        recs.append(d)
+        seg = str(df.loc[idx, "segment"])
+        assert d <= float(p99[seg]) + 1e-9, (
+            f"{df.loc[idx, 'opportunity_id']} ({seg}): recommended {d:.3f}, "
+            f"beyond the segment's p99 observed discount {float(p99[seg]):.3f}"
+        )
+    recs = np.array(recs)
+    # Bands wide enough for library drift, narrow enough that a shift the size
+    # of the capacity change fails here instead of shipping quietly.
+    assert 0.03 <= recs.mean() <= 0.12
+    assert recs.max() <= 0.20
+    assert (recs == 0.0).mean() <= 0.30
