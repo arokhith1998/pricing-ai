@@ -347,7 +347,13 @@ def test_recommendation_distribution_and_support_are_pinned(sample_300):
         )
     recs = np.array(recs)
     # Bands wide enough for library drift, narrow enough that a shift the size
-    # of the capacity change fails here instead of shipping quietly.
+    # of the capacity change fails here instead of shipping quietly. The max
+    # assertion carries most of that signal: the old capacity's max was 0.270
+    # against this 0.20 bound, while its mean measured 0.124 to 0.127 against
+    # a 0.12 bound, a margin thinner than the n_jobs=-1 nondeterminism this
+    # repo discloses. Do not trust the mean band alone when retuning.
     assert 0.03 <= recs.mean() <= 0.12
     assert recs.max() <= 0.20
-    assert (recs == 0.0).mean() <= 0.30
+    # Two-sided on purpose: the old capacity recommended exactly zero on 0.7%
+    # of deals, so an upper bound alone would not notice a slide back to it.
+    assert 0.02 <= (recs == 0.0).mean() <= 0.30

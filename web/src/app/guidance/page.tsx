@@ -64,9 +64,10 @@ export default async function GuidancePage() {
         <section className="rounded-xl border border-mist bg-surface p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-fg">Model quality</h2>
           <p className="mt-1 text-sm text-slate">
-            How well the win-probability model separates and calibrates on a
-            held-out test set. Calibration matters most: the predicted win chance
-            should match reality.
+            How well the win-probability model ranks and scores deals it never
+            trained on. Skill over guessing matters most: a per-deal
+            probability is only worth showing if it beats quoting the book&apos;s
+            overall win rate.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {m.brier_skill !== undefined ? (
