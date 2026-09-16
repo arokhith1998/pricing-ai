@@ -6,6 +6,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import AuroraBackground from "@/components/AuroraBackground";
 import ScrollProgress from "@/components/ScrollProgress";
+import LinkClickCapture from "@/components/LinkClickCapture";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
@@ -48,6 +49,9 @@ export default async function RootLayout({
         <Footer />
         {process.env.NEXT_PUBLIC_VERCEL_ANALYTICS_ENABLED === "true" ? (
           <Analytics />
+        ) : null}
+        {process.env.NEXT_PUBLIC_LINK_TRACKING_ENABLED === "true" ? (
+          <LinkClickCapture />
         ) : null}
       </body>
     </html>
