@@ -5,6 +5,46 @@ import sampleFallback from "@/data/sample-fallback.json";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
+// Thrown instead of a plain Error whenever the FastAPI backend answers with a
+// non-2xx status, so callers can tell a bad request apart from a backend
+// that is actually down. 4xx means the backend understood the request and
+// rejected it (bad opportunity_id, a discount outside the scoring grid, a
+// validation failure): the fix is in the input, not the connection. 5xx or a
+// network failure (timeout, connection refused) means the backend itself is
+// unreachable or erroring: the fix is not something the caller's input can
+// change. `detail` carries the upstream's own message when the body was
+// JSON with a `detail` or `error` string (FastAPI's HTTPException shape, or
+// this app's own Response.json({ error }) shape), so a specific validation
+// message survives the trip instead of collapsing into "is the API running?".
+export class ApiError extends Error {
+  status: number;
+  isClientError: boolean;
+  detail?: string;
+
+  constructor(status: number, detail?: string) {
+    super(detail ? `API responded ${status}: ${detail}` : `API responded ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.isClientError = status >= 400 && status < 500;
+    this.detail = detail;
+  }
+}
+
+async function toApiError(res: Response): Promise<ApiError> {
+  let detail: string | undefined;
+  try {
+    const body: unknown = await res.clone().json();
+    if (body && typeof body === "object") {
+      const b = body as Record<string, unknown>;
+      detail =
+        typeof b.detail === "string" ? b.detail : typeof b.error === "string" ? b.error : undefined;
+    }
+  } catch {
+    // Body was not JSON, or already consumed. Status-only message is fine.
+  }
+  return new ApiError(res.status, detail);
+}
+
 export type Overview = {
   opportunities: number;
   won: number;
@@ -21,9 +61,17 @@ export type Leakage = {
   reference_threshold: number;
   gross_discount_won: number;
   off_policy_leakage_won: number;
+  // Single-global-reference lens. Overstates: it measures every segment
+  // against one reference threshold, even segments whose own win point sits
+  // above it. Kept as a labeled secondary figure, never the headline.
   excess_vs_reference_won: number;
   excess_pct_of_booked: number;
   deals_above_reference: number;
+  // Segment-aware lens: each deal measured against its own segment's
+  // reference where the segment earned one. This is the headline figure.
+  excess_vs_segment_reference_won?: number;
+  excess_segment_pct_of_booked?: number;
+  deals_above_segment_reference?: number;
 };
 
 export type WinRateBand = {
@@ -369,7 +417,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 
 async function getJSON<T>(path: string, headers?: Record<string, string>): Promise<T> {
   const res = await apiFetch(path, headers ? { headers } : undefined);
-  if (!res.ok) throw new Error(`API responded ${res.status} for ${path}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -417,7 +465,7 @@ export async function getRecommendation(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ opportunity_id }),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -433,7 +481,7 @@ export async function postException(
     headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -453,6 +501,6 @@ export async function getSummary(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ policy }),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }

@@ -59,8 +59,8 @@ export default function Landing() {
           </p>
           <div className="mx-auto mt-6 max-w-2xl border-t border-mist/60 pt-4 text-xs text-muted">
             Billing and metering are consolidating into platforms: Stripe
-            acquired Metronome in 2025, and Salesforce agreed to acquire m3ter
-            in 2026. The usage data is getting locked up; the
+            acquired Metronome in 2025, and Salesforce closed its acquisition
+            of m3ter in July 2026. The usage data is getting locked up; the
             pricing-decision layer on top of it is still open.
           </div>
         </section>

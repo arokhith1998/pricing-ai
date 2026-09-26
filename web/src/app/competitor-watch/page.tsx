@@ -176,11 +176,11 @@ export default function CompetitorWatchPage() {
         <p className="mt-1 max-w-3xl text-xs text-muted">
           Customer-selected competitors only. We do not crawl the market.
           Public pages are fetched with <code>robots.txt</code> and SSRF
-          controls enforced. By submitting a URL you warrant that you have the
-          right to query it under the operator&rsquo;s terms (see{" "}
-          <a href="/terms" className="underline hover:text-fg">our Terms</a>).
-          Extraction is AI-assisted and qualitative; competitor claims never
-          alter the numerical discount guardrail.
+          controls enforced. By submitting a URL you warrant that you have
+          the right to query it under that third-party site&rsquo;s own
+          terms of use, not Pricekeel&rsquo;s. Extraction is AI-assisted and
+          qualitative; competitor claims never alter the numerical discount
+          guardrail.
         </p>
       </Reveal>
 

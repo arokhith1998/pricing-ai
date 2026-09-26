@@ -43,13 +43,13 @@ const SUBPROCESSORS: Sub[] = [
     dpa: "https://neon.com/legal/dpa",
   },
   {
-    name: "OpenAI",
+    name: "Anthropic",
     purpose:
       "LLM provider for narrative summaries, column-mapper fallback, copilot answers, plan extraction",
     region: "United States",
     dataCategory:
       "Aggregate analysis figures, column header names, uploaded document chunks, user questions, public pricing-page text",
-    dpa: "https://openai.com/policies/data-processing-addendum",
+    dpa: "https://www.anthropic.com/legal",
   },
   {
     name: "Perplexity",

@@ -68,11 +68,15 @@ function OutcomeChip({ won }: { won: boolean }) {
 }
 
 function Comparables({ rows }: { rows: ComparableDeal[] }) {
+  const hasWon = rows.some((r) => r.is_won);
+  const hasLost = rows.some((r) => !r.is_won);
+  const outcomeLabel =
+    hasWon && hasLost ? ", won and lost" : hasWon ? ", all won" : hasLost ? ", all lost" : "";
   return (
     <div>
       <h3 className="text-sm font-semibold text-fg">Deals like this one</h3>
       <p className="mt-0.5 text-xs text-slate">
-        The closest closed deals by segment, size, and discount, won and lost.
+        The closest closed deals by segment, size, and discount{outcomeLabel}.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
@@ -203,7 +207,12 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
   const [selected, setSelected] = useState(deals[0]?.opportunity_id ?? "");
   const [rec, setRec] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  // null = no error. A 4xx from the proxy means the backend understood the
+  // request and rejected it (bad input); a 5xx or network failure means the
+  // backend is actually unreachable. These are different problems with
+  // different fixes, so they get different messages instead of one generic
+  // "is the API running?" for both.
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selected) return;
@@ -216,17 +225,33 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
     // would itself become "unused directive" and re-trigger lint.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    setError(false);
+    setError(null);
     fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ opportunity_id: selected }),
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        const body = (await r.json().catch(() => null)) as { error?: string } | null;
+        const message =
+          r.status >= 400 && r.status < 500
+            ? body?.error ?? "This deal could not be priced with the data given."
+            : "Could not load guidance for this deal. Is the API running?";
+        throw new Error(message);
+      })
       .then((data: Recommendation) => {
         if (!cancelled) setRec(data);
       })
-      .catch(() => !cancelled && setError(true))
+      .catch(
+        (e: unknown) =>
+          !cancelled &&
+          setError(
+            e instanceof Error && e.message
+              ? e.message
+              : "Could not load guidance for this deal. Is the API running?",
+          ),
+      )
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -267,11 +292,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
         <p className="animate-pulse text-sm text-slate">Working out the best discount…</p>
       ) : null}
 
-      {error ? (
-        <p className="text-sm text-coral">
-          Could not load guidance for this deal. Is the API running?
-        </p>
-      ) : null}
+      {error ? <p className="text-sm text-coral">{error}</p> : null}
 
       {rec ? (
         <div className={`space-y-6 ${loading ? "opacity-60" : ""}`}>
@@ -306,8 +327,17 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                       {dWinPts} points, for about{" "}
                     </>
                   )}
-                  <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
-                  more in expected value.
+                  {rec.uplift >= 0 ? (
+                    <>
+                      <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
+                      more in expected value.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-coral">{money(Math.abs(rec.uplift))}</span>{" "}
+                      less in expected value.
+                    </>
+                  )}
                 </>
               ) : (
                 <>to maximize expected value on a {money(rec.list_acv)} list deal.</>

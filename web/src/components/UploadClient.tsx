@@ -62,8 +62,14 @@ const CONF_COLOR: Record<Confidence, string> = {
 // --- presentation helpers ---------------------------------------------------
 
 function MetricCard({
-  label, value, sub, accent,
-}: { label: string; value: React.ReactNode; sub?: string; accent?: "navy" | "coral" }) {
+  label, value, sub, secondary, accent,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: string;
+  secondary?: string;
+  accent?: "navy" | "coral";
+}) {
   return (
     <div
       className={`pk-card-3d rounded-xl border bg-surface p-5 shadow-sm ${
@@ -75,6 +81,7 @@ function MetricCard({
         {value}
       </div>
       {sub ? <div className="mt-1 text-sm text-muted">{sub}</div> : null}
+      {secondary ? <div className="mt-0.5 text-xs text-muted">{secondary}</div> : null}
     </div>
   );
 }
@@ -106,8 +113,16 @@ function Results({ d }: { d: Diagnostic }) {
         />
         <MetricCard
           label="Pricing upside to pursue"
-          value={<CountUp to={l.excess_vs_reference_won} format="money" />}
-          sub={`${pct(l.excess_pct_of_booked)} of booked value, past the win point`}
+          value={
+            <CountUp
+              to={l.excess_vs_segment_reference_won ?? l.excess_vs_reference_won}
+              format="money"
+            />
+          }
+          sub={`${pct(
+            l.excess_segment_pct_of_booked ?? l.excess_pct_of_booked,
+          )} of booked value, past each segment's own win point`}
+          secondary={`Global reference: ${money(l.excess_vs_reference_won)} (overstates by design)`}
           accent="coral"
         />
         <MetricCard
