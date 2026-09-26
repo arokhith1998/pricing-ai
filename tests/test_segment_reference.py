@@ -167,3 +167,111 @@ def test_readout_discloses_references_and_secondary_lens(capsys):
     assert "global fallback (insufficient data)" in out
     # correlational caveat must survive the methodology change
     assert "correlational" in out
+
+
+# --- PK-16: business_unit / product_line reference tables --------------------
+
+def _bu_block(prefix: str, business_unit: str, n: int, discount: float,
+             win_rate: float, segment: str = "ENT") -> list[dict]:
+    """n deals in one business_unit (fixed segment) at a fixed discount."""
+    list_acv, booked = 100_000.0, 100_000.0 * (1 - discount)
+    n_won = round(n * win_rate)
+    return [
+        dict(opportunity_id=f"{prefix}-{i}", account_id=f"{prefix}-{i}",
+             account_name=f"{prefix}-{i}",
+             outcome="closed_won" if i < n_won else "closed_lost",
+             list_acv=list_acv, booked_acv=booked, segment=segment,
+             business_unit=business_unit)
+        for i in range(n)
+    ]
+
+
+def _bu_book() -> pd.DataFrame:
+    """One segment (ENT) split across two business units. BU-A repeats the
+    exact win-curve shape the ENT block uses elsewhere in this file, so its
+    own reference is known to land at 10% (10-15% band); BU-B is thin (one
+    band) and must fall back."""
+    rows: list[dict] = []
+    rows += _bu_block("ba00", "BU-A", 20, 0.02, 0.30)
+    rows += _bu_block("ba05", "BU-A", 20, 0.07, 0.40)
+    rows += _bu_block("ba10", "BU-A", 20, 0.12, 0.80)  # BU-A win point
+    rows += _bu_block("ba15", "BU-A", 20, 0.17, 0.80)
+    rows += _bu_block("ba20", "BU-A", 20, 0.22, 0.80)
+    rows += _bu_block("bb10", "BU-B", 30, 0.12, 0.60)  # thin
+    return _build(rows)
+
+
+def test_business_unit_table_mirrors_segment_sufficiency_bar():
+    df = _bu_book()
+    table = {r["business_unit"]: r for r in metrics.business_unit_reference_table(df)}
+    g_rt = metrics.reference_discount(df)["reference_threshold"]
+
+    assert table["BU-A"]["basis"] == "own win point"
+    assert table["BU-A"]["reference_threshold"] == pytest.approx(0.10)
+    assert table["BU-A"]["deals"] == 100
+    assert table["BU-A"]["bands_populated"] == 5
+
+    assert table["BU-B"]["basis"] == "global fallback (insufficient data)"
+    assert table["BU-B"]["reference_threshold"] == pytest.approx(g_rt)
+    assert table["BU-B"]["deals"] == 30
+
+
+def test_product_line_table_mirrors_segment_sufficiency_bar():
+    df = _bu_book().rename(columns={"business_unit": "product_line"})
+    table = {r["product_line"]: r for r in metrics.product_line_reference_table(df)}
+    assert table["BU-A"]["basis"] == "own win point"
+    assert table["BU-A"]["reference_threshold"] == pytest.approx(0.10)
+
+
+def test_per_deal_reference_prefers_business_unit_over_segment():
+    """A deal's own BU reference (when earned) wins over its segment
+    reference, which wins over global — even though every deal here shares
+    the same segment (ENT)."""
+    df = _bu_book()
+    won = df[df["is_won"]]
+    seg_rt = metrics.reference_discount(df)["reference_threshold"]
+    seg_refs = metrics.segment_reference_table(df)
+    ent_seg_threshold = {r["segment"]: r["reference_threshold"]
+                        for r in seg_refs}["ENT"]
+
+    thr = metrics._per_deal_reference(won, df, seg_rt, seg_refs)
+    bu_a_thr = thr[won["business_unit"] == "BU-A"].to_numpy()
+    bu_b_thr = thr[won["business_unit"] == "BU-B"].to_numpy()
+
+    # BU-A earned its own (higher) reference -- every BU-A deal uses 10%,
+    # not the blended ENT segment threshold.
+    assert bu_a_thr == pytest.approx(0.10)
+    # BU-B is thin: it falls back through to the segment's own reference
+    # (ENT earned one from the combined 130-deal book), not straight to global.
+    assert bu_b_thr == pytest.approx(ent_seg_threshold)
+
+
+def test_hierarchy_slice_reference_reports_own_reference_and_excess():
+    df = _bu_book()
+    rows = {r["business_unit"]: r
+           for r in metrics.hierarchy_slice_reference(df, "business_unit")
+           .to_dict(orient="records")}
+    assert rows["BU-A"]["reference_basis"] == metrics._BASIS_OWN
+    assert rows["BU-A"]["reference_threshold"] == pytest.approx(0.10)
+    # BU-A won deals: 16@.12(excess .02) + 16@.17(.07) + 16@.22(.12), *100k
+    expected = (16 * 0.02 + 16 * 0.07 + 16 * 0.12) * 100_000
+    assert rows["BU-A"]["excess_won"] == pytest.approx(expected)
+    # BU-B did not earn its own BU reference; the fallback basis is disclosed.
+    assert rows["BU-B"]["reference_basis"] != metrics._BASIS_OWN
+
+
+def test_hierarchy_slice_reference_labels_dimensions_with_no_dedicated_table():
+    """product_family has no dedicated reference table (PK-16 scoped BU and
+    product_line only), so its slices always disclose the generic fallback
+    label rather than silently reusing another dimension's basis string."""
+    df = _bu_book().rename(columns={"business_unit": "product_family"})
+    rows = metrics.hierarchy_slice_reference(df, "product_family")
+    assert (rows["reference_basis"] == metrics._NO_DEDICATED_TABLE_BASIS).all()
+
+
+def test_diagnostic_prints_hierarchy_slice_with_basis(capsys):
+    df = _bu_book()
+    diagnostic.print_report(diagnostic.analyze(df))
+    out = capsys.readouterr().out
+    assert "Hierarchy slice: business_unit" in out
+    assert "did not" in out and "earn their own reference" in out

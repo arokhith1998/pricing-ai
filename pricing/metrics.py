@@ -375,6 +375,55 @@ def _populated_real_bands(df: pd.DataFrame, floor: int = 15) -> int:
     ))
 
 
+def _hierarchy_reference_table(df: pd.DataFrame, column: str,
+                               min_deals: int = SEGMENT_REF_MIN_DEALS,
+                               min_bands: int = SEGMENT_REF_MIN_BANDS) -> list[dict]:
+    """Shared implementation behind segment_reference_table,
+    value_metric_reference_table, business_unit_reference_table, and
+    product_line_reference_table (PK-16): one row per distinct value of
+    `column`, each earning its own reference discount when it clears the
+    sufficiency bar (>= min_deals deals and >= min_bands populated real
+    discount bands), else falling back to the global reference WITH an
+    explicit basis disclosure, never silently.
+
+    Returns one row per value (plus a "(blank)" row when deals carry no value
+    for `column`): {column}, deals, bands_populated, reference_threshold,
+    reference_band, basis.
+    """
+    out: list[dict] = []
+    if column not in df.columns or df.empty:
+        return out
+    g_ref = reference_discount(df)
+    col = df[column].astype(str).str.strip()
+    blank = col.str.lower().isin(("", "nan", "none", "null", "na"))
+    for value in sorted(col[~blank].unique()):
+        sub = df[col == value]
+        bands = _populated_real_bands(sub)
+        if len(sub) >= min_deals and bands >= min_bands:
+            ref, basis = reference_discount(sub), _BASIS_OWN
+        else:
+            ref, basis = g_ref, _BASIS_FALLBACK
+        out.append({
+            column: value,
+            "deals": int(len(sub)),
+            "bands_populated": bands,
+            "reference_threshold": float(ref["reference_threshold"]),
+            "reference_band": ref["reference_band"],
+            "basis": basis,
+        })
+    n_blank = int(blank.sum())
+    if n_blank:
+        out.append({
+            column: "(blank)",
+            "deals": n_blank,
+            "bands_populated": 0,
+            "reference_threshold": float(g_ref["reference_threshold"]),
+            "reference_band": g_ref["reference_band"],
+            "basis": _BASIS_NO_SEGMENT,
+        })
+    return out
+
+
 def segment_reference_table(df: pd.DataFrame,
                             min_deals: int = SEGMENT_REF_MIN_DEALS,
                             min_bands: int = SEGMENT_REF_MIN_BANDS) -> list[dict]:
@@ -392,38 +441,7 @@ def segment_reference_table(df: pd.DataFrame,
     segment): segment, deals, bands_populated, reference_threshold,
     reference_band, basis.
     """
-    out: list[dict] = []
-    if "segment" not in df.columns or df.empty:
-        return out
-    g_ref = reference_discount(df)
-    seg = df["segment"].astype(str).str.strip()
-    blank = seg.str.lower().isin(("", "nan", "none", "null", "na"))
-    for value in sorted(seg[~blank].unique()):
-        sub = df[seg == value]
-        bands = _populated_real_bands(sub)
-        if len(sub) >= min_deals and bands >= min_bands:
-            ref, basis = reference_discount(sub), _BASIS_OWN
-        else:
-            ref, basis = g_ref, _BASIS_FALLBACK
-        out.append({
-            "segment": value,
-            "deals": int(len(sub)),
-            "bands_populated": bands,
-            "reference_threshold": float(ref["reference_threshold"]),
-            "reference_band": ref["reference_band"],
-            "basis": basis,
-        })
-    n_blank = int(blank.sum())
-    if n_blank:
-        out.append({
-            "segment": "(blank)",
-            "deals": n_blank,
-            "bands_populated": 0,
-            "reference_threshold": float(g_ref["reference_threshold"]),
-            "reference_band": g_ref["reference_band"],
-            "basis": _BASIS_NO_SEGMENT,
-        })
-    return out
+    return _hierarchy_reference_table(df, "segment", min_deals, min_bands)
 
 
 def value_metric_reference_table(df: pd.DataFrame,
@@ -447,52 +465,158 @@ def value_metric_reference_table(df: pd.DataFrame,
     value_metric, deals, bands_populated, reference_threshold, reference_band,
     basis.
     """
-    out: list[dict] = []
-    if "value_metric" not in df.columns or df.empty:
-        return out
-    g_ref = reference_discount(df)
-    vm = df["value_metric"].astype(str).str.strip()
-    blank = vm.str.lower().isin(("", "nan", "none", "null", "na"))
-    for value in sorted(vm[~blank].unique()):
-        sub = df[vm == value]
-        bands = _populated_real_bands(sub)
-        if len(sub) >= min_deals and bands >= min_bands:
-            ref, basis = reference_discount(sub), _BASIS_OWN
-        else:
-            ref, basis = g_ref, _BASIS_FALLBACK
-        out.append({
-            "value_metric": value,
-            "deals": int(len(sub)),
-            "bands_populated": bands,
-            "reference_threshold": float(ref["reference_threshold"]),
-            "reference_band": ref["reference_band"],
-            "basis": basis,
-        })
-    n_blank = int(blank.sum())
-    if n_blank:
-        out.append({
-            "value_metric": "(blank)",
-            "deals": n_blank,
-            "bands_populated": 0,
-            "reference_threshold": float(g_ref["reference_threshold"]),
-            "reference_band": g_ref["reference_band"],
-            "basis": _BASIS_NO_SEGMENT,
-        })
-    return out
+    return _hierarchy_reference_table(df, "value_metric", min_deals, min_bands)
+
+
+def business_unit_reference_table(df: pd.DataFrame,
+                                  min_deals: int = SEGMENT_REF_MIN_DEALS,
+                                  min_bands: int = SEGMENT_REF_MIN_BANDS) -> list[dict]:
+    """Per-business-unit reference discounts, with the basis of each disclosed
+    (PK-16). Mirrors segment_reference_table exactly, same sufficiency bar:
+    business_unit is a hierarchy dimension with no reference table at all
+    before this fix, so a BU with a divergent win-rate curve was silently
+    scored against the segment or global reference in leakage(),
+    top_leak_deals(), and policy_simulations(). Returns one row per
+    business_unit value (plus a "(blank)" row): business_unit, deals,
+    bands_populated, reference_threshold, reference_band, basis.
+    """
+    return _hierarchy_reference_table(df, "business_unit", min_deals, min_bands)
+
+
+def product_line_reference_table(df: pd.DataFrame,
+                                 min_deals: int = SEGMENT_REF_MIN_DEALS,
+                                 min_bands: int = SEGMENT_REF_MIN_BANDS) -> list[dict]:
+    """Per-product-line reference discounts, with the basis of each disclosed
+    (PK-16). Mirrors segment_reference_table exactly, same sufficiency bar.
+    Returns one row per product_line value (plus a "(blank)" row):
+    product_line, deals, bands_populated, reference_threshold, reference_band,
+    basis.
+    """
+    return _hierarchy_reference_table(df, "product_line", min_deals, min_bands)
 
 
 def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
                         global_rt: float,
-                        seg_refs: list[dict] | None = None) -> pd.Series:
-    """Reference threshold per deal: the deal's segment reference where the
-    segment earned one, the global reference otherwise (incl. blank segments)."""
+                        seg_refs: list[dict] | None = None,
+                        bu_refs: list[dict] | None = None,
+                        product_line_refs: list[dict] | None = None) -> pd.Series:
+    """Reference threshold per deal.
+
+    Precedence, most specific first (PK-16), each level applied only where it
+    was actually EARNED (see business_unit_reference_table /
+    product_line_reference_table / segment_reference_table):
+      1. The deal's own business_unit reference, when that BU cleared the
+         sufficiency bar (basis == "own win point"). Arbitrarily but
+         explicitly preferred over product_line when a deal's BU AND product
+         line both earned one — BU is usually the coarser, more stable cut.
+      2. Else the deal's own product_line reference, when that product line
+         earned one.
+      3. Else the deal's own segment reference (segment_reference_table always
+         has a row once the segment column exists, own win point or a
+         disclosed global fallback).
+      4. Else the global reference (`global_rt`) — no segment column, or the
+         deal's segment/BU/product_line value is blank and untracked.
+    """
     if seg_refs is None:
         seg_refs = segment_reference_table(df)
+    if bu_refs is None:
+        bu_refs = business_unit_reference_table(df)
+    if product_line_refs is None:
+        product_line_refs = product_line_reference_table(df)
+
+    thr = pd.Series(global_rt, index=rows.index, dtype="float64")
+
     if seg_refs and "segment" in rows.columns:
         thr_map = {r["segment"]: r["reference_threshold"] for r in seg_refs}
-        thr = rows["segment"].astype(str).str.strip().map(thr_map)
-        return thr.fillna(global_rt)
-    return pd.Series(global_rt, index=rows.index, dtype="float64")
+        seg_thr = rows["segment"].astype(str).str.strip().map(thr_map)
+        thr = seg_thr.fillna(thr)
+
+    if product_line_refs and "product_line" in rows.columns:
+        own = {r["product_line"]: r["reference_threshold"]
+              for r in product_line_refs if r["basis"] == _BASIS_OWN}
+        if own:
+            pl_thr = rows["product_line"].astype(str).str.strip().map(own)
+            thr = pl_thr.fillna(thr)
+
+    if bu_refs and "business_unit" in rows.columns:
+        own = {r["business_unit"]: r["reference_threshold"]
+              for r in bu_refs if r["basis"] == _BASIS_OWN}
+        if own:
+            bu_thr = rows["business_unit"].astype(str).str.strip().map(own)
+            thr = bu_thr.fillna(thr)
+
+    return thr
+
+
+# Hierarchy dimensions that have earned their own dedicated reference table
+# (PK-16). product_family and sku have no dedicated table yet, so their slices
+# always fall back to the deal's per-deal reference (segment, else global),
+# labeled as such rather than silently.
+_HIERARCHY_OWN_TABLES = {
+    "business_unit": business_unit_reference_table,
+    "product_line": product_line_reference_table,
+}
+_NO_DEDICATED_TABLE_BASIS = "segment/global fallback (no dedicated reference table)"
+
+
+def hierarchy_slice_reference(df: pd.DataFrame, dim: str) -> pd.DataFrame:
+    """realization_by(df, dim) plus each value's reference, basis, and
+    excess-vs-reference $ (PK-16 fix).
+
+    business_unit and product_line get their OWN reference table (see
+    business_unit_reference_table / product_line_reference_table) and are
+    measured against it when a value clears the sufficiency bar. Every other
+    hierarchy dimension (product_family, sku), and BU/product_line values that
+    do not clear the bar, fall back to each deal's own per-deal reference
+    (segment, else global, via _per_deal_reference) — the fallback is always
+    labeled in `reference_basis`, never silent, so `hierarchy_slices` in the
+    diagnostic stops reporting realization with no reference or excess column
+    at all.
+    """
+    base = realization_by(df, dim)
+    cols = list(base.columns) + ["reference_threshold", "reference_basis",
+                                 "excess_won", "excess_pct_of_booked"]
+    if base.empty:
+        return pd.DataFrame(columns=cols)
+
+    won = _won(df)
+    g_rt = reference_discount(df)["reference_threshold"]
+    seg_refs = segment_reference_table(df)
+    own_table_fn = _HIERARCHY_OWN_TABLES.get(dim)
+    own_thr: dict = {}
+    own_basis: dict = {}
+    if own_table_fn is not None:
+        for r in own_table_fn(df):
+            own_basis[r[dim]] = r["basis"]
+            if r["basis"] == _BASIS_OWN:
+                own_thr[r[dim]] = r["reference_threshold"]
+
+    thresholds, bases, excess_vals = [], [], []
+    for value in base[dim]:
+        sub = won[won[dim].astype(str).str.strip() == str(value)]
+        if value in own_thr:
+            thr_scalar = own_thr[value]
+            basis = _BASIS_OWN
+            excess = float(((sub["discount_pct"] - thr_scalar).clip(lower=0.0)
+                           * sub["list_acv"]).sum())
+        else:
+            per_deal = _per_deal_reference(sub, df, g_rt, seg_refs)
+            basis = own_basis.get(value, _NO_DEDICATED_TABLE_BASIS)
+            excess = float(((sub["discount_pct"] - per_deal).clip(lower=0.0)
+                           * sub["list_acv"]).sum())
+            thr_scalar = float(per_deal.mean()) if len(per_deal) else g_rt
+        thresholds.append(thr_scalar)
+        bases.append(basis)
+        excess_vals.append(excess)
+
+    out = base.copy()
+    out["reference_threshold"] = thresholds
+    out["reference_basis"] = bases
+    out["excess_won"] = excess_vals
+    out["excess_pct_of_booked"] = [
+        (e / b) if b else 0.0 for e, b in zip(excess_vals, out["booked_acv"])
+    ]
+    return out
 
 
 def leakage(df: pd.DataFrame,

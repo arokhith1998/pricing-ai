@@ -54,11 +54,16 @@ def analyze(df, load_report=None,
         "rep_discipline": metrics.rep_discipline(df),
         "governance": metrics.governance_gaps(df),
         "top_leak_deals": metrics.top_leak_deals(df, policy_threshold=policy_threshold),
-        # Optional hierarchy slicing: one frame per populated dimension.
+        # Optional hierarchy slicing: one frame per populated dimension, each
+        # value's own reference discount and excess $ (PK-16), the slice's own
+        # table (business_unit, product_line) when it earned one, else the
+        # deal's per-deal reference (segment, else global), labeled either way.
         "hierarchy_slices": {
-            d: metrics.realization_by(df, d)
+            d: metrics.hierarchy_slice_reference(df, d)
             for d in metrics.present_hierarchy_dimensions(df)
         },
+        "business_unit_reference": metrics.business_unit_reference_table(df),
+        "product_line_reference": metrics.product_line_reference_table(df),
         # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
         "packaging_signals": pkg,
         "trade_or_give": metrics.trade_or_give(df),
@@ -236,6 +241,29 @@ def print_report(res: dict) -> None:
     for r in res.get("segment_win_points") or []:
         print(f"   {r['segment']:<12} peak {_pct(r['peak_win_rate'])} at "
               f"{r['peak_band']}, win point {r['reference_band']} ({r['deals']:,} deals)")
+
+    # PK-16: hierarchy slices (business_unit, product_line, product_family,
+    # sku) now carry each value's own reference and excess $, not just
+    # realization. business_unit and product_line values that clear the
+    # sufficiency bar get their OWN reference table; everything else falls
+    # back to the deal's per-deal reference (segment, else global), labeled.
+    hs = res.get("hierarchy_slices") or {}
+    for dim, rows in hs.items():
+        if rows is None or rows.empty:
+            continue
+        print(f"\n-- Hierarchy slice: {dim} " + "-" * max(1, 40 - len(dim)))
+        h = rows.copy()
+        h["avg_discount"] = h["avg_discount"].map(_pct)
+        h["price_realization"] = h["price_realization"].map(_pct)
+        h["reference_threshold"] = h["reference_threshold"].map(_pct)
+        h["excess_pct_of_booked"] = h["excess_pct_of_booked"].map(_pct)
+        for c in ("list_acv", "booked_acv", "excess_won"):
+            h[c] = h[c].map(_money)
+        print(h.to_string(index=False))
+        fallback = rows[rows["reference_basis"] != metrics._BASIS_OWN]
+        if not fallback.empty:
+            print(f"   ({len(fallback)} of {len(rows)} {dim} values did not "
+                  f"earn their own reference; basis disclosed above per row)")
 
     # Wishlist 4 (dry-run 2026-06-10): New vs Renewal. Renewal discounting is
     # a different disease from new-business discounting, so the two must not
