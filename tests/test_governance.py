@@ -335,6 +335,23 @@ def test_exception_unknown_deal_404(client):
     assert r.status_code == 404
 
 
+def test_exception_justification_and_requested_by_length_caps_422(client, deal_id):
+    over_justification = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2001, "requested_by": "rep@x.com"})
+    assert over_justification.status_code == 422
+
+    over_requested_by = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x", "requested_by": "y" * 121})
+    assert over_requested_by.status_code == 422
+
+    at_cap = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2000, "requested_by": "y" * 120})
+    assert at_cap.status_code == 200
+
+
 def test_exception_out_of_range_422(client, deal_id):
     for bad in (-1.0, 40.5, 100.0):
         r = client.post("/exceptions", json={

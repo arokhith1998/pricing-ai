@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pricing import governance as governance_mod
 from pricing.diagnostic import run
@@ -40,8 +40,11 @@ class ExceptionReq(BaseModel):
     # Percent 0-100 (22.5 = a 22.5 percent discount). Valid range 0-40, the
     # discount grid the win model sweeps.
     requested_discount_pct: float
-    justification: str = ""
-    requested_by: str = ""
+    # Visitor-typed free text, unbounded before this cap (code-reviewer
+    # finding 2): an unauthenticated caller could otherwise write an
+    # arbitrarily large string into the decision log on every request.
+    justification: str = Field("", max_length=2000)
+    requested_by: str = Field("", max_length=120)
 
 
 @router.post("/exceptions")

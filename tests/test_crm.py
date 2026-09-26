@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import main
+from api.routers import crm as crm_router
 from pricing import crm
 from pricing import governance
 
@@ -459,6 +460,77 @@ def test_crm_workflow_logs_a_warning_naming_the_event_on_fallback(
         })
     assert "accepted" in caplog.text
     assert "fell back to the in-memory decision log" in caplog.text
+
+
+# --- evidence_version on every CRM verdict (CTO finding 4) ------------------
+
+def test_evidence_version_is_stable_for_identical_books():
+    records = _records()
+    a = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    b = crm_router.evidence_version(list(records), 15.0, "band_guardrail")
+    assert a == b
+
+
+def test_evidence_version_changes_with_the_policy_threshold():
+    records = _records()
+    a = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    b = crm_router.evidence_version(records, 20.0, "band_guardrail")
+    assert a != b
+
+
+def test_evidence_version_changes_with_record_count_and_method():
+    records = _records()
+    baseline = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    assert crm_router.evidence_version(records[:-1], 15.0, "band_guardrail") != baseline
+    assert crm_router.evidence_version(records, 15.0, "modeled_ev_curve") != baseline
+
+
+def test_crm_workflow_verdict_carries_evidence_version(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert r.status_code == 200
+    version = r.json()["verdict"]["evidence_version"]
+    assert isinstance(version, str) and version
+
+    # An approval on the same override inherits the request's evidence
+    # version rather than recomputing one against whatever it happens to
+    # submit as `records` (it need not resubmit the book at all).
+    override = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-002", "event": "override_requested",
+        "actor": "Account Executive", "justification": "x",
+        "requested_discount_pct": 22.0,
+    })
+    monkeypatch.setattr(main.crm_mod, "selected_guidance",
+                        lambda *a, **k: {**_guidance(), "opportunity_id": "SF-OPEN-002"})
+    assert override.status_code == 200
+    requested_version = override.json()["verdict"]["evidence_version"]
+    approved = client.post("/crm/workflow", json={
+        "records": [], "deal_id": "SF-OPEN-002", "event": "approved",
+        "actor": "Deal Desk",
+    })
+    assert approved.status_code == 200
+    assert approved.json()["verdict"]["evidence_version"] == requested_version
+
+
+# --- length caps on justification / actor (code-reviewer finding 2) --------
+
+def test_crm_workflow_actor_and_justification_length_caps_422(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    over_actor = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "a" * 121,
+    })
+    assert over_actor.status_code == 422
+
+    over_justification = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "override_requested",
+        "actor": "Account Executive", "justification": "x" * 2001,
+        "requested_discount_pct": 22.0,
+    })
+    assert over_justification.status_code == 422
 
 
 def test_deal_history_is_scoped_before_the_limit(client, monkeypatch):

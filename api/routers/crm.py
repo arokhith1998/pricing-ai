@@ -21,7 +21,10 @@ mid-import (main.py imports this router).
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
+import subprocess
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -33,6 +36,70 @@ from api.shared import analysis_payload
 logger = logging.getLogger("pricekeel.api.crm")
 
 router = APIRouter()
+
+
+# --- evidence_version (CTO finding 4) ----------------------------------------
+#
+# The acceptance criteria for the CRM workflow promise a persisted evidence
+# version on every verdict so a past recommendation is checkable against the
+# exact book, policy, engine, and code that produced it. None existed. This
+# fingerprints what produced the number, not the number itself: two runs over
+# the same book, threshold, and code land on the same hash, and changing any
+# one input changes it.
+
+_SYNC_TIMESTAMP_KEYS = ("synced_at", "last_modified_date", "systemmodstamp")
+
+
+def _git_sha() -> str:
+    """The deployed commit, for the evidence fingerprint. PRICEKEEL_GIT_SHA
+    or Render's own RENDER_GIT_COMMIT win when set (cheap, no subprocess in
+    the request path on a real deploy); `git rev-parse` is the local-dev
+    fallback; "unknown" means neither was available."""
+    for var in ("PRICEKEEL_GIT_SHA", "RENDER_GIT_COMMIT"):
+        sha = os.environ.get(var, "").strip()
+        if sha:
+            return sha
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=True,
+        )
+        sha = out.stdout.strip()
+        if sha:
+            return sha
+    except Exception:  # noqa: BLE001 — evidence_version must degrade, not 500
+        pass
+    return "unknown"
+
+
+def _max_sync_timestamp(records: list[dict]) -> str:
+    """Latest per-record sync/modification timestamp across the supplied
+    book, when the caller provides one. The current Salesforce adapter sends
+    no such field per record, so this reads "none" today; it activates the
+    moment one of these keys appears on a record, and that presence is
+    itself part of the fingerprint (a book with real sync timestamps hashes
+    differently from one without)."""
+    values = [
+        str(row[key])
+        for row in records
+        for key in _SYNC_TIMESTAMP_KEYS
+        if row.get(key)
+    ]
+    return max(values) if values else "none"
+
+
+def evidence_version(records: list[dict], policy_threshold_pct: float,
+                     method: str) -> str:
+    """Reproducibility fingerprint for a CRM verdict: record count, max sync
+    timestamp, policy threshold, engine label, and git SHA, hashed together."""
+    fingerprint = "|".join([
+        f"records={len(records)}",
+        f"max_sync={_max_sync_timestamp(records)}",
+        f"policy_threshold_pct={float(policy_threshold_pct):g}",
+        f"method={method}",
+        f"git_sha={_git_sha()}",
+    ])
+    return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
 
 
 def _insert_or_fail_closed(*, kind: str, deal_id: str, payload: dict,
@@ -111,8 +178,11 @@ _CRM_EVENTS = {
 class CRMWorkflowReq(CRMAnalyzeReq):
     deal_id: str
     event: str
-    actor: str = ""
-    justification: str = ""
+    # Operator-typed free text, unbounded before this cap (code-reviewer
+    # finding 2): an unauthenticated caller could write arbitrarily large
+    # strings into the decision log on every request.
+    actor: str = Field("", max_length=120)
+    justification: str = Field("", max_length=2000)
     requested_discount_pct: float | None = None
     outcome: str = ""
 
@@ -251,6 +321,15 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
             # math implicitly (Gap 2 honesty).
             "method": "band_guardrail",
         }
+        # Fingerprints the book, threshold, and code that produced this
+        # verdict (CTO finding 4). The approval/rejection branch above copies
+        # the override request's stored verdict rather than recomputing one,
+        # so it carries this same evidence_version through unchanged; that is
+        # correct; a decision is made on the evidence that was captured at
+        # request time, not on a fresh fetch the approver happens to submit.
+        verdict["evidence_version"] = evidence_version(
+            req.records, req.policy_threshold_pct, verdict["method"],
+        )
     effective_justification = (
         req.justification.strip()
         or str(previous_payload.get("justification") or "")
