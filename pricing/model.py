@@ -50,6 +50,18 @@ Design choices:
     smallest discount whose win-probability gain still buys back more revenue
     than the price given away, not an artifact of a curve that dips and
     recovers.
+  * The sweep is clipped to the deal's cohort when `recommend_discount` is
+    given `cohort_discounts`: a 0-40% grid run against every deal regardless
+    of support pulls the EV optimum into whatever region has no data, since
+    the monotone constraint guarantees the win curve keeps rising as discount
+    falls. Clipped to roughly the cohort's 5th-95th observed percentile, and
+    below about 50 comparable deals the sweep does not run at all: a
+    band-guardrail fallback (method "band_guardrail") is returned instead of
+    a curve optimum (mle-reviewer F3, 2026-09-26).
+  * `metrics` records brier_skill (against the training book's own win rate,
+    not just Brier in isolation), calibration by predicted band and by
+    segment, and seed/params/features/data_hash so a claimed number can be
+    reproduced or disproven (mle-reviewer F2, F6).
 
 CLI:  python -m pricing.model data/synthetic/deals.csv
 """
@@ -57,6 +69,7 @@ CLI:  python -m pricing.model data/synthetic/deals.csv
 from __future__ import annotations
 
 import argparse
+import hashlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -95,12 +108,15 @@ TARGET = "is_won"
 #   50/5/200    AUC 0.649 (se 0.013)  Brier 0.2259  skill +0.053
 # The smaller model both ranks better and earns its probabilities. Tune this
 # against folds, never against the single holdout the tests gate on.
-# These were measured with n_jobs=-1, which is nondeterministic: the ordering
-# and the signs reproduce, the third decimal does not.
+# n_jobs=1, not -1 (mle-reviewer F6): with more than one thread LightGBM's
+# histogram reduction order is nondeterministic, so a fixed random_state alone
+# does not make a run reproducible. A Head of Pricing rerunning the same book
+# must see the same numbers. Single-threaded costs latency, not correctness,
+# and this book (2,000 rows, 50 trees) trains in well under a second either way.
 _PARAMS = dict(
     n_estimators=50, learning_rate=0.05, num_leaves=7,
     min_child_samples=150, subsample=0.8, colsample_bytree=0.7,
-    reg_lambda=1.0, random_state=7, n_jobs=-1, verbosity=-1,
+    reg_lambda=1.0, random_state=7, n_jobs=1, verbosity=-1,
 )
 
 
@@ -195,6 +211,41 @@ def _holdout_mask(df: pd.DataFrame, y: pd.Series, test_size: float,
     return mask, "random_stratified", None
 
 
+def _calibration_rows(p: np.ndarray, y: np.ndarray, keys: np.ndarray,
+                      key_name: str) -> list[dict]:
+    """Mean predicted vs actual win rate, grouped by `keys` (a predicted-band
+    label or a segment name). One shared implementation for both breakdowns:
+    a global mean can look calibrated while every band or segment underneath
+    it is biased in opposite directions (mle-reviewer F2 measured exactly
+    this: predicted-0.30 actually wins 0.55, predicted-0.85 actually wins
+    0.69, Enterprise predicted 0.489 vs actual 0.556)."""
+    rows = []
+    for k in pd.unique(keys):
+        mask = keys == k
+        if not mask.any():
+            continue
+        rows.append({
+            key_name: str(k),
+            "n": int(mask.sum()),
+            "mean_pred": float(p[mask].mean()),
+            "actual_win_rate": float(y[mask].mean()),
+        })
+    return sorted(rows, key=lambda r: r[key_name])
+
+
+def _data_hash(df: pd.DataFrame) -> str:
+    """Short, stable fingerprint of the training frame. Lets two runs claiming
+    the same metrics prove they trained on the same data (mle-reviewer F6)."""
+    try:
+        h = pd.util.hash_pandas_object(df, index=True).to_numpy()
+        return hashlib.sha256(h.tobytes()).hexdigest()[:16]
+    except TypeError:
+        # A column pandas cannot hash (e.g. an embedded list/dict) falls back
+        # to a coarser but still deterministic fingerprint rather than raising.
+        fallback = f"{df.shape}|{list(df.columns)}".encode()
+        return hashlib.sha256(fallback).hexdigest()[:16]
+
+
 def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedModel:
     """Train the win-probability model and evaluate on the latest closes."""
     X, y, cat, _num = prepare(df)
@@ -241,6 +292,32 @@ def train(df: pd.DataFrame, test_size: float = 0.25, seed: int = 7) -> TrainedMo
     metrics["brier_skill"] = float(
         1.0 - metrics["brier"] / metrics["brier_constant"]
     ) if metrics["brier_constant"] else 0.0
+
+    # Calibration by predicted-probability band and by segment (mle-reviewer
+    # F2): the mean-only check above (mean_pred vs base_rate) can pass while
+    # every band or segment underneath disagrees in opposite directions.
+    band_labels = pd.cut(
+        p_te, bins=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0001], right=False,
+        labels=["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"],
+    ).astype(str).to_numpy()
+    y_te_arr = y_te.to_numpy()
+    metrics["calibration_by_band"] = _calibration_rows(
+        p_te, y_te_arr, band_labels, "band")
+    if "segment" in df.columns:
+        seg_labels = df.loc[X_te.index, "segment"].astype(str).to_numpy()
+        metrics["calibration_by_segment"] = _calibration_rows(
+            p_te, y_te_arr, seg_labels, "segment")
+    else:
+        metrics["calibration_by_segment"] = []
+
+    # Stamped so two runs claiming the same numbers can prove it, and so a
+    # regression can be traced to a capacity or data change instead of
+    # guessed at (mle-reviewer F6).
+    metrics["seed"] = seed
+    metrics["params"] = {k: v for k, v in params.items()}
+    metrics["features"] = list(X.columns)
+    metrics["data_hash"] = _data_hash(df)
+
     return TrainedModel(model=clf, features=list(X.columns),
                         categorical=cat, metrics=metrics, X_all=X,
                         holdout=holdout)
@@ -272,24 +349,93 @@ def explain(tm: TrainedModel, X_row: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values("abs", ascending=False).drop(columns="abs").reset_index(drop=True)
 
 
+def _band_guardrail_recommendation(tm: TrainedModel, X_row: pd.DataFrame,
+                                   list_acv: float, current: float,
+                                   cohort_discounts: np.ndarray) -> dict:
+    """Fallback when a cohort has too little support to trust an EV-curve
+    optimum (mle-reviewer F3): fewer than ~50 comparable deals means the grid
+    sweep is extrapolating past what this segment has ever actually done, and
+    the monotone constraint pulls the optimum toward exactly that empty
+    region. Mirrors the live-CRM guardrail (`crm.guidance_for_open_deal`):
+    never recommend adding discount, and cap at the cohort's own observed
+    median when the deal sits above it. Still reports the model's P(win) at
+    both points for context, but does not claim an EV-optimal answer.
+    """
+    reference = float(np.median(cohort_discounts)) if len(cohort_discounts) else current
+    recommended = min(current, reference)
+
+    row_cur, row_rec = X_row.copy(), X_row.copy()
+    row_cur["discount_pct"], row_rec["discount_pct"] = current, recommended
+    p_cur = float(tm.model.predict_proba(row_cur[tm.features])[:, 1][0])
+    p_rec = float(tm.model.predict_proba(row_rec[tm.features])[:, 1][0])
+    ev_cur = p_cur * list_acv * (1.0 - current)
+    ev_rec = p_rec * list_acv * (1.0 - recommended)
+    curve = (
+        pd.DataFrame({"discount": [current, recommended],
+                     "win_prob": [p_cur, p_rec],
+                     "expected_acv": [ev_cur, ev_rec]})
+        .drop_duplicates(subset="discount")
+        .sort_values("discount")
+        .reset_index(drop=True)
+    )
+    return {
+        "method": "band_guardrail",
+        "recommended_discount": recommended,
+        "expected_acv_at_rec": ev_rec,
+        "win_prob_at_rec": p_rec,
+        "current_discount": current,
+        "expected_acv_at_current": ev_cur,
+        "uplift": ev_rec - ev_cur,
+        "curve": curve,
+        "cohort_deals": int(len(cohort_discounts)),
+    }
+
+
 def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
-                       grid: np.ndarray | None = None) -> dict:
+                       grid: np.ndarray | None = None, *,
+                       cohort_discounts: np.ndarray | None = None,
+                       min_cohort_deals: int = 50) -> dict:
     """Sweep discount and return the level that maximizes expected booked ACV.
 
     `X_row` is a single-row feature frame (categories consistent with training);
     we vary only `discount_pct`. Expected ACV = P(win) x list x (1 - discount).
+
+    `cohort_discounts` (mle-reviewer F3), when given, is the array of
+    discounts actually observed in this deal's cohort (typically its
+    segment). Two guardrails follow from it:
+      * Fewer than `min_cohort_deals` deals: the curve optimum would be
+        extrapolating past this cohort's real support, so this returns
+        `_band_guardrail_recommendation` instead (method "band_guardrail")
+        and never runs the sweep at all.
+      * Otherwise, and only when `grid` was not supplied explicitly, the
+        default 0-40% sweep is clipped to roughly the cohort's 5th-95th
+        percentile, so the recommendation stays inside discounts this
+        cohort has actually given rather than the full unconditional range.
+    Callers that omit `cohort_discounts` get the prior unclipped behavior
+    unchanged.
     """
+    current = float(X_row["discount_pct"].iloc[0])
+
+    if cohort_discounts is not None and len(cohort_discounts) < min_cohort_deals:
+        return _band_guardrail_recommendation(
+            tm, X_row, list_acv, current, cohort_discounts)
+
     if grid is None:
-        grid = np.round(np.arange(0.0, 0.4001, 0.01), 4)
+        if cohort_discounts is not None and len(cohort_discounts) >= min_cohort_deals:
+            lo = float(np.clip(np.percentile(cohort_discounts, 5), 0.0, 0.39))
+            hi = float(np.clip(np.percentile(cohort_discounts, 95), lo + 0.01, 0.40))
+            grid = np.round(np.arange(lo, hi + 0.0001, 0.01), 4)
+        else:
+            grid = np.round(np.arange(0.0, 0.4001, 0.01), 4)
     sweep = pd.concat([X_row] * len(grid), ignore_index=True)
     sweep["discount_pct"] = grid
     p = tm.model.predict_proba(sweep[tm.features])[:, 1]
     expected_acv = p * list_acv * (1.0 - grid)
     best = int(np.argmax(expected_acv))
 
-    current = float(X_row["discount_pct"].iloc[0])
     cur_i = int(np.argmin(np.abs(grid - current)))
     return {
+        "method": "modeled_ev_curve",
         "recommended_discount": float(grid[best]),
         "expected_acv_at_rec": float(expected_acv[best]),
         "win_prob_at_rec": float(p[best]),
@@ -298,6 +444,7 @@ def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
         "uplift": float(expected_acv[best] - expected_acv[cur_i]),
         "curve": pd.DataFrame({"discount": grid, "win_prob": p,
                                "expected_acv": expected_acv}),
+        "cohort_deals": int(len(cohort_discounts)) if cohort_discounts is not None else None,
     }
 
 

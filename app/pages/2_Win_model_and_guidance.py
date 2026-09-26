@@ -36,7 +36,8 @@ except Exception as exc:  # noqa: BLE001
 m = tm.metrics
 # Honest calibration claim (audit P2 #5): only say "well calibrated /
 # dependable" when the numbers actually support it.
-calib_msg, well_calibrated = calibration_verdict(m["mean_pred"], m["base_rate"])
+calib_msg, well_calibrated = calibration_verdict(
+    m["mean_pred"], m["base_rate"], m.get("brier_skill"))
 if well_calibrated:
     st.success(calib_msg)
 else:
@@ -101,7 +102,12 @@ with gr:
         opp = st.selectbox("Opportunity", opp_choices)
         didx = res["data"].index[res["data"]["opportunity_id"] == opp][0]
         deal = res["data"].loc[didx]
-        rec = model.recommend_discount(tm, tm.X_all.loc[[didx]], float(deal["list_acv"]))
+        cohort_discounts = res["data"].loc[
+            res["data"]["segment"] == deal["segment"], "discount_pct",
+        ].to_numpy()
+        rec = model.recommend_discount(
+            tm, tm.X_all.loc[[didx]], float(deal["list_acv"]),
+            cohort_discounts=cohort_discounts)
 
         d1, d2, d3 = st.columns(3)
         d1.metric("Discount given", pct(rec["current_discount"]))
@@ -130,6 +136,13 @@ with gr:
                    "line is win probability. The vertical line marks the "
                    "recommended discount, where expected value peaks.")
 
-        st.markdown("**What drove this prediction**")
-        st.dataframe(pretty_factors(model.explain(tm, tm.X_all.loc[[didx]])).head(6),
+        # Explain the recommended row, not the current one (mle-reviewer F4):
+        # SHAP at the current discount can name a different top factor, or
+        # flip discount_pct's own sign, than the discount the headline above
+        # actually recommends.
+        rec_row = tm.X_all.loc[[didx]].copy()
+        rec_row["discount_pct"] = rec["recommended_discount"]
+        st.markdown(f"**What drives the recommended {pct(rec['recommended_discount'])} "
+                    "discount**")
+        st.dataframe(pretty_factors(model.explain(tm, rec_row)).head(6),
                      hide_index=True, use_container_width=True)
