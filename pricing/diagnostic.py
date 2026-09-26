@@ -340,9 +340,15 @@ def print_report(res: dict) -> None:
     sims = res.get("policy_simulations") or []
     if sims:
         print("\n-- What would have prevented it (policy simulation) " + "-" * 12)
-        for s in sims:
+        stacked = [s for s in sims if not s.get("non_additive")]
+        union = next((s for s in sims if s.get("non_additive")), None)
+        for s in stacked:
             print(f"   {s['policy']:<46} up to {_money(s['held_back'])} "
                   f"({s['deals_affected']:,} won deals)")
+        if union:
+            print(f"   -> these three do not sum; the union is "
+                  f"{_money(union['union_value'])} "
+                  f"({union['deals_affected']:,} won deals, no double counting)")
         print("   (Upper bound: correlational, some discount was needed to win.)")
 
     print("\n(Note: excess-vs-reference is correlational — a prioritized list to")

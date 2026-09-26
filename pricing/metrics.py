@@ -954,7 +954,15 @@ def segment_win_points(df: pd.DataFrame, min_deals: int = 30) -> list[dict]:
 def policy_simulations(df: pd.DataFrame,
                        policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> list[dict]:
     """Three concrete policies and the discount $ each would have held back on
-    won deals, so '$X excess' arrives with a next action attached.
+    won deals, so '$X excess' arrives with a next action attached, plus a
+    fourth, non-additive union entry (2026-09-26 fix): a deal can be above its
+    own reference, off policy, AND in the quarter-end window at once, so
+    stacking (summing) the three figures double-counts it. The union entry's
+    `held_back` (== `union_value`) sums, over every deal any lever would have
+    touched, the SINGLE LARGEST lever figure for that deal — never more than
+    one lever's worth per deal — so it is a defensible ceiling, not an
+    inflated sum. `non_additive: true` marks it so a caller does not add it to
+    the other three.
 
     Correlational, not a guarantee: some discount was needed to win, so each
     figure is an UPPER BOUND on what the policy could have retained, not a
@@ -963,25 +971,52 @@ def policy_simulations(df: pd.DataFrame,
     won = _won(df)
     if won.empty:
         return []
-    rt = reference_discount(df)["reference_threshold"]
+    ref = reference_discount(df)
+    rt = ref["reference_threshold"]
     qe = quarter_end_effect(df)
 
-    def held(threshold) -> tuple[float, int]:
+    def held(threshold) -> tuple[pd.Series, int]:
         over = (won["discount_pct"] - threshold).clip(lower=0.0)
-        return float((over * won["list_acv"]).sum()), int((won["discount_pct"] > threshold).sum())
+        dollars = over * won["list_acv"]
+        return dollars, int((won["discount_pct"] > threshold).sum())
 
-    # Lever 1 mirrors the (segment-aware) headline: hold each segment at its
-    # own reference win point. Without a segment column this equals the global.
-    ref_held, ref_n = held(_per_deal_reference(won, df, rt))
-    pol_held, pol_n = held(policy_threshold)
+    # Lever 1 mirrors the (segment/BU/product-line-aware) headline: hold each
+    # deal at its own reference win point. Zeroed, not collapsed to a 0%
+    # threshold, when the book is too sparse for ANY reference at all.
+    if ref.get("sufficient", True):
+        ref_dollars, ref_n = held(_per_deal_reference(won, df, rt))
+    else:
+        ref_dollars, ref_n = pd.Series(0.0, index=won.index), 0
+
+    pol_dollars, pol_n = held(policy_threshold)
+
+    if "is_quarter_end" in won.columns:
+        qe_mask = won["is_quarter_end"].fillna(False).astype(bool)
+    else:
+        qe_mask = pd.Series(False, index=won.index)
+    rest_avg = float(qe.get("rest_avg_discount", 0.0)) if qe else 0.0
+    qe_over = (won["discount_pct"] - rest_avg).clip(lower=0.0)
+    qe_dollars = (qe_over * won["list_acv"]).where(qe_mask, 0.0)
+
+    # Union: each deal counts once, at whichever single lever's dollar figure
+    # is largest for it, so deals hit by more than one lever are never
+    # double-counted.
+    per_deal_max = pd.concat([ref_dollars, pol_dollars, qe_dollars], axis=1).max(axis=1)
+    union_mask = (ref_dollars > 0) | (pol_dollars > 0) | qe_mask
+    union_value = float(per_deal_max[union_mask].sum())
+    union_deals = int(union_mask.sum())
+
     return [
-        {"policy": "Hold each segment at its reference win point",
-         "held_back": ref_held, "deals_affected": ref_n},
+        {"policy": "Hold each deal at its own reference win point",
+         "held_back": float(ref_dollars.sum()), "deals_affected": ref_n},
         {"policy": f"Require approval above the policy line ({policy_threshold:.0%})",
-         "held_back": pol_held, "deals_affected": pol_n},
+         "held_back": float(pol_dollars.sum()), "deals_affected": pol_n},
         {"policy": "Freeze extra discounting in the quarter-end window",
          "held_back": float(qe.get("attributable_discount_won", 0.0)) if qe else 0.0,
          "deals_affected": int(qe.get("qe_deals", 0)) if qe else 0},
+        {"policy": "Union of the three levers (no double counting)",
+         "held_back": union_value, "deals_affected": union_deals,
+         "union_value": union_value, "non_additive": True},
     ]
 
 

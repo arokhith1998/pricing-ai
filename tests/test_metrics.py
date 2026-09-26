@@ -264,6 +264,55 @@ def test_quarter_end_deals_are_the_qe_set():
     assert deals.iloc[0]["discount_amount"] == pytest.approx(30_000.0)
 
 
+def test_policy_simulations_union_is_not_a_sum(monkeypatch):
+    """2026-09-26 fix: a deal can be above its reference, off-policy, AND in
+    the quarter-end window at once, so stacking (summing) the three levers
+    double-counts it. policy_simulations must add a non-additive union entry
+    whose held_back is strictly less than the sum of the three, computed as
+    each overlapping deal's single largest lever figure, never the sum of its
+    levers."""
+    monkeypatch.setattr(
+        metrics, "reference_discount",
+        lambda df, **kw: {"reference_threshold": 0.10, "reference_band": "10-15%",
+                          "peak_band": "10-15%", "peak_win_rate": 0.7,
+                          "sufficient": True, "basis": "own win point",
+                          "band_counts": {}})
+    rows = [
+        # D1 trips all three levers: over reference (.30 > .10), off-policy
+        # (> .15), and quarter-end.
+        dict(opportunity_id="D1", is_won=True, discount_pct=0.30, list_acv=100_000.0,
+             booked_acv=70_000.0, discount_amount=30_000.0, segment="SMB",
+             is_quarter_end=True),
+        # D2: over reference and off-policy, not quarter-end.
+        dict(opportunity_id="D2", is_won=True, discount_pct=0.20, list_acv=100_000.0,
+             booked_acv=80_000.0, discount_amount=20_000.0, segment="SMB",
+             is_quarter_end=False),
+        # D3: quarter-end, but below reference and on-policy.
+        dict(opportunity_id="D3", is_won=True, discount_pct=0.08, list_acv=100_000.0,
+             booked_acv=92_000.0, discount_amount=8_000.0, segment="SMB",
+             is_quarter_end=True),
+        # D4: rest-of-quarter baseline deal.
+        dict(opportunity_id="D4", is_won=True, discount_pct=0.02, list_acv=100_000.0,
+             booked_acv=98_000.0, discount_amount=2_000.0, segment="SMB",
+             is_quarter_end=False),
+    ]
+    df = pd.DataFrame(rows)
+    sims = metrics.policy_simulations(df, policy_threshold=0.15)
+    stacked = [s for s in sims if not s.get("non_additive")]
+    union = next(s for s in sims if s.get("non_additive"))
+
+    assert len(stacked) == 3
+    assert union["non_additive"] is True
+    assert union["union_value"] == pytest.approx(union["held_back"])
+    stacked_sum = sum(s["held_back"] for s in stacked)
+    assert stacked_sum == pytest.approx(30_000 + 20_000 + 19_000)
+    # D1's single largest lever (reference, $20k) is counted once, not summed
+    # across all three ($20k + $15k + $19k) -> union < the naive stacked sum.
+    assert union["held_back"] == pytest.approx(30_000.0)
+    assert union["held_back"] < stacked_sum
+    assert union["deals_affected"] == 3  # D1, D2, D3 each trip >= one lever
+
+
 def test_packaging_signal_deals_returns_the_value_deals():
     """packaging_signal_deals returns only the won deals in the flagged value."""
     rows = [
