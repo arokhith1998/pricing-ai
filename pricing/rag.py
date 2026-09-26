@@ -17,6 +17,7 @@ never sent: only the aggregate analysis JSON and the retrieved doc chunks
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass
 from typing import Optional
@@ -25,6 +26,8 @@ import numpy as np
 
 from pricing import assist
 from pricing.docs import Chunk, embed_query
+
+logger = logging.getLogger("pricekeel.rag")
 
 
 @dataclass
@@ -40,6 +43,9 @@ class Answer:
     text: str
     citations: list[Citation]
     used_web: bool = False
+    # "off" (not requested) | "ok" | "unconfigured" | "error". Lets the UI
+    # tell "the web had nothing" apart from "web research failed".
+    web_status: str = "off"
 
 
 def retrieve_doc_chunks(chunks: list[Chunk], query: str,
@@ -57,26 +63,43 @@ def retrieve_doc_chunks(chunks: list[Chunk], query: str,
     return scored[:top_k]
 
 
-def web_search(query: str, max_results: int = 4) -> list[dict]:
-    """Web search via Perplexity (preferred) or Tavily (fallback).
+def search_web(query: str, max_results: int = 4) -> tuple[list[dict], str]:
+    """Web search plus a status the caller can surface.
 
     Preference order:
       1. PERPLEXITY_API_KEY -> Perplexity Sonar online (LLM-grounded answer +
          citations baked in; one rich result the model can quote).
       2. TAVILY_API_KEY    -> Tavily search results (n separate snippets).
-      3. Neither key       -> [] (caller treats web as unavailable).
+      3. Neither key       -> ([], "unconfigured").
 
     The result list shape stays the same across providers:
       [{"title": str, "content": str, "url": str}, ...]
+
+    Status is "ok" (the provider answered, possibly with zero results),
+    "unconfigured" (no provider key), or "error" (the provider call failed,
+    and it is logged). An empty list alone cannot tell these apart, and a
+    user who asked for web research must not read a failure as "the web
+    had nothing". There is deliberately no status-free wrapper: a caller
+    that cannot see the status will not handle it.
     """
     if os.environ.get("PERPLEXITY_API_KEY"):
-        return _web_perplexity(query, max_results)
-    if os.environ.get("TAVILY_API_KEY"):
-        return _web_tavily(query, max_results)
-    return []
+        results = _web_perplexity(query, max_results)
+    elif os.environ.get("TAVILY_API_KEY"):
+        results = _web_tavily(query, max_results)
+    else:
+        return [], "unconfigured"
+    if results is None:
+        return [], "error"
+    return results, "ok"
 
 
-def _web_perplexity(query: str, max_results: int = 4) -> list[dict]:
+def _log_web_failure(provider: str, exc: Exception) -> None:
+    # Exception type only: provider error text can echo request details, and
+    # nothing that might carry a key belongs in a log line.
+    logger.warning("web search via %s failed: %s", provider, type(exc).__name__)
+
+
+def _web_perplexity(query: str, max_results: int = 4) -> list[dict] | None:
     """Perplexity Sonar (LLM-grounded answer + URL citations)."""
     try:
         import requests  # urllib3 is already pulled in by requests deps
@@ -119,11 +142,12 @@ def _web_perplexity(query: str, max_results: int = 4) -> list[dict]:
         for u in urls[: max(0, max_results - 1)]:
             results.append({"title": u, "content": "", "url": u})
         return results
-    except Exception:  # noqa: BLE001
-        return []
+    except Exception as exc:  # noqa: BLE001
+        _log_web_failure("perplexity", exc)
+        return None
 
 
-def _web_tavily(query: str, max_results: int = 4) -> list[dict]:
+def _web_tavily(query: str, max_results: int = 4) -> list[dict] | None:
     """Tavily search (n separate snippets) — used when Perplexity is not set."""
     try:
         from tavily import TavilyClient
@@ -142,8 +166,9 @@ def _web_tavily(query: str, max_results: int = 4) -> list[dict]:
             }
             for r in (res.get("results") or [])
         ]
-    except Exception:  # noqa: BLE001
-        return []
+    except Exception as exc:  # noqa: BLE001
+        _log_web_failure("tavily", exc)
+        return None
 
 
 _SYSTEM = (
@@ -166,7 +191,10 @@ def ask(question: str, analysis: dict, chunks: list[Chunk],
         max_web: int = 4) -> Answer:
     """Run the RAG pipeline and return an Answer with structured citations."""
     doc_hits = retrieve_doc_chunks(chunks, question, top_k=max_doc_chunks)
-    web_hits = web_search(question, max_results=max_web) if use_web else []
+    if use_web:
+        web_hits, web_status = search_web(question, max_results=max_web)
+    else:
+        web_hits, web_status = [], "off"
 
     parts: list[str] = []
     citations: list[Citation] = []
@@ -211,7 +239,9 @@ def ask(question: str, analysis: dict, chunks: list[Chunk],
             text="The LLM provider is not configured on this server.",
             citations=citations,
             used_web=bool(web_hits),
+            web_status=web_status,
         )
 
     text = assist._complete(_SYSTEM, user_msg, max_tokens=700).strip()
-    return Answer(text=text, citations=citations, used_web=bool(web_hits))
+    return Answer(text=text, citations=citations, used_web=bool(web_hits),
+                  web_status=web_status)

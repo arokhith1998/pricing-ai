@@ -171,6 +171,7 @@ def ask_endpoint(req: AskReq) -> dict:
     return {
         "text": ans.text,
         "used_web": ans.used_web,
+        "web_status": ans.web_status,
         "session_id": req.session_id,
         "citations": [
             {

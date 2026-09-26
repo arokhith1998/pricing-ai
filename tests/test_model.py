@@ -8,6 +8,7 @@ library/version drift without being meaningless.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -23,8 +24,11 @@ DEALS_CSV = ROOT / "data" / "synthetic" / "deals.csv"
 
 @pytest.fixture(scope="module")
 def trained(tmp_path_factory):
+    # Seed 11, not 7: data/synthetic/deals.csv IS generate(n=2000, seed=7), so
+    # seeding this fixture the same way made the floors below one gate wearing
+    # two names. An independent draw is what makes them two gates.
     csv = tmp_path_factory.mktemp("data") / "deals.csv"
-    generate(n=2000, seed=7).to_csv(csv, index=False)
+    generate(n=2000, seed=11).to_csv(csv, index=False)
     df = ingest(csv)
     return df, model.train(df)
 
@@ -50,18 +54,56 @@ def sample_300(trained_on_deals_csv):
 
 def test_auc_clears_floor(trained):
     _df, tm = trained
-    # Baseline measured 2026-09-11 on data/synthetic/deals.csv: 0.640
-    # unconstrained, 0.619 with the discount_pct monotone constraint (see
-    # test_holdout_auc_within_floor_with_constraint below). This floor stays
-    # well under both so ordinary drift does not flake the suite.
-    assert tm.metrics["auc"] > 0.60
+    # An independent draw (seed 11), scored on a time-ordered holdout: AUC
+    # 0.631 measured 2026-09-15. A single 500-row holdout carries a 95% CI
+    # roughly 0.10 wide, so this floor sits well below the measurement instead
+    # of beside it. The tight floor belongs on the pinned fixture, where the
+    # baseline was actually measured: see
+    # test_holdout_auc_within_floor_with_constraint below.
+    assert tm.metrics["auc"] > 0.55
 
 
 def test_model_is_calibrated(trained):
     _df, tm = trained
-    # mean predicted win prob should track the actual holdout base rate
-    assert abs(tm.metrics["mean_pred"] - tm.metrics["base_rate"]) < 0.05
+    # This is a BIAS check, not a calibration check: a model that predicts the
+    # base rate for every deal passes it perfectly, and so does one whose
+    # per-deal probabilities are worthless. The gate that actually bites is
+    # test_probabilities_beat_a_constant below.
+    # 0.08, not 0.05: a time holdout carries its own quarter's win rate, and
+    # quarterly win rates on this book swing from 0.553 to 0.654. Measured
+    # 2026-09-15: -0.019 on this fixture, -0.065 on the pinned one.
+    assert abs(tm.metrics["mean_pred"] - tm.metrics["base_rate"]) < 0.08
     assert tm.metrics["brier"] < 0.26
+
+
+def test_probabilities_beat_a_constant(trained, trained_on_deals_csv):
+    """The gate that bites, asserted on BOTH books, because it only bites on
+    one of them.
+
+    Brier under 0.26 and a small mean-pred gap are both satisfied by a model
+    that just predicts the training book's win rate for every deal, so neither
+    says the per-deal probabilities are worth quoting. Brier skill does: the
+    model's Brier against that constant's. Negative means a Head of Pricing is
+    better served by "this book wins 59% of the time" than by anything the
+    model says about a specific deal, and the guidance panel quotes per-deal
+    probabilities.
+
+    Measured 2026-09-15 on the time-ordered holdout, old capacity
+    (250 trees / 15 leaves / min_child 50) to current (50 / 7 / 150):
+
+        pinned deals.csv    -0.0746 -> +0.0368
+        generated seed 11   +0.0025 -> +0.0458
+
+    The regression this test exists to catch only showed on the pinned book.
+    An earlier version of this test asserted on the generated fixture alone,
+    where the old capacity scored +0.0025 and would have sailed through. A
+    gate that misses the failure it was written for is not a gate, so both
+    books are asserted here.
+    """
+    for label, (_df, tm) in (("seed-11", trained),
+                             ("deals.csv", trained_on_deals_csv)):
+        assert tm.metrics["brier"] < tm.metrics["brier_constant"], label
+        assert tm.metrics["brier_skill"] > 0.0, label
 
 
 def test_predictions_in_unit_interval(trained):
@@ -209,14 +251,16 @@ def test_no_recommendation_lowers_discount_while_raising_win_prob(sample_300):
 
 
 def test_holdout_auc_within_floor_with_constraint(trained_on_deals_csv):
-    """AUC floor on the real deals.csv split, not a pin. Baseline measured
-    2026-09-11: 0.640 unconstrained, 0.619 with the discount_pct monotone
-    constraint (advanced method). The floor is 0.61: the 0.640 unconstrained
-    baseline minus the 0.03 acceptance band, so a real regression beyond the
-    accepted AUC cost still fails while routine library or data drift does
+    """AUC floor on the pinned fixture, not a pin. PK-15's rule: the
+    unconstrained baseline minus a 0.03 acceptance band. Measured 2026-09-15
+    at the current capacity, time-ordered holdout: 0.621 unconstrained, 0.614
+    with the discount_pct monotone constraint, so the rule gives 0.59. Stated
+    instead as skill retained above chance, 0.5 + 0.75 * (0.621 - 0.5) = 0.591,
+    the two framings agree here, which they did not at the old capacity. A real
+    regression beyond the band still fails; routine library or data drift does
     not flake this suite."""
     _df, tm = trained_on_deals_csv
-    assert tm.metrics["auc"] >= 0.61
+    assert tm.metrics["auc"] >= 0.59
 
 
 def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
@@ -233,3 +277,83 @@ def test_booster_carries_discount_pct_monotone_constraint(trained_on_deals_csv):
     assert constraints == expected
     assert constraints[tm.features.index("discount_pct")] == 1
     assert sum(constraints) == 1
+
+
+# -- Time-ordered holdout ----------------------------------------------------
+
+
+def test_holdout_is_the_most_recent_deals(trained_on_deals_csv):
+    """Deals are time-ordered, so the holdout must be the latest closes: every
+    training deal closed strictly before every scored deal. A random split
+    would let the model learn from the future of the deals it is graded on."""
+    df, tm = trained_on_deals_csv
+    assert tm.metrics["split"] == "time"
+    dates = df["close_date"]
+    train_dates = dates[~tm.holdout].dropna()
+    test_dates = dates[tm.holdout]
+    assert train_dates.max() < test_dates.min()
+    assert test_dates.min().date().isoformat() == tm.metrics["test_from"]
+    assert tm.metrics["n_test"] == int(tm.holdout.sum())
+    assert tm.metrics["n_train"] + tm.metrics["n_test"] == len(df)
+    # The ordering guarantee covers dated rows only, so the count of rows it
+    # could not order is part of the claim, not a footnote.
+    assert tm.metrics["n_undated_train"] == 0
+    assert tm.metrics["test_share"] == pytest.approx(0.25, abs=0.01)
+
+
+def test_undated_book_falls_back_to_random_split_and_says_so(trained, caplog):
+    df, _tm = trained
+    with caplog.at_level(logging.WARNING, logger="pricekeel.model"):
+        tm = model.train(df.drop(columns=["close_date"]))
+    assert tm.metrics["split"] == "random_stratified"
+    assert tm.metrics["test_from"] is None
+    assert "random stratified holdout" in caplog.text
+
+
+def test_recommendation_distribution_and_support_are_pinned(sample_300):
+    """What the product actually recommends, pinned so a model change cannot
+    move it unobserved.
+
+    The 2026-09-15 capacity fix (250/15/50 to 50/7/150) cut the mean
+    recommendation from 0.124 to 0.069, the maximum across the book from 0.27
+    to 0.10, and took the share recommending exactly 0% from 0.6% to about
+    11%. That was an improvement, since the generator saturates its win curve
+    by roughly a 10% discount and the old 0.27 recommendations were overfit
+    noise, but it reached users with nothing in the suite noticing. A Head of
+    Pricing rerunning the same book sees every number move.
+
+    Second half is the tripwire for a known latent hazard: recommend_discount
+    sweeps a fixed 0 to 40% grid for every deal with no per-segment support
+    bound, so nothing in the code stops it recommending deeper than that
+    segment has ever given. Nothing does today (largest here 0.10, against a
+    p99 of 0.244 in the tightest segment: SMB 0.244, MidMarket 0.306,
+    Enterprise 0.363), and this fails the moment that stops being true.
+
+    Measured 2026-09-15 on this 300-deal sample: mean 0.069, median 0.090,
+    max 0.100, 11.3% at exactly zero, zero deals beyond segment p99.
+    """
+    df, tm, sample = sample_300
+    p99 = df.groupby("segment")["discount_pct"].quantile(0.99)
+    recs = []
+    for idx in sample.index:
+        rec = model.recommend_discount(tm, tm.X_all.loc[[idx]],
+                                       float(df.loc[idx, "list_acv"]))
+        d = rec["recommended_discount"]
+        recs.append(d)
+        seg = str(df.loc[idx, "segment"])
+        assert d <= float(p99[seg]) + 1e-9, (
+            f"{df.loc[idx, 'opportunity_id']} ({seg}): recommended {d:.3f}, "
+            f"beyond the segment's p99 observed discount {float(p99[seg]):.3f}"
+        )
+    recs = np.array(recs)
+    # Bands wide enough for library drift, narrow enough that a shift the size
+    # of the capacity change fails here instead of shipping quietly. The max
+    # assertion carries most of that signal: the old capacity's max was 0.270
+    # against this 0.20 bound, while its mean measured 0.124 to 0.127 against
+    # a 0.12 bound, a margin thinner than the n_jobs=-1 nondeterminism this
+    # repo discloses. Do not trust the mean band alone when retuning.
+    assert 0.03 <= recs.mean() <= 0.12
+    assert recs.max() <= 0.20
+    # Two-sided on purpose: the old capacity recommended exactly zero on 0.7%
+    # of deals, so an upper bound alone would not notice a slide back to it.
+    assert 0.02 <= (recs == 0.0).mean() <= 0.30

@@ -42,6 +42,22 @@ if well_calibrated:
 else:
     st.warning(calib_msg)
 with st.expander("Model quality (advanced)"):
+    # Which holdout produced these numbers is part of the numbers. The API and
+    # the web guidance panel say it; this page has to say it too, because it
+    # trains on whatever CSV the user loaded and can fall back the same way.
+    if m.get("split") == "time":
+        st.caption(
+            f"Scored on the {m['n_test']:,} deals that closed most recently"
+            + (f" (from {m['test_from']})" if m.get("test_from") else "")
+            + ", every one of them after the last deal the model learned from."
+        )
+    else:
+        st.warning(
+            "Close dates in this book could not be used, so the model was "
+            "scored on a random sample rather than on deals that closed later. "
+            "It was graded partly on deals that closed before ones it trained "
+            "on, so treat these numbers as optimistic."
+        )
     a1, a2, a3 = st.columns(3)
     a1.metric("Ranking accuracy (AUC)", f"{m['auc']:.3f}",
               help="1.0 is perfect, 0.5 is a coin flip.")

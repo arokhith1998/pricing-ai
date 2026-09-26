@@ -144,6 +144,11 @@ def recommend(req: RecommendReq) -> dict:
             "mean_pred": tm.metrics["mean_pred"],
             "base_rate": tm.metrics["base_rate"],
             "n_train": tm.metrics["n_train"],
+            # Which holdout produced those numbers. A time-ordered AUC and the
+            # random-split fallback's AUC are not the same claim, and the panel
+            # cites this one in a pricing committee.
+            "split": tm.metrics["split"],
+            "test_from": tm.metrics["test_from"],
         },
         "curve": records(curve),
     }

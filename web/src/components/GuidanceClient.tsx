@@ -161,13 +161,14 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
 }
 
 // Below this many percentage points of change in win probability, the
-// headline sentence calls the move "barely" moving the odds. Chosen as a
-// materiality cut, not a statistical one: the confidence caveat below the
-// headline already tells the reader this model calibrates within a few
-// points of the actual win rate, so a 1-2 point shift reads as noise a
-// reasonable rep would not act on. Above the threshold the sentence must
-// name the actual change instead of describing it as negligible, since
-// that is exactly the deal where the tradeoff being made is real.
+// headline sentence calls the move "barely" moving the odds. This is a
+// materiality cut, not a statistical one, and it is deliberately NOT
+// justified by the model's calibration: the aggregate predicted-versus-actual
+// pair looks close, but per predicted band the model is compressed toward the
+// middle, so a 2-point displayed change is not 2 points of real-world
+// difference. The cut says only that a rep would not act on a change this
+// small. Above the threshold the sentence must name the actual change instead
+// of calling it negligible, since that is the deal where the tradeoff is real.
 export const WIN_PROB_BARELY_THRESHOLD_PTS = 2;
 
 function ConfidenceCaveat({ c }: { c: Confidence }) {
@@ -176,10 +177,24 @@ function ConfidenceCaveat({ c }: { c: Confidence }) {
       <span className="font-semibold text-ink">How to read this.</span> These
       patterns are correlational, not causal: bigger or more competitive deals
       attract bigger discounts, so some of the gap is justified. Treat the
-      recommendation as decision support for a human, not an instruction. On
-      held-out deals the model ranks at {c.auc.toFixed(2)} AUC and calibrates to{" "}
-      {pct(c.mean_pred, 0)} predicted versus {pct(c.base_rate, 0)} actual win
-      rate, learned from {c.n_train.toLocaleString()} of your closed deals.
+      recommendation as decision support for a human, not an instruction.{" "}
+      {c.split === "random_stratified" ? (
+        <>
+          Close dates in this book could not be used, so the model was scored on
+          a random holdout rather than on deals that closed later. Treat these
+          numbers as optimistic.
+        </>
+      ) : (
+        <>
+          Scored on deals that closed after every deal it learned from
+          {c.test_from ? ` (from ${c.test_from})` : ""}, the model ranks at{" "}
+          {c.auc.toFixed(2)} AUC.
+        </>
+      )}{" "}
+      Across those deals it predicts {pct(c.mean_pred, 0)} wins against{" "}
+      {pct(c.base_rate, 0)} actual, an average that holds better than any single
+      deal&apos;s probability does. It learned from{" "}
+      {c.n_train.toLocaleString()} of your closed deals.
     </div>
   );
 }
