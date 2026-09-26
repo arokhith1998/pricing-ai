@@ -1,4 +1,4 @@
-import { getDemo, type Diagnostic, type FindingDeal } from "@/lib/api";
+import { getDemo, type Diagnostic, type FindingDeal, type WinRateBand } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import ApiError from "@/components/ApiError";
@@ -29,6 +29,46 @@ function Card({
       <div className="mt-4">{children}</div>
     </section>
   );
+}
+
+// PK-14: this used to be a fixed subtitle ("Win rate climbs with discount,
+// then flattens") regardless of what the data actually showed. Derive the
+// shape claim from win_rate_by_band instead, and never assert a shape the
+// bands do not exhibit. Bands with zero deals carry no signal and are
+// dropped before classifying. Step size below WIN_RATE_STEP_TOL_PTS counts
+// as flat, matching the 2-point materiality cut used elsewhere in guidance.
+const WIN_RATE_STEP_TOL_PTS = 0.02;
+
+type WinRateShape = "insufficient" | "monotone" | "rising_then_flat" | "flat" | "noisy";
+
+function classifyWinRateShape(bands: WinRateBand[]): WinRateShape {
+  const rates = bands.filter((b) => b.deals > 0).map((b) => b.win_rate);
+  if (rates.length < 3) return "insufficient";
+  const steps = rates.slice(1).map((r, i) => r - rates[i]);
+  const hasDown = steps.some((s) => s < -WIN_RATE_STEP_TOL_PTS);
+  const hasUp = steps.some((s) => s > WIN_RATE_STEP_TOL_PTS);
+  if (hasDown) return "noisy";
+  if (hasUp) return steps.every((s) => s > WIN_RATE_STEP_TOL_PTS) ? "monotone" : "rising_then_flat";
+  return "flat";
+}
+
+function winRateSubtitle(bands: WinRateBand[], referenceThreshold: number): string {
+  const shape = classifyWinRateShape(bands);
+  const winPoint = `about ${pct(referenceThreshold, 0)}`;
+  const confidenceNote = "The shaded band is the range we are confident about.";
+  switch (shape) {
+    case "rising_then_flat":
+      return `Win rate climbs with discount, then flattens. Past the win point (${winPoint}), extra discount buys almost no extra wins. ${confidenceNote}`;
+    case "monotone":
+      return `Win rate keeps climbing with discount across every band in this data; there is no point yet where extra discount stops buying extra wins. ${confidenceNote}`;
+    case "flat":
+      return `Win rate stays roughly flat across discount bands in this data; discount is not the thing separating wins from losses here. ${confidenceNote}`;
+    case "noisy":
+      return `Win rate does not simply climb then flatten in this data; it moves both up and down across bands. Read the win point (${winPoint}) as approximate. ${confidenceNote}`;
+    case "insufficient":
+    default:
+      return `Not enough discount bands with deals yet to describe a shape. ${confidenceNote}`;
+  }
 }
 
 function Flag({ on, label }: { on: boolean; label: string }) {
@@ -208,10 +248,7 @@ export default async function DiagnosticPage() {
       <Reveal inView>
         <Card
           title="Win rate vs discount"
-          subtitle={`Win rate climbs with discount, then flattens. Past the win point (about ${pct(
-            l.reference_threshold,
-            0,
-          )}), extra discount buys almost no extra wins. The shaded band is the range we are confident about.`}
+          subtitle={winRateSubtitle(d.win_rate_by_band, l.reference_threshold)}
         >
           <WinRateChart bands={d.win_rate_by_band} reference={d.reference_discount} />
         </Card>

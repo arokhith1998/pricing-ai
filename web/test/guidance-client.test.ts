@@ -192,4 +192,71 @@ describe("GuidanceClient headline vs. the win-probability stat tile", () => {
     expect(screen.queryByText(/barely moving the odds of winning/i)).toBeNull();
     expect(screen.queryByText(/point drop in win probability/i)).toBeNull();
   });
+
+  // PK-14: the accent on the Expected value gain tile already branches on
+  // rec.uplift's sign (coral below zero), but the headline sentence said
+  // "more in expected value" unconditionally, contradicting a coral tile
+  // sitting right below a "more" claim.
+  it("says 'less', not 'more', in expected value when uplift is negative", async () => {
+    const rec = makeRecommendation({
+      current_discount: 0.14,
+      recommended_discount: 0.04,
+      win_prob_at_current: 0.3,
+      win_prob_at_rec: 0.29,
+      uplift: -12_500,
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/\$12,500/);
+    screen.getByText(/less in expected value/i);
+    expect(screen.queryByText(/more in expected value/i)).toBeNull();
+  });
+});
+
+describe("GuidanceClient comparables outcome label", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  function comparable(overrides: Partial<Recommendation["comparables"][number]>) {
+    return {
+      opportunity_id: "cmp-1",
+      resolved_account_name: "Comparable Co",
+      segment: "Enterprise",
+      list_acv: 300_000,
+      discount_pct: 0.1,
+      is_won: true,
+      ...overrides,
+    };
+  }
+
+  it("says 'won and lost' only when comparables actually contain both outcomes", async () => {
+    const rec = makeRecommendation({
+      comparables: [comparable({ opportunity_id: "cmp-1", is_won: true }), comparable({ opportunity_id: "cmp-2", is_won: false })],
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/won and lost/i);
+  });
+
+  it("says 'all won' when every comparable won, not 'won and lost'", async () => {
+    const rec = makeRecommendation({
+      comparables: [comparable({ opportunity_id: "cmp-1", is_won: true }), comparable({ opportunity_id: "cmp-2", is_won: true })],
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/all won/i);
+    expect(screen.queryByText(/won and lost/i)).toBeNull();
+  });
+
+  it("says 'all lost' when every comparable lost, not 'won and lost'", async () => {
+    const rec = makeRecommendation({
+      comparables: [comparable({ opportunity_id: "cmp-1", is_won: false })],
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/all lost/i);
+    expect(screen.queryByText(/won and lost/i)).toBeNull();
+  });
 });

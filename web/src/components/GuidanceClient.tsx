@@ -68,11 +68,15 @@ function OutcomeChip({ won }: { won: boolean }) {
 }
 
 function Comparables({ rows }: { rows: ComparableDeal[] }) {
+  const hasWon = rows.some((r) => r.is_won);
+  const hasLost = rows.some((r) => !r.is_won);
+  const outcomeLabel =
+    hasWon && hasLost ? ", won and lost" : hasWon ? ", all won" : hasLost ? ", all lost" : "";
   return (
     <div>
       <h3 className="text-sm font-semibold text-fg">Deals like this one</h3>
       <p className="mt-0.5 text-xs text-slate">
-        The closest closed deals by segment, size, and discount, won and lost.
+        The closest closed deals by segment, size, and discount{outcomeLabel}.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
@@ -306,8 +310,17 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                       {dWinPts} points, for about{" "}
                     </>
                   )}
-                  <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
-                  more in expected value.
+                  {rec.uplift >= 0 ? (
+                    <>
+                      <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
+                      more in expected value.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-coral">{money(Math.abs(rec.uplift))}</span>{" "}
+                      less in expected value.
+                    </>
+                  )}
                 </>
               ) : (
                 <>to maximize expected value on a {money(rec.list_acv)} list deal.</>
