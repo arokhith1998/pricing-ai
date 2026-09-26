@@ -114,6 +114,15 @@ FIELDS: list[Field] = [
     Field("lost_reason", "str", False,
           "Reason captured on closed_lost deals (price | product | "
           "no_decision | competitor | timing).", "price"),
+    Field("currency", "str", False,
+          "ISO 4217 code the money columns (list_acv, booked_acv, "
+          "platform_fee_acv, usage_acv, committed_acv, overage_rate, "
+          "ramp_year_*_acv, cogs_acv) are denominated in. Blank/absent is "
+          "read as USD. Ingestion (pricing/ingest.py) derives this per row "
+          "from the currency symbol when the column itself is absent; a file "
+          "that mixes currencies is blocked by default (or normalized to USD "
+          "when fx_rates are supplied) rather than silently summed as one "
+          "number. See pricing.ingest.CurrencyBlockedError.", "USD"),
     # --- Usage-based-pricing structure (all OPTIONAL) ---------------------
     # These let a deal express its UBP shape so guidance can eventually reason
     # about commit vs rate, not just discount %. The diagnostic degrades
@@ -131,7 +140,14 @@ FIELDS: list[Field] = [
           "deals.", "60000.00"),
     Field("ramp_year_2_acv", "float", False,
           "Booked ACV scheduled for contract year 2 on a ramped multi-year "
-          "deal. Blank if not ramped.", "96000.00"),
+          "deal. Blank if not ramped. STEADY-STATE CONVENTION: there is no "
+          "ramp_year_3_acv field. Year 3 (and any later year) of a ramped "
+          "deal is, by convention, booked_acv itself — the annualized "
+          "steady-state figure the ramp climbs to. A 36-month ramped deal "
+          "therefore expresses its full ramp as (ramp_year_1_acv, "
+          "ramp_year_2_acv, booked_acv). Documented here rather than adding a "
+          "third field: it is the smaller change, and term_months already "
+          "tells you whether year 3 exists for a given deal.", "96000.00"),
     Field("is_renewal", "bool", False,
           "Whether this opportunity is a renewal of an existing contract "
           "(vs new business or expansion).", "false"),

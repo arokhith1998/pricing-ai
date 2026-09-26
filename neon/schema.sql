@@ -23,6 +23,12 @@ create table if not exists leads (
   created_at    timestamptz not null default now()
 );
 
+-- One person, one lead row, regardless of case (a resubmitted form on a retry
+-- or double-click must collide here, not silently create a second row).
+-- Added by 2026-09-26-tenant-scoped-indexes.sql.
+create unique index if not exists leads_lower_email_key
+  on leads (lower(email));
+
 create table if not exists access_codes (
   code        text primary key,
   issued_to   text,                       -- prospect / company the code is for
@@ -32,6 +38,11 @@ create table if not exists access_codes (
   revoked     boolean not null default false,
   created_at  timestamptz not null default now()
 );
+
+-- Supports the leads -> access_codes lookup. Added by
+-- 2026-09-26-tenant-scoped-indexes.sql.
+create index if not exists access_codes_lead_id_idx
+  on access_codes (lead_id);
 
 -- Issue a code (generate a random URL-safe token outside SQL, then):
 --   insert into access_codes (code, issued_to, expires_at)
@@ -58,6 +69,14 @@ create table if not exists decision_log (
 -- /digest reads everything in the last 7 days.
 create index if not exists decision_log_kind_created_at_idx
   on decision_log (kind, created_at desc);
+
+-- Every tenant-scoped read filters on customer_ref first (see
+-- pricing/governance.py); without this, that scan grows with total rows
+-- across every tenant. Added by 2026-09-26-tenant-scoped-indexes.sql. Kept
+-- alongside decision_log_kind_created_at_idx above, which /digest still needs
+-- for its cross-tenant 7-day read.
+create index if not exists decision_log_tenant_kind_created_idx
+  on decision_log (customer_ref, kind, created_at desc);
 
 -- Salesforce CRM workflow (2026-08-01). Raw Opportunity rows are never
 -- persisted here: the connector queries Salesforce on demand, sends a bounded
