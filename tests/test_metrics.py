@@ -72,6 +72,28 @@ def test_reference_discount_finds_the_plateau():
     assert lo <= ref["peak_win_rate"] <= hi
 
 
+def test_reference_band_median_discount_is_disclosed_not_applied():
+    """Pricing-strategist F3: the band floor is a founder call, not an
+    engineering one, so this fix does not move reference_threshold off the
+    band floor -- it only discloses the alternative (the band's own observed
+    median discount) alongside it, so it CAN be shown without shipping it."""
+    rows = []
+    rows += _band_block("b00", 20, 0.02, 0.40)
+    rows += _band_block("b05", 20, 0.07, 0.50)
+    rows += _band_block("b10", 20, 0.12, 0.80)  # every deal here discounts 12%
+    rows += _band_block("b15", 20, 0.17, 0.80)
+    rows += _band_block("b20", 20, 0.22, 0.80)
+    df = _build(rows)
+
+    ref = metrics.reference_discount(df, seed=0)
+    # The shipped threshold is still the band FLOOR (10%), unchanged...
+    assert ref["reference_threshold"] == pytest.approx(0.10)
+    # ...while the alternative -- the band's own median discount (12%, since
+    # every deal in the 10-15% band sits at exactly 12%) -- is disclosed
+    # alongside it, not substituted in.
+    assert ref["reference_band_median_discount"] == pytest.approx(0.12)
+
+
 def test_excess_vs_reference_only_counts_discount_above_reference():
     rows = []
     rows += _band_block("b00", 20, 0.02, 0.40)
