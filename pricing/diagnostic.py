@@ -54,11 +54,16 @@ def analyze(df, load_report=None,
         "rep_discipline": metrics.rep_discipline(df),
         "governance": metrics.governance_gaps(df),
         "top_leak_deals": metrics.top_leak_deals(df, policy_threshold=policy_threshold),
-        # Optional hierarchy slicing: one frame per populated dimension.
+        # Optional hierarchy slicing: one frame per populated dimension, each
+        # value's own reference discount and excess $ (PK-16), the slice's own
+        # table (business_unit, product_line) when it earned one, else the
+        # deal's per-deal reference (segment, else global), labeled either way.
         "hierarchy_slices": {
-            d: metrics.realization_by(df, d)
+            d: metrics.hierarchy_slice_reference(df, d)
             for d in metrics.present_hierarchy_dimensions(df)
         },
+        "business_unit_reference": metrics.business_unit_reference_table(df),
+        "product_line_reference": metrics.product_line_reference_table(df),
         # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
         "packaging_signals": pkg,
         "trade_or_give": metrics.trade_or_give(df),
@@ -125,64 +130,90 @@ def print_report(res: dict) -> None:
     print(wb.to_string(index=False))
 
     rd = res["reference_discount"]
-    print(f"\nWin rate peaks at {_pct(rd['peak_win_rate'])} (band {rd['peak_band']}); "
-          f"that win rate is already reached by the {rd['reference_band']} band.")
-    print(f"=> Reference discount = {_pct(rd['reference_threshold'])}. "
-          f"Discount above this bought ~no incremental win rate.")
+    if not rd.get("sufficient", True):
+        print(f"\nInsufficient data for a reference discount: no "
+              f"{metrics.SEGMENT_REF_MIN_BANDS} discount bands each clear 15 "
+              f"closed deals.")
+        counts = rd.get("band_counts") or {}
+        if counts:
+            print("   Band counts: "
+                  + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+    else:
+        print(f"\nWin rate peaks at {_pct(rd['peak_win_rate'])} (band {rd['peak_band']}); "
+              f"that win rate is already reached by the {rd['reference_band']} band.")
+        print(f"=> Reference discount = {_pct(rd['reference_threshold'])}. "
+              f"Discount above this bought ~no incremental win rate.")
 
     print("\n-- Leakage (won deals) " + "-" * 41)
     print(f"Gross discount given        : {_money(lk['gross_discount_won'])}")
     print(f"Off-policy (> {_pct(lk['policy_threshold'])})         : {_money(lk['off_policy_leakage_won'])}")
-    seg_refs = lk.get("segment_references") or []
-    if seg_refs and "excess_vs_segment_reference_won" in lk:
-        # Headline: per-segment excess, each segment vs its OWN reference.
-        print(f"Excess vs segment references: "
-              f"{_money(lk['excess_vs_segment_reference_won'])} "
-              f"across {lk['deals_above_segment_reference']:,} deals "
-              f"= {_pct(lk['excess_segment_pct_of_booked'])} of booked ACV")
-        print(f"  (secondary lens, single global reference at "
-              f"{_pct(lk['reference_threshold'])}: "
-              f"{_money(lk['excess_vs_reference_won'])} across "
-              f"{lk['deals_above_reference']:,} deals = "
-              f"{_pct(lk['excess_pct_of_booked'])} of booked ACV. The global "
-              f"lens overstates segments")
-        print("   whose win point sits above the global reference; the "
-              "segment-aware figure is the one to use.)")
-
-        # Disclosure: exactly which reference each segment was measured
-        # against, and why. The headline is only defensible if this is shown.
-        print("\n-- Reference discount by segment (basis of the headline) "
-              + "-" * 6)
-        print(f"   {'segment':<14}{'reference':>10}  {'basis':<38}"
-              f"{'deals':>7}{'bands':>7}")
-        for r in seg_refs:
-            print(f"   {r['segment']:<14}"
-                  f"{_pct(r['reference_threshold']):>10}  "
-                  f"{r['basis']:<38}{r['deals']:>7,}{r['bands_populated']:>7}")
-        print(f"   (A segment earns its own reference with >= "
-              f"{metrics.SEGMENT_REF_MIN_DEALS} deals and >= "
-              f"{metrics.SEGMENT_REF_MIN_BANDS} populated bands;")
-        print("    thinner segments are measured against the global "
-              "reference, disclosed above.)")
+    if lk.get("excess_basis") == "insufficient data":
+        print("Excess vs reference          : insufficient data, no headline "
+              "figure quoted")
+        counts = lk.get("band_counts") or {}
+        if counts:
+            print("   Band counts: "
+                  + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+        if lk.get("excess_disclosure"):
+            print(f"   {lk['excess_disclosure']}")
     else:
-        print(f"Excess vs reference ({_pct(lk['reference_threshold'])})  : "
-              f"{_money(lk['excess_vs_reference_won'])} "
-              f"across {lk['deals_above_reference']:,} deals "
-              f"= {_pct(lk['excess_pct_of_booked'])} of booked ACV")
+        seg_refs = lk.get("segment_references") or []
+        if seg_refs and "excess_vs_segment_reference_won" in lk:
+            # Headline: per-segment excess, each segment vs its OWN reference.
+            print(f"Excess vs segment references: "
+                  f"{_money(lk['excess_vs_segment_reference_won'])} "
+                  f"across {lk['deals_above_segment_reference']:,} deals "
+                  f"= {_pct(lk['excess_segment_pct_of_booked'])} of booked ACV")
+            print(f"  (secondary lens, single global reference at "
+                  f"{_pct(lk['reference_threshold'])}: "
+                  f"{_money(lk['excess_vs_reference_won'])} across "
+                  f"{lk['deals_above_reference']:,} deals = "
+                  f"{_pct(lk['excess_pct_of_booked'])} of booked ACV. The global "
+                  f"lens overstates segments")
+            print("   whose win point sits above the global reference; the "
+                  "segment-aware figure is the one to use.)")
+
+            # Disclosure: exactly which reference each segment was measured
+            # against, and why. The headline is only defensible if this is shown.
+            print("\n-- Reference discount by segment (basis of the headline) "
+                  + "-" * 6)
+            print(f"   {'segment':<14}{'reference':>10}  {'basis':<38}"
+                  f"{'deals':>7}{'bands':>7}")
+            for r in seg_refs:
+                print(f"   {r['segment']:<14}"
+                      f"{_pct(r['reference_threshold']):>10}  "
+                      f"{r['basis']:<38}{r['deals']:>7,}{r['bands_populated']:>7}")
+            print(f"   (A segment earns its own reference with >= "
+                  f"{metrics.SEGMENT_REF_MIN_DEALS} deals and >= "
+                  f"{metrics.SEGMENT_REF_MIN_BANDS} populated bands;")
+            print("    thinner segments are measured against the global "
+                  "reference, disclosed above.)")
+        else:
+            print(f"Excess vs reference ({_pct(lk['reference_threshold'])})  : "
+                  f"{_money(lk['excess_vs_reference_won'])} "
+                  f"across {lk['deals_above_reference']:,} deals "
+                  f"= {_pct(lk['excess_pct_of_booked'])} of booked ACV")
 
     # Wishlist 1: is leakage getting better or worse, by quarter?
     trend = res.get("trend_by_quarter")
     if trend is not None and not trend.empty:
         print("\n-- Trend by quarter " + "-" * 44)
         t = trend.copy()
+        insufficient = bool((t["excess_basis"] == "insufficient data").any())
         t["win_rate"] = t["win_rate"].map(_pct)
         t["price_realization"] = t["price_realization"].map(_pct)
         t["excess_pct_of_booked"] = t["excess_pct_of_booked"].map(_pct)
-        for c in ("booked_acv", "excess_won"):
+        for c in ("booked_acv", "excess_won", "excess_won_global"):
             t[c] = t[c].map(_money)
-        print(t.to_string(index=False))
-        print("   (trend excess uses the single global reference so quarters "
-              "stay comparable)")
+        print(t.drop(columns=["excess_basis"]).to_string(index=False))
+        if insufficient:
+            print("   (book-wide reference is insufficient data, so excess is "
+                  "0 in every quarter rather than a manufactured figure)")
+        else:
+            print("   (excess_won uses each deal's own reference: segment, "
+                  "BU, or product line where earned, else global, so it "
+                  "reconciles with the headline; excess_won_global is the "
+                  "single-book-wide-reference secondary lens)")
 
     # Per-value-metric reference cut: a seat discount and a consumption
     # discount are not the same lever (Campbell), so each value_metric's own
@@ -210,6 +241,29 @@ def print_report(res: dict) -> None:
     for r in res.get("segment_win_points") or []:
         print(f"   {r['segment']:<12} peak {_pct(r['peak_win_rate'])} at "
               f"{r['peak_band']}, win point {r['reference_band']} ({r['deals']:,} deals)")
+
+    # PK-16: hierarchy slices (business_unit, product_line, product_family,
+    # sku) now carry each value's own reference and excess $, not just
+    # realization. business_unit and product_line values that clear the
+    # sufficiency bar get their OWN reference table; everything else falls
+    # back to the deal's per-deal reference (segment, else global), labeled.
+    hs = res.get("hierarchy_slices") or {}
+    for dim, rows in hs.items():
+        if rows is None or rows.empty:
+            continue
+        print(f"\n-- Hierarchy slice: {dim} " + "-" * max(1, 40 - len(dim)))
+        h = rows.copy()
+        h["avg_discount"] = h["avg_discount"].map(_pct)
+        h["price_realization"] = h["price_realization"].map(_pct)
+        h["reference_threshold"] = h["reference_threshold"].map(_pct)
+        h["excess_pct_of_booked"] = h["excess_pct_of_booked"].map(_pct)
+        for c in ("list_acv", "booked_acv", "excess_won"):
+            h[c] = h[c].map(_money)
+        print(h.to_string(index=False))
+        fallback = rows[rows["reference_basis"] != metrics._BASIS_OWN]
+        if not fallback.empty:
+            print(f"   ({len(fallback)} of {len(rows)} {dim} values did not "
+                  f"earn their own reference; basis disclosed above per row)")
 
     # Wishlist 4 (dry-run 2026-06-10): New vs Renewal. Renewal discounting is
     # a different disease from new-business discounting, so the two must not
@@ -286,9 +340,15 @@ def print_report(res: dict) -> None:
     sims = res.get("policy_simulations") or []
     if sims:
         print("\n-- What would have prevented it (policy simulation) " + "-" * 12)
-        for s in sims:
+        stacked = [s for s in sims if not s.get("non_additive")]
+        union = next((s for s in sims if s.get("non_additive")), None)
+        for s in stacked:
             print(f"   {s['policy']:<46} up to {_money(s['held_back'])} "
                   f"({s['deals_affected']:,} won deals)")
+        if union:
+            print(f"   -> these three do not sum; the union is "
+                  f"{_money(union['union_value'])} "
+                  f"({union['deals_affected']:,} won deals, no double counting)")
         print("   (Upper bound: correlational, some discount was needed to win.)")
 
     print("\n(Note: excess-vs-reference is correlational — a prioritized list to")
