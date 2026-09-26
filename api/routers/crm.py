@@ -67,7 +67,7 @@ def _git_sha() -> str:
         sha = out.stdout.strip()
         if sha:
             return sha
-    except Exception:  # noqa: BLE001 — evidence_version must degrade, not 500
+    except Exception:  # noqa: BLE001, evidence_version must degrade, not 500
         pass
     return "unknown"
 
