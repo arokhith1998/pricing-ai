@@ -279,10 +279,23 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
     band's lower CI bound. Discount above that level is candidate excess: it did
     not buy a statistically distinguishable win-rate gain. (Replaces the earlier
     point-estimate rule flagged by cross-model review as statistically naive.)
+
+    Sufficiency (2026-09-26 fix): a reference is only estimable when at least
+    SEGMENT_REF_MIN_BANDS real (non-negative) discount bands each clear
+    `min_deals` closed deals — the same bar segment_reference_table already
+    uses to decide whether a slice earns its own reference. Below that bar this
+    used to silently relax the floor to 1 deal per band, which let a sparse
+    book manufacture a 0% reference and read all of its discount as leakage.
+    Now it returns an explicit insufficient-data state instead: `sufficient`
+    is False, `basis` is "insufficient data", `reference_threshold` is 0.0, and
+    `band_counts` carries every band's deal count so the caller can disclose
+    why. Callers (leakage(), defended_vs_investigate()) must not headline a
+    dollar figure off that 0.0 threshold.
     """
     work = df[["discount_band", "is_won"]]
     rng = np.random.default_rng(seed)
     lo_q, hi_q = (1 - ci) / 2, 1 - (1 - ci) / 2
+    band_counts = {str(k): int(v) for k, v in work["discount_band"].value_counts().items()}
 
     def _band_stats(threshold: int) -> dict:
         out = {}
@@ -295,7 +308,7 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
                           float(np.quantile(boot, hi_q)), int(len(arr)))
         return out
 
-    stats = _band_stats(min_deals) or _band_stats(1)  # relax floor if too sparse
+    stats = _band_stats(min_deals)
     edges = {label: lo for lo, _hi, label in DISCOUNT_BANDS}
     # The reference discount is a discount POLICY level, so only real (>=0) bands
     # are candidates. Above-list deals (negative discount) are a pricing-power
@@ -303,11 +316,20 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
     # never be chosen as the reference (its threshold would be negative).
     pos_order = [lbl for lbl in _BAND_ORDER if edges.get(lbl, 0.0) >= 0.0]
     candidates = {k: v for k, v in stats.items() if edges.get(k, 0.0) >= 0.0}
-    if not candidates:
-        return {"reference_threshold": 0.0, "reference_band": pos_order[0],
-                "peak_win_rate": 0.0, "peak_band": pos_order[0],
-                "peak_win_rate_ci": (0.0, 0.0),
-                "band_win_rate_ci": {k: (v[0], v[1], v[2]) for k, v in stats.items()}}
+
+    if len(candidates) < SEGMENT_REF_MIN_BANDS:
+        return {
+            "reference_threshold": 0.0,
+            "reference_band": None,
+            "peak_win_rate": 0.0,
+            "peak_band": None,
+            "peak_win_rate_ci": (0.0, 0.0),
+            "band_win_rate_ci": {k: (v[0], v[1], v[2]) for k, v in stats.items()},
+            "basis": "insufficient data",
+            "sufficient": False,
+            "band_counts": band_counts,
+            "reference_band_median_discount": 0.0,
+        }
 
     peak_band = max(candidates, key=lambda k: candidates[k][0])
     peak_mean, peak_lo, peak_hi, _ = candidates[peak_band]
@@ -316,6 +338,13 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
         if label in candidates and candidates[label][0] >= peak_lo:
             reference_band = label
             break
+    # Alternative threshold a founder could choose instead of the band floor
+    # (pricing-strategist F3): the observed median discount of ALL deals inside
+    # the reference band, rather than the band's lower edge. Not applied as the
+    # threshold here — that is a founder call, not an engineering one — but
+    # disclosed so the alternative can be shown alongside the shipped number.
+    band_discounts = df.loc[df["discount_band"] == reference_band, "discount_pct"]
+    median_discount = float(band_discounts.median()) if len(band_discounts) else 0.0
     return {
         "reference_threshold": float(edges[reference_band]),
         "reference_band": reference_band,
@@ -323,6 +352,10 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
         "peak_band": peak_band,
         "peak_win_rate_ci": (peak_lo, peak_hi),
         "band_win_rate_ci": {k: (v[0], v[1], v[2]) for k, v in stats.items()},
+        "basis": _BASIS_OWN,
+        "sufficient": True,
+        "band_counts": band_counts,
+        "reference_band_median_discount": median_discount,
     }
 
 
@@ -474,6 +507,12 @@ def leakage(df: pd.DataFrame,
         change is transparent, not silent — and because downstream consumers
         read these keys). Overstates segments whose win point sits above the
         global reference.
+
+    2026-09-26 fix: when the book is too sparse for reference_discount() to
+    estimate a reference at all (`sufficient` is False), this no longer lets a
+    0.0 threshold masquerade as "all discount is excess". Both dollar lenses
+    are returned as 0.0, `excess_basis` is "insufficient data", and
+    `excess_disclosure` carries a human-readable reason plus band counts.
     """
     won = _won(df)
     gross = float(won["discount_amount"].sum())
@@ -483,6 +522,36 @@ def leakage(df: pd.DataFrame,
 
     ref = reference_discount(df)
     rt = ref["reference_threshold"]
+    booked = float(won["booked_acv"].sum())
+
+    if not ref.get("sufficient", True):
+        band_counts = ref.get("band_counts", {})
+        disclosure = (
+            "Insufficient data for a reference discount: no "
+            f"{SEGMENT_REF_MIN_BANDS} real discount bands each clear 15 closed "
+            "deals. Band counts: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(band_counts.items()))
+            + ". Collect more closed deals before quoting an excess-discount "
+              "figure."
+        )
+        return {
+            "policy_threshold": policy_threshold,
+            "gross_discount_won": gross,
+            "off_policy_leakage_won": off_policy,
+            "reference_threshold": 0.0,
+            "reference_band": None,
+            "excess_vs_reference_won": 0.0,
+            "deals_above_reference": 0,
+            "excess_pct_of_booked": 0.0,
+            "segment_references": [],
+            "excess_vs_segment_reference_won": 0.0,
+            "deals_above_segment_reference": 0,
+            "excess_segment_pct_of_booked": 0.0,
+            "excess_basis": "insufficient data",
+            "excess_disclosure": disclosure,
+            "band_counts": band_counts,
+        }
+
     over_ref = (won["discount_pct"] - rt).clip(lower=0.0)
     excess = float((over_ref * won["list_acv"]).sum())
     n_excess = int((won["discount_pct"] > rt).sum())
@@ -495,7 +564,6 @@ def leakage(df: pd.DataFrame,
     excess_seg = float((over_seg * won["list_acv"]).sum())
     n_excess_seg = int((won["discount_pct"] > thr).sum())
 
-    booked = float(won["booked_acv"].sum())
     return {
         "policy_threshold": policy_threshold,
         "gross_discount_won": gross,
@@ -513,6 +581,9 @@ def leakage(df: pd.DataFrame,
         "excess_vs_segment_reference_won": excess_seg,
         "deals_above_segment_reference": n_excess_seg,
         "excess_segment_pct_of_booked": (excess_seg / booked) if booked else 0.0,
+        "excess_basis": ref.get("basis", _BASIS_OWN),
+        "excess_disclosure": "",
+        "band_counts": ref.get("band_counts", {}),
     }
 
 

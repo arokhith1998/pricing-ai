@@ -90,6 +90,42 @@ def test_excess_vs_reference_only_counts_discount_above_reference():
     assert lk["deals_above_reference"] == 48
 
 
+def test_reference_discount_insufficient_data_does_not_relax_floor():
+    """2026-09-26 fix: a sparse book (no band clears the 15-deal floor) must
+    return an explicit insufficient-data state, not silently relax the floor
+    to 1 deal per band and manufacture a 0% reference."""
+    rows = []
+    # 40 deals spread across all 6 real discount bands, 6-7 deals each -- none
+    # clears the 15-deal floor, even though 6 distinct bands have data.
+    rows += _band_block("b00", 7, 0.02, 0.40)   # 0-5%
+    rows += _band_block("b05", 7, 0.07, 0.50)   # 5-10%
+    rows += _band_block("b10", 7, 0.12, 0.60)   # 10-15%
+    rows += _band_block("b15", 7, 0.17, 0.60)   # 15-20%
+    rows += _band_block("b20", 6, 0.22, 0.60)   # 20-25%
+    rows += _band_block("b25", 6, 0.30, 0.60)   # 25%+
+    df = _build(rows)
+    assert len(df) == 40
+
+    ref = metrics.reference_discount(df)
+    assert ref["sufficient"] is False
+    assert ref["basis"] == "insufficient data"
+    assert ref["reference_threshold"] == 0.0
+    assert ref["reference_band"] is None
+    assert ref["reference_band_median_discount"] == 0.0
+    # every band's raw count is disclosed, even though none clears the floor
+    assert sum(ref["band_counts"].values()) == 40
+
+    lk = metrics.leakage(df)
+    # no headline dollar figure is manufactured off the collapsed 0% reference
+    assert lk["excess_vs_reference_won"] == 0.0
+    assert lk["deals_above_reference"] == 0
+    assert lk["excess_vs_segment_reference_won"] == 0.0
+    assert lk["deals_above_segment_reference"] == 0
+    assert lk["excess_basis"] == "insufficient data"
+    assert "Insufficient data" in lk["excess_disclosure"]
+    assert lk["band_counts"]
+
+
 def test_win_rate_by_band_is_ordered_and_complete():
     rows = _band_block("b10", 20, 0.12, 0.80) + _band_block("b00", 20, 0.02, 0.40)
     df = _build(rows)
