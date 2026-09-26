@@ -446,6 +446,40 @@ def test_digest_aggregates_seeded_entries_with_exact_headline():
     assert not any("D-OLD" in ln for ln in d["lines"])
 
 
+def test_digest_counts_one_crm_override_not_the_approval_or_writeback():
+    """Known-answer test for the digest miscount (code-reviewer finding,
+    reproduced): one CRM override request, its approval, and one writeback
+    receipt must render as 1 exception request, 1 outside the floor, not 3
+    requests / 0 below floor."""
+    override_verdict = {"requested_pct": 32.0, "outside_guardrail": True}
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "override_requested",
+                 "actor": "rep@x.com", "verdict": override_verdict},
+        decision="override_requested", requested_by="rep@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "approved",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="approved", requested_by="desk@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm_writeback",
+                 "event": "salesforce_writeback_succeeded",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="salesforce_writeback_succeeded", requested_by="desk@x.com",
+    )
+
+    d = governance.build_digest(analysis=None)
+
+    assert d["headline"] == ("1 exception request this week, 1 below the "
+                             "15 percent floor.")
+    assert d["stats"]["exceptions_total"] == 1
+    assert d["stats"]["exceptions_below_floor"] == 1
+
+
 def test_digest_without_book_has_null_stats():
     d = governance.build_digest(analysis=None)
     assert d["headline"] == ("0 exception requests this week, 0 below the "
