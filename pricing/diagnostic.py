@@ -210,8 +210,8 @@ def print_report(res: dict) -> None:
             print("   (book-wide reference is insufficient data, so excess is "
                   "0 in every quarter rather than a manufactured figure)")
         else:
-            print("   (excess_won uses each deal's own reference — segment, "
-                  "BU, or product line where earned, else global — so it "
+            print("   (excess_won uses each deal's own reference: segment, "
+                  "BU, or product line where earned, else global, so it "
                   "reconciles with the headline; excess_won_global is the "
                   "single-book-wide-reference secondary lens)")
 

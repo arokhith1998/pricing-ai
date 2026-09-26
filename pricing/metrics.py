@@ -282,7 +282,7 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
 
     Sufficiency (2026-09-26 fix): a reference is only estimable when at least
     SEGMENT_REF_MIN_BANDS real (non-negative) discount bands each clear
-    `min_deals` closed deals — the same bar segment_reference_table already
+    `min_deals` closed deals, the same bar segment_reference_table already
     uses to decide whether a slice earns its own reference. Below that bar this
     used to silently relax the floor to 1 deal per band, which let a sparse
     book manufacture a 0% reference and read all of its discount as leakage.
@@ -341,8 +341,8 @@ def reference_discount(df: pd.DataFrame, ci: float = 0.90, n_boot: int = 500,
     # Alternative threshold a founder could choose instead of the band floor
     # (pricing-strategist F3): the observed median discount of ALL deals inside
     # the reference band, rather than the band's lower edge. Not applied as the
-    # threshold here — that is a founder call, not an engineering one — but
-    # disclosed so the alternative can be shown alongside the shipped number.
+    # threshold here: that is a founder call, not an engineering one, but it
+    # is disclosed so the alternative can be shown alongside the shipped number.
     band_discounts = df.loc[df["discount_band"] == reference_band, "discount_pct"]
     median_discount = float(band_discounts.median()) if len(band_discounts) else 0.0
     return {
@@ -508,13 +508,13 @@ def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
       1. The deal's own business_unit reference, when that BU cleared the
          sufficiency bar (basis == "own win point"). Arbitrarily but
          explicitly preferred over product_line when a deal's BU AND product
-         line both earned one — BU is usually the coarser, more stable cut.
+         line both earned one, since BU is usually the coarser, more stable cut.
       2. Else the deal's own product_line reference, when that product line
          earned one.
       3. Else the deal's own segment reference (segment_reference_table always
          has a row once the segment column exists, own win point or a
          disclosed global fallback).
-      4. Else the global reference (`global_rt`) — no segment column, or the
+      4. Else the global reference (`global_rt`): no segment column, or the
          deal's segment/BU/product_line value is blank and untracked.
     """
     if seg_refs is None:
@@ -568,7 +568,7 @@ def hierarchy_slice_reference(df: pd.DataFrame, dim: str) -> pd.DataFrame:
     measured against it when a value clears the sufficiency bar. Every other
     hierarchy dimension (product_family, sku), and BU/product_line values that
     do not clear the bar, fall back to each deal's own per-deal reference
-    (segment, else global, via _per_deal_reference) — the fallback is always
+    (segment, else global, via _per_deal_reference); the fallback is always
     labeled in `reference_basis`, never silent, so `hierarchy_slices` in the
     diagnostic stops reporting realization with no reference or excess column
     at all.
@@ -722,7 +722,7 @@ def defended_vs_investigate(df: pd.DataFrame,
     surfaces both sides so sales sees the work the discounting actually earned.
 
     Split rule (deliberately conservative), evaluated per deal against
-    `_per_deal_reference` (2026-09-26 fix — this used to use the single global
+    `_per_deal_reference` (2026-09-26 fix: this used to use the single global
     reference while leakage() and top_leak_deals used the per-deal one, so a
     CFO reconciling this section against the headline found they disagreed;
     `investigate_deals` now equals `deals_above_segment_reference` exactly):
@@ -874,7 +874,7 @@ def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10) -> pd.DataFrame:
     The first question a CFO asks: is leakage getting better or worse? Since
     2026-09-26, excess is measured against each deal's own per-deal reference
     (`_per_deal_reference`: segment, else the deal's BU or product line where
-    one earned its own reference, else global) — the same reference leakage()
+    one earned its own reference, else global): the same reference leakage()
     and top_leak_deals use, so this section reconciles with the headline
     instead of quoting a third basis. The single global reference is kept as
     `excess_won_global` (a property of the whole book, comparable quarter to
@@ -959,8 +959,8 @@ def policy_simulations(df: pd.DataFrame,
     own reference, off policy, AND in the quarter-end window at once, so
     stacking (summing) the three figures double-counts it. The union entry's
     `held_back` (== `union_value`) sums, over every deal any lever would have
-    touched, the SINGLE LARGEST lever figure for that deal — never more than
-    one lever's worth per deal — so it is a defensible ceiling, not an
+    touched, the SINGLE LARGEST lever figure for that deal (never more than
+    one lever's worth per deal), so it is a defensible ceiling, not an
     inflated sum. `non_additive: true` marks it so a caller does not add it to
     the other three.
 

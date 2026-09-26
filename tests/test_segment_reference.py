@@ -225,7 +225,7 @@ def test_product_line_table_mirrors_segment_sufficiency_bar():
 
 def test_per_deal_reference_prefers_business_unit_over_segment():
     """A deal's own BU reference (when earned) wins over its segment
-    reference, which wins over global — even though every deal here shares
+    reference, which wins over global, even though every deal here shares
     the same segment (ENT)."""
     df = _bu_book()
     won = df[df["is_won"]]
