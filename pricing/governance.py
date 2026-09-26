@@ -412,6 +412,50 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
 # book's diagnostic aggregates. No row-level customer data beyond what was
 # explicitly logged as decisions.
 
+# Within a CRM workflow row (payload["source"] == "salesforce_crm"), only
+# these events are a fresh exception *request*; "approved"/"rejected" are a
+# decision on one already logged, and "outcome_recorded" is a reconciliation.
+# Legacy /exceptions rows carry no "source"/"event" at all and are always a
+# request (one row per POST). Writeback receipts
+# (source == "salesforce_crm_writeback") are never requests: they are the
+# append-only record of a Salesforce Task attempt/result for a decision
+# already counted. Without this filter the digest counted every kind
+# "exception" row, so one override plus its approval plus one writeback
+# receipt rendered as "3 exception requests" instead of 1 (code-reviewer
+# finding, reproduced).
+_CRM_REQUEST_EVENTS = {"override_requested"}
+_CRM_WRITEBACK_SOURCE = "salesforce_crm_writeback"
+
+
+def _is_exception_request(payload: dict) -> bool:
+    """True when a kind="exception" row is a fresh request for the digest
+    headline, not an approval/rejection, an outcome reconciliation, or a
+    writeback receipt."""
+    source = payload.get("source")
+    if source == _CRM_WRITEBACK_SOURCE:
+        return False
+    if source == "salesforce_crm":
+        return payload.get("event") in _CRM_REQUEST_EVENTS
+    return True
+
+
+def _request_below_floor(payload: dict) -> bool:
+    """True when the request breached its policy line, on either verdict
+    shape: below_floor (the demo /exceptions EV-curve verdict) or
+    outside_guardrail (the live CRM band-guardrail verdict, which never sets
+    below_floor). Reading only below_floor silently reported 0 below-floor
+    requests for every CRM override (code-reviewer finding, reproduced)."""
+    verdict = payload.get("verdict") or {}
+    return bool(verdict.get("below_floor") or verdict.get("outside_guardrail"))
+
+
+def _request_pct(payload: dict) -> float:
+    """Requested-discount percent on either verdict shape."""
+    pct = payload.get("requested_discount_pct")
+    if pct is None:
+        pct = (payload.get("verdict") or {}).get("requested_pct")
+    return float(pct or 0.0)
+
 
 def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
                  customer: str = "default", window_days: int = 7,
@@ -432,9 +476,10 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
     # Tenant-scoped: the digest only sees this customer's decision log.
     entries = store.list(since=since, limit=1000, customer_ref=customer)
 
-    exceptions = [e for e in entries if e.get("kind") == "exception"]
+    exceptions = [e for e in entries if e.get("kind") == "exception"
+                 and _is_exception_request(e.get("payload") or {})]
     below = [e for e in exceptions
-             if ((e.get("payload") or {}).get("verdict") or {}).get("below_floor")]
+             if _request_below_floor(e.get("payload") or {})]
     copilot_n = sum(1 for e in entries if e.get("kind") == "copilot")
 
     realization_pct: float | None = None
@@ -465,13 +510,11 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
     ]
     if below:
         biggest = max(
-            below,
-            key=lambda e: float((e.get("payload") or {})
-                                .get("requested_discount_pct") or 0.0),
+            below, key=lambda e: _request_pct(e.get("payload") or {}),
         )
         bp = biggest.get("payload") or {}
-        pct = float(bp.get("requested_discount_pct") or 0.0)
-        who = str(bp.get("requested_by") or "").strip()
+        pct = _request_pct(bp)
+        who = str(bp.get("requested_by") or bp.get("actor") or "").strip()
         line = (f"Largest below-floor request: {pct:.1f} percent on deal "
                 f"{bp.get('deal_id', biggest.get('deal_id', ''))}")
         if who:

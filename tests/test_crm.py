@@ -1,6 +1,7 @@
 """CRM-native analysis tests: live-record boundary and open-deal guardrails."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -8,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import main
+from api.routers import crm as crm_router
 from pricing import crm
 from pricing import governance
 
@@ -376,6 +378,221 @@ def test_salesforce_writeback_result_is_append_only_and_visible(client, monkeypa
     assert log[0]["event"] == "salesforce_writeback_failed"
     assert log[0]["writeback"]["success"] is False
     assert "INSUFFICIENT_ACCESS" in log[0]["writeback"]["error"]
+
+
+# --- fail-closed audit writes for CRM workflow events (CTO finding 3) --------
+
+def test_crm_workflow_degrades_to_memory_with_200_in_dev(client, monkeypatch):
+    # Dev (no DATABASE_URL, PRICEKEEL_ENV=dev from the fixture): the memory
+    # fallback still returns 200 with persisted: False, same as before.
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert r.status_code == 200
+    assert r.json()["persisted"] is False
+
+
+_PROD_KEY = "prod-secret-key"
+_PROD_AUTH = {"X-Pricekeel-Key": _PROD_KEY}
+
+
+def test_crm_workflow_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    # In production, a workflow write that only reached the memory fallback
+    # must not be reported as a success: 503, not 200.
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+    assert "not recorded" in r.json()["detail"].lower()
+
+
+def test_crm_reconcile_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/reconcile", json={
+        "outcomes": [{"deal_id": "SF-OPEN-001", "outcome": "closed_won"}],
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+
+
+def test_crm_writeback_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/writeback", json={
+        "deal_id": "SF-OPEN-001", "actor": "Account Executive",
+        "action_event": "accepted", "success": True, "task_id": "T-1",
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+
+
+def test_crm_workflow_logs_a_warning_naming_the_event_on_fallback(
+    client, monkeypatch, caplog,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    with caplog.at_level(logging.WARNING, logger="pricekeel.api.crm"):
+        client.post("/crm/workflow", json={
+            "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+            "actor": "Account Executive",
+        })
+    assert "accepted" in caplog.text
+    assert "fell back to the in-memory decision log" in caplog.text
+
+
+# --- reference_discount memoized across one analyze_records call -----------
+# (backend-engineer perf finding, scoped to the open-deal guidance loop:
+# metrics.py's own internal repeats inside a single diagnostic run are a
+# separate, larger fix that needs pricing/metrics.py, out of scope here.)
+
+def test_reference_for_segment_uses_supplied_values_without_recomputing():
+    def _boom(*_a, **_k):
+        raise AssertionError("must not recompute when values are supplied")
+
+    fake_global = {"reference_threshold": 0.11, "reference_band": "5-10%"}
+    fake_table = [{"segment": "Enterprise", "reference_threshold": 0.20,
+                   "reference_band": "15-25%", "basis": "segment"}]
+
+    hit = crm._reference_for_segment(
+        pd.DataFrame(), "Enterprise", global_ref=fake_global,
+        segment_table=fake_table,
+    )
+    assert hit == (0.20, "15-25%", "segment")
+
+    miss = crm._reference_for_segment(
+        pd.DataFrame(), "Unknown", global_ref=fake_global,
+        segment_table=fake_table,
+    )
+    assert miss == (0.11, "5-10%", "global fallback (segment not found)")
+
+
+def test_analyze_records_reference_calls_do_not_scale_with_open_deal_count(
+    monkeypatch,
+):
+    calls = {"ref": 0, "table": 0}
+    original_ref = crm.metrics.reference_discount
+    original_table = crm.metrics.segment_reference_table
+
+    def counted_ref(df):
+        calls["ref"] += 1
+        return original_ref(df)
+
+    def counted_table(df):
+        calls["table"] += 1
+        return original_table(df)
+
+    monkeypatch.setattr(crm.metrics, "reference_discount", counted_ref)
+    monkeypatch.setattr(crm.metrics, "segment_reference_table", counted_table)
+
+    crm.analyze_records(_records(), policy_threshold_pct=15.0)
+    calls_with_one_open_deal = dict(calls)
+    assert calls_with_one_open_deal["ref"] >= 1
+
+    calls["ref"] = calls["table"] = 0
+    records = _records()
+    for i in range(4):
+        extra = dict(records[-1])
+        extra["opportunity_id"] = f"SF-OPEN-EXTRA-{i}"
+        records.append(extra)
+    crm.analyze_records(records, policy_threshold_pct=15.0)
+
+    # Five open deals instead of one: reference_discount and
+    # segment_reference_table must still run the same fixed number of times,
+    # not once more per extra open deal.
+    assert calls == calls_with_one_open_deal
+
+
+# --- evidence_version on every CRM verdict (CTO finding 4) ------------------
+
+def test_evidence_version_is_stable_for_identical_books():
+    records = _records()
+    a = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    b = crm_router.evidence_version(list(records), 15.0, "band_guardrail")
+    assert a == b
+
+
+def test_evidence_version_changes_with_the_policy_threshold():
+    records = _records()
+    a = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    b = crm_router.evidence_version(records, 20.0, "band_guardrail")
+    assert a != b
+
+
+def test_evidence_version_changes_with_record_count_and_method():
+    records = _records()
+    baseline = crm_router.evidence_version(records, 15.0, "band_guardrail")
+    assert crm_router.evidence_version(records[:-1], 15.0, "band_guardrail") != baseline
+    assert crm_router.evidence_version(records, 15.0, "modeled_ev_curve") != baseline
+
+
+def test_crm_workflow_verdict_carries_evidence_version(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert r.status_code == 200
+    version = r.json()["verdict"]["evidence_version"]
+    assert isinstance(version, str) and version
+
+    # An approval on the same override inherits the request's evidence
+    # version rather than recomputing one against whatever it happens to
+    # submit as `records` (it need not resubmit the book at all).
+    override = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-002", "event": "override_requested",
+        "actor": "Account Executive", "justification": "x",
+        "requested_discount_pct": 22.0,
+    })
+    monkeypatch.setattr(main.crm_mod, "selected_guidance",
+                        lambda *a, **k: {**_guidance(), "opportunity_id": "SF-OPEN-002"})
+    assert override.status_code == 200
+    requested_version = override.json()["verdict"]["evidence_version"]
+    approved = client.post("/crm/workflow", json={
+        "records": [], "deal_id": "SF-OPEN-002", "event": "approved",
+        "actor": "Deal Desk",
+    })
+    assert approved.status_code == 200
+    assert approved.json()["verdict"]["evidence_version"] == requested_version
+
+
+# --- length caps on justification / actor (code-reviewer finding 2) --------
+
+def test_crm_workflow_actor_and_justification_length_caps_422(client, monkeypatch):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    over_actor = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "a" * 121,
+    })
+    assert over_actor.status_code == 422
+
+    over_justification = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "override_requested",
+        "actor": "Account Executive", "justification": "x" * 2001,
+        "requested_discount_pct": 22.0,
+    })
+    assert over_justification.status_code == 422
 
 
 def test_deal_history_is_scoped_before_the_limit(client, monkeypatch):

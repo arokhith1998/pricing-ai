@@ -335,6 +335,23 @@ def test_exception_unknown_deal_404(client):
     assert r.status_code == 404
 
 
+def test_exception_justification_and_requested_by_length_caps_422(client, deal_id):
+    over_justification = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2001, "requested_by": "rep@x.com"})
+    assert over_justification.status_code == 422
+
+    over_requested_by = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x", "requested_by": "y" * 121})
+    assert over_requested_by.status_code == 422
+
+    at_cap = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2000, "requested_by": "y" * 120})
+    assert at_cap.status_code == 200
+
+
 def test_exception_out_of_range_422(client, deal_id):
     for bad in (-1.0, 40.5, 100.0):
         r = client.post("/exceptions", json={
@@ -444,6 +461,40 @@ def test_digest_aggregates_seeded_entries_with_exact_headline():
     # The largest below-floor request (22.0, not the stale 39.0) is named.
     assert any("22.0 percent" in ln and "D-22" in ln for ln in d["lines"])
     assert not any("D-OLD" in ln for ln in d["lines"])
+
+
+def test_digest_counts_one_crm_override_not_the_approval_or_writeback():
+    """Known-answer test for the digest miscount (code-reviewer finding,
+    reproduced): one CRM override request, its approval, and one writeback
+    receipt must render as 1 exception request, 1 outside the floor, not 3
+    requests / 0 below floor."""
+    override_verdict = {"requested_pct": 32.0, "outside_guardrail": True}
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "override_requested",
+                 "actor": "rep@x.com", "verdict": override_verdict},
+        decision="override_requested", requested_by="rep@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "approved",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="approved", requested_by="desk@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm_writeback",
+                 "event": "salesforce_writeback_succeeded",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="salesforce_writeback_succeeded", requested_by="desk@x.com",
+    )
+
+    d = governance.build_digest(analysis=None)
+
+    assert d["headline"] == ("1 exception request this week, 1 below the "
+                             "15 percent floor.")
+    assert d["stats"]["exceptions_total"] == 1
+    assert d["stats"]["exceptions_below_floor"] == 1
 
 
 def test_digest_without_book_has_null_stats():

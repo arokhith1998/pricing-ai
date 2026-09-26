@@ -102,9 +102,23 @@ def _band_stats(df: pd.DataFrame) -> dict[str, dict]:
     }
 
 
-def _reference_for_segment(df: pd.DataFrame, segment: str) -> tuple[float, str, str]:
-    global_ref = metrics.reference_discount(df)
-    for row in metrics.segment_reference_table(df):
+def _reference_for_segment(df: pd.DataFrame, segment: str, *,
+                           global_ref: dict | None = None,
+                           segment_table: list[dict] | None = None,
+                           ) -> tuple[float, str, str]:
+    """Reference discount for one open deal's segment.
+
+    `global_ref` / `segment_table` let a caller with several open deals in
+    the same book (analyze_records) pass in the values it already computed
+    once, instead of this function re-running metrics.reference_discount's
+    500-sample bootstrap and metrics.segment_reference_table per open deal on
+    an unchanged `df` (perf finding: a dozen-open-deal book otherwise repeats
+    both a dozen times). Recomputes when not supplied, so this stays a
+    correct standalone call.
+    """
+    global_ref = global_ref if global_ref is not None else metrics.reference_discount(df)
+    table = segment_table if segment_table is not None else metrics.segment_reference_table(df)
+    for row in table:
         if str(row["segment"]).strip() == segment.strip():
             return (
                 float(row["reference_threshold"]),
@@ -142,12 +156,17 @@ def _comparables(df: pd.DataFrame, deal: dict, limit: int = 5) -> list[dict]:
 
 
 def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
-                           policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
+                           policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+                           *, global_ref: dict | None = None,
+                           segment_table: list[dict] | None = None) -> dict:
     """Deterministic guardrail for one open deal.
 
     We never recommend adding discount. Above the supported reference, the
     reference becomes the recommendation; at or below it, the current request
     stays in place. Historical band win rates are evidence, not causal scores.
+
+    `global_ref` / `segment_table`: see _reference_for_segment. Optional;
+    recomputed from `df` when not supplied, so a direct call stays correct.
     """
     if not _usable(deal):
         raise CRMDataError("Open deal is missing a positive list value or quoted value.")
@@ -155,7 +174,9 @@ def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
     booked_value = float(deal["booked_acv"])
     current = max(-0.5, min(1.0, 1.0 - booked_value / list_value))
     segment = str(deal.get("segment") or "Unknown")
-    reference, reference_band, basis = _reference_for_segment(df, segment)
+    reference, reference_band, basis = _reference_for_segment(
+        df, segment, global_ref=global_ref, segment_table=segment_table,
+    )
     recommended = min(current, reference)
     current_band = band_for(current)
     recommended_band = band_for(recommended)
@@ -233,7 +254,19 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0,
     df, report = _ingest_closed(closed, policy)
     _guard_degenerate_list(df, list_field_mapped=list_field_mapped)
     analysis = diagnostic.analyze(df, report, policy_threshold=policy)
-    guidance = [guidance_for_open_deal(df, deal, policy) for deal in open_usable]
+    # The reference discount and segment reference table are pure functions
+    # of `df` alone (this one closed book), so compute each once here rather
+    # than once per open deal: guidance_for_open_deal's own bootstrap
+    # (metrics.reference_discount) otherwise re-ran on identical input for
+    # every open Salesforce opportunity in the same analyze_records call
+    # (backend-engineer perf finding, scoped to this call site).
+    global_ref = metrics.reference_discount(df)
+    segment_table = metrics.segment_reference_table(df)
+    guidance = [
+        guidance_for_open_deal(df, deal, policy, global_ref=global_ref,
+                               segment_table=segment_table)
+        for deal in open_usable
+    ]
     # Rank by the risk-adjusted expected_acv_delta, not the gross price_to_retain.
     # price_to_retain is a full list-price delta that assumes the deal still
     # closes at the higher price; expected_acv_delta already discounts that
