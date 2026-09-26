@@ -1,4 +1,4 @@
-import { getExceptions, postException, type ExceptionInput } from "@/lib/api";
+import { ApiError, getExceptions, postException, type ExceptionInput } from "@/lib/api";
 import { customerRef, requireLead } from "@/lib/gate";
 
 // Same-origin proxy for the governance loop:
@@ -61,7 +61,17 @@ export async function POST(req: Request) {
       await customerRef(),
     );
     return Response.json(result);
-  } catch {
+  } catch (err) {
+    // A 4xx from the backend rejected the request itself (e.g. a discount
+    // outside the scoring grid); forward its status and message so the user
+    // sees what to fix, instead of "is the API running?", which is only true
+    // for a real 5xx/network failure.
+    if (err instanceof ApiError && err.isClientError) {
+      return Response.json(
+        { error: err.detail ?? "Could not log this decision." },
+        { status: err.status },
+      );
+    }
     return Response.json(
       { error: "Could not log this decision. Is the API running?" },
       { status: 502 },
@@ -78,7 +88,13 @@ export async function GET(req: Request) {
 
   try {
     return Response.json(await getExceptions(limit, await customerRef()));
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError && err.isClientError) {
+      return Response.json(
+        { error: err.detail ?? "That request could not be read." },
+        { status: err.status },
+      );
+    }
     return Response.json(
       { error: "Decision log is unavailable. Is the API running?" },
       { status: 502 },

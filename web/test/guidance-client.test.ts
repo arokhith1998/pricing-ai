@@ -260,3 +260,34 @@ describe("GuidanceClient comparables outcome label", () => {
     expect(screen.queryByText(/won and lost/i)).toBeNull();
   });
 });
+
+describe("GuidanceClient error message distinguishes bad input from a real outage", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the backend's own message on a 4xx instead of 'is the API running?'", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: "Unknown opportunity_id" }), { status: 404 }),
+      ),
+    );
+    render(createElement(GuidanceClient, { deals: [deal] }));
+
+    await waitFor(() => screen.getByText(/unknown opportunity_id/i));
+    expect(screen.queryByText(/is the api running/i)).toBeNull();
+  });
+
+  it("shows the generic outage message on a 5xx", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ error: "Guidance is unavailable" }), { status: 502 })),
+    );
+    render(createElement(GuidanceClient, { deals: [deal] }));
+
+    await waitFor(() => screen.getByText(/is the api running/i));
+  });
+});

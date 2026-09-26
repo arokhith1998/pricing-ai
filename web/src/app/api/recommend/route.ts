@@ -1,4 +1,4 @@
-import { getRecommendation } from "@/lib/api";
+import { ApiError, getRecommendation } from "@/lib/api";
 import { requireLead } from "@/lib/gate";
 
 // Same-origin proxy to the FastAPI /recommend endpoint. Keeps the API base URL
@@ -20,7 +20,17 @@ export async function POST(req: Request) {
   try {
     const rec = await getRecommendation(opportunity_id);
     return Response.json(rec);
-  } catch {
+  } catch (err) {
+    // A 4xx from the backend means it understood the request and rejected
+    // it (e.g. an unknown opportunity_id); forward that status and message
+    // instead of the generic "unavailable" one, which belongs to a real
+    // outage (5xx, timeout, connection refused).
+    if (err instanceof ApiError && err.isClientError) {
+      return Response.json(
+        { error: err.detail ?? "That deal could not be priced." },
+        { status: err.status },
+      );
+    }
     return Response.json({ error: "Guidance is unavailable" }, { status: 502 });
   }
 }
