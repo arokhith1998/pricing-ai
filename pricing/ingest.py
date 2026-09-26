@@ -14,6 +14,8 @@ the right amount of machinery for a CSV diagnostic.
 from __future__ import annotations
 
 import io
+import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -66,6 +68,12 @@ class LoadReport:
     field_sources: dict[str, str] = field(default_factory=dict)  # field -> "header (layer)"
     unmapped_columns: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # Currency (see _detect_row_currency / CurrencyBlockedError). blockers is
+    # populated the moment ingestion refuses to proceed, so the exception can
+    # carry a report that still discloses what was found.
+    blockers: list[str] = field(default_factory=list)
+    fx_normalized: bool = False       # mixed currencies were converted to USD
+    fx_rate_date: str = ""            # as-of date disclosed for that conversion
 
     def summary(self) -> str:
         """A short, human-readable 'what we read' block for the dashboard."""
@@ -92,7 +100,15 @@ class LoadReport:
                 f"  {self.above_list_deals} deal(s) closed ABOVE list "
                 "(booked > list) — a pricing-power signal, not leakage"
             )
-        if len(self.currencies) > 1:
+        if self.blockers:
+            for b in self.blockers:
+                out.append(f"  BLOCKED: {b}")
+        elif self.fx_normalized:
+            out.append(
+                f"  currencies normalized to USD (rate date: "
+                f"{self.fx_rate_date or 'unspecified'})"
+            )
+        elif len(self.currencies) > 1:
             out.append(
                 f"  WARNING: mixed currency symbols in money columns "
                 f"({', '.join(self.currencies)}) — totals may combine currencies; "
@@ -132,6 +148,21 @@ _TYPE_HEADERS = {"type", "opportunity type", "opp type", "deal type",
 
 class SchemaError(ValueError):
     """Raised when an input CSV is missing required columns."""
+
+
+class CurrencyBlockedError(SchemaError):
+    """Raised when money columns mix currencies and no fx_rates were supplied.
+
+    Carries the partially-populated `report` (a LoadReport) so a caller can
+    still show what was found — which currencies, how many rows each — even
+    though ingestion refused to produce a dollar total that would silently
+    combine them. See `_ingest_loaded` for the default-block / opt-in-normalize
+    contract.
+    """
+
+    def __init__(self, message: str, report: "LoadReport") -> None:
+        super().__init__(message)
+        self.report = report
 
 
 def normalize_account_name(name: str) -> str:
@@ -499,6 +530,70 @@ def _scan_currencies(df: pd.DataFrame) -> list[str]:
     return sorted(found)
 
 
+# --- Currency (per-row column + block-or-normalize on a mix) ----------------
+# _scan_currencies (above) only asks "is there more than one symbol". These
+# turn that into a per-row ISO code and a decision: block by default, or
+# normalize to USD when the caller opts in with fx_rates.
+
+_CURRENCY_SYMBOLS: dict[str, str] = {"$": "USD", "€": "EUR", "£": "GBP", "¥": "JPY"}
+DEFAULT_CURRENCY = "USD"
+# Money columns that are true currency amounts. quantity is units, not money;
+# renewal_uplift is a fraction (0.07 = 7%), not money — neither is converted.
+_FX_MONEY_COLS = [c for c in _NUMERIC if c not in ("quantity", "renewal_uplift")]
+
+
+def _detect_row_currency(df: pd.DataFrame) -> pd.Series:
+    """Per-row ISO currency code inferred from the symbol on the raw money
+    string. list_acv wins when both money columns carry a symbol; a row with
+    no symbol on either defaults to DEFAULT_CURRENCY (the common case for a
+    US-only CRM export, which never prints '$')."""
+    out = pd.Series([""] * len(df), index=df.index, dtype=object)
+    for col in ("booked_acv", "list_acv"):  # list_acv applied last, so it wins
+        if col not in df.columns:
+            continue
+        sym = df[col].astype(str).map(
+            lambda s: next((c for c in _CURRENCY_SYMBOLS if c in s), "")
+        )
+        out = sym.where(sym != "", out)
+    return out.map(lambda s: _CURRENCY_SYMBOLS.get(s, DEFAULT_CURRENCY))
+
+
+def _currency_row_counts(currency_codes: pd.Series) -> str:
+    """'EUR (45 row(s)), USD (255 row(s))' — used in blocker/disclosure text."""
+    counts = currency_codes.value_counts().to_dict()
+    return ", ".join(f"{code} ({n} row(s))" for code, n in sorted(counts.items()))
+
+
+def _env_fx_rates() -> tuple[dict[str, float] | None, str | None]:
+    """Opt-in FX rates from PRICEKEEL_FX_RATES, a JSON object shaped
+    {"rates": {"EUR": 1.08, "GBP": 1.27}, "as_of": "2026-09-01"}. Rates are USD
+    per one unit of that currency. Malformed/absent env returns (None, None),
+    which keeps the default block behavior."""
+    raw = os.environ.get("PRICEKEEL_FX_RATES", "").strip()
+    if not raw:
+        return None, None
+    try:
+        obj = json.loads(raw)
+        rates = {str(k).upper(): float(v) for k, v in obj.get("rates", {}).items()}
+    except (json.JSONDecodeError, AttributeError, TypeError, ValueError):
+        return None, None
+    return (rates or None), obj.get("as_of")
+
+
+def _normalize_currency(df: pd.DataFrame, currency_codes: pd.Series,
+                        fx_rates: dict[str, float]) -> pd.DataFrame:
+    """Multiply every money column by its row's USD rate. USD rows are
+    untouched (rate 1.0); renewal_uplift and quantity are never touched."""
+    df = df.copy()
+    rates = {str(k).upper(): float(v) for k, v in fx_rates.items()}
+    rates.setdefault("USD", 1.0)
+    rate = currency_codes.map(lambda c: rates.get(c, 1.0)).astype(float)
+    for col in _FX_MONEY_COLS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce") * rate
+    return df
+
+
 def _coerce_types(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     for col in _NUMERIC + _NUMERIC_NONMONEY:
@@ -622,8 +717,21 @@ def _ingest_loaded(
     df: pd.DataFrame,
     report: LoadReport,
     policy_threshold: float,
+    fx_rates: dict[str, float] | None = None,
+    fx_rates_date: str | None = None,
 ) -> tuple[pd.DataFrame, LoadReport]:
-    """Run the canonical pipeline on an already-loaded frame."""
+    """Run the canonical pipeline on an already-loaded frame.
+
+    Currency: fx_rates is opt-in (explicit param, else PRICEKEEL_FX_RATES).
+    When the file mixes currencies (report.currencies has more than one
+    symbol) and no fx_rates were supplied, this raises CurrencyBlockedError
+    rather than silently summing EUR and USD as one number — see
+    _detect_row_currency / _normalize_currency.
+    """
+    if fx_rates is None:
+        fx_rates, env_date = _env_fx_rates()
+        fx_rates_date = fx_rates_date or env_date
+
     df = apply_header_mapping(df, report)
 
     # Drop blank / summary rows that carry no opportunity id.
@@ -639,10 +747,49 @@ def _ingest_loaded(
     # Disclose assumptions BEFORE coercion strips the evidence (currency symbols,
     # date order). These are surfaced in the report, not silently resolved.
     report.currencies = _scan_currencies(df)
+    currency_codes = _detect_row_currency(df)   # raw-string symbol scan
+    mixed = len(report.currencies) > 1
+    if mixed:
+        detail = _currency_row_counts(currency_codes)
+        if fx_rates is None:
+            blocker = (
+                f"Mixed currencies in money columns: {', '.join(report.currencies)} "
+                f"({detail}). Ingestion blocked by default: summing different "
+                "currencies as one number would silently corrupt every dollar "
+                "total. Pass fx_rates (ISO code -> USD value) and a rate date, "
+                "or set PRICEKEEL_FX_RATES, to normalize to USD; or split the "
+                "file by currency and ingest each separately."
+            )
+            report.blockers.append(blocker)
+            raise CurrencyBlockedError(blocker, report)
+        missing = sorted(c for c in currency_codes.unique()
+                         if c != "USD" and c not in {k.upper() for k in fx_rates})
+        if missing:
+            blocker = (
+                f"Cannot normalize: no fx rate supplied for {', '.join(missing)} "
+                f"({detail}). Add rates for every non-USD currency present."
+            )
+            report.blockers.append(blocker)
+            raise CurrencyBlockedError(blocker, report)
     date_note = _ambiguous_date_note(df)
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
+    if mixed:
+        detail = _currency_row_counts(currency_codes)
+        df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]
+        report.fx_normalized = True
+        report.fx_rate_date = fx_rates_date or "unspecified"
+        report.notes.append(
+            f"normalized mixed currencies to USD ({detail}) using supplied "
+            f"fx_rates, rate date: {report.fx_rate_date}"
+        )
+        df["currency"] = DEFAULT_CURRENCY
+    elif "currency" in df.columns:
+        supplied = df["currency"].astype(str).str.strip().str.upper()
+        df["currency"] = supplied.where(supplied != "", currency_codes)
+    else:
+        df["currency"] = currency_codes
     if "booked_acv" in df.columns:
         report.blank_booked = int(df["booked_acv"].isna().sum())
     if "list_acv" in df.columns:
@@ -666,6 +813,8 @@ def ingest_frame_verbose(
     frame: pd.DataFrame,
     source: str = "in-memory records",
     policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+    fx_rates: dict[str, float] | None = None,
+    fx_rates_date: str | None = None,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """In-memory counterpart to ingest_verbose.
 
@@ -674,12 +823,15 @@ def ingest_frame_verbose(
     otherwise identical to a CSV/XLSX diagnostic.
     """
     report = LoadReport(source=source)
-    return _ingest_loaded(frame.copy(), report, policy_threshold)
+    return _ingest_loaded(frame.copy(), report, policy_threshold,
+                          fx_rates=fx_rates, fx_rates_date=fx_rates_date)
 
 
 def ingest_verbose(
     path: str | Path,
     policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+    fx_rates: dict[str, float] | None = None,
+    fx_rates_date: str | None = None,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """Full pipeline returning the enriched deals AND a LoadReport of what was
     read, excluded, deduped, decoded, and inferred.
@@ -688,18 +840,28 @@ def ingest_verbose(
     dedupe → exclude open deals → require enough closed data → resolve → enrich.
     The report is the customer-facing 'here is what we read from your file'
     artifact; see data/synthetic/adversarial-fixtures/ for the traps it closes.
+
+    fx_rates: optional {"EUR": 1.08, ...} (USD per one unit of that currency).
+    When the file mixes currencies and fx_rates is not supplied here (or via
+    PRICEKEEL_FX_RATES), ingestion raises CurrencyBlockedError rather than
+    summing currencies. fx_rates_date documents the as-of date for the rates,
+    disclosed in the returned LoadReport.
     """
     report = LoadReport(source=Path(path).name)
     df = load_any(path, report)
-    return _ingest_loaded(df, report, policy_threshold)
+    return _ingest_loaded(df, report, policy_threshold,
+                          fx_rates=fx_rates, fx_rates_date=fx_rates_date)
 
 
 def ingest(path: str | Path,
-           policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> pd.DataFrame:
+           policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
+           fx_rates: dict[str, float] | None = None,
+           fx_rates_date: str | None = None) -> pd.DataFrame:
     """Backward-compatible entry point: the enriched deals only.
 
     Use ingest_verbose() when you also want the LoadReport (what was read /
     excluded / deduped / decoded), e.g. to show it in the dashboard.
     """
-    df, _report = ingest_verbose(path, policy_threshold=policy_threshold)
+    df, _report = ingest_verbose(path, policy_threshold=policy_threshold,
+                                 fx_rates=fx_rates, fx_rates_date=fx_rates_date)
     return df
