@@ -19,8 +19,12 @@ export default function LeakageBars({ leakage }: { leakage: Leakage }) {
     },
     {
       label: "Beyond the win point",
-      help: `Discount past ${pct(leakage.reference_threshold, 0)}, where win rate stops improving. A list to investigate, not a refund.`,
-      value: leakage.excess_vs_reference_won,
+      help:
+        leakage.excess_vs_segment_reference_won !== undefined
+          ? "Discount past each segment's own win point, where win rate stops improving. A list to investigate, not a refund."
+          : `Discount past ${pct(leakage.reference_threshold, 0)}, where win rate stops improving. A list to investigate, not a refund.`,
+      // Segment-aware is the figure to use; the global lens overstates by design.
+      value: leakage.excess_vs_segment_reference_won ?? leakage.excess_vs_reference_won,
       color: "bg-coral",
     },
   ];

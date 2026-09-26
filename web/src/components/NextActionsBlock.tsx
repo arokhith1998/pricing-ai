@@ -26,8 +26,12 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
     reference_threshold: analysis.leakage.reference_threshold,
     defended_value: 0,
     defended_deals: 0,
-    investigate_value: analysis.leakage.excess_vs_reference_won,
-    investigate_deals: analysis.leakage.deals_above_reference,
+    investigate_value:
+      analysis.leakage.excess_vs_segment_reference_won ??
+      analysis.leakage.excess_vs_reference_won,
+    investigate_deals:
+      analysis.leakage.deals_above_segment_reference ??
+      analysis.leakage.deals_above_reference,
     defended_pct_of_booked: 0,
   };
   const lk = analysis.leakage;
