@@ -462,6 +462,68 @@ def test_crm_workflow_logs_a_warning_naming_the_event_on_fallback(
     assert "fell back to the in-memory decision log" in caplog.text
 
 
+# --- reference_discount memoized across one analyze_records call -----------
+# (backend-engineer perf finding, scoped to the open-deal guidance loop:
+# metrics.py's own internal repeats inside a single diagnostic run are a
+# separate, larger fix that needs pricing/metrics.py, out of scope here.)
+
+def test_reference_for_segment_uses_supplied_values_without_recomputing():
+    def _boom(*_a, **_k):
+        raise AssertionError("must not recompute when values are supplied")
+
+    fake_global = {"reference_threshold": 0.11, "reference_band": "5-10%"}
+    fake_table = [{"segment": "Enterprise", "reference_threshold": 0.20,
+                   "reference_band": "15-25%", "basis": "segment"}]
+
+    hit = crm._reference_for_segment(
+        pd.DataFrame(), "Enterprise", global_ref=fake_global,
+        segment_table=fake_table,
+    )
+    assert hit == (0.20, "15-25%", "segment")
+
+    miss = crm._reference_for_segment(
+        pd.DataFrame(), "Unknown", global_ref=fake_global,
+        segment_table=fake_table,
+    )
+    assert miss == (0.11, "5-10%", "global fallback (segment not found)")
+
+
+def test_analyze_records_reference_calls_do_not_scale_with_open_deal_count(
+    monkeypatch,
+):
+    calls = {"ref": 0, "table": 0}
+    original_ref = crm.metrics.reference_discount
+    original_table = crm.metrics.segment_reference_table
+
+    def counted_ref(df):
+        calls["ref"] += 1
+        return original_ref(df)
+
+    def counted_table(df):
+        calls["table"] += 1
+        return original_table(df)
+
+    monkeypatch.setattr(crm.metrics, "reference_discount", counted_ref)
+    monkeypatch.setattr(crm.metrics, "segment_reference_table", counted_table)
+
+    crm.analyze_records(_records(), policy_threshold_pct=15.0)
+    calls_with_one_open_deal = dict(calls)
+    assert calls_with_one_open_deal["ref"] >= 1
+
+    calls["ref"] = calls["table"] = 0
+    records = _records()
+    for i in range(4):
+        extra = dict(records[-1])
+        extra["opportunity_id"] = f"SF-OPEN-EXTRA-{i}"
+        records.append(extra)
+    crm.analyze_records(records, policy_threshold_pct=15.0)
+
+    # Five open deals instead of one: reference_discount and
+    # segment_reference_table must still run the same fixed number of times,
+    # not once more per extra open deal.
+    assert calls == calls_with_one_open_deal
+
+
 # --- evidence_version on every CRM verdict (CTO finding 4) ------------------
 
 def test_evidence_version_is_stable_for_identical_books():
