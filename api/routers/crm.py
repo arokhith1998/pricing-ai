@@ -21,14 +21,58 @@ mid-import (main.py imports this router).
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pricing import crm as crm_mod
 from pricing import governance as governance_mod
 from api.shared import analysis_payload
 
+logger = logging.getLogger("pricekeel.api.crm")
+
 router = APIRouter()
+
+
+def _insert_or_fail_closed(*, kind: str, deal_id: str, payload: dict,
+                           decision: str, justification: str,
+                           requested_by: str, customer_ref: str) -> dict:
+    """Append a CRM workflow decision-log row; fail closed in production
+    instead of quietly degrading (CTO finding 3, code-reviewer finding 1).
+
+    A CRM workflow event (override request, approval, rejection, outcome
+    reconciliation, writeback receipt) IS the audit trail this product sells;
+    a write that lands in the in-memory fallback there is not durable and
+    must not be reported as a 200. The demo /exceptions path and copilot
+    logging keep the memory fallback with a 200 (Finding 5's original
+    behavior) since those are not price-affecting workflow decisions.
+
+    Always logs a warning naming the event on a fallback, in dev too, so a
+    local operator sees the same signal production would alert on; only
+    raises 503 when `main._is_prod()`.
+    """
+    row = governance_mod.STORE.insert(
+        kind=kind, deal_id=deal_id, payload=payload, decision=decision,
+        justification=justification, requested_by=requested_by,
+        customer_ref=customer_ref,
+    )
+    if not row.get("persisted", False):
+        logger.warning(
+            "CRM workflow event %r for deal %s fell back to the in-memory "
+            "decision log (DATABASE_URL unset or unreachable); this write "
+            "is not durable.", payload.get("event", decision), deal_id,
+        )
+        from api import main  # deferred: see module docstring
+        if main._is_prod():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The decision log could not be durably written, so this "
+                    "CRM workflow action was not recorded. Try again shortly."
+                ),
+            )
+    return row
 
 
 class CRMAnalyzeReq(BaseModel):
@@ -224,7 +268,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         "outcome": req.outcome,
         "verdict": verdict,
     }
-    row = governance_mod.STORE.insert(
+    row = _insert_or_fail_closed(
         kind="exception",
         deal_id=req.deal_id,
         payload=payload,
@@ -296,7 +340,7 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
             "prior_event": prior_event,
             "verdict": latest_payload.get("verdict") or {},
         }
-        row = governance_mod.STORE.insert(
+        row = _insert_or_fail_closed(
             kind="exception",
             deal_id=item.deal_id,
             payload=payload,
@@ -356,7 +400,7 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
             "error": req.error.strip()[:1000] if not req.success else "",
         },
     }
-    row = governance_mod.STORE.insert(
+    row = _insert_or_fail_closed(
         kind="exception",
         deal_id=req.deal_id,
         payload=payload,

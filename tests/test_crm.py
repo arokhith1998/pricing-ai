@@ -1,6 +1,7 @@
 """CRM-native analysis tests: live-record boundary and open-deal guardrails."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -376,6 +377,88 @@ def test_salesforce_writeback_result_is_append_only_and_visible(client, monkeypa
     assert log[0]["event"] == "salesforce_writeback_failed"
     assert log[0]["writeback"]["success"] is False
     assert "INSUFFICIENT_ACCESS" in log[0]["writeback"]["error"]
+
+
+# --- fail-closed audit writes for CRM workflow events (CTO finding 3) --------
+
+def test_crm_workflow_degrades_to_memory_with_200_in_dev(client, monkeypatch):
+    # Dev (no DATABASE_URL, PRICEKEEL_ENV=dev from the fixture): the memory
+    # fallback still returns 200 with persisted: False, same as before.
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert r.status_code == 200
+    assert r.json()["persisted"] is False
+
+
+_PROD_KEY = "prod-secret-key"
+_PROD_AUTH = {"X-Pricekeel-Key": _PROD_KEY}
+
+
+def test_crm_workflow_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    # In production, a workflow write that only reached the memory fallback
+    # must not be reported as a success: 503, not 200.
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+    assert "not recorded" in r.json()["detail"].lower()
+
+
+def test_crm_reconcile_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/reconcile", json={
+        "outcomes": [{"deal_id": "SF-OPEN-001", "outcome": "closed_won"}],
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+
+
+def test_crm_writeback_fails_closed_in_production_when_not_persisted(
+    client, monkeypatch,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    accepted = client.post("/crm/workflow", json={
+        "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert accepted.status_code == 200
+    monkeypatch.setenv("PRICEKEEL_ENV", "production")
+    monkeypatch.setenv("PRICEKEEL_API_KEY", _PROD_KEY)
+    r = client.post("/crm/writeback", json={
+        "deal_id": "SF-OPEN-001", "actor": "Account Executive",
+        "action_event": "accepted", "success": True, "task_id": "T-1",
+    }, headers=_PROD_AUTH)
+    assert r.status_code == 503
+
+
+def test_crm_workflow_logs_a_warning_naming_the_event_on_fallback(
+    client, monkeypatch, caplog,
+):
+    monkeypatch.setattr(main.crm_mod, "selected_guidance", lambda *a, **k: _guidance())
+    with caplog.at_level(logging.WARNING, logger="pricekeel.api.crm"):
+        client.post("/crm/workflow", json={
+            "records": [{}], "deal_id": "SF-OPEN-001", "event": "accepted",
+            "actor": "Account Executive",
+        })
+    assert "accepted" in caplog.text
+    assert "fell back to the in-memory decision log" in caplog.text
 
 
 def test_deal_history_is_scoped_before_the_limit(client, monkeypatch):
