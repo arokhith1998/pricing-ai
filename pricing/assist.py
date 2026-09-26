@@ -2,8 +2,11 @@
 
 Thin, guard-railed layer on top of the deterministic analytics. The LLM NEVER
 computes a number: it narrates figures we already verified, and it maps column
-*names* (not data). Only aggregates and header names are sent to the provider —
-never row-level customer data. Real-customer use needs the provider's
+*names* (not data). Only aggregates and header names are sent to the provider,
+never row-level customer data: this module never forwards a row, and the
+callers that build a fuller prompt (pricing.rag.ask) strip every named-deal
+array out of the analysis dict before it reaches `_complete` (see
+pricing/rag.py's module docstring). Real-customer use needs the provider's
 zero-retention / DPA terms (aligns with the NDA's no-training clause).
 
 Anthropic only. The product runtime no longer talks to OpenAI (PK-5); the old
@@ -223,15 +226,16 @@ def summary_facts(res: dict) -> str:
 
 _SUMMARY_SYSTEM = (
     "You are a B2B SaaS pricing analyst writing a board-ready briefing for a "
-    "Head of Pricing and CFO. Use ONLY the figures provided — never invent or "
-    "recompute numbers. 120–170 words, direct, no hype, no emoji. Frame this as "
+    "Head of Pricing and CFO. Use ONLY the figures provided, never invent or "
+    "recompute numbers. 120-170 words, direct, no hype, no emoji. Frame this as "
     "pricing UPSIDE to pursue, not a loss to lament. Lead with the headline "
     "opportunity in dollars and % of ACV (revenue discounted past the win "
-    "point), then the 2–3 biggest drivers (reference discount, quarter-end, "
+    "point), then the 2-3 biggest drivers (reference discount, quarter-end, "
     "unapproved off-policy deals). State once that this figure is correlational "
     "and based on price realization (booked vs list), not cost-based margin: it "
     "is upside to pursue deal by deal, not a refund you can book. End with one "
-    "concrete recommended next step."
+    "concrete recommended next step. Do not use em dashes; use commas, colons, "
+    "or periods instead."
 )
 
 
