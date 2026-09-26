@@ -1,7 +1,7 @@
 ---
 title: 'Outreach personas: who we email, who we never cold-email, who we avoid'
 created: 2026-06-11
-updated: 2026-06-11
+updated: 2026-09-26
 tags: [gtm, personas, icp, outreach, sales]
 status: active
 ---
@@ -14,6 +14,26 @@ forwarded artifacts; persona 4 is taken opportunistically. Companion docs:
 [[outreach-sequence]] (the touches), [[design-partner-targets]] (sourcing queries),
 [[objection-inventory]] (the answers).
 
+## The ICP every persona below sits inside
+
+Do not re-derive this per persona. Sources:
+`vault/Competitive/2026-08-01-salesforce-market-need-assessment.md` (lines 61-74) and
+`vault/Decisions/2026-09-11-arr-band-and-post-funnel-sizing.md`.
+
+| Filter | Current value |
+|---|---|
+| ARR band (screening proxy only) | **$10M to $100M**, sweet spot $20M to $60M |
+| The actual gate | **500+ closed opportunities a year** (or the equivalent across a 2-3 year lookback) |
+| Pricing model | Usage-based or hybrid, platform fee plus a consumption metric |
+| CRM | **Salesforce-primary for the live workflow.** The CSV diagnostic is CRM-agnostic, so HubSpot accounts are diagnostic-only, never quoted the in-CRM loop |
+| Data readiness | Reliable list and booked values, a documented discount policy, recurring exception volume |
+| Champion | Deal Desk / RevOps / Pricing owner |
+| Economic buyer | CFO, VP Finance, or VP Pricing |
+
+Never state the ARR band without the deal-volume gate. A high-velocity $12M ARR company
+with 600 closed opportunities is servable; a $30M ARR company selling twelve enterprise
+deals a year is not. The band alone overstates who can be served.
+
 Standing rules across all personas: CFO never cold. CRO only after the champion is in,
 because the diagnostic names their reps. Free diagnostic requires closed-lost rows.
 
@@ -25,9 +45,10 @@ because the diagnostic names their reps. Free diagnostic requires closed-lost ro
 RevOps · Director, GTM Operations · Deal Desk Lead / Manager · Director, Sales Operations
 (where RevOps does not exist as a title).
 
-**Firmographics:** $15-45M ARR B2B SaaS, hybrid or usage-based pricing, 40-120 sales/CS
-heads, Series B-C, Salesforce or HubSpot. No dedicated pricing team: RevOps inherited
-discount governance and never asked for it.
+**Firmographics:** $10-100M ARR B2B SaaS (densest at $20-60M), hybrid or usage-based
+pricing, 500+ closed opportunities a year, 40-120 sales/CS heads, Series B-C,
+Salesforce-primary. No dedicated pricing team: RevOps inherited discount governance and
+never asked for it.
 
 **Pains:**
 - Discount approvals happen ad hoc in Slack; nothing is logged, nothing is auditable.
@@ -50,6 +71,10 @@ the won deals; the win-rate-by-band analysis needs the lost deals next to the wi
 is what separates discounts that buy wins from margin giveaways. The diagnostic is free,
 so Excel confirming it costs 30 minutes. Full track in [[objection-inventory]] #1.
 
+**Qualify on the call, not after:** how many opportunities closed last year, and is
+Salesforce the system of record. Those two answers decide whether this is a Tier A
+diagnostic conversation or a Tier B live-workflow one.
+
 ---
 
 ## Persona 2: The First Pricing Hire (primary; co-equal with 1)
@@ -58,10 +83,11 @@ so Excel confirming it costs 30 minutes. Full track in [[objection-inventory]] #
 Monetization · Director, Pricing Strategy · Principal, Pricing (often literally the only
 pricing person in the building).
 
-**Firmographics:** $30-80M ARR, usage-based or hybrid, often PLG-plus-sales-led motion.
+**Firmographics:** $30-100M ARR, usage-based or hybrid, often PLG-plus-sales-led motion.
 0-2 staff, 6-18 months into the role, frequently ex-Simon-Kucher or OpenView-orbit. Note:
-at the lower end of our ARR band this title barely exists; below ~$30M, target persona 1
-instead.
+below roughly $30M ARR this title barely exists, so target persona 1 instead. The
+deal-volume gate still applies: a $60M ARR enterprise seller with 80 deals a year is not
+a fit regardless of title.
 
 **Pains:**
 - Needs a defensible quick win to justify a role the org is still skeptical of.
@@ -81,8 +107,9 @@ it; it makes your case to the CFO."
 
 **Handle with care:** this person will spot methodology issues, including the
 global-versus-segment reference question, in the first meeting. Say our limitations first:
-correlational not causal, upper bound not a refund, segment-aware references. Saying it
-first buys more trust than it costs.
+correlational not causal, upper bound not a refund, segment-aware references, and the
+minimum-outcomes threshold below which we suppress a section rather than render it.
+Saying it first buys more trust than it costs.
 
 **First objection and answer:** "ChatGPT can do this." Answer: a chatbot gives numbers
 that look right and cannot be audited; here every figure comes from a deterministic,
@@ -96,8 +123,8 @@ this. Full track in [[objection-inventory]] #3.
 **Title variants:** CFO · VP Finance · Head of Finance (fractional CFOs are a channel, not
 a target).
 
-**Firmographics:** $10-50M ARR usage-based SaaS. This persona is the destination of the
-readout, not the target of the sequence.
+**Firmographics:** $10-100M ARR usage-based or hybrid SaaS. This persona is the
+destination of the readout, not the target of the sequence.
 
 **Reached via:** fractional CFO networks · pricing consultants · VC platform teams · and
 above all, the CFO-forwardable readout a persona 1 or 2 champion sends internally. Every
@@ -126,9 +153,11 @@ a recovery promise. It is built to be audited, not believed.
 **Title variants:** Founder · CEO · Co-founder/CEO (the tell: they still personally
 approve discounts).
 
-**Firmographics:** $8-20M ARR usage-based SaaS, often API-first or dev-tools, no RevOps
-function yet, 5-25 sales heads. Below our core band but one decision-maker and no
-procurement: the fastest possible first logo.
+**Firmographics:** $10-20M ARR usage-based SaaS, often API-first or dev-tools, no RevOps
+function yet, 5-25 sales heads. Bottom of the band, so the deal-volume gate bites hardest
+here: only worth pursuing when the motion is high-velocity enough to clear 500 closed
+outcomes, which in practice means self-serve-plus-sales, not enterprise. One
+decision-maker and no procurement: the fastest possible first logo when it qualifies.
 
 **Pains:**
 - Knows discounting is leaking and has zero time to analyze it.
@@ -156,8 +185,10 @@ decision log watching it. Full track in [[objection-inventory]] #7.
 | Anti-persona | Why not |
 |---|---|
 | CRO as first contact | The diagnostic names their reps. A CRO reached cold will kill it in self-defense; they enter after the champion, with the "what we would not change" section doing the diplomacy. |
-| Sub-$8M ARR | Too few closed deals for band-level win rates to mean anything; the honest answer is "your dataset is too small for this to be reliable," so we give that answer instead of a flimsy readout. |
-| Seat-only enterprise >$100M ARR | No usage line means no leakage story of our shape, and at that scale they should evaluate Pricefx or Vendavo. Telling them so costs us nothing and builds credibility. |
+| Under ~500 closed opportunities a year | The binding gate, and it is a data gate rather than a size one. Below it, band-level win rates are noise, so the honest answer is "your dataset is too small for this to be reliable." Offer the 2-3 year lookback first; if that does not clear it, say no. Talk track in [[objection-inventory]] #9. |
+| Sub-$10M ARR | Outside the band, and almost never clears the deal-volume gate. Rare exception: a very high-velocity self-serve-plus-sales book. Verify the count before spending a touch. |
+| Seat-only enterprise over $100M ARR | No usage line means no leakage story of our shape, and at that scale they should evaluate Pricefx or Vendavo. Telling them so costs us nothing and builds credibility. |
+| Non-Salesforce for the live workflow | Not a disqualifier for the diagnostic, which is CRM-agnostic from CSV. It is a disqualifier for the in-CRM loop and therefore for a Tier B pilot today. Log the CRM; do not promise the workflow. Talk track in [[objection-inventory]] #10. |
 | Retail / e-commerce | Different pricing physics entirely (per the 2026-05-29 scope decision). Out of scope, full stop. |
 
 ## Related
