@@ -489,3 +489,11 @@ def test_json_output_config_shape_survives_the_real_sdk_strictifier():
     transformed = transform_schema(config["format"]["schema"])  # must not raise
     assert transformed["type"] == "object"
     assert set(transformed["properties"]) == {"a"}
+
+
+# --- no em dashes (code-reviewer F4) -----------------------------------------
+
+
+def test_summary_system_prompt_forbids_em_dashes_and_contains_none():
+    assert "—" not in assist._SUMMARY_SYSTEM
+    assert "em dash" in assist._SUMMARY_SYSTEM.lower()

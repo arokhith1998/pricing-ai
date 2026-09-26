@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from sklearn.metrics import brier_score_loss
 
 from pricing import model
 from pricing.generate import generate
@@ -357,3 +358,150 @@ def test_recommendation_distribution_and_support_are_pinned(sample_300):
     # Two-sided on purpose: the old capacity recommended exactly zero on 0.7%
     # of deals, so an upper bound alone would not notice a slide back to it.
     assert 0.02 <= (recs == 0.0).mean() <= 0.30
+
+
+# -- 2026-09-26 fifteen-agent eval: calibration, support, reproducibility ---
+
+
+def test_gate_fails_for_a_constant_predictor():
+    """The gate this suite actually relies on (test_probabilities_beat_a_constant)
+    must be able to fail, which the previous mean-only calibration check could
+    not (mle-reviewer F2: a model predicting the training win rate for every
+    deal scores Brier 0.238 and passes |mean_pred - base_rate| < 0.05 and
+    brier < 0.26 perfectly). This proves brier_skill is the gate that bites,
+    using the exact formula pricing.model.train computes, with no dependency
+    on training an actual model: a constant predictor's Brier against itself
+    is identical, so skill is exactly 0.0, and 0.0 > 0.0 is False."""
+    rng = np.random.default_rng(3)
+    y = rng.integers(0, 2, size=500)
+    base_rate = float(y.mean())
+    p_constant = np.full(len(y), base_rate)
+    brier = brier_score_loss(y, p_constant)
+    brier_constant = brier_score_loss(y, np.full(len(y), base_rate))
+    skill = 1.0 - brier / brier_constant if brier_constant else 0.0
+    assert skill == pytest.approx(0.0, abs=1e-9)
+    assert not (skill > 0.0), "a constant predictor must fail the skill gate"
+
+
+def test_metrics_are_stamped_for_reproducibility(trained_on_deals_csv):
+    """A claimed number must be traceable to what produced it: the seed, the
+    trained booster's own params (including the monotone constraint), the
+    feature list, and a fingerprint of the training frame (mle-reviewer F6)."""
+    _df, tm = trained_on_deals_csv
+    m = tm.metrics
+    assert m["seed"] == 7
+    assert m["params"]["random_state"] == 7
+    assert m["params"]["n_jobs"] == 1, "nondeterministic n_jobs=-1 must not ship"
+    assert m["features"] == tm.features
+    assert isinstance(m["data_hash"], str) and len(m["data_hash"]) == 16
+
+
+def test_data_hash_changes_when_the_training_frame_changes(trained_on_deals_csv):
+    df, tm = trained_on_deals_csv
+    other = model.train(df.iloc[:-1])  # drop one row
+    assert other.metrics["data_hash"] != tm.metrics["data_hash"]
+
+
+def test_calibration_by_band_and_segment_present_and_bounded(trained_on_deals_csv):
+    """Calibration must be checkable below the single global mean, since a
+    global mean can hide opposite-direction bias in the bands or segments
+    underneath it (mle-reviewer F2)."""
+    _df, tm = trained_on_deals_csv
+    by_band = tm.metrics["calibration_by_band"]
+    by_segment = tm.metrics["calibration_by_segment"]
+    assert by_band, "no predicted-band calibration recorded"
+    assert by_segment, "no per-segment calibration recorded"
+    total_band_n = sum(r["n"] for r in by_band)
+    total_seg_n = sum(r["n"] for r in by_segment)
+    assert total_band_n == tm.metrics["n_test"]
+    assert total_seg_n == tm.metrics["n_test"]
+    for row in by_band + by_segment:
+        assert 0.0 <= row["mean_pred"] <= 1.0
+        assert 0.0 <= row["actual_win_rate"] <= 1.0
+        assert row["n"] > 0
+
+
+def test_recommend_discount_clips_to_cohort_support(trained_on_deals_csv):
+    """With cohort_discounts supplied and a well-supported cohort, the sweep
+    must stay within roughly that cohort's 5th-95th observed percentile
+    instead of the unconditional 0-40% grid (mle-reviewer F3)."""
+    df, tm = trained_on_deals_csv
+    seg = df["segment"].value_counts().idxmax()  # the best-supported segment
+    cohort = df[df["segment"] == seg]
+    assert len(cohort) >= 50
+    cohort_discounts = cohort["discount_pct"].to_numpy()
+    idx = cohort.index[0]
+    rec = model.recommend_discount(
+        tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
+        cohort_discounts=cohort_discounts,
+    )
+    assert rec["method"] == "modeled_ev_curve"
+    lo = np.percentile(cohort_discounts, 5)
+    hi = np.percentile(cohort_discounts, 95)
+    curve = rec["curve"]
+    assert curve["discount"].min() >= lo - 1e-6
+    assert curve["discount"].max() <= hi + 1e-6
+
+
+def test_recommend_discount_falls_back_to_band_guardrail_below_support(trained_on_deals_csv):
+    """Fewer than 50 comparable deals must never run the sweep at all: the
+    monotone constraint pulls an unsupported optimum toward the empty region
+    below the cohort's real discounts (mle-reviewer F3)."""
+    df, tm = trained_on_deals_csv
+    idx = df.index[0]
+    tiny_cohort = df["discount_pct"].to_numpy()[:10]  # under the 50-deal floor
+    rec = model.recommend_discount(
+        tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
+        cohort_discounts=tiny_cohort,
+    )
+    assert rec["method"] == "band_guardrail"
+    assert rec["cohort_deals"] == 10
+    # Never recommends adding discount above the current ask.
+    assert rec["recommended_discount"] <= rec["current_discount"] + 1e-9
+    assert set(rec["curve"]["discount"]) <= {rec["current_discount"],
+                                             rec["recommended_discount"]}
+
+
+def test_recommend_discount_without_cohort_is_unchanged(trained_on_deals_csv):
+    """Callers that omit cohort_discounts keep the prior unclipped 0-40% sweep
+    (backward compatibility for existing call sites)."""
+    df, tm = trained_on_deals_csv
+    idx = df.index[0]
+    rec = model.recommend_discount(tm, tm.X_all.loc[[idx]],
+                                   float(df.loc[idx, "list_acv"]))
+    assert rec["method"] == "modeled_ev_curve"
+    assert rec["cohort_deals"] is None
+    assert rec["curve"]["discount"].min() == pytest.approx(0.0)
+    assert rec["curve"]["discount"].max() == pytest.approx(0.40)
+
+
+# -- /recommend router: caveat, method label, both explanations -------------
+
+
+def test_recommend_endpoint_carries_caveat_method_and_both_explanations(monkeypatch):
+    """mle-reviewer F4/code-reviewer F3, at the API boundary: the strongest
+    dollar claim in the product must ship a caveat, a method label a demo
+    deal actually earned, and an explanation for the row the headline
+    recommends, not only the row the deal currently sits at."""
+    from fastapi.testclient import TestClient
+
+    from api import main as api_main
+
+    monkeypatch.delenv("PRICEKEEL_API_KEY", raising=False)
+    monkeypatch.setenv("PRICEKEEL_ENV", "dev")
+    api_main._rate_state_reset()
+    client = TestClient(api_main.app)
+    deals = client.get("/deals").json()["deals"]
+    assert deals, "no demo deals to recommend on"
+    opp_id = deals[0]["opportunity_id"]
+
+    r = client.post("/recommend", json={"opportunity_id": opp_id})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["method"] in ("modeled_ev_curve", "band_guardrail")
+    assert body["caveat"] and "correlational" in body["caveat"].lower()
+    assert "top_factors" in body and "top_factors_at_recommended" in body
+    assert isinstance(body["top_factors"], list)
+    assert isinstance(body["top_factors_at_recommended"], list)
+    assert "cohort_deals" in body["confidence"]
+    api_main._rate_state_reset()

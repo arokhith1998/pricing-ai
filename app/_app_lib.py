@@ -159,22 +159,36 @@ CALIBRATION_TOLERANCE = 0.05
 
 
 def calibration_verdict(mean_pred: float, base_rate: float,
+                        brier_skill: float | None = None,
                         tol: float = CALIBRATION_TOLERANCE) -> tuple[str, bool]:
     """Plain-language calibration message plus whether it earned a verdict.
 
     Returns (message, well_calibrated). The "well calibrated / dependable"
-    claim only appears when |mean_pred - base_rate| <= tol; otherwise the
-    message states the numbers with no verdict, so the page never asserts
-    confidence the model doesn't have.
+    claim requires BOTH |mean_pred - base_rate| <= tol AND, when
+    `brier_skill` is supplied, brier_skill > 0 (mle-reviewer F2): a mean-only
+    bias check passes a model whose per-deal probabilities lose to simply
+    quoting the training book's win rate, which is exactly what brier_skill
+    catches and a bias check cannot. `brier_skill` is optional, not required,
+    so callers that only have the legacy bias check keep their prior
+    behavior; the win-model page always passes the real skill.
     """
     predicted, actual = pct(mean_pred), pct(base_rate)
-    well_calibrated = abs(mean_pred - base_rate) <= tol
-    if well_calibrated:
+    bias_ok = abs(mean_pred - base_rate) <= tol
+    skill_ok = brier_skill is None or brier_skill > 0.0
+    if bias_ok and skill_ok:
         return (
             "The model is well calibrated: the win rates it predicts line up "
             f"with what actually happened ({predicted} predicted versus "
             f"{actual} actual). That makes the guidance below dependable."
         ), True
+    if bias_ok and not skill_ok:
+        return (
+            f"Predicted win rate ({predicted}) and actual win rate ({actual}) "
+            "line up on average, but this model's per-deal probabilities do "
+            f"not beat simply quoting the book's own win rate (skill "
+            f"{brier_skill:+.3f}). Treat the guidance below as directional, "
+            "not dependable, until it is retrained."
+        ), False
     return (
         f"Predicted win rate ({predicted}) and actual win rate ({actual}) are "
         f"more than {pct(tol)} apart. Treat the guidance below as directional "

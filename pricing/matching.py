@@ -66,6 +66,15 @@ class Plan:
     included_usage: str = ""  # "100K events", "1 TB", "unlimited"
     features: list[str] = field(default_factory=list)
     notes: str = ""           # caveats, gotchas, "contact sales" markers
+    # True when `price_monthly` could NOT be verified as appearing (in some
+    # formatted rendering) in the page text it was extracted from (ai-engineer
+    # F3): the LLM extracts, it does not compute, but nothing previously
+    # checked that its number was actually printed on the page rather than
+    # hallucinated or steered by injected page content. A low-confidence price
+    # still displays, but is excluded from price_delta_pct (see
+    # `_pricing_position` call site in `match_plans`), since an unverified
+    # number must not drive a market-position claim.
+    price_low_confidence: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -459,11 +468,34 @@ _EXTRACT_JSON_SCHEMA = {
 }
 
 
+def _price_verified_in_text(price: Optional[float], page_text: str) -> bool:
+    """True if some plausible formatted rendering of `price` appears verbatim
+    in `page_text` (ai-engineer F3).
+
+    Extraction is not computation, but nothing previously checked that the
+    LLM's `price_monthly` was the number actually printed on the page rather
+    than a hallucination, or a number an attacker's injected page content
+    steered the model toward. `price is None` verifies trivially true: a
+    plan the model correctly declined to price carries no false confidence.
+    """
+    if price is None:
+        return True
+    candidates = {f"{price:.2f}", f"{price:,.2f}"}
+    if float(price).is_integer():
+        i = int(price)
+        candidates.update({str(i), f"{i:,}"})
+    return any(c in page_text for c in candidates)
+
+
 def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
     """LLM-extract structured plans from a pricing page text. Best effort.
 
     Returns (vendor_name, plans). vendor_name may be empty if extraction
-    failed or the page has no clear vendor signal.
+    failed or the page has no clear vendor signal. Each plan's
+    `price_monthly` is checked against the source page text
+    (`_price_verified_in_text`); an unverified price is kept (still the
+    model's best guess) but flagged `price_low_confidence=True`, which
+    `match_plans` then excludes from `price_delta_pct`.
     """
     if not page_text or len(page_text) < 100:
         return fallback_vendor, []
@@ -496,10 +528,17 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         name = (p.get("name") or "").strip()
         if not name:
             continue
+        price_monthly = _safe_float(p.get("price_monthly"))
+        verified = _price_verified_in_text(price_monthly, page_text)
+        if price_monthly is not None and not verified:
+            logger.warning(
+                "matching: extracted price_monthly for %r did not appear in "
+                "the source page text; flagged low_confidence", name,
+            )
         plans.append(Plan(
             vendor=vendor,
             name=name,
-            price_monthly=_safe_float(p.get("price_monthly")),
+            price_monthly=price_monthly,
             price_unit=(p.get("price_unit") or "").strip(),
             billed_annually=bool(p.get("billed_annually") or False),
             included_usage=(p.get("included_usage") or "").strip(),
@@ -509,6 +548,7 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
                 if isinstance(f, (str, int, float)) and str(f).strip()
             ][:12],
             notes=(p.get("notes") or "").strip(),
+            price_low_confidence=not verified,
         ))
     return vendor, plans
 
@@ -662,7 +702,12 @@ def match_plans(my_plans: list[Plan],
                 only_mine = list(mp.features)
                 only_theirs = list(cp.features)
 
-            position, price_delta = _pricing_position(mp.price_monthly, cp.price_monthly)
+            # An unverified price (ai-engineer F3) never drives a
+            # market-position claim: it still displays on the Plan itself,
+            # but is excluded here exactly as a missing price would be.
+            my_price = None if mp.price_low_confidence else mp.price_monthly
+            their_price = None if cp.price_low_confidence else cp.price_monthly
+            position, price_delta = _pricing_position(my_price, their_price)
 
             # Confidence rolls blended similarity + how much of *mine* the
             # competitor actually covers. A 0.6 blended with 80% feature
