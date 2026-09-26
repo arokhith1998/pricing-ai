@@ -21,9 +21,17 @@ export type Leakage = {
   reference_threshold: number;
   gross_discount_won: number;
   off_policy_leakage_won: number;
+  // Single-global-reference lens. Overstates: it measures every segment
+  // against one reference threshold, even segments whose own win point sits
+  // above it. Kept as a labeled secondary figure, never the headline.
   excess_vs_reference_won: number;
   excess_pct_of_booked: number;
   deals_above_reference: number;
+  // Segment-aware lens: each deal measured against its own segment's
+  // reference where the segment earned one. This is the headline figure.
+  excess_vs_segment_reference_won?: number;
+  excess_segment_pct_of_booked?: number;
+  deals_above_segment_reference?: number;
 };
 
 export type WinRateBand = {

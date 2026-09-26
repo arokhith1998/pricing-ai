@@ -18,11 +18,13 @@ function MetricCard({
   label,
   value,
   sub,
+  secondary,
   accent,
 }: {
   label: string;
   value: React.ReactNode;
   sub?: string;
+  secondary?: string;
   accent?: "navy" | "coral";
 }) {
   return (
@@ -38,6 +40,7 @@ function MetricCard({
         {value}
       </div>
       {sub ? <div className="mt-1 text-sm text-slate">{sub}</div> : null}
+      {secondary ? <div className="mt-0.5 text-xs text-muted">{secondary}</div> : null}
     </div>
   );
 }
@@ -143,10 +146,11 @@ function LeadGate({
             Unlock the full diagnostic
           </h2>
           <p className="mt-1 text-sm text-slate">
-            That is {money(leak.excess_vs_reference_won)} of revenue discounted
-            past the reference win point: a gap-to-reference estimate a pilot
-            tests for actual recovery. The full read-out shows where it is
-            and what to do:
+            That is{" "}
+            {money(leak.excess_vs_segment_reference_won ?? leak.excess_vs_reference_won)}{" "}
+            of revenue discounted past each segment&rsquo;s own reference win
+            point: a gap-to-reference estimate a pilot tests for actual
+            recovery. The full read-out shows where it is and what to do:
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-ink">
             <li>• A written executive summary</li>
@@ -288,9 +292,17 @@ export default async function SamplePage({
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
         <MetricCard
-          label="Gap to reference win point"
-          value={<CountUp to={l.excess_vs_reference_won} format="money" />}
-          sub={`Pilot tests actual recovery · ${pct(l.excess_pct_of_booked)} of booked`}
+          label="Gap to segment reference win point"
+          value={
+            <CountUp
+              to={l.excess_vs_segment_reference_won ?? l.excess_vs_reference_won}
+              format="money"
+            />
+          }
+          sub={`Pilot tests actual recovery · ${pct(
+            l.excess_segment_pct_of_booked ?? l.excess_pct_of_booked,
+          )} of booked`}
+          secondary={`Global reference: ${money(l.excess_vs_reference_won)} (overstates by design)`}
           accent="coral"
         />
         <MetricCard

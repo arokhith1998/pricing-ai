@@ -139,9 +139,9 @@ export default function DiagnosticPreview() {
               sub="avg discount 13.8%"
             />
             <Kpi
-              label="Gap to reference win point"
-              value="$11.2M"
-              sub="Pilot tests actual recovery · 16.7% of booked"
+              label="Gap to segment reference win point"
+              value="$8.9M"
+              sub="Pilot tests actual recovery · 13.3% of booked"
               accent
             />
             <Kpi label="Win rate" value="60.8%" sub="2,000 opportunities" />
