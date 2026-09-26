@@ -194,14 +194,21 @@ def print_report(res: dict) -> None:
     if trend is not None and not trend.empty:
         print("\n-- Trend by quarter " + "-" * 44)
         t = trend.copy()
+        insufficient = bool((t["excess_basis"] == "insufficient data").any())
         t["win_rate"] = t["win_rate"].map(_pct)
         t["price_realization"] = t["price_realization"].map(_pct)
         t["excess_pct_of_booked"] = t["excess_pct_of_booked"].map(_pct)
-        for c in ("booked_acv", "excess_won"):
+        for c in ("booked_acv", "excess_won", "excess_won_global"):
             t[c] = t[c].map(_money)
-        print(t.to_string(index=False))
-        print("   (trend excess uses the single global reference so quarters "
-              "stay comparable)")
+        print(t.drop(columns=["excess_basis"]).to_string(index=False))
+        if insufficient:
+            print("   (book-wide reference is insufficient data, so excess is "
+                  "0 in every quarter rather than a manufactured figure)")
+        else:
+            print("   (excess_won uses each deal's own reference — segment, "
+                  "BU, or product line where earned, else global — so it "
+                  "reconciles with the headline; excess_won_global is the "
+                  "single-book-wide-reference secondary lens)")
 
     # Per-value-metric reference cut: a seat discount and a consumption
     # discount are not the same lever (Campbell), so each value_metric's own

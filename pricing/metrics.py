@@ -597,36 +597,69 @@ def defended_vs_investigate(df: pd.DataFrame,
     The leakage lenses tell only the second half of that story. This function
     surfaces both sides so sales sees the work the discounting actually earned.
 
-    Split rule (deliberately conservative):
-      - DEFENDED  : won deals where discount_pct <= reference_threshold
+    Split rule (deliberately conservative), evaluated per deal against
+    `_per_deal_reference` (2026-09-26 fix — this used to use the single global
+    reference while leakage() and top_leak_deals used the per-deal one, so a
+    CFO reconciling this section against the headline found they disagreed;
+    `investigate_deals` now equals `deals_above_segment_reference` exactly):
+      - DEFENDED  : won deals where discount_pct <= the deal's own reference
                     (sat in or below the band where win rate had room to
                     move; the discount plausibly bought the win)
-      - INVESTIGATE: won deals where discount_pct > reference_threshold
+      - INVESTIGATE: won deals where discount_pct > the deal's own reference
                     (gave more discount than the win curve required — these
                     are the deals worth a retrospective review)
+
+    The single global reference is kept as a labeled secondary lens
+    (defended_value_global / investigate_value_global), the same transparency
+    discipline as leakage()'s excess_vs_reference_won. `reference_basis`
+    discloses whether the split used a per-deal (segment-aware) reference or
+    fell back to a single global one (no segment column, or insufficient data).
 
     Returns booked-value totals + deal counts for each bucket. Pure function,
     no LLM, no assumed "recovery rate" — just the split.
     """
+    empty = {
+        "reference_threshold": 0.0, "reference_basis": "insufficient data",
+        "defended_value": 0.0, "defended_deals": 0,
+        "investigate_value": 0.0, "investigate_deals": 0,
+        "defended_pct_of_booked": 0.0,
+        "defended_value_global": 0.0, "investigate_value_global": 0.0,
+    }
     won = _won(df)
     if won.empty:
-        return {"reference_threshold": 0.0,
-                "defended_value": 0.0, "defended_deals": 0,
-                "investigate_value": 0.0, "investigate_deals": 0,
-                "defended_pct_of_booked": 0.0}
+        return empty
     ref = reference_discount(df)
     rt = float(ref["reference_threshold"])
-    defended_mask = won["discount_pct"] <= rt
+
+    if not ref.get("sufficient", True):
+        out = dict(empty)
+        out["reference_threshold"] = rt
+        return out
+
+    seg_refs = segment_reference_table(df)
+    thr = _per_deal_reference(won, df, rt, seg_refs)
+    defended_mask = won["discount_pct"] <= thr
     defended_value = float(won.loc[defended_mask, "booked_acv"].sum())
     investigate_value = float(won.loc[~defended_mask, "booked_acv"].sum())
     booked_total = defended_value + investigate_value
+
+    # Secondary: single global reference, same transparency discipline as
+    # leakage()'s excess_vs_reference_won.
+    global_defended_mask = won["discount_pct"] <= rt
+    defended_value_global = float(won.loc[global_defended_mask, "booked_acv"].sum())
+    investigate_value_global = float(won.loc[~global_defended_mask, "booked_acv"].sum())
+
+    basis = "segment-aware (per deal)" if seg_refs else ref.get("basis", _BASIS_OWN)
     return {
         "reference_threshold": rt,
+        "reference_basis": basis,
         "defended_value": defended_value,
         "defended_deals": int(defended_mask.sum()),
         "investigate_value": investigate_value,
         "investigate_deals": int((~defended_mask).sum()),
         "defended_pct_of_booked": (defended_value / booked_total) if booked_total else 0.0,
+        "defended_value_global": defended_value_global,
+        "investigate_value_global": investigate_value_global,
     }
 
 
@@ -714,16 +747,30 @@ def top_leak_deals(df: pd.DataFrame, n: int = 15,
 def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10) -> pd.DataFrame:
     """Realization, win rate, and excess-vs-reference leakage by close quarter.
 
-    The first question a CFO asks: is leakage getting better or worse? Excess is
-    measured against the single global reference discount (a property of the
-    whole book) so quarters are comparable. Sparse quarters (< min_deals) are
-    dropped rather than shown as noise.
+    The first question a CFO asks: is leakage getting better or worse? Since
+    2026-09-26, excess is measured against each deal's own per-deal reference
+    (`_per_deal_reference`: segment, else the deal's BU or product line where
+    one earned its own reference, else global) — the same reference leakage()
+    and top_leak_deals use, so this section reconciles with the headline
+    instead of quoting a third basis. The single global reference is kept as
+    `excess_won_global` (a property of the whole book, comparable quarter to
+    quarter on its own terms) so the methodology change is transparent, not
+    silent. Sparse quarters (< min_deals) are dropped rather than shown as
+    noise. When the book overall is too sparse for ANY reference
+    (`reference_discount` returns `sufficient=False`), every quarter's excess
+    is reported as 0 with `excess_basis` disclosing why rather than charging
+    the full discount as excess off a collapsed 0% threshold.
     """
     cols = ["quarter", "deals", "won", "win_rate", "booked_acv",
-            "price_realization", "excess_won", "excess_pct_of_booked"]
+            "price_realization", "excess_won", "excess_pct_of_booked",
+            "excess_won_global", "excess_basis"]
     if "quarter" not in df.columns:
         return pd.DataFrame(columns=cols)
-    rt = reference_discount(df)["reference_threshold"]
+    ref = reference_discount(df)
+    rt = ref["reference_threshold"]
+    sufficient = ref.get("sufficient", True)
+    excess_basis = ref.get("basis", _BASIS_OWN)
+    seg_refs = segment_reference_table(df)
     q = df["quarter"].astype(str).str.strip()
     work = df[q.ne("") & ~q.str.lower().isin(("nan", "none", "nat"))]
     out = []
@@ -734,8 +781,14 @@ def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10) -> pd.DataFrame:
         won = _won(g)
         booked = float(won["booked_acv"].sum())
         list_won = float(won["list_acv"].sum())
-        excess = float(((won["discount_pct"] - rt).clip(lower=0.0)
-                        * won["list_acv"]).sum())
+        if not sufficient:
+            excess, excess_global = 0.0, 0.0
+        else:
+            thr = _per_deal_reference(won, df, rt, seg_refs)
+            excess = float(((won["discount_pct"] - thr).clip(lower=0.0)
+                            * won["list_acv"]).sum())
+            excess_global = float(((won["discount_pct"] - rt).clip(lower=0.0)
+                                  * won["list_acv"]).sum())
         out.append({
             "quarter": str(quarter),
             "deals": int(len(g)),
@@ -745,6 +798,8 @@ def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10) -> pd.DataFrame:
             "price_realization": (booked / list_won) if list_won else 0.0,
             "excess_won": excess,
             "excess_pct_of_booked": (excess / booked) if booked else 0.0,
+            "excess_won_global": excess_global,
+            "excess_basis": excess_basis,
         })
     return pd.DataFrame(out, columns=cols)
 
