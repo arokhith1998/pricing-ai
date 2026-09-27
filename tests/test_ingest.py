@@ -207,6 +207,30 @@ def test_mixed_currency_missing_rate_still_blocks(tmp_path):
         ingest_verbose(p, fx_rates={"GBP": 1.27})  # no EUR rate supplied
 
 
+def test_mixed_currency_blocks_from_explicit_iso_column_with_no_symbols(tmp_path):
+    """A Salesforce CurrencyIsoCode export prints plain numbers with an
+    explicit ISO currency column, never a $/€ symbol. The symbol scan alone
+    would see zero currencies and let the mix through; the explicit column
+    must be folded into the same mixed-currency guard (2026-09-26 fix)."""
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv,currency"]
+    for i in range(20):
+        rows.append(f"OPP-U{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,100000,90000,USD")
+    for i in range(15):
+        rows.append(f"OPP-E{i:03d},Acct {100 + i},closed_won,2025-01-01,"
+                    f"2025-02-15,SMB,Pro,hybrid,100000,90000,EUR")
+    p = tmp_path / "iso-only.csv"
+    p.write_text("\n".join(rows), encoding="utf-8")
+
+    with pytest.raises(CurrencyBlockedError) as exc_info:
+        ingest_verbose(p)
+    err = exc_info.value
+    assert "USD" in str(err) and "EUR" in str(err)
+    assert err.report.blockers
+    assert "USD" in err.report.blockers[0] and "EUR" in err.report.blockers[0]
+
+
 def test_single_currency_file_defaults_to_usd(tmp_path):
     rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
             "segment,product_tier,value_metric,list_acv,booked_acv"]

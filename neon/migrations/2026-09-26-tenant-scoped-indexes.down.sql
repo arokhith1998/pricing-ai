@@ -11,7 +11,7 @@
 
 begin;
 
-drop index if exists leads_lower_email_key;
+drop index if exists leads_lower_email_idx;
 drop index if exists access_codes_lead_id_idx;
 drop index if exists decision_log_tenant_kind_created_idx;
 

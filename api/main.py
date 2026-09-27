@@ -56,6 +56,7 @@ from fastapi.responses import JSONResponse
 
 from pricing import assist
 from pricing import crm as crm_mod  # noqa: F401  (re-exported for tests/test_crm.py)
+from pricing import ingest as ingest_mod
 from pricing import matching as matching_mod  # noqa: F401  (re-exported for tests/test_api_perimeter.py)
 
 from api.routers import (
@@ -312,11 +313,45 @@ app.add_middleware(
 @app.exception_handler(assist.LLMUnavailableError)
 async def _llm_unavailable_handler(request: Request,
                                    exc: assist.LLMUnavailableError):
-    """A stalled/unreachable LLM provider is a 503, not a hung worker."""
+    """A stalled/unreachable LLM provider is a 503, not a hung worker.
+
+    The provider's raw error text (which can carry account/billing detail or
+    an internal error id) is logged server-side, not forwarded on the wire
+    (silent-failure-hunter finding 6, 2026-09-26).
+    """
+    logger.warning("LLM provider unavailable: %s", exc)
     return JSONResponse(
         status_code=503,
-        content={"detail": f"LLM provider unavailable: {exc}"},
+        content={"detail": "LLM provider unavailable. Try again shortly."},
     )
+
+
+@app.exception_handler(ingest_mod.CurrencyBlockedError)
+async def _currency_blocked_handler(request: Request,
+                                    exc: ingest_mod.CurrencyBlockedError):
+    """A mixed-currency book is a defensible 422 with the blocker text and per-
+    currency row counts CurrencyBlockedError was built to carry, not a bare
+    500 (silent-failure-hunter finding 2, 2026-09-26): api/routers/diagnostic
+    only catches file-parse errors, so this used to reach no handler at all.
+    """
+    logger.warning("Diagnostic blocked: %s", exc)
+    report = getattr(exc, "report", None)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": str(exc),
+            "blockers": list(report.blockers) if report is not None else [str(exc)],
+        },
+    )
+
+
+@app.exception_handler(ingest_mod.SchemaError)
+async def _schema_error_handler(request: Request, exc: ingest_mod.SchemaError):
+    """Any other schema failure (missing required columns, etc): 422 with the
+    exception's own message, which is already user-safe (no stack trace, no
+    internal path)."""
+    logger.warning("Diagnostic rejected: %s", exc)
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 async def _read_capped(file: UploadFile) -> bytes:

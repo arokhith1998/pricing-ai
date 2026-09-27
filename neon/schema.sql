@@ -23,10 +23,14 @@ create table if not exists leads (
   created_at    timestamptz not null default now()
 );
 
--- One person, one lead row, regardless of case (a resubmitted form on a retry
--- or double-click must collide here, not silently create a second row).
--- Added by 2026-09-26-tenant-scoped-indexes.sql.
-create unique index if not exists leads_lower_email_key
+-- Case-insensitive lookup support on email. PLAIN index, not a uniqueness
+-- constraint: email was never unique on this table, and lead capture
+-- (web/src/lib/store.ts's saveLead) has no ON CONFLICT clause, so a UNIQUE
+-- index would fail on any existing duplicate email and would then 500 every
+-- returning visitor who resubmits the lead-gate form. See
+-- neon/migrations/2026-09-26-tenant-scoped-indexes.sql for the full
+-- reasoning. Added by that migration.
+create index if not exists leads_lower_email_idx
   on leads (lower(email));
 
 create table if not exists access_codes (

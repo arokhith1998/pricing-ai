@@ -68,3 +68,29 @@ def test_up_migrations_are_wrapped_in_a_transaction():
         text = p.read_text(encoding="utf-8").lower()
         assert "begin;" in text, f"{p.name} missing 'begin;'"
         assert "commit;" in text, f"{p.name} missing 'commit;'"
+
+
+# --- leads_lower_email_idx must never be a uniqueness constraint ------------
+# (code-review fix, 2026-09-26: `leads.email` was never unique, and lead
+# capture has no ON CONFLICT handling, so a UNIQUE index here can both fail
+# this migration outright against a prod database with an existing duplicate
+# email, and afterwards 500 every returning visitor who resubmits the
+# lead-gate form. A plain index gives the same lookup speed-up without that
+# failure mode.)
+
+def _tenant_scoped_index_migration() -> Path:
+    matches = [p for p in _up_files() if "tenant-scoped-indexes" in p.name]
+    assert matches, "expected a tenant-scoped-indexes migration to exist"
+    return matches[0]
+
+
+def test_leads_email_index_is_not_unique_in_the_migration():
+    text = _tenant_scoped_index_migration().read_text(encoding="utf-8").lower()
+    assert "leads_lower_email_idx" in text
+    assert "create unique index" not in text
+
+
+def test_leads_email_index_is_not_unique_in_schema_sql():
+    schema = (Path(__file__).resolve().parent / "schema.sql").read_text(encoding="utf-8").lower()
+    assert "leads_lower_email_idx" in schema
+    assert "create unique index" not in schema

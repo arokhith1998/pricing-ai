@@ -105,7 +105,7 @@ def _band_stats(df: pd.DataFrame) -> dict[str, dict]:
 def _reference_for_segment(df: pd.DataFrame, segment: str, *,
                            global_ref: dict | None = None,
                            segment_table: list[dict] | None = None,
-                           ) -> tuple[float, str, str]:
+                           ) -> tuple[float, str | None, str]:
     """Reference discount for one open deal's segment.
 
     `global_ref` / `segment_table` let a caller with several open deals in
@@ -115,21 +115,30 @@ def _reference_for_segment(df: pd.DataFrame, segment: str, *,
     an unchanged `df` (perf finding: a dozen-open-deal book otherwise repeats
     both a dozen times). Recomputes when not supplied, so this stays a
     correct standalone call.
+
+    2026-09-26 blocker fix: when the segment did not earn its own reference
+    AND the global reference is itself insufficient, there is nothing
+    defensible to fall back to. Returns `(nan, None, "insufficient data")`
+    rather than the global's manufactured 0.0 threshold; the caller
+    (guidance_for_open_deal) must refuse rather than recommend against it.
     """
     global_ref = global_ref if global_ref is not None else metrics.reference_discount(df)
-    table = segment_table if segment_table is not None else metrics.segment_reference_table(df)
+    table = segment_table if segment_table is not None else metrics.segment_reference_table(
+        df, global_ref=global_ref)
     for row in table:
         if str(row["segment"]).strip() == segment.strip():
             return (
                 float(row["reference_threshold"]),
-                str(row["reference_band"]),
+                row["reference_band"],
                 str(row["basis"]),
             )
-    return (
-        float(global_ref["reference_threshold"]),
-        str(global_ref["reference_band"]),
-        "global fallback (segment not found)",
-    )
+    if global_ref.get("sufficient", True):
+        return (
+            float(global_ref["reference_threshold"]),
+            global_ref["reference_band"],
+            "global fallback (segment not found)",
+        )
+    return (float("nan"), None, "insufficient data")
 
 
 def _comparables(df: pd.DataFrame, deal: dict, limit: int = 5) -> list[dict]:
@@ -167,6 +176,12 @@ def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
 
     `global_ref` / `segment_table`: see _reference_for_segment. Optional;
     recomputed from `df` when not supplied, so a direct call stays correct.
+
+    2026-09-26 blocker fix: when neither the deal's segment nor the pooled
+    global book can support a defensible reference discount, this raises
+    CRMDataError (api/routers/crm.py maps it to 422) instead of returning
+    `reference_discount=0.0`, which used to read as "recommend 0% / claw back
+    the whole discount" for a live Salesforce override on a thin pilot book.
     """
     if not _usable(deal):
         raise CRMDataError("Open deal is missing a positive list value or quoted value.")
@@ -174,9 +189,20 @@ def guidance_for_open_deal(df: pd.DataFrame, deal: dict,
     booked_value = float(deal["booked_acv"])
     current = max(-0.5, min(1.0, 1.0 - booked_value / list_value))
     segment = str(deal.get("segment") or "Unknown")
+    global_ref = global_ref if global_ref is not None else metrics.reference_discount(df)
     reference, reference_band, basis = _reference_for_segment(
         df, segment, global_ref=global_ref, segment_table=segment_table,
     )
+    if not math.isfinite(reference):
+        band_counts = global_ref.get("band_counts", {})
+        raise CRMDataError(
+            "Insufficient closed-deal data for a defensible reference "
+            f"discount (segment '{segment}'): no {metrics.SEGMENT_REF_MIN_BANDS} "
+            "real discount bands each clear 15 closed deals. Band counts: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(band_counts.items()))
+            + ". Collect more closed Salesforce opportunities before quoting "
+              "a guardrail on this deal."
+        )
     recommended = min(current, reference)
     current_band = band_for(current)
     recommended_band = band_for(recommended)
