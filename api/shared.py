@@ -25,6 +25,7 @@ import dataclasses
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from pricing import model
@@ -109,3 +110,32 @@ def engine() -> tuple[pd.DataFrame, "model.TrainedModel"]:
         df = ingest(str(DEMO_CSV))
         _ENGINE.update(mtime=mtime, df=df, tm=model.train(df))
     return _ENGINE["df"], _ENGINE["tm"]
+
+
+def in_sample(tm: "model.TrainedModel", df: pd.DataFrame, idx) -> bool:
+    """True when deal `idx` was in the training partition, not the holdout
+    the model's own metrics were scored on (mle-reviewer, 2026-09-27: the
+    demo scores rows it trained on for most of the top /deals). A win
+    probability shown for an in-sample row is optimistic relative to one
+    genuinely held out; disclosed rather than hidden, and cheaper than a
+    second, nested out-of-fold model that would also have to re-derive a
+    prediction for every hypothetical discount /recommend sweeps, not only
+    the deal's own recorded one.
+
+    `tm.holdout` is a plain boolean array positional in the same row order as
+    the `df` it was trained on, so this looks up `idx`'s position, not its
+    label, and only ever runs against the one `df` returned alongside `tm` by
+    `engine()`.
+    """
+    if tm.holdout is None:
+        return True
+    pos = df.index.get_loc(idx)
+    return not bool(tm.holdout[pos])
+
+
+def in_sample_mask(tm: "model.TrainedModel", df: pd.DataFrame, index) -> np.ndarray:
+    """Vectorized `in_sample` for a batch of deals (e.g. the /deals list)."""
+    if tm.holdout is None:
+        return np.ones(len(index), dtype=bool)
+    pos = df.index.get_indexer(index)
+    return ~tm.holdout[pos]

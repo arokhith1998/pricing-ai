@@ -267,9 +267,20 @@ export type ModelInfo = {
     deals: number;
     mean_justified_discount: number;
     mean_actual_discount: number;
+    // Total across modeled_value + floor_based_value, kept for callers
+    // written before the split below. Do not headline this alone: 61% of it
+    // on the demo book is Enterprise, where every justified discount is a
+    // support-floor edge, not a modeled curve (mle-reviewer, 2026-09-27).
     model_excess_won: number;
     deals_over_justified: number;
     model_excess_pct_of_booked: number;
+    // The only component that is actually a model output: an interior EV-
+    // curve peak with real win-probability movement. Headline this one.
+    // Optional so an older cached payload (pre-split) still renders.
+    modeled_value?: { excess: number; deals: number; pct_of_booked: number };
+    // A band-guardrail median or a support-floor edge, never a curve peak.
+    // Disclose, never headline.
+    floor_based_value?: { excess: number; deals: number; pct_of_booked: number };
   };
 };
 
@@ -335,16 +346,28 @@ export type Recommendation = {
   win_prob_at_rec: number;
   expected_acv_at_current: number;
   expected_acv_at_rec: number;
-  uplift: number;
+  // None for "support_floor" and "no_discount_on_record": the model measured
+  // no discount effect there, so a dollar "gain" would be invented rather
+  // than modeled (mle-reviewer, 2026-09-27). Optional for cached payloads
+  // from before uplift could be null.
+  uplift: number | null;
+  // Only "support_floor" carries this: list ACV times the discount points
+  // not added at the floor (current minus recommended), always >= 0 since a
+  // floor never adds discount. Render as "price retained if the floor
+  // holds", never as expected value gain. Optional for cached payloads.
+  price_retained?: number | null;
   top_factors: Factor[];
   comparables: ComparableDeal[];
   band_context: BandContext;
   confidence: Confidence;
   curve: CurvePoint[];
-  // How the recommended discount was derived: "modeled_ev_curve" (enough
-  // cohort support to sweep the EV curve), "band_guardrail" (falls back to
-  // the segment's observed band), or "support_floor" (live CRM guidance with
-  // no curve at all). Optional so older cached payloads still render.
+  // How the recommended discount was derived: "modeled_ev_curve" (an interior
+  // EV-curve peak with real win-probability movement), "band_guardrail"
+  // (too few comparable deals, caps at the cohort's observed median), or
+  // "support_floor" (the model path's own edge case: the clipped EV-curve
+  // argmax lands on the edge of the cohort's support, or the curve barely
+  // moves; never a modeled peak, and never adds discount). Optional so older
+  // cached payloads still render.
   method?: string;
   // The correlational-not-causal caveat that belongs next to the uplift
   // figure: the strongest dollar claim on the page. Optional for the same
@@ -357,6 +380,15 @@ export type Recommendation = {
   // True when the recommended discount sits at the edge of the scored grid
   // (so the "optimum" may just be where the grid stopped, not a real peak).
   at_grid_edge?: boolean;
+  // True only for "support_floor" when the deal's own discount sits entirely
+  // below the cohort's clipped grid: no curve applies at all, a distinct
+  // claim from "the floor of the range is the peak" (mle-reviewer, 2026-09-27).
+  below_support?: boolean;
+  // Disclosed: whether this deal's row was in the training partition rather
+  // than the holdout the model's own metrics were scored on. A win
+  // probability shown for an in-sample deal is optimistic relative to a
+  // genuinely held-out one (mle-reviewer, 2026-09-27).
+  in_sample?: boolean;
 };
 
 // --- Governance loop (exceptions + digest) ---------------------------------

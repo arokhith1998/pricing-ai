@@ -357,8 +357,13 @@ def test_exceptions_and_recommend_agree_on_one_deal(client):
             rec["win_prob_at_rec"], abs=1e-9), seg
         assert v["win_prob_at_requested"] == pytest.approx(
             rec["win_prob_at_current"], abs=1e-9), seg
+        # Derived from expected_acv, not rec["uplift"] (mle-reviewer,
+        # 2026-09-27): "support_floor" now ships uplift=None (it never
+        # measured a discount effect there), while expected_acv_at_current /
+        # _at_rec, and so ev_delta_vs_recommended, are unaffected and stay
+        # populated on every method that has a current discount to score.
         assert v["ev_delta_vs_recommended"] == pytest.approx(
-            -rec["uplift"], abs=1e-6), seg
+            rec["expected_acv_at_current"] - rec["expected_acv_at_rec"], abs=1e-6), seg
 
 
 def test_exception_unknown_deal_404(client):
