@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 import tempfile
 
@@ -25,7 +26,13 @@ from pricing import assist, mapping
 from pricing.diagnostic import run
 from api.shared import DEMO_CSV, diagnostic_payload
 
+logger = logging.getLogger("pricekeel.api.diagnostic")
+
 router = APIRouter()
+
+_BAD_FILE_DETAIL = (
+    "Could not read that file. Confirm it is a valid CSV or .xlsx export."
+)
 
 
 @router.get("/demo")
@@ -60,7 +67,9 @@ async def map_headers_endpoint(file: UploadFile = File(...)) -> dict:
     try:
         df_peek = _read_upload(file, content, nrows=5)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Could not read file: {exc}")
+        logger.warning("map-headers: could not parse upload %r: %s",
+                       file.filename, exc)
+        raise HTTPException(status_code=400, detail=_BAD_FILE_DETAIL)
     headers = [str(c) for c in df_peek.columns]
     result = mapping.map_headers(headers)
     sample_rows = json.loads(df_peek.head(3).to_json(orient="records"))
@@ -82,7 +91,9 @@ async def diagnostic(
     try:
         df = _read_upload(file, content)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Could not read file: {exc}")
+        logger.warning("diagnostic: could not parse upload %r: %s",
+                       file.filename, exc)
+        raise HTTPException(status_code=400, detail=_BAD_FILE_DETAIL)
 
     if mapping_json:
         try:

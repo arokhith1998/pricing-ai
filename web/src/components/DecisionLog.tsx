@@ -30,18 +30,33 @@ function FloorChip({ below }: { below: boolean }) {
   );
 }
 
+const DEFAULT_UNAVAILABLE_MESSAGE = "Decision log is unavailable. Is the API running?";
+
 export default function DecisionLog() {
   const [items, setItems] = useState<ExceptionRecord[] | null>(null);
-  const [error, setError] = useState(false);
+  // null = no error. A 4xx from the proxy means the backend rejected the
+  // request itself; a 5xx or network failure means it is actually
+  // unreachable. Different problems, different messages.
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/exceptions?limit=50")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        const body = (await r.json().catch(() => null)) as { error?: string } | null;
+        const message =
+          r.status >= 400 && r.status < 500
+            ? body?.error ?? "That request could not be read."
+            : DEFAULT_UNAVAILABLE_MESSAGE;
+        throw new Error(message);
+      })
       .then((data: { items: ExceptionRecord[] }) => {
         setItems(data.items ?? []);
-        setError(false);
+        setError(null);
       })
-      .catch(() => setError(true));
+      .catch((e: unknown) =>
+        setError(e instanceof Error && e.message ? e.message : DEFAULT_UNAVAILABLE_MESSAGE),
+      );
   }, []);
 
   useEffect(() => {
@@ -51,11 +66,7 @@ export default function DecisionLog() {
   }, [load]);
 
   if (error) {
-    return (
-      <p className="mt-3 text-sm text-coral">
-        Decision log is unavailable. Is the API running?
-      </p>
-    );
+    return <p className="mt-3 text-sm text-coral">{error}</p>;
   }
 
   if (items === null) {

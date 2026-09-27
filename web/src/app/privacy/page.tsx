@@ -136,10 +136,13 @@ export default function PrivacyPage() {
           we send <span className="font-medium text-fg">aggregate analysis
           figures, column header names, document chunks you uploaded, your
           question text, and (for Competitor Watch) the public pricing-page
-          text</span> to our cloud LLM provider (OpenAI). We do not send
-          row-level deal data. The provider operates under a written
-          data-processing addendum that prohibits the use of inputs and
-          outputs for model training.
+          text</span> to our cloud LLM provider. The product runtime
+          currently uses Anthropic; see our{" "}
+          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
+          for the current provider and DPA link. We do not send row-level
+          deal data. The provider operates under a written data-processing
+          addendum that prohibits the use of inputs and outputs for model
+          training.
         </p>
         <p>
           Every recommendation surfaced by the Pricekeel copilot is

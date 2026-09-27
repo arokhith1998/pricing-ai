@@ -26,13 +26,19 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
     reference_threshold: analysis.leakage.reference_threshold,
     defended_value: 0,
     defended_deals: 0,
-    investigate_value: analysis.leakage.excess_vs_reference_won,
-    investigate_deals: analysis.leakage.deals_above_reference,
+    investigate_value:
+      analysis.leakage.excess_vs_segment_reference_won ??
+      analysis.leakage.excess_vs_reference_won,
+    investigate_deals:
+      analysis.leakage.deals_above_segment_reference ??
+      analysis.leakage.deals_above_reference,
     defended_pct_of_booked: 0,
   };
   const lk = analysis.leakage;
   const gov = analysis.governance;
 
+  const insufficientReference =
+    dvi.reference_basis === "insufficient data" || lk.excess_basis === "insufficient data";
   const investigateDeals = dvi.investigate_deals;
   const investigateValue = dvi.investigate_value;
   const defendedDeals = dvi.defended_deals;
@@ -63,27 +69,52 @@ export default function NextActionsBlock({ analysis }: { analysis: Diagnostic })
           <div className="text-xs font-semibold uppercase tracking-wider text-coral">
             1 · Investigate
           </div>
-          <div className="mt-1 text-base font-bold text-fg">
-            {investigateDeals.toLocaleString()} deals above the reference
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            Worth {fmtMoney(investigateValue)} of booked value. Walk the
-            top of the deals-to-investigate list with the rep; ask what
-            justified the discount and document the pattern.
-          </p>
+          {insufficientReference ? (
+            <>
+              <div className="mt-1 text-base font-bold text-fg">Insufficient data</div>
+              <p className="mt-1 text-sm text-muted">
+                Too few closed deals in enough discount bands to compute a
+                reliable win point yet. Not a $0 finding: collect more closed
+                deals before this figure is trustworthy.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mt-1 text-base font-bold text-fg">
+                {investigateDeals.toLocaleString()} deals above the reference
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                Worth {fmtMoney(investigateValue)} of booked value. Walk the
+                top of the deals-to-investigate list with the rep; ask what
+                justified the discount and document the pattern.
+              </p>
+            </>
+          )}
         </div>
         <div className="rounded-xl border border-teal/40 bg-surface-2 p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-teal">
             2 · Defend the winners
           </div>
-          <div className="mt-1 text-base font-bold text-fg">
-            {defendedDeals.toLocaleString()} deals at or below {fmtPct(refThreshold)}
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            {fmtMoney(defendedValue)} of booked value where the discount
-            plausibly earned the win. Tell sales: keep doing this. Resist
-            blanket policy changes that punish disciplined discounting.
-          </p>
+          {insufficientReference ? (
+            <>
+              <div className="mt-1 text-base font-bold text-fg">Insufficient data</div>
+              <p className="mt-1 text-sm text-muted">
+                The same thin book means there is no reliable line between
+                defended and worth-investigating yet.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mt-1 text-base font-bold text-fg">
+                {defendedDeals.toLocaleString()} deals at or below {fmtPct(refThreshold)}
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                {fmtMoney(defendedValue)} of booked value where the discount
+                plausibly earned the win. Tell sales: keep doing this. Resist
+                blanket policy changes that punish disciplined discounting.
+              </p>
+            </>
+          )}
         </div>
         <div className="rounded-xl border border-mist bg-surface-2 p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-amber">

@@ -1,17 +1,24 @@
 ---
-title: 'Objection inventory: talk tracks for the eight objections we will actually hear'
+title: 'Objection inventory: talk tracks for the ten objections we will actually hear'
 created: 2026-06-11
-updated: 2026-06-11
+updated: 2026-09-26
 tags: [gtm, sales, objections, talk-tracks]
 status: active
 ---
 
 # Objection inventory
 
-The eight objections a VP RevOps, Head of Pricing, CFO, or IT reviewer will actually raise,
+The ten objections a VP RevOps, Head of Pricing, CFO, or IT reviewer will actually raise,
 with honest answers. House rules: never overclaim, never fake social proof, concede what is
 true before answering, and say our own caveats before they find them. The caveats are the
 product.
+
+**Current ICP, used in every answer below.** B2B SaaS, **$10M to $100M ARR** screening band
+(sweet spot $20M to $60M), usage-based or hybrid pricing, **Salesforce-first**, and at least
+**500 closed opportunities a year**. ARR is only the screening proxy; the closed-deal count
+is the actual gate. Sources: `vault/Competitive/2026-08-01-salesforce-market-need-assessment.md`
+(lines 61-74) and `vault/Decisions/2026-09-11-arr-band-and-post-funnel-sizing.md`. Any
+number in this file that disagrees with those two is a bug, not a variant.
 
 ## Summary table
 
@@ -20,11 +27,13 @@ product.
 | 1 | "We can do this in Excel" | You can pivot the wons; the win-rate-by-band analysis needs lost deals and a calibrated reference, and the diagnostic is free, so Excel verifying it costs you 30 minutes | Sample readout at pricekeel.com/sample |
 | 2 | "Our data is too sensitive" | Zero-trust path exists: /upload runs in memory, nothing stored, founder never sees it; or mutual NDA with 30-day deletion certification | pricekeel.com/upload · NDA template · security one-pager |
 | 3 | "ChatGPT can do this" | The numbers come from a deterministic, auditable engine; the LLM is confined to narration and never computes a figure | Methodology section of the sample readout |
-| 4 | "Why not Pricefx / Vendavo" | Different problem and different decade of company; they are enterprise CPQ-adjacent suites for $100M+ orgs, this is a diagnostic plus monitoring cadence for $15-60M ARR usage-based teams | gtm/personas.md anti-persona section |
+| 4 | "Why not Pricefx / Vendavo" | Different problem and different decade of company; they are enterprise CPQ-adjacent suites for $100M+ orgs, this is a diagnostic plus monitoring cadence for $10-100M ARR usage-based and hybrid teams | gtm/personas.md anti-persona section |
 | 5 | "You have no customers" | True, and the terms price it in: free diagnostic, capped design-partner cohort of 3, no auto-renewal, fee structure that lets you exit | Design-partner terms in the pilot agreement |
 | 6 | "You're one person" | True; the engine is deterministic and tested, scope is deliberately narrow, WIP is capped at 2 concurrent diagnostics so every readout gets full attention, and the NDA carries the deletion and breach commitments regardless of headcount | Security one-pager · NDA |
 | 7 | "Is this just a one-time scan?" | The diagnostic is one-time and free; the product is the monthly cadence the $15K pilot stands up: live readouts, decision log, policy monitoring | Readout close script (offer section) · pricing page |
 | 8 | "Our CRM export is a mess" | Expected and handled: the ingest maps messy headers, drops dupes, excludes open deals, and discloses every step in writing before any conclusion | gtm/data-request.md · LoadReport section of any readout |
+| 9 | "We don't have 500 closed deals a year" | Honest disqualifier, not a negotiation: below that the band-level win rates are noise. We say so and hand back a smaller, clearly-labeled read rather than a confident wrong one | The 30-outcome readiness threshold in the product · gtm/personas.md anti-personas |
+| 10 | "Why Salesforce only, and why now?" | The diagnostic is CRM-agnostic today via CSV; only the live in-CRM workflow is Salesforce-native, because depth in one CRM beats a thin layer over two | vault/Decisions/2026-08-01-salesforce-first-crm-workflow.md · gtm/data-request.md |
 
 ## Talk tracks
 
@@ -68,9 +77,9 @@ If you are a $300M enterprise running CPQ across thousands of SKUs, you should l
 them; that is their market and they are good at it. They are six-to-twelve-month
 implementations priced accordingly, built around seat and unit pricing. This is the
 opposite shape: a free diagnostic from one CSV, built for usage-based and hybrid models at
-$15-60M ARR, where the question is discount governance, not configure-price-quote. If the
-diagnostic finds nothing, you have spent 30 minutes finding that out instead of a
-six-figure evaluation.
+$10M to $100M ARR with enough closed-deal volume to measure, where the question is discount
+governance, not configure-price-quote. If the diagnostic finds nothing, you have spent 30
+minutes finding that out instead of a six-figure evaluation.
 
 Supporting asset: the anti-persona section of [[personas]] (we tell prospects above $100M
 seat-only to go there; saying so builds credibility here).
@@ -126,6 +135,67 @@ send the natural export and a one-line note on which amount field is which.
 
 Supporting assets: [[data-request]] (the 10-column list and export cheat-sheet), the
 LoadReport section of any readout.
+
+### 9. "We don't have 500 closed deals a year"
+
+This is the one objection where the right answer is often "then we are not a fit yet," and
+I would rather say it in the first call than in the readout.
+
+Concede first: 500 closed opportunities a year is not a sales target we invented to sound
+selective. It is the point where win rate by discount band stops being noise. Split your
+book into five discount bands and you need enough wins *and* losses inside each band for
+the difference between them to mean anything. At 150 deals a year you get bands of thirty,
+half of them losses, and a single unusual quarter moves the curve. I will not hand a CFO a
+confident number built on that.
+
+Then give them the three honest paths:
+
+1. **Look back further.** The gate is closed outcomes in the dataset, not per calendar
+   year. Two or three years of history from a 200-deal-a-year company clears the bar, as
+   long as your pricing did not change fundamentally in the middle of it. Most companies
+   have this and do not think to offer it.
+2. **Take the narrower read.** If the volume genuinely is not there, the diagnostic still
+   runs realization, policy conformance and quarter-end behaviour, and it will print
+   exactly which sections it suppressed and why. The product enforces this itself: it
+   holds analysis behind a minimum-outcomes threshold rather than rendering a chart on
+   twelve rows. You get a smaller true answer instead of a bigger invented one.
+3. **Come back.** If you are at 200 deals and growing, say so and I will follow up when
+   the volume is there. I would rather have the right conversation in a year than the
+   wrong one now.
+
+What never happens: I do not lower the bar to win a logo. The whole pitch is that the
+number survives a skeptical CFO, and a band curve on thin data does not.
+
+Supporting assets: the readiness threshold enforced in the product, the anti-persona table
+in [[personas]], [[data-request]] for the lookback-period ask.
+
+### 10. "Why Salesforce only, and why now?"
+
+Two questions hiding in one, and they get different answers.
+
+**"Only" is not quite right.** The diagnostic is CRM-agnostic: it runs on a CSV of closed
+opportunities from any CRM, and that is the path into every first conversation. What is
+Salesforce-native is the *live* workflow: reading opportunities over OAuth, writing the
+decision back as context on the record, and reconciling the outcome. So if you are on
+HubSpot you can get the full diagnostic and the readout today; what you cannot get yet is
+the in-CRM loop.
+
+**Why Salesforce first.** Depth in one CRM beats a thin layer over two. The value of this
+product is that the decision gets recorded where the deal lives, with the evidence
+attached, and survives an audit. That requires real integration work per CRM: object
+model, permissions, packaging, install path. Doing it properly once, in the CRM most of
+our qualified pool already runs, is a deliberate sequencing choice, and it is written down
+as a decision rather than a drift: `vault/Decisions/2026-08-01-salesforce-first-crm-workflow.md`.
+
+**Why now.** The usage-data layer is being absorbed into platforms: Stripe closed
+Metronome in January 2026, Adyen closed Orb and Salesforce closed m3ter, both on 1 July
+2026. Metering and billing are moving into the CRM and the payment rail. The *decision*
+layer on top of that data, which discount was approved, on what evidence, and did it
+work, is still nobody's product. That is the window, and it is measured in months rather
+than years. See `vault/Competitive/2026-08-09-metering-landgrab-why-now.md`.
+
+If HubSpot is a hard requirement for the live workflow, say so and I will log it. Roadmap
+order gets decided by design partners, not by guesses.
 
 ## Related
 

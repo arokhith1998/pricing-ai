@@ -197,7 +197,9 @@ is for local dev).
 - **Phase 2 (this branch)** — win-probability via LightGBM, explained with
   LightGBM's *native* SHAP contributions (no extra `shap` dependency), plus
   expected-ACV discount guidance. Trained only on quote-time features (no
-  outcome leakage). Synthetic-data AUC ~0.64 with strong calibration — discrimination
-  is capped by deliberate irreducible noise; calibration + explainability are
-  what matter for guidance. Warehouse (Snowflake/Fivetran) still deferred to Phase 3.
+  outcome leakage). On a time-ordered holdout (the latest 25% of closes)
+  synthetic-data AUC is 0.614, and the per-deal probabilities beat quoting the
+  book's win rate by a Brier skill of +0.037: positive, and not by much. The
+  explanation chain, not the probability, is what carries a recommendation into
+  a pricing committee. Warehouse (Snowflake/Fivetran) still deferred to Phase 3.
 - **CSV, not Snowflake** — warehouse + Fivetran deferred to Phase 3.

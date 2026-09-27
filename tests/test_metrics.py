@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
-from pricing import metrics
-from pricing.ingest import enrich, resolve_identity
+from pricing import diagnostic, metrics
+from pricing.ingest import enrich, ingest_verbose, resolve_identity
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _build(rows: list[dict]) -> pd.DataFrame:
@@ -72,6 +76,28 @@ def test_reference_discount_finds_the_plateau():
     assert lo <= ref["peak_win_rate"] <= hi
 
 
+def test_reference_band_median_discount_is_disclosed_not_applied():
+    """Pricing-strategist F3: the band floor is a founder call, not an
+    engineering one, so this fix does not move reference_threshold off the
+    band floor -- it only discloses the alternative (the band's own observed
+    median discount) alongside it, so it CAN be shown without shipping it."""
+    rows = []
+    rows += _band_block("b00", 20, 0.02, 0.40)
+    rows += _band_block("b05", 20, 0.07, 0.50)
+    rows += _band_block("b10", 20, 0.12, 0.80)  # every deal here discounts 12%
+    rows += _band_block("b15", 20, 0.17, 0.80)
+    rows += _band_block("b20", 20, 0.22, 0.80)
+    df = _build(rows)
+
+    ref = metrics.reference_discount(df, seed=0)
+    # The shipped threshold is still the band FLOOR (10%), unchanged...
+    assert ref["reference_threshold"] == pytest.approx(0.10)
+    # ...while the alternative -- the band's own median discount (12%, since
+    # every deal in the 10-15% band sits at exactly 12%) -- is disclosed
+    # alongside it, not substituted in.
+    assert ref["reference_band_median_discount"] == pytest.approx(0.12)
+
+
 def test_excess_vs_reference_only_counts_discount_above_reference():
     rows = []
     rows += _band_block("b00", 20, 0.02, 0.40)
@@ -88,6 +114,122 @@ def test_excess_vs_reference_only_counts_discount_above_reference():
     expected = 16 * 0.02 * 100_000 + 16 * 0.07 * 100_000 + 16 * 0.12 * 100_000
     assert lk["excess_vs_reference_won"] == pytest.approx(expected)
     assert lk["deals_above_reference"] == 48
+
+
+def test_reference_discount_insufficient_data_does_not_relax_floor():
+    """2026-09-26 fix: a sparse book (no band clears the 15-deal floor) must
+    return an explicit insufficient-data state, not silently relax the floor
+    to 1 deal per band and manufacture a 0% reference."""
+    rows = []
+    # 40 deals spread across all 6 real discount bands, 6-7 deals each -- none
+    # clears the 15-deal floor, even though 6 distinct bands have data.
+    rows += _band_block("b00", 7, 0.02, 0.40)   # 0-5%
+    rows += _band_block("b05", 7, 0.07, 0.50)   # 5-10%
+    rows += _band_block("b10", 7, 0.12, 0.60)   # 10-15%
+    rows += _band_block("b15", 7, 0.17, 0.60)   # 15-20%
+    rows += _band_block("b20", 6, 0.22, 0.60)   # 20-25%
+    rows += _band_block("b25", 6, 0.30, 0.60)   # 25%+
+    df = _build(rows)
+    assert len(df) == 40
+
+    ref = metrics.reference_discount(df)
+    assert ref["sufficient"] is False
+    assert ref["basis"] == "insufficient data"
+    assert ref["reference_threshold"] == 0.0
+    assert ref["reference_band"] is None
+    assert ref["reference_band_median_discount"] == 0.0
+    # every band's raw count is disclosed, even though none clears the floor
+    assert sum(ref["band_counts"].values()) == 40
+
+    lk = metrics.leakage(df)
+    # no headline dollar figure is manufactured off the collapsed 0% reference
+    assert lk["excess_vs_reference_won"] == 0.0
+    assert lk["deals_above_reference"] == 0
+    assert lk["excess_vs_segment_reference_won"] == 0.0
+    assert lk["deals_above_segment_reference"] == 0
+    assert lk["excess_basis"] == "insufficient data"
+    assert "Insufficient data" in lk["excess_disclosure"]
+    assert lk["band_counts"]
+
+
+def _insufficient_hierarchy_rows(prefix, n, discount, win_rate, segment="SMB",
+                                 business_unit="BU-A", product_line="PL-A"):
+    """Like _band_block, but carries segment/business_unit/product_line so the
+    hierarchy-table and per-deal-reference paths have something to look up."""
+    list_acv, booked = 100_000.0, 100_000.0 * (1 - discount)
+    n_won = round(n * win_rate)
+    rows = []
+    for i in range(n):
+        rows.append(dict(
+            opportunity_id=f"{prefix}-{i}", account_id=f"{prefix}-{i}",
+            account_name=f"{prefix}-{i}",
+            outcome="closed_won" if i < n_won else "closed_lost",
+            list_acv=list_acv, booked_acv=booked,
+            segment=segment, business_unit=business_unit, product_line=product_line,
+        ))
+    return rows
+
+
+def _42_deal_insufficient_book() -> pd.DataFrame:
+    """42 deals across 5 real bands, none clearing the 15-deal floor (2026-09-26
+    blocker fix reproduction case). Every deal shares one segment/BU/product
+    line, so none of those slices can earn its own reference either."""
+    rows = []
+    rows += _insufficient_hierarchy_rows("b00", 8, 0.02, 0.40)
+    rows += _insufficient_hierarchy_rows("b05", 8, 0.07, 0.50)
+    rows += _insufficient_hierarchy_rows("b10", 8, 0.12, 0.60)
+    rows += _insufficient_hierarchy_rows("b15", 9, 0.17, 0.60)
+    rows += _insufficient_hierarchy_rows("b20", 9, 0.22, 0.60)
+    df = _build(rows)
+    assert len(df) == 42
+    return df
+
+
+def test_insufficient_book_propagates_through_every_downstream_consumer():
+    """2026-09-26 blocker fix: a thin (42-deal) book must not manufacture a
+    0% reference anywhere downstream of reference_discount(). Every consumer
+    must disclose 'insufficient data' with a NaN threshold and 0 excess,
+    never a confident number built off the sentinel 0.0 threshold."""
+    df = _42_deal_insufficient_book()
+    ref = metrics.reference_discount(df)
+    assert ref["sufficient"] is False
+
+    # _per_deal_reference: NaN thresholds when nothing (segment, BU, product
+    # line) earned its own and the global fallback is itself NaN.
+    won = df[df["is_won"]]
+    thr = metrics._per_deal_reference(won, df, float("nan"))
+    assert thr.isna().all()
+
+    # top_leak_deals: an EMPTY frame with a basis column, not an investigate
+    # list scored against a 0% threshold.
+    tld = metrics.top_leak_deals(df)
+    assert tld.empty
+    assert "reference_basis" in tld.columns
+
+    # Every hierarchy reference table: NaN threshold, "insufficient data" basis.
+    for table in (metrics.segment_reference_table(df),
+                 metrics.business_unit_reference_table(df),
+                 metrics.product_line_reference_table(df)):
+        assert table, "expected at least one row (the shared segment/BU/PL value)"
+        row = table[0]
+        assert row["basis"] == "insufficient data"
+        assert pd.isna(row["reference_threshold"])
+        assert row["reference_band"] is None
+
+    # hierarchy_slice_reference: NaN threshold, 0 excess, disclosed basis.
+    hs = metrics.hierarchy_slice_reference(df, "business_unit")
+    row = hs.iloc[0]
+    assert row["reference_basis"] == "insufficient data"
+    assert row["excess_won"] == 0.0
+    assert pd.isna(row["reference_threshold"])
+
+    # policy_simulations: lever 1 marked non-computable with a disclosure,
+    # not a silent $0 "nothing to hold back".
+    sims = metrics.policy_simulations(df)
+    lever1 = sims[0]
+    assert lever1["held_back"] == 0.0
+    assert lever1.get("non_computable") is True
+    assert "disclosure" in lever1 and "insufficient" in lever1["disclosure"].lower()
 
 
 def test_win_rate_by_band_is_ordered_and_complete():
@@ -226,6 +368,87 @@ def test_quarter_end_deals_are_the_qe_set():
     deals = metrics.quarter_end_deals(df)
     assert list(deals["opportunity_id"]) == ["Q1", "Q2"]
     assert deals.iloc[0]["discount_amount"] == pytest.approx(30_000.0)
+
+
+def test_policy_simulations_union_is_not_a_sum(monkeypatch):
+    """2026-09-26 fix: a deal can be above its reference, off-policy, AND in
+    the quarter-end window at once, so stacking (summing) the three levers
+    double-counts it. policy_simulations must add a non-additive union entry
+    whose held_back is strictly less than the sum of the three, computed as
+    each overlapping deal's single largest lever figure, never the sum of its
+    levers."""
+    monkeypatch.setattr(
+        metrics, "reference_discount",
+        lambda df, **kw: {"reference_threshold": 0.10, "reference_band": "10-15%",
+                          "peak_band": "10-15%", "peak_win_rate": 0.7,
+                          "sufficient": True, "basis": "own win point",
+                          "band_counts": {}})
+    rows = [
+        # D1 trips all three levers: over reference (.30 > .10), off-policy
+        # (> .15), and quarter-end.
+        dict(opportunity_id="D1", is_won=True, discount_pct=0.30, list_acv=100_000.0,
+             booked_acv=70_000.0, discount_amount=30_000.0, segment="SMB",
+             is_quarter_end=True),
+        # D2: over reference and off-policy, not quarter-end.
+        dict(opportunity_id="D2", is_won=True, discount_pct=0.20, list_acv=100_000.0,
+             booked_acv=80_000.0, discount_amount=20_000.0, segment="SMB",
+             is_quarter_end=False),
+        # D3: quarter-end, but below reference and on-policy.
+        dict(opportunity_id="D3", is_won=True, discount_pct=0.08, list_acv=100_000.0,
+             booked_acv=92_000.0, discount_amount=8_000.0, segment="SMB",
+             is_quarter_end=True),
+        # D4: rest-of-quarter baseline deal.
+        dict(opportunity_id="D4", is_won=True, discount_pct=0.02, list_acv=100_000.0,
+             booked_acv=98_000.0, discount_amount=2_000.0, segment="SMB",
+             is_quarter_end=False),
+    ]
+    df = pd.DataFrame(rows)
+    sims = metrics.policy_simulations(df, policy_threshold=0.15)
+    stacked = [s for s in sims if not s.get("non_additive")]
+    union = next(s for s in sims if s.get("non_additive"))
+
+    assert len(stacked) == 3
+    assert union["non_additive"] is True
+    assert union["union_value"] == pytest.approx(union["held_back"])
+    stacked_sum = sum(s["held_back"] for s in stacked)
+    assert stacked_sum == pytest.approx(30_000 + 20_000 + 19_000)
+    # D1's single largest lever (reference, $20k) is counted once, not summed
+    # across all three ($20k + $15k + $19k) -> union < the naive stacked sum.
+    assert union["held_back"] == pytest.approx(30_000.0)
+    assert union["held_back"] < stacked_sum
+    assert union["deals_affected"] == 3  # D1, D2, D3 each trip >= one lever
+
+
+# --- bootstrap repetition (2026-09-26 perf fix) ------------------------------
+
+def test_diagnostic_analyze_bounds_reference_discount_calls(monkeypatch):
+    """reference_discount() runs a 500-sample bootstrap; before this fix,
+    diagnostic.analyze on the demo book called it ~153 times because
+    hierarchy_slice_reference, defended_vs_investigate, trend_by_quarter, and
+    policy_simulations each rebuilt the segment/BU/product-line reference
+    tables independently instead of sharing the ones diagnostic.analyze
+    already computes once."""
+    df, report = ingest_verbose(ROOT / "data" / "synthetic" / "deals.csv")
+    calls = {"n": 0}
+    original = metrics.reference_discount
+
+    def counted(df_arg, *a, **kw):
+        calls["n"] += 1
+        return original(df_arg, *a, **kw)
+
+    monkeypatch.setattr(metrics, "reference_discount", counted)
+    diagnostic.analyze(df, report)
+    # Measured 19 on the current demo book (1 global + one bootstrap per
+    # segment/business_unit/product_line/value_metric value that clears its
+    # own sufficiency bar, plus segment_win_points' independent per-segment
+    # pass): bounded by the number of distinct hierarchy values, not by deal
+    # count or open-deal count, unlike the ~153 this replaces. 30 leaves
+    # headroom for a slightly richer book without flaking.
+    assert calls["n"] < 30, (
+        f"reference_discount called {calls['n']} times in one diagnostic.analyze "
+        "run; the shared global/segment/BU/product-line tables should bound "
+        "this to a small, roughly constant number regardless of book size."
+    )
 
 
 def test_packaging_signal_deals_returns_the_value_deals():

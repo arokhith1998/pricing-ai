@@ -206,3 +206,106 @@ def test_opportunities_includes_defended_card():
     pool = copilot.opportunities(_base_analysis())
     kinds = [o.kind for o in pool]
     assert "defended" in kinds, "defended-wins extractor must appear in the pool"
+
+
+# --- missing-vs-zero (silent-failure-hunter F1) ------------------------------
+
+
+def test_missing_leakage_key_is_flagged_degraded_not_a_real_zero():
+    """A missing analysis key must never read as a computed zero. Deleting
+    'leakage' entirely (not just zeroing a field inside it) must surface as
+    degraded, distinct from a book that genuinely has no excess or off-policy
+    leakage."""
+    a = _base_analysis()
+    del a["leakage"]
+    degraded: list = []
+    opps = copilot.opportunities(a, degraded=degraded)
+    assert "leakage" in degraded
+    # No opportunity may claim evidence sourced from the missing key: the
+    # quarter-end extractor also emits kind="reduce_leakage" from an
+    # unrelated (present) key, so the real invariant is on evidence source,
+    # not on kind.
+    assert not any(
+        ev.source.startswith("leakage.") for o in opps for ev in o.evidence
+    )
+
+
+def test_missing_key_sets_degraded_without_a_collector_list():
+    """Extractors called with no `degraded` list (the existing single-arg
+    call pattern every other test in this file uses) must not raise, and
+    must still return None/[] for the missing key exactly as before."""
+    a = _base_analysis()
+    del a["quarter_end"]
+    assert copilot._opp_quarter_end(a) is None  # no degraded= kwarg passed
+
+
+def test_present_but_zero_value_is_not_flagged_degraded():
+    """A key that is present with a legitimate zero/absent value (e.g. no
+    defended value this run) must NOT be treated as missing."""
+    a = _base_analysis()
+    a["defended_vs_investigate"]["defended_value"] = 0
+    degraded: list = []
+    assert copilot._opp_defended_wins(a, degraded) is None
+    assert degraded == []
+
+
+def test_answer_canonical_missing_key_sets_degraded_flag_on_answer(monkeypatch):
+    monkeypatch.setattr(copilot.assist, "has_llm", lambda: False)
+    a = _base_analysis()
+    del a["leakage"]
+    ans = copilot.answer_canonical("losing_deals", a)
+    assert ans.degraded is True
+    assert "leakage" in ans.degraded_keys
+    # Never render a degraded result as a confident "no opportunities" claim.
+    assert "no opportunities" not in ans.text.lower()
+    assert "degraded" in ans.text.lower()
+
+
+def test_answer_canonical_not_degraded_on_a_complete_analysis(monkeypatch):
+    monkeypatch.setattr(copilot.assist, "has_llm", lambda: False)
+    ans = copilot.answer_canonical("losing_deals", _base_analysis())
+    assert ans.degraded is False
+    assert ans.degraded_keys == []
+
+
+def test_non_additive_caveat_present_when_opportunities_returned(monkeypatch):
+    monkeypatch.setattr(copilot.assist, "has_llm", lambda: False)
+    ans = copilot.answer_canonical("losing_deals", _base_analysis())
+    assert ans.opportunities
+    assert "not additive" in ans.non_additive.lower()
+    assert "not be summed" in ans.non_additive.lower() or "not additive" in ans.non_additive.lower()
+
+
+def test_non_additive_caveat_absent_when_no_opportunities(monkeypatch):
+    monkeypatch.setattr(copilot.assist, "has_llm", lambda: False)
+    ans = copilot.answer_canonical("raise_prices", {})
+    assert ans.opportunities == []
+    assert ans.non_additive == ""
+
+
+def test_answer_to_dict_includes_degraded_and_non_additive_keys():
+    ans = copilot.Answer(text="x", opportunities=[], qid="losing_deals",
+                         degraded=True, degraded_keys=["leakage"],
+                         non_additive="not additive")
+    d = ans.to_dict()
+    assert d["degraded"] is True
+    assert d["degraded_keys"] == ["leakage"]
+    assert d["non_additive"] == "not additive"
+
+
+# --- no em dashes (code-reviewer F4) -----------------------------------------
+
+
+def test_copilot_system_prompt_forbids_em_dashes_and_contains_none():
+    assert "—" not in copilot._COPILOT_SYSTEM
+    assert "em dash" in copilot._COPILOT_SYSTEM.lower()
+
+
+def test_opportunity_ui_strings_contain_no_em_dashes():
+    """Every Opportunity field a user reads must not carry an em dash
+    (code-reviewer F4): a model imitates whatever house style the
+    deterministic strings around it use."""
+    opps = copilot.opportunities(_base_analysis())
+    for o in opps:
+        for field in (o.scope, o.current, o.recommended, o.methodology, o.caveat):
+            assert "—" not in field, f"{o.kind}: em dash in {field!r}"

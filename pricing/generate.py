@@ -323,6 +323,10 @@ def generate(n: int = 2000, seed: int = 7,
         })
 
     df = pd.DataFrame(rows, columns=ALL_COLUMNS)
+    # Synthetic deals are all USD; a constant assignment consumes no RNG draws
+    # so it cannot perturb the main sequence (same rule as the optional
+    # hierarchy/UBP columns above).
+    df["currency"] = "USD"
     _add_ubp_cost_columns(df, seed)
     return df
 

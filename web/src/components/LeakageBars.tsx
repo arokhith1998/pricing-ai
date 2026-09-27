@@ -1,9 +1,16 @@
 import type { Leakage } from "@/lib/api";
 import { money, pct } from "@/lib/format";
 
+const INSUFFICIENT = "insufficient data";
+const DEFAULT_INSUFFICIENT_DISCLOSURE =
+  "Too few closed deals in enough discount bands to compute a reliable win point yet. This is not a $0 finding: collect more closed deals before this figure is trustworthy.";
+
 // The three leakage lenses, weakest claim to strongest (README + design doc).
 // Plain CSS bars scaled to the largest (gross) figure.
 export default function LeakageBars({ leakage }: { leakage: Leakage }) {
+  const insufficient = leakage.excess_basis === INSUFFICIENT;
+  const referenceValue = leakage.excess_vs_segment_reference_won ?? leakage.excess_vs_reference_won;
+
   const rows = [
     {
       label: "Gross discount given",
@@ -17,14 +24,8 @@ export default function LeakageBars({ leakage }: { leakage: Leakage }) {
       value: leakage.off_policy_leakage_won,
       color: "bg-amber",
     },
-    {
-      label: "Beyond the win point",
-      help: `Discount past ${pct(leakage.reference_threshold, 0)}, where win rate stops improving. A list to investigate, not a refund.`,
-      value: leakage.excess_vs_reference_won,
-      color: "bg-coral",
-    },
   ];
-  const max = Math.max(...rows.map((r) => r.value)) || 1;
+  const max = Math.max(...rows.map((r) => r.value), insufficient ? 0 : referenceValue) || 1;
 
   return (
     <div className="space-y-4">
@@ -45,6 +46,39 @@ export default function LeakageBars({ leakage }: { leakage: Leakage }) {
           <p className="mt-1 text-xs text-slate">{r.help}</p>
         </div>
       ))}
+      <div>
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-sm font-medium text-ink">Beyond the win point</span>
+          {insufficient ? (
+            <span className="tabular-nums text-sm font-semibold text-slate">
+              Insufficient data
+            </span>
+          ) : (
+            <span className="tabular-nums text-sm font-semibold text-fg">
+              {money(referenceValue)}
+            </span>
+          )}
+        </div>
+        {insufficient ? (
+          <p className="mt-1 rounded-lg border border-mist bg-surface-2 p-2 text-xs text-slate">
+            {leakage.excess_disclosure || DEFAULT_INSUFFICIENT_DISCLOSURE}
+          </p>
+        ) : (
+          <>
+            <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-mist">
+              <div
+                className="h-full rounded-full bg-coral"
+                style={{ width: `${Math.max(2, (referenceValue / max) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-slate">
+              {leakage.excess_vs_segment_reference_won !== undefined
+                ? "Discount past each segment's own win point, where win rate stops improving. A list to investigate, not a refund."
+                : `Discount past ${pct(leakage.reference_threshold, 0)}, where win rate stops improving. A list to investigate, not a refund.`}
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

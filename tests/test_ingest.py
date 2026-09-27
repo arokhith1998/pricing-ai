@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from pricing.ingest import (
+    CurrencyBlockedError,
     LoadReport,
     SchemaError,
     _deal_type_of,
@@ -150,3 +152,94 @@ def test_ingest_derives_canonical_deal_type_from_type_column(tmp_path):
     assert (df["deal_type"] == "").sum() == 4
     assert df["is_renewal"].sum() == 14
     assert report.field_sources["is_renewal"] == "Type (value-scan, high)"
+
+
+# --- Currency (2026-09-26 data-layer fix) ------------------------------------
+
+
+def _mixed_currency_csv(tmp_path, n_usd: int = 20, n_eur: int = 15):
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv"]
+    for i in range(n_usd):
+        rows.append(f"OPP-U{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,$100000,$90000")
+    for i in range(n_eur):
+        rows.append(f"OPP-E{i:03d},Acct {100 + i},closed_won,2025-01-01,"
+                    f"2025-02-15,SMB,Pro,hybrid,€100000,€90000")
+    p = tmp_path / "mixed.csv"
+    p.write_text("\n".join(rows), encoding="utf-8")
+    return p
+
+
+def test_mixed_currency_blocks_by_default(tmp_path):
+    """Summing EUR and USD as one number silently corrupts every dollar total;
+    ingestion must refuse rather than warn-and-sum."""
+    p = _mixed_currency_csv(tmp_path)
+    with pytest.raises(CurrencyBlockedError) as exc_info:
+        ingest_verbose(p)
+    err = exc_info.value
+    assert "USD" in str(err) and "EUR" in str(err)
+    # the report is attached to the exception even though ingestion refused
+    assert err.report.blockers
+    assert "USD" in err.report.blockers[0] and "EUR" in err.report.blockers[0]
+
+
+def test_mixed_currency_normalizes_when_fx_rates_supplied(tmp_path):
+    p = _mixed_currency_csv(tmp_path)
+    df, report = ingest_verbose(
+        p, fx_rates={"EUR": 1.10}, fx_rates_date="2026-09-01",
+    )
+    assert report.fx_normalized is True
+    assert report.fx_rate_date == "2026-09-01"
+    assert any("normalized" in n.lower() for n in report.notes)
+    eur_rows = df[df["opportunity_id"].str.startswith("OPP-E")]
+    assert np.allclose(eur_rows["booked_acv"].to_numpy(), 90_000 * 1.10)
+    usd_rows = df[df["opportunity_id"].str.startswith("OPP-U")]
+    assert np.allclose(usd_rows["booked_acv"].to_numpy(), 90_000)
+    assert (df["currency"] == "USD").all()
+
+
+def test_mixed_currency_missing_rate_still_blocks(tmp_path):
+    """fx_rates that don't cover every currency present must still block, not
+    silently leave the uncovered currency un-normalized."""
+    p = _mixed_currency_csv(tmp_path)
+    with pytest.raises(CurrencyBlockedError):
+        ingest_verbose(p, fx_rates={"GBP": 1.27})  # no EUR rate supplied
+
+
+def test_mixed_currency_blocks_from_explicit_iso_column_with_no_symbols(tmp_path):
+    """A Salesforce CurrencyIsoCode export prints plain numbers with an
+    explicit ISO currency column, never a $/€ symbol. The symbol scan alone
+    would see zero currencies and let the mix through; the explicit column
+    must be folded into the same mixed-currency guard (2026-09-26 fix)."""
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv,currency"]
+    for i in range(20):
+        rows.append(f"OPP-U{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,100000,90000,USD")
+    for i in range(15):
+        rows.append(f"OPP-E{i:03d},Acct {100 + i},closed_won,2025-01-01,"
+                    f"2025-02-15,SMB,Pro,hybrid,100000,90000,EUR")
+    p = tmp_path / "iso-only.csv"
+    p.write_text("\n".join(rows), encoding="utf-8")
+
+    with pytest.raises(CurrencyBlockedError) as exc_info:
+        ingest_verbose(p)
+    err = exc_info.value
+    assert "USD" in str(err) and "EUR" in str(err)
+    assert err.report.blockers
+    assert "USD" in err.report.blockers[0] and "EUR" in err.report.blockers[0]
+
+
+def test_single_currency_file_defaults_to_usd(tmp_path):
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv"]
+    for i in range(30):
+        rows.append(f"OPP-{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,100000,90000")
+    p = tmp_path / "single.csv"
+    p.write_text("\n".join(rows), encoding="utf-8")
+    df, report = ingest_verbose(p)
+    assert report.fx_normalized is False
+    assert not report.blockers
+    assert (df["currency"] == "USD").all()

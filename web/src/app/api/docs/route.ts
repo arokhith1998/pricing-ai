@@ -1,5 +1,5 @@
 // Same-origin proxy: forward document uploads to FastAPI /docs/upload.
-import { requireAccess } from "@/lib/gate";
+import { customerRef, requireAccess } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
@@ -17,7 +17,10 @@ export async function POST(req: Request) {
   try {
     const upstream = await fetch(`${API}/docs/upload`, {
       method: "POST",
-      headers: { "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "" },
+      headers: {
+        "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+        "X-Pricekeel-Customer": await customerRef(),
+      },
       body: form,
     });
     if (!upstream.ok) {

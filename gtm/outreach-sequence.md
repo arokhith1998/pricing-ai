@@ -1,19 +1,25 @@
 ---
 title: 'Cold outreach sequence: the smaller-yes ladder'
 created: 2026-05-26
-updated: 2026-06-11
+updated: 2026-09-26
 tags: [gtm, outreach, sales, cold-email, design-partner]
 status: active
 ---
 
 # Cold outreach sequence: the smaller-yes ladder
 
-Six touches over roughly four weeks to the champion (VP/Director RevOps or Head of Pricing
-at $15-60M ARR usage-based or hybrid B2B SaaS; see [[design-partner-targets]] and
+Six touches over roughly four weeks to the champion (VP/Director RevOps, Deal Desk Lead or
+Head of Pricing at a **$10-100M ARR** usage-based or hybrid B2B SaaS closing **500+
+opportunities a year**, Salesforce-primary; see [[design-partner-targets]] and
 [[personas]]). The old 3-touch sequence opened with the maximum-trust ask (NDA + four
 quarters of data). This one climbs a ladder of smaller yeses: read a sample, skim a column
 list, try the zero-trust path, and only then send data. The NDA + CSV ask happens in the
 reply thread, never in a cold touch.
+
+ARR is the screening proxy. The closed-deal count is the gate, and it is the first thing to
+confirm once they reply. Source of record for the ICP:
+`vault/Competitive/2026-08-01-salesforce-market-need-assessment.md` and
+`vault/Decisions/2026-09-11-arr-band-and-post-funnel-sizing.md`.
 
 We still have **zero customers**, so there is no social proof and none is invented. The
 leverage is (a) a specific observation about THEIR public pricing, (b) the asymmetry of the
@@ -27,8 +33,12 @@ us: the sample readout and the self-serve /upload path.
 - CRO is contacted only after the champion is in; the diagnostic names their reps.
 - Free diagnostic requires closed-lost rows in the CSV. Won-only files get the sample
   readout and a polite explanation, not a diagnostic.
+- Never promise the in-CRM workflow to a non-Salesforce account. The CSV diagnostic is
+  CRM-agnostic; the live loop is Salesforce-native. Talk track in [[objection-inventory]] #10.
 - Stop the moment they reply, in either direction. The sequence is for silence only.
 - Update `docs/ops/funnel-tracker.csv` after every touch.
+- **No dated or seasonal hooks in this file.** They expire silently and then get sent.
+  Anything time-bound belongs in the send plan for a specific batch, never in the template.
 
 ## Personalization variables
 
@@ -42,14 +52,21 @@ us: the sample readout and the self-serve /upload path.
 | `{{blog_or_calc_link}}` | The Pricekeel blog post or calculator most relevant to their pricing model. |
 | `{{referral_source}}` | Mutual connection or community, for the referral template. |
 
-## Why-now angle (one line, reuse across touches)
+## Why-now angle (one line, reuse across touches, no expiry)
 
-- **Through Jun 30 only:** "End of quarter is when discount pressure peaks and when the
-  data to measure it is freshest: a good moment to baseline it." This hook expires Jul 1.
-  Do not use it in July.
-- **Jul 1 onward:** "H2 planning and comp season are when discount policy actually gets
-  rewritten: a baseline now means the new policy and the new comp plan are set against
-  measured leakage, not anecdotes."
+Pick one. Both are evergreen: the first is triggered by the prospect's own calendar
+whenever it happens, the second is a market fact with a dated source.
+
+- **Policy-cycle trigger (use when you know their cycle):** "Discount policy gets rewritten
+  once a year, alongside comp. A measured baseline before that means the new policy is set
+  against what actually happened, not against anecdotes." Fire this when a trigger event in
+  [[personas]] is observed, not on a calendar date.
+- **Market trigger (dated, re-verify quarterly):** "Metering and billing are being absorbed
+  into the platforms: Stripe closed Metronome in January 2026, and Adyen closed Orb and
+  Salesforce closed m3ter both on 1 July 2026. The usage data is moving into your CRM and
+  your payment rail. What nobody is building is the record of which discount was approved,
+  on what evidence, and whether it worked." Source and re-verify date:
+  `vault/Competitive/2026-08-09-metering-landgrab-why-now.md`.
 
 ## The ladder
 
@@ -109,21 +126,22 @@ CTA: skim the one-pager. Still not asking them to send anything.
 
 **Subject:** threaded reply to touch 1.
 
-**Body (~80 words):**
+**Body (~85 words):**
 
 > {{first_name}}, one concrete follow-up.
 >
 > The entire diagnostic runs on 10 columns: opportunity ID, account, won/lost, created and
-> close dates, segment, tier, value metric, list ACV, booked ACV. Your Salesforce or
-> HubSpot admin exports this in about 30 minutes, and lost deals matter as much as won
-> ones, that is where the price story hides.
+> close dates, segment, tier, value metric, list ACV, booked ACV. Your Salesforce admin
+> exports this in about 30 minutes, from any CRM if you are not on Salesforce, and lost
+> deals matter as much as won ones, that is where the price story hides.
 >
 > One-pager with the exact list and export steps attached. Does your export have the
-> closed-lost rows?
+> closed-lost rows, and roughly how many opportunities close in a year?
 >
 > Adhithya
 
-Attach or link the column one-pager (source: [[data-request]]).
+Attach or link the column one-pager (source: [[data-request]]). The deal-count question is
+deliberate: it is the ICP gate, and asking it here saves a wasted readout later.
 
 ## Touch 3: LinkedIn DM (day 8)
 
@@ -152,7 +170,7 @@ trusting us at all.
 > columns, drop the file in, read your own number.
 >
 > If the number is boring, I stop emailing, and you have spent 30 minutes confirming your
-> discounting is clean, which is worth knowing before comp planning anyway.
+> discounting is clean, which is worth knowing before the next policy review anyway.
 >
 > If it is not boring, I would love to hear what you found.
 >
@@ -204,15 +222,19 @@ CTA: a one-word reply. Genuine close, not a guilt trip.
 
 ## After a reply: the ask sequence (not part of the cold sequence)
 
-1. **Yes / curious:** send the mutual NDA same day ("your paper or mine"), with the column
+1. **Qualify before anything else:** closed-opportunity count last year, primary CRM,
+   named discount-policy owner. If the count is short, run [[objection-inventory]] #9
+   (offer the 2-3 year lookback, then the narrower read, then a polite no) rather than
+   proceeding on hope.
+2. **Yes / curious:** send the mutual NDA same day ("your paper or mine"), with the column
    one-pager. Do not make them ask twice.
-2. **NDA signed:** send [[data-request]]. Require closed-lost rows; won-only files do not
+3. **NDA signed:** send [[data-request]]. Require closed-lost rows; won-only files do not
    qualify for the free diagnostic.
-3. **CSV received:** validate intake, confirm receipt with the row counts we read, and
+4. **CSV received:** validate intake, confirm receipt with the row counts we read, and
    commit the readout date: five business days after validated intake. Log everything in
    `docs/ops/funnel-tracker.csv` and follow `docs/ops/data-handling-sop.md` for the file
    itself.
-4. **Readout call:** run [[readout-close-script]]. CFO invited by the champion.
+5. **Readout call:** run [[readout-close-script]]. CFO invited by the champion.
 
 ## Referral-ask template (warm, via community or mutual contact)
 
@@ -223,11 +245,13 @@ CTA: a one-word reply. Genuine close, not a guilt trip.
 > Hi {{first_name}},
 >
 > Quick ask via {{referral_source}}. I run free pricing-upside diagnostics for a few
-> $15-60M ARR usage-based SaaS teams: they send a CSV of closed deals under NDA, I send
-> back their price realization and win rate by discount band, with receipts.
+> $10-100M ARR usage-based and hybrid SaaS teams with real deal volume: they send a CSV of
+> closed deals under NDA, I send back their price realization and win rate by discount
+> band, with receipts.
 >
-> Do you know a VP RevOps or Head of Pricing at a company on hybrid or usage pricing who
-> would want a free read on their discounting? Happy to send the one-pager you can forward.
+> Do you know a VP RevOps, Deal Desk Lead or Head of Pricing at a company on hybrid or
+> usage pricing who would want a free read on their discounting? Happy to send the
+> one-pager you can forward.
 >
 > Thanks,
 > Adhithya
@@ -237,9 +261,11 @@ CTA: a one-word reply. Genuine close, not a guilt trip.
 - Touches 1-2-4-6 are one email thread; touch 5 starts fresh so it does not read as nag #5.
 - Keep the NDA ready the moment anyone says yes.
 - No fake logos, metrics, or customer names, ever. The offer's asymmetry is the pitch.
-- Send Tuesday-Thursday, prospect's morning. Skip the weeks of Jul 4 and major holidays.
+- Send Tuesday-Thursday, prospect's morning. Skip major holiday weeks.
 - Build the list to 120-150 contacts against [[personas]] before touch 1 goes out;
   expect cold touch-to-CSV conversion in the 1-2% range, not 5-10%.
+- Any market fact quoted in a touch (the M&A closes above) carries a re-verify date. Check
+  `vault/Competitive/2026-08-09-metering-landgrab-why-now.md` before a batch goes out.
 
 ## Related
 

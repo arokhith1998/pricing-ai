@@ -5,13 +5,17 @@
 //   POST {action:"canonical", ...}    → ask a canonical question; returns
 //                                       narrative + structured opportunities
 //   POST {action:"log", ...}          → record accept / reject on opportunities
-import { requireLead } from "@/lib/gate";
+import { customerRef, requireLead } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
-const API_HEADERS = {
-  "Content-Type": "application/json",
-  "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
-};
+
+async function apiHeaders(): Promise<Record<string, string>> {
+  return {
+    "Content-Type": "application/json",
+    "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+    "X-Pricekeel-Customer": await customerRef(),
+  };
+}
 
 async function forwardJson(url: string, init: RequestInit) {
   try {
@@ -33,12 +37,13 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const action = url.searchParams.get("action") || "canonical";
+  const headers = await apiHeaders();
   if (action === "decisions") {
     const sid = url.searchParams.get("session_id") || "";
     return forwardJson(`${API}/copilot/decisions?session_id=${encodeURIComponent(sid)}`,
-                       { method: "GET", headers: API_HEADERS });
+                       { method: "GET", headers });
   }
-  return forwardJson(`${API}/copilot/canonical`, { method: "GET", headers: API_HEADERS });
+  return forwardJson(`${API}/copilot/canonical`, { method: "GET", headers });
 }
 
 export async function POST(req: Request) {
@@ -54,16 +59,17 @@ export async function POST(req: Request) {
   }
   const action = body.action ?? "canonical";
   delete body.action;
+  const headers = await apiHeaders();
   if (action === "log") {
     return forwardJson(`${API}/copilot/log`, {
       method: "POST",
-      headers: API_HEADERS,
+      headers,
       body: JSON.stringify(body),
     });
   }
   return forwardJson(`${API}/copilot/canonical`, {
     method: "POST",
-    headers: API_HEADERS,
+    headers,
     body: JSON.stringify(body),
   });
 }

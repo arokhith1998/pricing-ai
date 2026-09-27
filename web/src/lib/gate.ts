@@ -24,8 +24,12 @@
 import { cookies } from "next/headers";
 import {
   ACCESS_COOKIE,
+  DEMO_TENANT_COOKIE,
   LEAD_COOKIE,
+  demoTenantCookieOptions,
+  makeDemoTenantCookieValue,
   verifyAccessCookieValue,
+  verifyDemoTenantCookieValue,
   verifyLeadCookieValue,
 } from "@/lib/auth";
 import { isValidAccessCode } from "@/lib/store";
@@ -50,16 +54,29 @@ export async function requireAccess(): Promise<Response | null> {
 }
 
 // The tenant key for the decision log: the verified access code when the
-// visitor has one (each design partner gets their own), otherwise "default".
-// The exceptions/digest proxies forward this to FastAPI as X-Pricekeel-Customer
-// so one lead-gated visitor can never read another customer's logged decisions.
-// Lead-only visitors (sample demo, no access code) all share "default", which
-// is correct: they are looking at the shared demo book, not customer data.
+// visitor has one (each design partner gets their own), otherwise a signed
+// per-visitor demo tenant ("demo:<uuid>"). Every proxy that talks to the
+// governance/RAG/rate-limit-scoped backend routes forwards this as
+// X-Pricekeel-Customer so one visitor can never read another's logged
+// decisions, uploaded docs, or exhaust another visitor's rate-limit bucket.
+//
+// Lead-only visitors (sample demo, no access code) all look at the same
+// shared demo book (book_source "demo") -- that part is intentionally
+// shared. Only the decision-log/doc-store tenant is per-visitor: without it,
+// visitor A's typed exception justification was readable by visitor B via
+// GET /exceptions, because both landed under the same "default" bucket.
 export async function customerRef(): Promise<string> {
-  const value = (await cookies()).get(ACCESS_COOKIE)?.value;
-  const verified = await verifyAccessCookieValue(value);
+  const jar = await cookies();
+  const accessValue = jar.get(ACCESS_COOKIE)?.value;
+  const verified = await verifyAccessCookieValue(accessValue);
   if (verified.ok && (await isValidAccessCode(verified.code))) {
     return verified.code;
   }
-  return "default";
+
+  const existing = await verifyDemoTenantCookieValue(jar.get(DEMO_TENANT_COOKIE)?.value);
+  if (existing) return `demo:${existing}`;
+
+  const id = crypto.randomUUID();
+  jar.set(DEMO_TENANT_COOKIE, await makeDemoTenantCookieValue(id), demoTenantCookieOptions());
+  return `demo:${id}`;
 }

@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pricing.ingest import ingest_verbose
+from pricing.ingest import CurrencyBlockedError, ingest_verbose
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXDIR = ROOT / "data" / "synthetic" / "round3-fixtures"
@@ -53,12 +53,33 @@ def test_ambiguous_dates_assumption_is_disclosed():
     assert disclosed, f"date assumption not disclosed; notes={report.notes}"
 
 
-def test_mixed_currency_is_flagged():
-    """Stripping symbols would sum EUR + USD into one meaningless total; the
-    mixed currency must be flagged."""
-    _df, report = ingest_verbose(FIXDIR / "mixed_currency.csv")
+def test_mixed_currency_blocks_by_default():
+    """Stripping symbols would sum EUR + USD into one meaningless total.
+    2026-09-26: this now blocks instead of warn-and-sum. The report attached
+    to the exception still discloses what was found (which currencies, how
+    many rows), even though ingestion refused to complete."""
+    with pytest.raises(CurrencyBlockedError) as exc_info:
+        ingest_verbose(FIXDIR / "mixed_currency.csv")
+    report = exc_info.value.report
     assert "€" in report.currencies and "$" in report.currencies
     assert len(report.currencies) > 1
+    assert report.blockers
+    assert "EUR" in report.blockers[0] and "USD" in report.blockers[0]
+
+
+def test_mixed_currency_normalizes_with_fx_rates():
+    """Opt-in fx_rates converts every row to USD and discloses the rate date,
+    rather than the default block."""
+    df, report = ingest_verbose(
+        FIXDIR / "mixed_currency.csv",
+        fx_rates={"EUR": 1.08},
+        fx_rates_date="2026-09-01",
+    )
+    assert report.fx_normalized is True
+    assert report.fx_rate_date == "2026-09-01"
+    assert not report.blockers
+    assert (df["currency"] == "USD").all()
+    assert len(df) > 0
 
 
 def test_uplift_deals_kept_as_pricing_power():

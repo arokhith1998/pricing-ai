@@ -302,9 +302,11 @@ def test_exception_verdict_contract_and_ev_delta_sign(client, deal_id):
                       "below_floor", "ev_delta_vs_recommended",
                       "win_prob_at_requested", "win_prob_at_recommended",
                       "rationale", "method"}
-    # The demo path runs the modeled EV curve; the verdict says so, so it is
-    # never mistaken for the live band guardrail.
-    assert v["method"] == "modeled_ev_curve"
+    # The demo path sweeps the deal's cohort-clipped EV curve; the verdict
+    # carries the engine's own label (an interior peak, or the support floor
+    # when the peak sits on the edge of the cohort's support), so it is never
+    # mistaken for the live band guardrail.
+    assert v["method"] in ("modeled_ev_curve", "support_floor")
     # Percent 0-100 surface; the model grid tops out at 40.
     assert 0.0 <= v["recommended_pct"] <= 40.0
     # Win probabilities stay 0-1 fractions.
@@ -328,11 +330,59 @@ def test_exception_verdict_contract_and_ev_delta_sign(client, deal_id):
                              "win_prob_at_recommended")})
 
 
+def test_exceptions_and_recommend_agree_on_one_deal(client):
+    """code-reviewer major (2026-09-26): exception_verdict used to call
+    recommend_discount without the cohort, so /exceptions swept 0-40% while
+    /recommend swept the clipped cohort grid and the two disagreed on the
+    same deal. Requesting exactly the deal's own discount must now reproduce
+    /recommend's recommendation, win probabilities and method, on a deal
+    from every segment."""
+    deals = client.get("/deals", params={"limit": 200}).json()["deals"]
+    by_segment = {}
+    for d in deals:
+        by_segment.setdefault(d["segment"], d)
+    assert len(by_segment) >= 2
+    for seg, d in by_segment.items():
+        rec = client.post("/recommend", json={
+            "opportunity_id": d["opportunity_id"]}).json()
+        exc = client.post("/exceptions", json={
+            "deal_id": d["opportunity_id"],
+            "requested_discount_pct": rec["current_discount"] * 100.0,
+            "justification": "parity check", "requested_by": "test"}).json()
+        v = exc["verdict"]
+        assert v["method"] == rec["method"], seg
+        assert v["recommended_pct"] == pytest.approx(
+            rec["recommended_discount"] * 100.0, abs=1e-6), seg
+        assert v["win_prob_at_recommended"] == pytest.approx(
+            rec["win_prob_at_rec"], abs=1e-9), seg
+        assert v["win_prob_at_requested"] == pytest.approx(
+            rec["win_prob_at_current"], abs=1e-9), seg
+        assert v["ev_delta_vs_recommended"] == pytest.approx(
+            -rec["uplift"], abs=1e-6), seg
+
+
 def test_exception_unknown_deal_404(client):
     r = client.post("/exceptions", json={
         "deal_id": "OPP-DOES-NOT-EXIST", "requested_discount_pct": 20.0,
         "justification": "x", "requested_by": "rep@x.com"})
     assert r.status_code == 404
+
+
+def test_exception_justification_and_requested_by_length_caps_422(client, deal_id):
+    over_justification = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2001, "requested_by": "rep@x.com"})
+    assert over_justification.status_code == 422
+
+    over_requested_by = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x", "requested_by": "y" * 121})
+    assert over_requested_by.status_code == 422
+
+    at_cap = client.post("/exceptions", json={
+        "deal_id": deal_id, "requested_discount_pct": 20.0,
+        "justification": "x" * 2000, "requested_by": "y" * 120})
+    assert at_cap.status_code == 200
 
 
 def test_exception_out_of_range_422(client, deal_id):
@@ -444,6 +494,40 @@ def test_digest_aggregates_seeded_entries_with_exact_headline():
     # The largest below-floor request (22.0, not the stale 39.0) is named.
     assert any("22.0 percent" in ln and "D-22" in ln for ln in d["lines"])
     assert not any("D-OLD" in ln for ln in d["lines"])
+
+
+def test_digest_counts_one_crm_override_not_the_approval_or_writeback():
+    """Known-answer test for the digest miscount (code-reviewer finding,
+    reproduced): one CRM override request, its approval, and one writeback
+    receipt must render as 1 exception request, 1 outside the floor, not 3
+    requests / 0 below floor."""
+    override_verdict = {"requested_pct": 32.0, "outside_guardrail": True}
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "override_requested",
+                 "actor": "rep@x.com", "verdict": override_verdict},
+        decision="override_requested", requested_by="rep@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm", "event": "approved",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="approved", requested_by="desk@x.com",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="SF-1",
+        payload={"source": "salesforce_crm_writeback",
+                 "event": "salesforce_writeback_succeeded",
+                 "actor": "desk@x.com", "verdict": override_verdict},
+        decision="salesforce_writeback_succeeded", requested_by="desk@x.com",
+    )
+
+    d = governance.build_digest(analysis=None)
+
+    assert d["headline"] == ("1 exception request this week, 1 below the "
+                             "15 percent floor.")
+    assert d["stats"]["exceptions_total"] == 1
+    assert d["stats"]["exceptions_below_floor"] == 1
 
 
 def test_digest_without_book_has_null_stats():

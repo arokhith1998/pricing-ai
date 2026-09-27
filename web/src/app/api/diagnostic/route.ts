@@ -1,6 +1,6 @@
 // Same-origin proxy: forward an uploaded CSV to the FastAPI /diagnostic
 // endpoint. Keeps the API URL server-side; the API deletes the file after use.
-import { requireAccess } from "@/lib/gate";
+import { customerRef, requireAccess } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
@@ -23,10 +23,28 @@ export async function POST(req: Request) {
   try {
     const upstream = await fetch(`${API}/diagnostic`, {
       method: "POST",
-      headers: { "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "" },
+      headers: {
+        "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+        "X-Pricekeel-Customer": await customerRef(),
+      },
       body: form,
     });
     if (!upstream.ok) {
+      // 422 carries a specific blocker (e.g. mixed-currency file); forward the
+      // detail and blockers list instead of the generic template message.
+      // Keep the generic message for 5xx (upstream failure, nothing to show).
+      if (upstream.status === 422) {
+        const body = (await upstream.json().catch(() => null)) as
+          | { detail?: string; blockers?: string[] }
+          | null;
+        return Response.json(
+          {
+            error: body?.detail || "Could not analyze that file. Check it against the template.",
+            blockers: body?.blockers ?? [],
+          },
+          { status: 422 },
+        );
+      }
       return Response.json(
         { error: "Could not analyze that file. Check it against the template." },
         { status: 502 },

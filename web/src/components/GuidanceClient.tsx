@@ -68,11 +68,15 @@ function OutcomeChip({ won }: { won: boolean }) {
 }
 
 function Comparables({ rows }: { rows: ComparableDeal[] }) {
+  const hasWon = rows.some((r) => r.is_won);
+  const hasLost = rows.some((r) => !r.is_won);
+  const outcomeLabel =
+    hasWon && hasLost ? ", won and lost" : hasWon ? ", all won" : hasLost ? ", all lost" : "";
   return (
     <div>
       <h3 className="text-sm font-semibold text-fg">Deals like this one</h3>
       <p className="mt-0.5 text-xs text-slate">
-        The closest closed deals by segment, size, and discount, won and lost.
+        The closest closed deals by segment, size, and discount{outcomeLabel}.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
@@ -161,14 +165,29 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
 }
 
 // Below this many percentage points of change in win probability, the
-// headline sentence calls the move "barely" moving the odds. Chosen as a
-// materiality cut, not a statistical one: the confidence caveat below the
-// headline already tells the reader this model calibrates within a few
-// points of the actual win rate, so a 1-2 point shift reads as noise a
-// reasonable rep would not act on. Above the threshold the sentence must
-// name the actual change instead of describing it as negligible, since
-// that is exactly the deal where the tradeoff being made is real.
+// headline sentence calls the move "barely" moving the odds. This is a
+// materiality cut, not a statistical one, and it is deliberately NOT
+// justified by the model's calibration: the aggregate predicted-versus-actual
+// pair looks close, but per predicted band the model is compressed toward the
+// middle, so a 2-point displayed change is not 2 points of real-world
+// difference. The cut says only that a rep would not act on a change this
+// small. Above the threshold the sentence must name the actual change instead
+// of calling it negligible, since that is the deal where the tradeoff is real.
 export const WIN_PROB_BARELY_THRESHOLD_PTS = 2;
+
+// Plain-language labels for Recommendation.method (api/routers/model.py),
+// so the panel never shows the raw snake_case value. Unknown/future values
+// fall back to a de-snake-cased render rather than disappearing.
+const METHOD_LABEL: Record<string, string> = {
+  modeled_ev_curve: "modeled EV curve",
+  band_guardrail: "band guardrail",
+  support_floor: "support floor",
+};
+
+function methodLabel(method: string | undefined): string | null {
+  if (!method) return null;
+  return METHOD_LABEL[method] ?? method.replace(/_/g, " ");
+}
 
 function ConfidenceCaveat({ c }: { c: Confidence }) {
   return (
@@ -176,10 +195,24 @@ function ConfidenceCaveat({ c }: { c: Confidence }) {
       <span className="font-semibold text-ink">How to read this.</span> These
       patterns are correlational, not causal: bigger or more competitive deals
       attract bigger discounts, so some of the gap is justified. Treat the
-      recommendation as decision support for a human, not an instruction. On
-      held-out deals the model ranks at {c.auc.toFixed(2)} AUC and calibrates to{" "}
-      {pct(c.mean_pred, 0)} predicted versus {pct(c.base_rate, 0)} actual win
-      rate, learned from {c.n_train.toLocaleString()} of your closed deals.
+      recommendation as decision support for a human, not an instruction.{" "}
+      {c.split === "random_stratified" ? (
+        <>
+          Close dates in this book could not be used, so the model was scored on
+          a random holdout rather than on deals that closed later. Treat these
+          numbers as optimistic.
+        </>
+      ) : (
+        <>
+          Scored on deals that closed after every deal it learned from
+          {c.test_from ? ` (from ${c.test_from})` : ""}, the model ranks at{" "}
+          {c.auc.toFixed(2)} AUC.
+        </>
+      )}{" "}
+      Across those deals it predicts {pct(c.mean_pred, 0)} wins against{" "}
+      {pct(c.base_rate, 0)} actual, an average that holds better than any single
+      deal&apos;s probability does. It learned from{" "}
+      {c.n_train.toLocaleString()} of your closed deals.
     </div>
   );
 }
@@ -188,7 +221,12 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
   const [selected, setSelected] = useState(deals[0]?.opportunity_id ?? "");
   const [rec, setRec] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  // null = no error. A 4xx from the proxy means the backend understood the
+  // request and rejected it (bad input); a 5xx or network failure means the
+  // backend is actually unreachable. These are different problems with
+  // different fixes, so they get different messages instead of one generic
+  // "is the API running?" for both.
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selected) return;
@@ -201,17 +239,33 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
     // would itself become "unused directive" and re-trigger lint.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    setError(false);
+    setError(null);
     fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ opportunity_id: selected }),
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        const body = (await r.json().catch(() => null)) as { error?: string } | null;
+        const message =
+          r.status >= 400 && r.status < 500
+            ? body?.error ?? "This deal could not be priced with the data given."
+            : "Could not load guidance for this deal. Is the API running?";
+        throw new Error(message);
+      })
       .then((data: Recommendation) => {
         if (!cancelled) setRec(data);
       })
-      .catch(() => !cancelled && setError(true))
+      .catch(
+        (e: unknown) =>
+          !cancelled &&
+          setError(
+            e instanceof Error && e.message
+              ? e.message
+              : "Could not load guidance for this deal. Is the API running?",
+          ),
+      )
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -252,11 +306,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
         <p className="animate-pulse text-sm text-slate">Working out the best discount…</p>
       ) : null}
 
-      {error ? (
-        <p className="text-sm text-coral">
-          Could not load guidance for this deal. Is the API running?
-        </p>
-      ) : null}
+      {error ? <p className="text-sm text-coral">{error}</p> : null}
 
       {rec ? (
         <div className={`space-y-6 ${loading ? "opacity-60" : ""}`}>
@@ -291,8 +341,17 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                       {dWinPts} points, for about{" "}
                     </>
                   )}
-                  <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
-                  more in expected value.
+                  {rec.uplift >= 0 ? (
+                    <>
+                      <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
+                      more in expected value.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-coral">{money(Math.abs(rec.uplift))}</span>{" "}
+                      less in expected value.
+                    </>
+                  )}
                 </>
               ) : (
                 <>to maximize expected value on a {money(rec.list_acv)} list deal.</>
@@ -306,6 +365,11 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               label="Recommended discount"
               value={pct0(rec.recommended_discount)}
               accent="teal"
+              sub={
+                methodLabel(rec.method)
+                  ? `via ${methodLabel(rec.method)}${rec.at_grid_edge ? ", at the edge of the tested range" : ""}`
+                  : undefined
+              }
             />
             <Stat
               label="Win probability"
@@ -319,6 +383,13 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               sub="vs the discount given"
             />
           </div>
+
+          {rec.caveat ? (
+            <p className="rounded-lg border border-mist bg-surface-2 p-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">About that expected-value figure.</span>{" "}
+              {rec.caveat}
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm lg:col-span-3">
@@ -345,7 +416,10 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               <p className="mt-1 text-sm text-slate">
                 The factors that move this deal&apos;s win chance the most.
               </p>
-              <ul className="mt-3">
+              <h3 className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate">
+                At the current discount ({pct0(rec.current_discount)})
+              </h3>
+              <ul className="mt-1">
                 {rec.top_factors.map((f) => (
                   <FactorRow
                     key={f.label}
@@ -355,6 +429,23 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                   />
                 ))}
               </ul>
+              {rec.top_factors_at_recommended ? (
+                <>
+                  <h3 className="mt-4 text-xs font-semibold uppercase tracking-wider text-teal">
+                    At the recommended discount ({pct0(rec.recommended_discount)})
+                  </h3>
+                  <ul className="mt-1">
+                    {rec.top_factors_at_recommended.map((f) => (
+                      <FactorRow
+                        key={f.label}
+                        label={f.label}
+                        value={f.value}
+                        direction={f.direction}
+                      />
+                    ))}
+                  </ul>
+                </>
+              ) : null}
             </div>
           </div>
 

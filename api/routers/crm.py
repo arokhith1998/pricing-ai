@@ -21,14 +21,163 @@ mid-import (main.py imports this router).
 
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
+import os
+import subprocess
+
+import psycopg
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pricing import crm as crm_mod
 from pricing import governance as governance_mod
 from api.shared import analysis_payload
 
+logger = logging.getLogger("pricekeel.api.crm")
+
 router = APIRouter()
+
+
+# --- evidence_version (CTO finding 4) ----------------------------------------
+#
+# The acceptance criteria for the CRM workflow promise a persisted evidence
+# version on every verdict so a past recommendation is checkable against the
+# exact book, policy, engine, and code that produced it. None existed. This
+# fingerprints what produced the number, not the number itself: two runs over
+# the same book, threshold, and code land on the same hash, and changing any
+# one input changes it.
+
+_SYNC_TIMESTAMP_KEYS = ("synced_at", "last_modified_date", "systemmodstamp")
+
+
+def _git_sha() -> str:
+    """The deployed commit, for the evidence fingerprint. PRICEKEEL_GIT_SHA
+    or Render's own RENDER_GIT_COMMIT win when set (cheap, no subprocess in
+    the request path on a real deploy); `git rev-parse` is the local-dev
+    fallback; "unknown" means neither was available."""
+    for var in ("PRICEKEEL_GIT_SHA", "RENDER_GIT_COMMIT"):
+        sha = os.environ.get(var, "").strip()
+        if sha:
+            return sha
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=True,
+        )
+        sha = out.stdout.strip()
+        if sha:
+            return sha
+    except Exception:  # noqa: BLE001, evidence_version must degrade, not 500
+        pass
+    return "unknown"
+
+
+def _records_hash(records: list[dict]) -> str:
+    """sha256 of canonical JSON of `records`, sorted by opportunity_id.
+
+    2026-09-26 blocker fix: the fingerprint used to hash `len(records)` and a
+    sync timestamp that reads "none" on every Salesforce adapter today (see
+    `_max_sync_timestamp`), so two DIFFERENT two-deal books hashed
+    identically -- evidence_version promised a fingerprint of the book that
+    produced a verdict and did not actually deliver one. Sorting by
+    opportunity_id makes the hash independent of request-payload row order.
+    """
+    canonical = sorted(
+        (dict(row) for row in records),
+        key=lambda row: str(row.get("opportunity_id") or ""),
+    )
+    blob = json.dumps(canonical, sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def _max_sync_timestamp(records: list[dict]) -> str:
+    """Latest per-record sync/modification timestamp across the supplied
+    book, when the caller provides one. The current Salesforce adapter sends
+    no such field per record, so this reads "none" today; it activates the
+    moment one of these keys appears on a record, and that presence is
+    itself part of the fingerprint (a book with real sync timestamps hashes
+    differently from one without)."""
+    values = [
+        str(row[key])
+        for row in records
+        for key in _SYNC_TIMESTAMP_KEYS
+        if row.get(key)
+    ]
+    return max(values) if values else "none"
+
+
+def evidence_version(records: list[dict], policy_threshold_pct: float,
+                     method: str) -> tuple[str, dict]:
+    """Reproducibility fingerprint for a CRM verdict: a hash of the book
+    itself (`_records_hash`), max sync timestamp, policy threshold, engine
+    label, and git SHA, hashed together.
+
+    Returns `(digest, inputs)`: the 16-hex-char digest AND the fingerprint
+    inputs it was built from (2026-09-26 fix), so a stored verdict can be
+    inspected for exactly what produced it, not just an opaque digest a
+    reviewer cannot decompose.
+    """
+    git_sha = _git_sha()
+    if git_sha == "unknown":
+        logger.warning(
+            "evidence_version: git SHA could not be resolved (no "
+            "PRICEKEEL_GIT_SHA / RENDER_GIT_COMMIT set, and `git rev-parse` "
+            "failed). Two different deployed builds will fingerprint "
+            "identically until this is set."
+        )
+    inputs = {
+        "records": len(records),
+        "records_hash": _records_hash(records),
+        "max_sync": _max_sync_timestamp(records),
+        "policy_threshold_pct": float(policy_threshold_pct),
+        "method": method,
+        "git_sha": git_sha,
+    }
+    fingerprint = "|".join(f"{k}={v}" for k, v in inputs.items())
+    digest = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
+    return digest, inputs
+
+
+def _insert_or_fail_closed(*, kind: str, deal_id: str, payload: dict,
+                           decision: str, justification: str,
+                           requested_by: str, customer_ref: str) -> dict:
+    """Append a CRM workflow decision-log row; fail closed in production
+    instead of quietly degrading (CTO finding 3, code-reviewer finding 1).
+
+    A CRM workflow event (override request, approval, rejection, outcome
+    reconciliation, writeback receipt) IS the audit trail this product sells;
+    a write that lands in the in-memory fallback there is not durable and
+    must not be reported as a 200. The demo /exceptions path and copilot
+    logging keep the memory fallback with a 200 (Finding 5's original
+    behavior) since those are not price-affecting workflow decisions.
+
+    Always logs a warning naming the event on a fallback, in dev too, so a
+    local operator sees the same signal production would alert on; only
+    raises 503 when `main._is_prod()`.
+    """
+    row = governance_mod.STORE.insert(
+        kind=kind, deal_id=deal_id, payload=payload, decision=decision,
+        justification=justification, requested_by=requested_by,
+        customer_ref=customer_ref,
+    )
+    if not row.get("persisted", False):
+        logger.warning(
+            "CRM workflow event %r for deal %s fell back to the in-memory "
+            "decision log (DATABASE_URL unset or unreachable); this write "
+            "is not durable.", payload.get("event", decision), deal_id,
+        )
+        from api import main  # deferred: see module docstring
+        if main._is_prod():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The decision log could not be durably written, so this "
+                    "CRM workflow action was not recorded. Try again shortly."
+                ),
+            )
+    return row
 
 
 class CRMAnalyzeReq(BaseModel):
@@ -67,8 +216,11 @@ _CRM_EVENTS = {
 class CRMWorkflowReq(CRMAnalyzeReq):
     deal_id: str
     event: str
-    actor: str = ""
-    justification: str = ""
+    # Operator-typed free text, unbounded before this cap (code-reviewer
+    # finding 2): an unauthenticated caller could write arbitrarily large
+    # strings into the decision log on every request.
+    actor: str = Field("", max_length=120)
+    justification: str = Field("", max_length=2000)
     requested_discount_pct: float | None = None
     outcome: str = ""
 
@@ -207,6 +359,15 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
             # math implicitly (Gap 2 honesty).
             "method": "band_guardrail",
         }
+        # Fingerprints the book, threshold, and code that produced this
+        # verdict (CTO finding 4). The approval/rejection branch above copies
+        # the override request's stored verdict rather than recomputing one,
+        # so it carries this same evidence_version through unchanged; that is
+        # correct; a decision is made on the evidence that was captured at
+        # request time, not on a fresh fetch the approver happens to submit.
+        verdict["evidence_version"], verdict["evidence_inputs"] = evidence_version(
+            req.records, req.policy_threshold_pct, verdict["method"],
+        )
     effective_justification = (
         req.justification.strip()
         or str(previous_payload.get("justification") or "")
@@ -224,7 +385,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         "outcome": req.outcome,
         "verdict": verdict,
     }
-    row = governance_mod.STORE.insert(
+    row = _insert_or_fail_closed(
         kind="exception",
         deal_id=req.deal_id,
         payload=payload,
@@ -241,6 +402,29 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         "created_at": str(row["created_at"]),
         "persisted": bool(row.get("persisted", False)),
     }
+
+
+def _store_reachable() -> bool:
+    """Cheap connectivity probe: is the decision log's database reachable
+    right now?
+
+    crm_reconcile used to check `persisted` inside `_insert_or_fail_closed`
+    once per outcome, so a DB blip partway through a large batch (up to 5000
+    outcomes) would 503 after N rows had already landed durably, with no way
+    for the caller to know which (code-reviewer finding). Probing once BEFORE
+    the loop lets a down/unreachable database fail the whole batch closed
+    immediately, before any row is written, in production. Mirrors
+    governance.DecisionStore.insert's own connect-or-fall-back logic without
+    duplicating the insert path itself.
+    """
+    url = governance_mod._db_url()
+    if url is None:
+        return False
+    try:
+        with psycopg.connect(url, connect_timeout=governance_mod._CONNECT_TIMEOUT_S):
+            return True
+    except Exception:  # noqa: BLE001 - a failed probe just means "not reachable"
+        return False
 
 
 class CRMOutcome(BaseModel):
@@ -262,6 +446,16 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     """
     from api import main  # deferred: see module docstring
     customer = main._customer_ref(request)
+    # Fail closed BEFORE writing anything, not partway through the batch: see
+    # _store_reachable's docstring.
+    if main._is_prod() and not _store_reachable():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The decision log could not be reached, so this reconcile "
+                "batch was not recorded. Try again shortly."
+            ),
+        )
     added = []
     outcomes = [
         item for item in req.outcomes[:5000]
@@ -296,7 +490,7 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
             "prior_event": prior_event,
             "verdict": latest_payload.get("verdict") or {},
         }
-        row = governance_mod.STORE.insert(
+        row = _insert_or_fail_closed(
             kind="exception",
             deal_id=item.deal_id,
             payload=payload,
@@ -315,10 +509,13 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
 
 class CRMWritebackReq(BaseModel):
     deal_id: str
-    actor: str
+    # Same unauthenticated-caller cap as CRMWorkflowReq.actor / task_id
+    # (code-reviewer finding 2): free text until a real identity exists, so
+    # both are bounded before they reach the decision log.
+    actor: str = Field(..., max_length=120)
     action_event: str
     success: bool
-    task_id: str = ""
+    task_id: str = Field("", max_length=200)
     error: str = ""
 
 
@@ -356,7 +553,7 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
             "error": req.error.strip()[:1000] if not req.success else "",
         },
     }
-    row = governance_mod.STORE.insert(
+    row = _insert_or_fail_closed(
         kind="exception",
         deal_id=req.deal_id,
         payload=payload,

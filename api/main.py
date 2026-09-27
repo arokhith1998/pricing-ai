@@ -56,6 +56,7 @@ from fastapi.responses import JSONResponse
 
 from pricing import assist
 from pricing import crm as crm_mod  # noqa: F401  (re-exported for tests/test_crm.py)
+from pricing import ingest as ingest_mod
 from pricing import matching as matching_mod  # noqa: F401  (re-exported for tests/test_api_perimeter.py)
 
 from api.routers import (
@@ -85,7 +86,19 @@ AUTH_HEADER = "x-pricekeel-key"
 AUTH_EXEMPT_PATHS = {"/", "/health"}
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
-UPLOAD_PATHS = {"/map-headers", "/diagnostic", "/docs/upload"}
+# Exact paths, or path prefixes (trailing "/", matched the same way as
+# RATE_LIMITS below). /crm/* JSON bodies were unguarded here (backend-engineer
+# finding 3): CRMAnalyzeReq.records/CRMReconcileReq.outcomes had no
+# perimeter-level cap, so Starlette and pydantic fully deserialized an
+# oversized body into memory before pricing.crm.MAX_CRM_RECORDS ever saw it.
+UPLOAD_PATHS = {"/map-headers", "/diagnostic", "/docs/upload", "/crm/"}
+
+
+def _matches_prefixed_path(path: str, rules: set[str]) -> bool:
+    """Exact match, or prefix match for a rule ending in '/' (same convention
+    as _rate_rule_for)."""
+    return any(path == rule or (rule.endswith("/") and path.startswith(rule))
+              for rule in rules)
 
 # Per-request caps for the multi-file docs upload (Finding 4). The single-file
 # byte cap (_read_capped) and the chunk-count cap (rag._doc_store_append) do
@@ -104,15 +117,21 @@ RATE_LIMITS: dict[str, tuple[int, float]] = {
     "/map-headers": (30, 60.0),
     "/docs/upload": (30, 60.0),
     # Guidance-tier endpoint: CPU-bound model sweep plus a decision-log write.
-    # (POST only: the middleware never limits GET, so reads stay unmetered,
-    # same as /recommend.)
+    # (POST only: the middleware never limits GET, so reads stay unmetered.)
     "/exceptions": (30, 60.0),
+    # /recommend runs the same model sweep as /exceptions and was the one
+    # uncapped model-cost endpoint (backend-engineer finding 4); same rate.
+    "/recommend": (30, 60.0),
     "/crm/": (20, 60.0),
     # LLM-backed (audit P2 #2): same tier as /ask, /summary, /matching/.
     "/copilot/canonical": (10, 60.0),
     "/map-columns": (10, 60.0),
 }
-# (rule, client_ip) -> deque of request timestamps inside the window.
+# (rule, key) -> deque of request timestamps inside the window. This is a
+# plain in-process dict (backend-engineer finding 6, code-reviewer finding 5):
+# on more than one worker or Render instance it is not shared, so the
+# effective limit becomes limit * process_count. There is no cross-process
+# rate-limit store today; disclosed here rather than silently assumed away.
 _RATE_BUCKETS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 
 
@@ -168,12 +187,31 @@ def _customer_ref(request: Request) -> str:
 
 
 def _client_ip(request: Request) -> str:
-    """Caller IP. Render sits behind a proxy, so trust the first
-    X-Forwarded-For value; fall back to the socket peer."""
-    xff = request.headers.get("x-forwarded-for", "")
-    if xff.strip():
-        return xff.split(",")[0].strip()
+    """Caller IP for rate-limit bucketing.
+
+    X-Forwarded-For is trusted only when PRICEKEEL_TRUST_PROXY is set
+    (code-reviewer finding 5): any caller can set that header itself, so
+    trusting it unconditionally lets a client pick its own bucket, or a
+    proxy that never forwards it (the Next.js tier did not) collapses every
+    caller onto one shared IP. Set PRICEKEEL_TRUST_PROXY on the one deploy
+    that actually sits behind a trusted reverse proxy (Render); everywhere
+    else this falls back to the socket peer."""
+    if os.environ.get("PRICEKEEL_TRUST_PROXY", "").strip():
+        xff = request.headers.get("x-forwarded-for", "")
+        if xff.strip():
+            return xff.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+def _rate_limit_key(request: Request) -> str:
+    """Bucket key for the rate limiter: the caller's tenant header when
+    present, else client IP (code-reviewer finding 5). Keying on the tenant
+    first means one tenant behind a NAT or shared proxy IP shares a single
+    bucket, and an unrelated tenant on the same IP is not starved by it."""
+    customer = request.headers.get(CUSTOMER_HEADER, "").strip()
+    if customer:
+        return f"customer:{customer}"
+    return f"ip:{_client_ip(request)}"
 
 
 @app.middleware("http")
@@ -205,7 +243,7 @@ async def perimeter_middleware(request: Request, call_next):
             )
 
     # 2) Upload size cap (declared size; the read path re-checks actual bytes).
-    if path in UPLOAD_PATHS and request.method == "POST":
+    if _matches_prefixed_path(path, UPLOAD_PATHS) and request.method == "POST":
         try:
             declared = int(request.headers.get("content-length", "0") or "0")
         except ValueError:
@@ -219,12 +257,13 @@ async def perimeter_middleware(request: Request, call_next):
                 )},
             )
 
-    # 3) Per-IP sliding-window rate limit on the expensive endpoints.
+    # 3) Sliding-window rate limit on the expensive endpoints, keyed on
+    # tenant (X-Pricekeel-Customer) with an IP fallback.
     rule = _rate_rule_for(path)
     if rule is not None and request.method == "POST":
         name, limit, window = rule
         retry_after = _rate_limit_retry_after(name, limit, window,
-                                              _client_ip(request))
+                                              _rate_limit_key(request))
         if retry_after is not None:
             return JSONResponse(
                 status_code=429,
@@ -274,11 +313,45 @@ app.add_middleware(
 @app.exception_handler(assist.LLMUnavailableError)
 async def _llm_unavailable_handler(request: Request,
                                    exc: assist.LLMUnavailableError):
-    """A stalled/unreachable LLM provider is a 503, not a hung worker."""
+    """A stalled/unreachable LLM provider is a 503, not a hung worker.
+
+    The provider's raw error text (which can carry account/billing detail or
+    an internal error id) is logged server-side, not forwarded on the wire
+    (silent-failure-hunter finding 6, 2026-09-26).
+    """
+    logger.warning("LLM provider unavailable: %s", exc)
     return JSONResponse(
         status_code=503,
-        content={"detail": f"LLM provider unavailable: {exc}"},
+        content={"detail": "LLM provider unavailable. Try again shortly."},
     )
+
+
+@app.exception_handler(ingest_mod.CurrencyBlockedError)
+async def _currency_blocked_handler(request: Request,
+                                    exc: ingest_mod.CurrencyBlockedError):
+    """A mixed-currency book is a defensible 422 with the blocker text and per-
+    currency row counts CurrencyBlockedError was built to carry, not a bare
+    500 (silent-failure-hunter finding 2, 2026-09-26): api/routers/diagnostic
+    only catches file-parse errors, so this used to reach no handler at all.
+    """
+    logger.warning("Diagnostic blocked: %s", exc)
+    report = getattr(exc, "report", None)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": str(exc),
+            "blockers": list(report.blockers) if report is not None else [str(exc)],
+        },
+    )
+
+
+@app.exception_handler(ingest_mod.SchemaError)
+async def _schema_error_handler(request: Request, exc: ingest_mod.SchemaError):
+    """Any other schema failure (missing required columns, etc): 422 with the
+    exception's own message, which is already user-safe (no stack trace, no
+    internal path)."""
+    logger.warning("Diagnostic rejected: %s", exc)
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 async def _read_capped(file: UploadFile) -> bytes:

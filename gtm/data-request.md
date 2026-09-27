@@ -58,6 +58,7 @@ Include any you have; each one adds depth (governance signals, win-rate drivers,
 | `approved_by` | str | Who approved the discount, if above policy (governance signal). Empty if no approval was recorded. |
 | `competitor_present` | bool | Whether a competitor was in the deal (discount-pressure signal). |
 | `lost_reason` | str | Reason captured on closed_lost deals (`price` \| `product` \| `no_decision` \| `competitor` \| `timing`). |
+| `currency` | str | ISO 4217 code (`USD`, `EUR`, `GBP`). Defaults to USD. If absent we infer it from the currency symbol in the money columns. A file that mixes currencies is blocked with a disclosure rather than summed; send one currency per file, or tell us the FX rate and date to normalize on. |
 
 ## Identity and PII
 

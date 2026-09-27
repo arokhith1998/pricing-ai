@@ -14,12 +14,17 @@ header strings, never any row data. See docs/design/richer-ingest.md.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Optional
 
 import rapidfuzz
 
 from pricing.schema import FIELDS
+
+logger = logging.getLogger("pricekeel.mapping")
+# The embedding layer fails the same way for every header, so warn once.
+_EMBED_FAILURE_LOGGED = False
 
 # Curated synonyms per canonical field. Lowercase, deterministic, easy to grow.
 SYNONYMS: dict[str, list[str]] = {
@@ -152,6 +157,10 @@ SYNONYMS: dict[str, list[str]] = {
         "cogs", "cogs acv", "cost of goods", "cost of goods sold",
         "delivery cost", "infra cost", "cost", "service cost",
     ],
+    "currency": [
+        "currency", "ccy", "curr", "currency code", "currency iso",
+        "iso currency", "transaction currency",
+    ],
 }
 
 _FIELDS_BY_NAME = {f.name: f for f in FIELDS}
@@ -242,8 +251,14 @@ def _field_embeds():
     return _FIELD_EMBEDS
 
 
-def embedding_match(header: str, threshold: float = 0.55) -> Optional[tuple[str, float]]:
-    """Cosine match of the header against every field's description+synonyms."""
+def embedding_match(header: str, threshold: float = 0.55,
+                    notes: Optional[list[str]] = None) -> Optional[tuple[str, float]]:
+    """Cosine match of the header against every field's description+synonyms.
+
+    `notes` collects a reason string when the layer is unavailable, so the
+    caller can tell "no semantic match" from "the semantic layer never ran".
+    """
+    global _EMBED_FAILURE_LOGGED
     try:
         import numpy as np
         m = _model()
@@ -255,8 +270,20 @@ def embedding_match(header: str, threshold: float = 0.55) -> Optional[tuple[str,
         score = float(sims[idx])
         if score >= threshold:
             return (names[idx], score)
-    except Exception:
+    except Exception as exc:
         # If fastembed isn't available at runtime, this layer just no-ops.
+        # The mapper still works on the other layers, but an operator needs
+        # to know the semantic layer is off.
+        if not _EMBED_FAILURE_LOGGED:
+            logger.warning("mapping: embedding layer unavailable, skipping: %s",
+                           type(exc).__name__)
+            _EMBED_FAILURE_LOGGED = True
+        # The log fires once per process; this rides with every result, so the
+        # tenth upload of the day discloses the degradation as loudly as the
+        # first one did.
+        if notes is not None:
+            notes.append(f"embedding layer unavailable ({type(exc).__name__}), "
+                         "semantic header matching was skipped")
         return None
     return None
 
@@ -282,6 +309,15 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     confidence: dict[str, Confidence] = {}
     used: dict[str, str] = {}
     claimed: set[str] = set()
+    # Layers that did not run. Returned to the caller: an unmapped field looks
+    # the same whether nothing matched or the layer that would have matched it
+    # never ran, and only one of those is the customer's data being unusual.
+    notes: list[str] = []
+    # True only when Layer 4 was invoked and raised (silent-failure-hunter
+    # F5): lets onboarding support tell "the LLM ran and found nothing" or
+    # "it was never invoked" apart from "it was invoked and broke", which an
+    # unmapped-column list alone cannot distinguish.
+    llm_fallback_failed = False
 
     def _claim(field: str, header: str, layer: str, conf: Confidence) -> None:
         field_to_header[field] = header
@@ -310,7 +346,7 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     for h in (headers if use_embeddings else []):
         if h in claimed:
             continue
-        r = embedding_match(h)
+        r = embedding_match(h, notes=notes)
         if r and r[0] not in field_to_header:
             conf = "medium" if r[1] >= 0.65 else "low"
             _claim(r[0], h, "embedding", conf)
@@ -325,10 +361,23 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
                 if assist.has_llm():
                     llm_map = assist.map_columns(unmatched_headers)
                     for f, h in (llm_map or {}).items():
-                        if h and h not in claimed and f in unmatched_fields:
+                        # `h in unmatched_headers` is a defense-in-depth check
+                        # (assist.map_columns already enforces this): a header
+                        # this layer did not actually receive must never be
+                        # claimed, regardless of what the LLM returned.
+                        if (h and h in unmatched_headers and h not in claimed
+                                and f in unmatched_fields):
                             _claim(f, h, "llm", "low")
-            except Exception:
-                pass
+            except Exception as exc:
+                # Unmatched fields already show confidence "none" to the user;
+                # the operator still needs to know the LLM layer failed.
+                llm_fallback_failed = True
+                logger.warning("mapping: LLM fallback failed for %d headers: %s",
+                               len(unmatched_headers), type(exc).__name__)
+                notes.append(
+                    f"LLM header fallback failed ({type(exc).__name__}); "
+                    f"{len(unmatched_headers)} unrecognized column(s) were left "
+                    "unmapped without it")
 
     # Always include every field key.
     out_mapping: dict[str, Optional[str]] = {
@@ -337,4 +386,5 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     for f in _FIELDS_BY_NAME:
         confidence.setdefault(f, "none")
 
-    return {"mapping": out_mapping, "confidence": confidence, "used": used}
+    return {"mapping": out_mapping, "confidence": confidence, "used": used,
+            "notes": notes, "llm_fallback_failed": llm_fallback_failed}
