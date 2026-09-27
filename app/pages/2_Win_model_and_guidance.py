@@ -37,7 +37,7 @@ m = tm.metrics
 # Honest calibration claim (audit P2 #5): only say "well calibrated /
 # dependable" when the numbers actually support it.
 calib_msg, well_calibrated = calibration_verdict(
-    m["mean_pred"], m["base_rate"], m.get("brier_skill"))
+    m["mean_pred"], m["base_rate"], brier_skill=m["brier_skill"])
 if well_calibrated:
     st.success(calib_msg)
 else:
@@ -67,14 +67,17 @@ with st.expander("Model quality (advanced)"):
 
 # --- what the model says you could keep --------------------------------------
 ml = get_model_leakage(csv)
+# No claim that this figure is "more dependable" than the Diagnostic page's
+# (mle-reviewer F4): it is judged per deal on each deal's own cohort-clipped
+# sweep, the same one the guidance panel below uses, and that is all it is.
 st.info(
     f"**Judged deal by deal:** these wins needed about "
     f"**{pct(ml['mean_justified_discount'])}** discount on average to win, versus "
     f"**{pct(ml['mean_actual_discount'])}** actually given. That gap is "
     f"**{money(ml['model_excess_won'])}** ({pct(ml['model_excess_pct_of_booked'])} "
-    f"of booked value) across {ml['deals_over_justified']:,} deals. Because it is "
-    "judged per deal, it is more dependable than the single companywide number "
-    "on the Diagnostic page."
+    f"of booked value) across {ml['deals_over_justified']:,} deals. Each deal is "
+    "judged against the discounts its own segment has actually given, never "
+    "against a range the segment has no history in."
 )
 
 gl, gr = st.columns([2, 3])
@@ -102,12 +105,19 @@ with gr:
         opp = st.selectbox("Opportunity", opp_choices)
         didx = res["data"].index[res["data"]["opportunity_id"] == opp][0]
         deal = res["data"].loc[didx]
-        cohort_discounts = res["data"].loc[
-            res["data"]["segment"] == deal["segment"], "discount_pct",
-        ].to_numpy()
+        # Same cohort helper as the API, so this panel and /recommend can
+        # never disagree on one deal.
         rec = model.recommend_discount(
             tm, tm.X_all.loc[[didx]], float(deal["list_acv"]),
-            cohort_discounts=cohort_discounts)
+            cohort_discounts=model.cohort_discounts_for(res["data"], didx))
+
+        if rec["method"] == "no_discount_on_record":
+            st.warning(rec["caveat"])
+            st.stop()
+        if rec["method"] != "modeled_ev_curve":
+            # A support floor or band guardrail is not a modeled peak; say so
+            # above the numbers, not in a footnote (mle-reviewer F1).
+            st.warning(rec["caveat"])
 
         d1, d2, d3 = st.columns(3)
         d1.metric("Discount given", pct(rec["current_discount"]))
@@ -132,9 +142,15 @@ with gr:
             color=BRAND["teal"], strokeDash=[2, 2]).encode(x="d:Q")
         st.altair_chart(alt.layer(ev, wp, rule).resolve_scale(y="independent"),
                         use_container_width=True)
-        st.caption("The solid line is expected value at each discount. The dashed "
-                   "line is win probability. The vertical line marks the "
-                   "recommended discount, where expected value peaks.")
+        if rec["method"] == "modeled_ev_curve":
+            st.caption("The solid line is expected value at each discount. The "
+                       "dashed line is win probability. The vertical line marks "
+                       "the recommended discount, where expected value peaks.")
+        else:
+            st.caption("The solid line is expected value at each discount. The "
+                       "dashed line is win probability. The vertical line marks "
+                       "the recommended discount: the floor of what this "
+                       "segment has actually given, not a peak the model found.")
 
         # Explain the recommended row, not the current one (mle-reviewer F4):
         # SHAP at the current discount can name a different top factor, or

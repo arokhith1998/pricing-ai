@@ -93,7 +93,7 @@ def _explain_factors(tm: "model.TrainedModel", df: pd.DataFrame, idx, *,
         if isinstance(raw, (bool, np.bool_)):
             value = "Yes" if raw else "No"
         elif r.feature == "discount_pct":
-            value = f"{float(raw):.0%}"
+            value = ("not on record" if pd.isna(raw) else f"{float(raw):.0%}")
         elif r.feature == "list_acv":
             value = f"${float(raw):,.0f}"
         else:
@@ -138,33 +138,42 @@ def recommend(req: RecommendReq) -> dict:
     idx = matches[0]
     list_acv = float(df.loc[idx, "list_acv"])
     # The cohort this recommendation is conditioned on (same one band_context
-    # and comparable_deals use): fewer than ~50 deals here means the sweep
-    # would extrapolate past this segment's real support, so recommend_discount
-    # falls back to a band guardrail instead of a curve optimum (mle-reviewer
-    # F3).
-    cohort_discounts = df.loc[
-        df["segment"] == df.loc[idx, "segment"], "discount_pct",
-    ].to_numpy()
+    # and comparable_deals use, built by the same helper /exceptions uses so
+    # the two endpoints can never disagree on one deal): fewer than ~50 deals
+    # here means the sweep would extrapolate past this segment's real
+    # support, so recommend_discount falls back to a band guardrail instead
+    # of a curve optimum (mle-reviewer F3). Non-finite discounts are dropped
+    # inside the helper, so one blank list price in a segment no longer takes
+    # every /recommend in that segment down with a 500 (mle-reviewer F2).
+    cohort_discounts = model.cohort_discounts_for(df, idx)
     rec = model.recommend_discount(tm, tm.X_all.loc[[idx]], list_acv,
                                    cohort_discounts=cohort_discounts)
 
     curve = rec["curve"]
-    # Win probability at the deal's actual discount, read off the same curve.
-    cur_row = curve.iloc[(curve["discount"] - rec["current_discount"]).abs().argmin()]
     return {
         "opportunity_id": req.opportunity_id,
         "account": str(df.loc[idx, "resolved_account_name"]),
         "segment": str(df.loc[idx, "segment"]),
-        # "modeled_ev_curve" on enough cohort support, "band_guardrail" when
-        # there is not. Labeled so the live Salesforce path (always
-        # band_guardrail) is never confused with the stronger engine, and so
-        # a thin-cohort demo deal is never shown a curve it did not earn.
+        # "modeled_ev_curve" only for an interior optimum the model earned;
+        # "support_floor" when the clipped optimum is the edge of the
+        # cohort's support or the curve is flat (mle-reviewer F1);
+        # "band_guardrail" on too little cohort support; and
+        # "no_discount_on_record" when the deal's own discount is blank.
+        # Labeled so the live Salesforce path (always band_guardrail) is
+        # never confused with the stronger engine, and so a floor is never
+        # shown as a peak.
         "method": rec["method"],
-        "caveat": _RECOMMEND_CAVEAT,
+        # Method-specific statement of what was and was not established,
+        # then the general correlational caveat.
+        "caveat": f"{rec['caveat']} {_RECOMMEND_CAVEAT}",
+        "at_grid_edge": rec["at_grid_edge"],
+        "win_prob_gain": rec["win_prob_gain"],
         "list_acv": list_acv,
         "current_discount": rec["current_discount"],
         "recommended_discount": rec["recommended_discount"],
-        "win_prob_at_current": float(cur_row["win_prob"]),
+        # Scored exactly at the deal's own discount, not at the nearest grid
+        # point (code-reviewer major, 2026-09-26).
+        "win_prob_at_current": rec["win_prob_at_current"],
         "win_prob_at_rec": rec["win_prob_at_rec"],
         "expected_acv_at_current": rec["expected_acv_at_current"],
         "expected_acv_at_rec": rec["expected_acv_at_rec"],
@@ -172,10 +181,13 @@ def recommend(req: RecommendReq) -> dict:
         # "top_factors" stays the current-discount explanation (unchanged
         # shape for existing callers); "top_factors_at_recommended" is the
         # new, separately labeled explanation at the row the headline
-        # actually recommends (mle-reviewer F4).
+        # actually recommends (mle-reviewer F4). Empty when there is no
+        # recommended discount to explain.
         "top_factors": _explain_factors(tm, df, idx),
-        "top_factors_at_recommended": _explain_factors(
-            tm, df, idx, discount_override=rec["recommended_discount"]),
+        "top_factors_at_recommended": (
+            _explain_factors(tm, df, idx,
+                             discount_override=rec["recommended_discount"])
+            if rec["recommended_discount"] is not None else []),
         # The evidence behind the recommendation (Phase 3 explainability):
         # similar deals, the segment's win-rate-by-band curve segment, and the
         # model-confidence numbers for the caveat. The panel must stand up in a
