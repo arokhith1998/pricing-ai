@@ -762,7 +762,8 @@ def _ingest_loaded(
         # and not others) used to read as its own currency code and block the
         # whole book as "mixed: NONE, USD" (2026-09-27 fix). Blank cells must
         # not compete as a currency; treat them the same as _MISSING_STRINGS.
-        explicit_currency = df["currency"].astype(str).str.strip().str.upper()
+        # pandas 3 keeps NaN through astype(str); fill first so blanks compare equal to "".
+        explicit_currency = df["currency"].fillna("").astype(str).str.strip().str.upper()
         explicit_currency = explicit_currency.mask(
             explicit_currency.str.lower().isin(_MISSING_STRINGS), "",
         )
@@ -808,7 +809,7 @@ def _ingest_loaded(
     elif "currency" in df.columns:
         # Same blank-cell fix as above: a None/NaN cell must fall back to the
         # row's detected currency code, not the literal string "NONE"/"NAN".
-        supplied = df["currency"].astype(str).str.strip().str.upper()
+        supplied = df["currency"].fillna("").astype(str).str.strip().str.upper()
         supplied = supplied.mask(supplied.str.lower().isin(_MISSING_STRINGS), "")
         df["currency"] = supplied.where(supplied != "", currency_codes)
     else:
