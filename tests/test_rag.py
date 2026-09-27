@@ -218,6 +218,34 @@ def test_rag_system_prompt_forbids_em_dashes_and_contains_none():
     assert "em dash" in rag._SYSTEM.lower()
 
 
+# --- chunks without an embedding are counted, not silently dropped ------------
+
+
+def test_unembedded_chunks_are_counted_and_logged(monkeypatch, stub_embeddings, caplog):
+    """code-reviewer (2026-09-26): retrieve_doc_chunks skipped None-embedding
+    chunks with a bare `continue`. A user whose whole upload failed to embed
+    would read "no relevant passages" as "the document says nothing"."""
+    import logging
+
+    monkeypatch.setattr(rag.assist, "has_llm", lambda: False)
+    chunks = [
+        _chunk("Discounts above 20% need VP approval."),
+        Chunk(doc_id="d2", doc_name="broken.pdf", chunk_idx=0,
+              text="unembedded", page=1, embedding=None),
+        Chunk(doc_id="d2", doc_name="broken.pdf", chunk_idx=1,
+              text="also unembedded", page=2, embedding=None),
+    ]
+    assert rag.count_unembedded(chunks) == 2
+    with caplog.at_level(logging.WARNING, logger="pricekeel.rag"):
+        hits = rag.retrieve_doc_chunks(chunks, "approval")
+    assert [c.doc_name for c, _s in hits] == ["policy.pdf"]
+    assert "2 of 3 uploaded chunks have no embedding" in caplog.text
+
+    ans = rag.ask("q", _base_analysis(), chunks, use_web=False)
+    assert ans.docs_skipped_no_embedding == 2
+    assert rag.ask("q", _base_analysis(), [], use_web=False).docs_skipped_no_embedding == 0
+
+
 # --- tri-state web status ------------------------------------------------------
 
 

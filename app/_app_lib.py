@@ -116,7 +116,7 @@ def get_diagnostic(csv: str, policy: float) -> dict:
 
 @st.cache_data(show_spinner=False)
 def get_load_report(csv: str, policy: float):
-    """The 'what we read from your file' report — rows read / excluded / deduped
+    """The 'what we read from your file' report, rows read / excluded / deduped
     / decoded / sheet chosen. Cached per CSV so the dashboard never recomputes."""
     _df, report = ingest_verbose(csv, policy_threshold=policy)
     return report
@@ -154,27 +154,32 @@ def pct(x: float) -> str:
 
 # Calibration spot-check tolerance for the win-probability model (audit P2 #5):
 # the page must not claim "well calibrated / dependable" unless predicted and
-# actual win rates are actually close. 5 points is a generous, documented bound.
-CALIBRATION_TOLERANCE = 0.05
+# actual win rates are actually close. One constant, owned by pricing.model,
+# shared with the test gate so the two can never drift apart again.
+CALIBRATION_TOLERANCE = model.CALIBRATION_TOLERANCE
 
 
-def calibration_verdict(mean_pred: float, base_rate: float,
-                        brier_skill: float | None = None,
+def calibration_verdict(mean_pred: float, base_rate: float, *,
+                        brier_skill: float,
                         tol: float = CALIBRATION_TOLERANCE) -> tuple[str, bool]:
     """Plain-language calibration message plus whether it earned a verdict.
 
     Returns (message, well_calibrated). The "well calibrated / dependable"
-    claim requires BOTH |mean_pred - base_rate| <= tol AND, when
-    `brier_skill` is supplied, brier_skill > 0 (mle-reviewer F2): a mean-only
-    bias check passes a model whose per-deal probabilities lose to simply
-    quoting the training book's win rate, which is exactly what brier_skill
-    catches and a bias check cannot. `brier_skill` is optional, not required,
-    so callers that only have the legacy bias check keep their prior
-    behavior; the win-model page always passes the real skill.
+    claim requires BOTH |mean_pred - base_rate| <= tol AND brier_skill > 0
+    (mle-reviewer F2): a mean-only bias check passes a model whose per-deal
+    probabilities lose to simply quoting the training book's win rate, which
+    is exactly what brier_skill catches and a bias check cannot. For that
+    reason `brier_skill` is keyword-only and required: an earlier version
+    defaulted it to None and awarded "dependable" on the bias check alone,
+    which is the gap F2 describes. A caller with no skill number has no
+    business calling the guidance dependable; pass the real metric.
     """
+    if brier_skill is None:
+        raise TypeError("calibration_verdict needs the model's brier_skill; "
+                        "a bias check alone cannot award a verdict")
     predicted, actual = pct(mean_pred), pct(base_rate)
     bias_ok = abs(mean_pred - base_rate) <= tol
-    skill_ok = brier_skill is None or brier_skill > 0.0
+    skill_ok = brier_skill > 0.0
     if bias_ok and skill_ok:
         return (
             "The model is well calibrated: the win rates it predicts line up "

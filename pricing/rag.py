@@ -57,6 +57,12 @@ class Answer:
     # "off" (not requested) | "ok" | "unconfigured" | "error". Lets the UI
     # tell "the web had nothing" apart from "web research failed".
     web_status: str = "off"
+    # Uploaded chunks that could not take part in retrieval because they
+    # carry no embedding (the embedder failed or was skipped at upload).
+    # Counted and logged rather than silently dropped (code-reviewer,
+    # 2026-09-26): a user whose whole policy PDF was skipped must not read
+    # "no relevant passages" as "the document says nothing".
+    docs_skipped_no_embedding: int = 0
 
 
 # Deal-level arrays the diagnostic (pricing/diagnostic.py, api/shared.py's
@@ -114,11 +120,25 @@ def _strip_deal_level(analysis: dict) -> dict:
     return out
 
 
+def count_unembedded(chunks: list[Chunk]) -> int:
+    """How many of `chunks` carry no embedding and so cannot be retrieved."""
+    return sum(1 for c in chunks if c.embedding is None)
+
+
 def retrieve_doc_chunks(chunks: list[Chunk], query: str,
                         top_k: int = 4) -> list[tuple[Chunk, float]]:
-    """Top-k chunks by cosine similarity against the query embedding."""
+    """Top-k chunks by cosine similarity against the query embedding.
+
+    Chunks without an embedding are skipped; the skip is counted and logged
+    (see `count_unembedded`, `Answer.docs_skipped_no_embedding`) so it is
+    never mistaken for "nothing relevant was uploaded".
+    """
     if not chunks:
         return []
+    skipped = count_unembedded(chunks)
+    if skipped:
+        logger.warning("rag: %d of %d uploaded chunks have no embedding and "
+                       "were skipped in retrieval", skipped, len(chunks))
     q = embed_query(query)
     scored: list[tuple[Chunk, float]] = []
     for c in chunks:
@@ -214,7 +234,7 @@ def _web_perplexity(query: str, max_results: int = 4) -> list[dict] | None:
 
 
 def _web_tavily(query: str, max_results: int = 4) -> list[dict] | None:
-    """Tavily search (n separate snippets) — used when Perplexity is not set."""
+    """Tavily search (n separate snippets), used when Perplexity is not set."""
     try:
         from tavily import TavilyClient
         client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
@@ -312,14 +332,16 @@ def ask(question: str, analysis: dict, chunks: list[Chunk],
     context = "\n\n".join(parts)
     user_msg = f"QUESTION: {question}\n\nCONTEXT:\n{context}"
 
+    skipped = count_unembedded(chunks)
     if not assist.has_llm():
         return Answer(
             text="The LLM provider is not configured on this server.",
             citations=citations,
             used_web=bool(web_hits),
             web_status=web_status,
+            docs_skipped_no_embedding=skipped,
         )
 
     text = assist._complete(_SYSTEM, user_msg, max_tokens=700).strip()
     return Answer(text=text, citations=citations, used_web=bool(web_hits),
-                  web_status=web_status)
+                  web_status=web_status, docs_skipped_no_embedding=skipped)
