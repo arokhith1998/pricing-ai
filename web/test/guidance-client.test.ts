@@ -213,6 +213,55 @@ describe("GuidanceClient headline vs. the win-probability stat tile", () => {
   });
 });
 
+describe("GuidanceClient support_floor: price retained, never an invented uplift", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  // mle-reviewer, 2026-09-27: a support floor never ships a dollar uplift
+  // (the model measured no discount effect there); it ships price_retained
+  // instead, and the page must never render it as "Expected value gain".
+  it("renders price retained, not expected value gain, when uplift is null", async () => {
+    const rec = makeRecommendation({
+      method: "support_floor",
+      current_discount: 0.14,
+      recommended_discount: 0.1,
+      uplift: null,
+      price_retained: 20_000,
+    });
+    await renderWithRecommendation(rec);
+
+    screen.getByText(/keeping/i);
+    expect(screen.getAllByText(/\$20,000/).length).toBeGreaterThan(0);
+    screen.getByText(/price retained if the floor holds/i);
+    expect(screen.queryByText(/expected value gain/i)).toBeNull();
+    expect(screen.queryByText(/more in expected value/i)).toBeNull();
+    expect(screen.queryByText(/less in expected value/i)).toBeNull();
+  });
+
+  it("says no curve applies when the deal sits below the cohort's support", async () => {
+    const rec = makeRecommendation({
+      method: "support_floor",
+      current_discount: 0.1116,
+      recommended_discount: 0.1116,
+      win_prob_at_current: 0.3,
+      win_prob_at_rec: 0.3,
+      uplift: null,
+      price_retained: 0,
+      below_support: true,
+      caveat: "This deal sits below the discounts your cohort has closed at; no curve applies.",
+    });
+    await renderWithRecommendation(rec);
+
+    // Both the headline and the caveat mention "no curve applies" in this
+    // fixture, so assert on the count rather than a single getByText (which
+    // throws on more than one match).
+    expect(screen.getAllByText(/no curve applies/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/expected value gain/i)).toBeNull();
+  });
+});
+
 describe("GuidanceClient comparables outcome label", () => {
   afterEach(() => {
     cleanup();
