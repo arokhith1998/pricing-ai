@@ -418,10 +418,15 @@ export type ExceptionInput = {
 };
 
 // POST /exceptions response: the verdict plus the log entry's identity.
+// `persisted` (api/routers/governance.py) is true only when the decision
+// landed in the durable store; false means it fell back to the in-memory
+// log (DATABASE_URL unset/unreachable) and will not survive a restart.
+// Optional so an older cached response still parses.
 export type ExceptionResult = {
   id: string;
   verdict: ExceptionVerdict;
   created_at: string;
+  persisted?: boolean;
 };
 
 // GET /exceptions items: the original request fields plus verdict + created_at.

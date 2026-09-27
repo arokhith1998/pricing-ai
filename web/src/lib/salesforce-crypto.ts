@@ -48,16 +48,40 @@ export async function encryptSalesforceSecret(value: string): Promise<string> {
   return `${VERSION}.${b64url(iv)}.${b64url(Buffer.from(ciphertext))}`;
 }
 
+// Thrown instead of letting WebCrypto's own DOMException surface. AES-GCM
+// decrypt fails the same opaque way ("The operation failed for an
+// operation-specific reason") whether the ciphertext is corrupt or
+// SALESFORCE_TOKEN_ENCRYPTION_KEY was rotated out from under a still-stored
+// token; callers (connection/route.ts, workspace/route.ts) match on this
+// class to answer with a clear, actionable 4xx instead of forwarding that
+// text as a 502/503 (silent-failure-hunter finding 5).
+export class SalesforceTokenDecryptionError extends Error {
+  constructor(cause: unknown) {
+    super(
+      "Stored Salesforce tokens could not be decrypted. This usually means " +
+        "SALESFORCE_TOKEN_ENCRYPTION_KEY was rotated after this org connected. " +
+        "Reconnect the Salesforce org.",
+    );
+    this.name = "SalesforceTokenDecryptionError";
+    this.cause = cause;
+  }
+}
+
 export async function decryptSalesforceSecret(value: string): Promise<string> {
   const [version, ivRaw, ciphertextRaw] = value.split(".");
   if (version !== VERSION || !ivRaw || !ciphertextRaw) {
     throw new Error("Unsupported encrypted Salesforce secret format.");
   }
-  const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromB64url(ivRaw) },
-    await aesKey(),
-    fromB64url(ciphertextRaw),
-  );
+  let plaintext: ArrayBuffer;
+  try {
+    plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: fromB64url(ivRaw) },
+      await aesKey(),
+      fromB64url(ciphertextRaw),
+    );
+  } catch (cause) {
+    throw new SalesforceTokenDecryptionError(cause);
+  }
   return new TextDecoder().decode(plaintext);
 }
 

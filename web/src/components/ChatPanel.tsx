@@ -233,8 +233,20 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
         }),
       });
       if (!r.ok) {
-        const b = await r.json().catch(() => ({}));
-        throw new Error(b.error || "Copilot failed.");
+        // A 4xx means the copilot proxy (or FastAPI behind it) understood the
+        // request and rejected it (a pydantic validation error, an unknown
+        // qid, ...): show its own message so the rep sees what to fix. A 5xx
+        // means the backend or the LLM is actually unreachable; showing its
+        // raw body there risks surfacing upstream noise as if it were a
+        // specific, actionable message, so that case gets a generic one
+        // (silent-failure-hunter finding 4; mirrors GuidanceClient's fetch
+        // error handling).
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(
+          r.status >= 400 && r.status < 500
+            ? b.error || "Copilot could not answer that question."
+            : "Copilot is unavailable. Try again shortly.",
+        );
       }
       const data = await r.json();
       const label =

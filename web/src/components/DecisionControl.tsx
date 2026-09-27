@@ -69,6 +69,14 @@ function Verdict({ result }: { result: ExceptionResult }) {
         <span className="tabular-nums text-ink">{result.id}</span> · {when} ·
         on the record in the decision log below.
       </p>
+      {result.persisted === false ? (
+        <p className="mt-2 rounded-lg border border-amber/40 bg-amber/5 p-2 text-xs text-amber">
+          Not durably recorded: the decision log&apos;s database was unavailable, so
+          this entry only lives in memory and will not survive a restart. Try
+          logging it again once the connection is back, or confirm the
+          decision is retained after a moment.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -101,6 +101,15 @@ type Analysis = {
     excess_vs_segment_reference_won: number;
     deals_above_segment_reference: number;
     off_policy_leakage_won: number;
+    // When the book is too sparse for reference_discount() to compute a
+    // reference at all, the backend returns every excess figure above as 0.0
+    // with excess_basis "insufficient data" and excess_disclosure carrying the
+    // human-readable reason. That 0.0 is NOT a finding of "no leakage": it
+    // means the book does not support the estimate yet. Optional so an org
+    // running against an older cached backend still renders. Mirrors
+    // web/src/lib/api.ts's Leakage type and LeakageBars.tsx's handling.
+    excess_basis?: string;
+    excess_disclosure?: string;
   };
   governance: {
     off_policy_won: number;
@@ -182,6 +191,24 @@ function money(value: number, currency = "USD") {
 
 function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+// The engine's exact sentinel for "no reference could be computed" (metrics.py
+// labels a HEALTHY fallback "global fallback (insufficient data)", so a substring
+// or case-insensitive /insufficient data/ match on reference_basis is wrong: it
+// also catches that healthy fallback and hides real guidance behind it). Compare
+// exactly. A null/undefined/NaN reference_discount at runtime (a backend that
+// omits the field despite the declared type) is treated the same way, since a
+// per-deal guardrail without a numeric reference cannot be trusted either.
+const INSUFFICIENT_REFERENCE = "insufficient data";
+
+function hasNoUsableReference(deal: Pick<Guidance, "reference_basis" | "reference_discount">): boolean {
+  return (
+    deal.reference_basis === INSUFFICIENT_REFERENCE ||
+    deal.reference_discount === null ||
+    deal.reference_discount === undefined ||
+    Number.isNaN(deal.reference_discount)
+  );
 }
 
 function Metric({ label, value, note, accent = false }: {
@@ -324,9 +351,21 @@ export default function SalesforceWorkspace({
     if (!window.confirm("Disconnect this Salesforce org from Pricekeel?")) return;
     setBusy(true); setError("");
     try {
-      await jsonFetch("/api/salesforce/connection", { method: "DELETE" });
+      const result = await jsonFetch<{ disconnected: boolean; revocation_unconfirmed?: boolean }>(
+        "/api/salesforce/connection",
+        { method: "DELETE" },
+      );
       setConnection(null); setWorkspace(null); setWorkflow([]);
-      setNotice("Salesforce disconnected and local tokens removed.");
+      // Local removal always happens, but Salesforce may not have confirmed
+      // the token revoke (a rejected request, or a network failure talking to
+      // Salesforce). The refresh token can still be live there in that case,
+      // so this must never say "tokens removed" (silent-failure-hunter
+      // finding 5).
+      setNotice(
+        result.revocation_unconfirmed
+          ? "Salesforce disconnected locally, but Salesforce did not confirm the token revoke. The refresh token may still be valid there; revoke Pricekeel's access from Salesforce Setup > Connected Apps OAuth Usage if that matters for this org."
+          : "Salesforce disconnected and local tokens removed.",
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not disconnect Salesforce.");
     } finally { setBusy(false); }
@@ -526,11 +565,15 @@ function DealDesk(props: { guidance: Guidance[]; selected: Guidance | null; sele
   // The backend's per-deal reference can fall back to "insufficient data"
   // (too few closed deals in the segment, or the book overall) without
   // raising a 422: guidance_for_open_deal still returns a recommendation, but
-  // it is a 0%-reference artifact, not a real guardrail. Detect it from
-  // reference_basis and show a banner instead of the Recommended / Retain
-  // tiles, rather than let a rep act on a 0% recommendation and a
-  // price-to-retain equal to the full requested discount.
-  const insufficientGuidance = Boolean(selected && /insufficient data/i.test(selected.reference_basis));
+  // it is a 0%-reference artifact, not a real guardrail. Detect that from an
+  // EXACT match on reference_basis (metrics.py also labels a healthy fallback
+  // "global fallback (insufficient data)"; a substring/regex match on
+  // "insufficient data" catches that healthy fallback too and hides real
+  // guidance, a numeric recommended_discount and price_to_retain, behind the
+  // banner) and show a banner instead of the Recommended / Retain tiles,
+  // rather than let a rep act on a 0% recommendation and a price-to-retain
+  // equal to the full requested discount.
+  const insufficientGuidance = Boolean(selected && hasNoUsableReference(selected));
   const latestEvent = props.workflow.find((item) => item.deal_id === props.selectedId)?.event ?? "";
   const approvalPending = latestEvent === "override_requested";
   // An override outlives the open-deal list whenever the opportunity closes or
