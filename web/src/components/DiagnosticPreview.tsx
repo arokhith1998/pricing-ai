@@ -50,7 +50,7 @@ function Bar({ band, index }: { band: Band; index: number }) {
           aria-label={`Win rate at ${band.label} discount: ${heightPct}%`}
         />
       </div>
-      <div className="mt-1 text-xs text-muted">{band.label}</div>
+      <div className="mt-1 whitespace-nowrap text-[10px] text-muted">{band.label}</div>
     </div>
   );
 }
