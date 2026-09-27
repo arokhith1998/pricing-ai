@@ -25,6 +25,13 @@ from pricing import matching
 
 # --- HTML strip --------------------------------------------------------------
 
+def test_extraction_prompt_has_no_em_dashes():
+    """House style: no em dashes in anything the model or a user reads. The
+    extraction prompt carried five (code-reviewer, 2026-09-26)."""
+    assert "—" not in matching._EXTRACT_SYSTEM
+    assert "—" not in matching._EXTRACT_SCHEMA_HINT
+
+
 def test_strip_html_drops_script_and_style_and_collapses_whitespace():
     html = """
     <html><head><style>.x{color:red}</style></head>

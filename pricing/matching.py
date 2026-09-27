@@ -1,9 +1,9 @@
-"""AI Product Matching v1 — your plans vs your named competitors' plans.
+"""AI Product Matching v1: your plans vs your named competitors' plans.
 
 What this is:
 
   - You provide your own pricing-page URL plus a small list of competitor
-    pricing-page URLs (the competitors *you* care about — usually 3-8).
+    pricing-page URLs (the competitors *you* care about, usually 3-8).
   - We fetch each URL once (with a short in-memory cache), strip the HTML
     to a clean text excerpt, and ask the LLM to return a structured list
     of plans: name, monthly price, billing cadence, included usage,
@@ -129,7 +129,7 @@ class Comparison:
 
 _FETCH_CACHE: dict[str, tuple[float, str]] = {}
 _FETCH_TTL_SECONDS = 60 * 60  # 1 hour
-_FETCH_MAX_BYTES = 250_000    # ~250KB max body — pricing pages are small
+_FETCH_MAX_BYTES = 250_000    # ~250KB max body, pricing pages are small
 _USER_AGENT = "PricekeelBot/1.0 (+https://pricekeel.com; one-time pricing extraction)"
 
 
@@ -157,7 +157,7 @@ class FetchBlocked(Exception):
         self.reason = reason
 
 
-# Static kill-switch — extend in-code for any host that asks us to stop, or
+# Static kill-switch, extend in-code for any host that asks us to stop, or
 # at runtime via the LEGAL_BLOCKED_HOSTS env var.
 _BLOCKED_HOSTS: set[str] = set()
 
@@ -183,7 +183,7 @@ def _runtime_blocked_hosts() -> set[str]:
 
 def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
     """Fetch + cache robots.txt for an origin. None if it could not be fetched
-    (in which case we conservatively *do* allow — robots.txt is not legally
+    (in which case we conservatively *do* allow, robots.txt is not legally
     mandatory and many sites do not publish one)."""
     now = time.time()
     cached = _ROBOTS_CACHE.get(origin)
@@ -194,7 +194,7 @@ def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
     try:
         rp = urllib.robotparser.RobotFileParser()
         rp.set_url(f"{origin}/robots.txt")
-        # Use the SSRF-hardened fetcher — robots.txt has the same risk
+        # Use the SSRF-hardened fetcher, robots.txt has the same risk
         # profile as the pricing page itself (an attacker could give us a
         # competitor URL whose origin resolves to a private IP).
         resp = safe_get(
@@ -260,7 +260,7 @@ def fetch_pricing_page(url: str, *, ttl_seconds: int = _FETCH_TTL_SECONDS) -> st
     if cached and (now - cached[0]) < ttl_seconds:
         return cached[1]
 
-    # SSRF defense — DNS resolution + private-IP check + redirect cap.
+    # SSRF defense, DNS resolution + private-IP check + redirect cap.
     # Translate unsafe fetches into FetchBlocked so the caller's existing
     # error handling kicks in.
     try:
@@ -298,7 +298,7 @@ _CONTEXT_SYSTEM = (
 # pricing/assist.py's _json_output_config docstring and PK-5's review); every
 # nullable field here uses the anyOf form instead. Shaped to exactly what
 # extract_competitor_context reads out of `parsed` after this call, not to
-# what the prompt above asks for — every property is required at the object
+# what the prompt above asks for, every property is required at the object
 # level so the model always includes the key (a value can still be null),
 # consistent with pricing/assist.py's map_columns schema. `confidence` is
 # constrained to an enum (both here and per-claim below) rather than left as
@@ -407,16 +407,16 @@ _EXTRACT_SYSTEM = (
 _EXTRACT_SCHEMA_HINT = """\
 JSON schema:
 {
-  "vendor": "string — best guess at vendor name from the page",
+  "vendor": "string, best guess at vendor name from the page",
   "plans": [
     {
-      "name": "string — plan name as written on the page",
+      "name": "string, plan name as written on the page",
       "price_monthly": number or null,
-      "price_unit": "string — 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
+      "price_unit": "string, 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
       "billed_annually": boolean or null,
-      "included_usage": "string — e.g. '100K events / mo', '1 TB', 'unlimited'",
+      "included_usage": "string, e.g. '100K events / mo', '1 TB', 'unlimited'",
       "features": ["string", "string", "..."],
-      "notes": "string — any caveats, 'contact sales' flag, etc."
+      "notes": "string, any caveats, 'contact sales' flag, etc."
     }
   ]
 }
@@ -424,7 +424,7 @@ JSON schema:
 Rules:
 - If the page lists 'Contact us' instead of a price, set price_monthly=null and notes='custom pricing'.
 - Convert annual prices to monthly equivalent if both stated.
-- If the page never states a billing cadence for a plan, set billed_annually=null — do not guess.
+- If the page never states a billing cadence for a plan, set billed_annually=null, do not guess.
 - Keep features short (≤ 8 words each). Aim for the high-signal product features, not boilerplate.
 - Return between 0 and 8 plans. If you cannot identify plans confidently, return an empty list.
 """
@@ -735,7 +735,7 @@ def match_plans(my_plans: list[Plan],
 
 
 # ---------------------------------------------------------------------------
-# Public surface — compare your URL against N competitor URLs
+# Public surface, compare your URL against N competitor URLs
 
 
 def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
