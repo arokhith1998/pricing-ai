@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { animate, useMotionValue, useReducedMotion } from "framer-motion";
-import { money, pct } from "@/lib/format";
+import { money, moneyShort, pct } from "@/lib/format";
 
 // Formatters resolved by key so the server can hand props (numbers + strings)
 // to this client component without crossing the function-serialization boundary.
 const FORMATTERS = {
   money,
+  moneyShort,
   pct,
   integer: (n: number) => Math.round(n).toLocaleString(),
 } as const;
