@@ -139,9 +139,9 @@ export default function DiagnosticPreview() {
               sub="avg discount 13.8%"
             />
             <Kpi
-              label="Gap to reference win point"
-              value="$11.2M"
-              sub="Pilot tests actual recovery · 16.7% of booked"
+              label="Gap to segment reference win point"
+              value="$8.9M"
+              sub="Pilot tests actual recovery · 13.3% of booked"
               accent
             />
             <Kpi label="Win rate" value="60.8%" sub="2,000 opportunities" />
@@ -213,7 +213,8 @@ export default function DiagnosticPreview() {
         <p className="mt-1 text-xs text-muted">
           Illustrative figures from a synthetic 2,000-deal sample; not
           customer data. Your workspace reads Salesforce; CSV/XLSX remains
-          available for onboarding and other CRMs.
+          available for onboarding and other CRMs. A book too thin to
+          compute a reliable win point shows that disclosure, not a $0.
         </p>
       </div>
     </section>

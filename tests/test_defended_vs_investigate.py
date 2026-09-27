@@ -7,9 +7,14 @@ two buckets cover the booked total exactly.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from pricing import metrics
+from pricing.ingest import ingest
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _df(rows):
@@ -64,3 +69,16 @@ def test_defended_vs_investigate_empty_data():
     assert out["investigate_value"] == 0.0
     assert out["defended_deals"] == 0
     assert out["defended_pct_of_booked"] == 0.0
+
+
+def test_investigate_deals_reconciles_with_segment_reference_headline():
+    """2026-09-26 fix: defended_vs_investigate used the single global
+    reference while leakage()/top_leak_deals used the per-deal (segment-aware)
+    one, so a CFO reconciling the two sections found they disagreed. Both now
+    route through the same _per_deal_reference, so the counts must match
+    exactly on the real synthetic book."""
+    df = ingest(ROOT / "data" / "synthetic" / "deals.csv")
+    dvi = metrics.defended_vs_investigate(df)
+    lk = metrics.leakage(df)
+    assert dvi["investigate_deals"] == lk["deals_above_segment_reference"]
+    assert "reference_basis" in dvi

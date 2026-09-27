@@ -4,8 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import AuroraBackground from "@/components/AuroraBackground";
-import ScrollProgress from "@/components/ScrollProgress";
+import ChromeEffects from "@/components/ChromeEffects";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
@@ -40,8 +39,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} antialiased`}>
       <body className="min-h-screen font-sans">
-        <AuroraBackground />
-        <ScrollProgress />
+        <ChromeEffects />
         <div aria-hidden className="pk-horizon" />
         <Nav />
         {children}

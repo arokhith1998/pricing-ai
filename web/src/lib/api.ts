@@ -5,6 +5,46 @@ import sampleFallback from "@/data/sample-fallback.json";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
+// Thrown instead of a plain Error whenever the FastAPI backend answers with a
+// non-2xx status, so callers can tell a bad request apart from a backend
+// that is actually down. 4xx means the backend understood the request and
+// rejected it (bad opportunity_id, a discount outside the scoring grid, a
+// validation failure): the fix is in the input, not the connection. 5xx or a
+// network failure (timeout, connection refused) means the backend itself is
+// unreachable or erroring: the fix is not something the caller's input can
+// change. `detail` carries the upstream's own message when the body was
+// JSON with a `detail` or `error` string (FastAPI's HTTPException shape, or
+// this app's own Response.json({ error }) shape), so a specific validation
+// message survives the trip instead of collapsing into "is the API running?".
+export class ApiError extends Error {
+  status: number;
+  isClientError: boolean;
+  detail?: string;
+
+  constructor(status: number, detail?: string) {
+    super(detail ? `API responded ${status}: ${detail}` : `API responded ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.isClientError = status >= 400 && status < 500;
+    this.detail = detail;
+  }
+}
+
+async function toApiError(res: Response): Promise<ApiError> {
+  let detail: string | undefined;
+  try {
+    const body: unknown = await res.clone().json();
+    if (body && typeof body === "object") {
+      const b = body as Record<string, unknown>;
+      detail =
+        typeof b.detail === "string" ? b.detail : typeof b.error === "string" ? b.error : undefined;
+    }
+  } catch {
+    // Body was not JSON, or already consumed. Status-only message is fine.
+  }
+  return new ApiError(res.status, detail);
+}
+
 export type Overview = {
   opportunities: number;
   won: number;
@@ -21,9 +61,26 @@ export type Leakage = {
   reference_threshold: number;
   gross_discount_won: number;
   off_policy_leakage_won: number;
+  // Single-global-reference lens. Overstates: it measures every segment
+  // against one reference threshold, even segments whose own win point sits
+  // above it. Kept as a labeled secondary figure, never the headline.
   excess_vs_reference_won: number;
   excess_pct_of_booked: number;
   deals_above_reference: number;
+  // Segment-aware lens: each deal measured against its own segment's
+  // reference where the segment earned one. This is the headline figure.
+  excess_vs_segment_reference_won?: number;
+  excess_segment_pct_of_booked?: number;
+  deals_above_segment_reference?: number;
+  // When the book is too sparse for reference_discount() to compute a
+  // reference at all, the backend returns every excess figure above as 0.0
+  // with excess_basis "insufficient data" and excess_disclosure carrying the
+  // human-readable reason (band counts, etc). That 0.0 is NOT a finding of
+  // "no pricing upside": it means the book does not support the estimate
+  // yet. Every surface showing these dollar figures must check excess_basis
+  // and render excess_disclosure instead of a bare $0 when it is set.
+  excess_basis?: string;
+  excess_disclosure?: string;
 };
 
 export type WinRateBand = {
@@ -153,6 +210,9 @@ export type DefendedVsInvestigate = {
   investigate_value: number;
   investigate_deals: number;
   defended_pct_of_booked: number;
+  // "insufficient data" when the book was too sparse to compute a reference
+  // at all; both value/deal counts above are 0 in that case, not a $0 finding.
+  reference_basis?: string;
 };
 
 export type Diagnostic = {
@@ -189,6 +249,18 @@ export type ModelInfo = {
     brier: number;
     base_rate: number;
     mean_pred: number;
+    // Brier of a constant that just quotes the training book's win rate, and
+    // the model's skill against it. Positive skill is what earns the right to
+    // show a per-deal probability at all; the mean_pred/base_rate pair above
+    // is an average that a constant predictor matches perfectly.
+    brier_constant?: number;
+    brier_skill?: number;
+    // Which holdout produced these numbers: "time" (the latest closes, so the
+    // model is graded on deals that closed after everything it trained on) or
+    // "random_stratified", the fallback when close dates are unusable. Optional
+    // so a cached pre-contract API response still renders.
+    split?: string;
+    test_from?: string | null;
   };
   feature_importance: { feature: string; label: string; share: number }[];
   model_leakage: {
@@ -246,6 +318,10 @@ export type Confidence = {
   mean_pred: number;
   base_rate: number;
   n_train: number;
+  // See ModelInfo.metrics.split. A random-split fallback must never be
+  // described to the user as validation on later deals.
+  split?: string;
+  test_from?: string | null;
 };
 
 export type Recommendation = {
@@ -265,6 +341,22 @@ export type Recommendation = {
   band_context: BandContext;
   confidence: Confidence;
   curve: CurvePoint[];
+  // How the recommended discount was derived: "modeled_ev_curve" (enough
+  // cohort support to sweep the EV curve), "band_guardrail" (falls back to
+  // the segment's observed band), or "support_floor" (live CRM guidance with
+  // no curve at all). Optional so older cached payloads still render.
+  method?: string;
+  // The correlational-not-causal caveat that belongs next to the uplift
+  // figure: the strongest dollar claim on the page. Optional for the same
+  // cached-payload reason.
+  caveat?: string;
+  // top_factors above is evaluated at the deal's current discount;
+  // top_factors_at_recommended is the same explanation at the row the
+  // headline actually recommends. Optional: older payloads omit it.
+  top_factors_at_recommended?: Factor[];
+  // True when the recommended discount sits at the edge of the scored grid
+  // (so the "optimum" may just be where the grid stopped, not a real peak).
+  at_grid_edge?: boolean;
 };
 
 // --- Governance loop (exceptions + digest) ---------------------------------
@@ -353,7 +445,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 
 async function getJSON<T>(path: string, headers?: Record<string, string>): Promise<T> {
   const res = await apiFetch(path, headers ? { headers } : undefined);
-  if (!res.ok) throw new Error(`API responded ${res.status} for ${path}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -395,13 +487,14 @@ export const getDeals = (limit = 40) =>
 
 export async function getRecommendation(
   opportunity_id: string,
+  customer = "default",
 ): Promise<Recommendation> {
   const res = await apiFetch("/recommend", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify({ opportunity_id }),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -417,7 +510,7 @@ export async function postException(
     headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -437,6 +530,6 @@ export async function getSummary(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ policy }),
   });
-  if (!res.ok) throw new Error(`API responded ${res.status}`);
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }

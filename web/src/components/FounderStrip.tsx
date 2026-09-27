@@ -14,7 +14,7 @@ import Link from "next/link";
 // anything.
 
 const NAME = "Adhithya Bhaskar";
-const ROLE = "Founder, M.S. Pricing, Simon Business School";
+const ROLE = "M.S. Marketing Analytics (pricing), Simon Business School";
 const LINKEDIN =
   process.env.NEXT_PUBLIC_FOUNDER_LINKEDIN ??
   "https://www.linkedin.com/in/adhithyarokhith/";

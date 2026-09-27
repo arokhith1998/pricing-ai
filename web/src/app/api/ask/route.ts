@@ -1,5 +1,5 @@
 // Same-origin proxy: forward an Ask-your-Pricekeel question to FastAPI /ask.
-import { requireLead } from "@/lib/gate";
+import { customerRef, requireLead } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
 
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "application/json",
         "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+        "X-Pricekeel-Customer": await customerRef(),
       },
       body: JSON.stringify(body),
     });

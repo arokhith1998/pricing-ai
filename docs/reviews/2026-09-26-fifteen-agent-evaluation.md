@@ -258,3 +258,51 @@ Order matters. Items 1 to 3 unblock everything else.
     and "a design partner can connect".
 
 Triage PRs #36, #37, #38, #59, #60 with a stated reason each (PK-4).
+
+## Closure status, end of 2026-09-26
+
+Branch fix/agent-eval-findings, two fix rounds, reviewed by the code, ML and
+silent-failure lenses between rounds (round-1 reports are in the agent-reports
+folder). Python suite 386 passed; web typecheck, lint, tests and build green.
+
+Closed on the branch:
+- Finding 1: global reference gated on sufficiency with an explicit
+  insufficient-data state that propagates to every consumer (deal list,
+  hierarchy slices, policy union, CRM guidance, web); one per-deal reference
+  across the readout; BU and product-line reference tables (PK-16);
+  non-additive union figure; public pages headline the segment-aware figure.
+- Finding 2: time-ordered holdout and forward-fold tuning; Brier-skill gate a
+  constant predictor fails; per-band and per-segment calibration; cohort
+  clipping with support_floor labeling; uplift scored at the deal's own
+  discount; NaN safety; leakage_vs_model on the same cohort grid; exceptions
+  and recommend agree; reproducibility stamp.
+- Finding 3, partial: per-visitor demo tenant, tenant-scoped doc store, tenant
+  header on every proxy, length caps, fail-closed CRM audit writes,
+  evidence_version with a records hash.
+- Finding 4: digest counts request events only; known-answer test.
+- Finding 5: logging and missing-vs-zero in copilot; tri-state web status;
+  per-URL match status and price-in-page verification; deal-level arrays
+  stripped from the RAG prompt; test_rag.py and test_mapping.py added.
+- Finding 7: down migration, tenant-scoped indexes, currency column with
+  blocking on mixed currencies surfaced as 422.
+- Finding 8: CRM body cap, /recommend rate limit, customer-keyed limiter,
+  one reference computation per run.
+- Finding 9, partial: PK-6, PK-12, PK-14; M&A tense on the site; GTM
+  collateral aligned to the current ICP; SOM re-derivation drafted in the
+  vault; sizing arithmetic corrected in the vault notes.
+
+Still open, and why:
+- Per-user authenticated actor identity and PR #61 merge (finding 3): a
+  build with a design doc, and a merge decision.
+- Reference threshold at the band floor (finding 1): changes every published
+  number; reference_band_median_discount is disclosed so the alternative can
+  be compared. Founder decision.
+- Usage-based pricing positioning (finding 6): copy or build decision.
+- Price on the pricing page and the ROI table (finding 9): founder decision.
+- Deck and pitch-base arithmetic (finding 9): those files live only on PR #62;
+  the corrected numbers are in the vault notes and a paste-ready insert in
+  gtm/llama-ventures.
+- PR #62 split and merge, PR triage (#36 to #61), ADR-006 for the monotone
+  constraint, OWNERSHIP.md refresh: docs/agents exists only on PR #62.
+- Interviews, legal entity and counsel, the 2GP Salesforce package: founder
+  work, not code.

@@ -16,11 +16,14 @@ logged with its math; defensible to finance." That promise lives here.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 from pricing import assist
+
+logger = logging.getLogger("pricekeel.copilot")
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +103,16 @@ class Answer:
     opportunities: list[Opportunity]
     qid: str
     citations_used: list[str] = field(default_factory=list)  # ["A"] etc
+    # True when a required analysis key was absent (silent-failure-hunter F1):
+    # an empty opportunities list under degraded=True means "the analysis
+    # payload was malformed," not "the book is clean." Never render a
+    # degraded empty list as a confident "no opportunities found."
+    degraded: bool = False
+    degraded_keys: list[str] = field(default_factory=list)
+    # Set whenever opportunities are returned: every dollar figure assumes an
+    # independently-recoverable share of the same underlying discount pool,
+    # so the figures overlap and summing the list overstates total upside.
+    non_additive: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -107,6 +120,9 @@ class Answer:
             "opportunities": [o.to_dict() for o in self.opportunities],
             "qid": self.qid,
             "citations_used": self.citations_used,
+            "degraded": self.degraded,
+            "degraded_keys": self.degraded_keys,
+            "non_additive": self.non_additive,
         }
 
 
@@ -145,11 +161,36 @@ def _safe(d: dict, *keys, default=0.0):
     return cur if cur is not None else default
 
 
+def _flag_missing(degraded: Optional[list], *path: str) -> None:
+    """Record that a required analysis key was absent, not merely falsy.
+
+    `lk.get(key) or 0` cannot tell "key absent" from "value is zero" (silent-
+    failure-hunter F1): a diagnostic.py refactor, a stale cached payload, or a
+    JSON round-trip that drops a key all read as a real zero and silently
+    become "no opportunity" with no trace anywhere. Extractors call this
+    before returning None/[] specifically for a missing key, never for a
+    key that is legitimately present with a zero or empty value.
+    """
+    key = ".".join(path)
+    logger.warning(
+        "copilot: analysis dict missing expected key %r; opportunity "
+        "extraction degraded, not a real zero", key,
+    )
+    if degraded is not None and key not in degraded:
+        degraded.append(key)
+
+
+def _present(d: dict, key: str) -> bool:
+    """True if `key` is an actual key of dict `d` (present, even if falsy)."""
+    return isinstance(d, dict) and key in d
+
+
 # ---------------------------------------------------------------------------
 # Opportunity extractors — pure functions of the analysis dict
 
 
-def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
+def _opp_defended_wins(analysis: dict,
+                       degraded: Optional[list] = None) -> Optional[Opportunity]:
     """Informational, sales-friendly companion to the leakage opportunities.
 
     Surfaces the booked value where the discount sat at-or-below the reference
@@ -157,7 +198,13 @@ def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
     "recovery rate" assumption is applied; this is reportage, not a refund
     claim. Treat this as the sales-readout balance to the leakage list.
     """
+    if not _present(analysis, "defended_vs_investigate"):
+        _flag_missing(degraded, "defended_vs_investigate")
+        return None
     dvi = analysis.get("defended_vs_investigate") or {}
+    if not _present(dvi, "defended_value"):
+        _flag_missing(degraded, "defended_vs_investigate", "defended_value")
+        return None
     defended = float(dvi.get("defended_value") or 0)
     if defended <= 0:
         return None
@@ -170,7 +217,7 @@ def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
         id=_new_id("defended"),
         kind="defended",
         scope="Won deals where the discount earned the win",
-        current=f"{_pct(pct)} of booked value — {defended_n:,} deals at discount ≤ {_pct(rt)}",
+        current=f"{_pct(pct)} of booked value: {defended_n:,} deals at discount ≤ {_pct(rt)}",
         recommended=(
             "Sales: keep doing this. These discounts sat at or below the win-curve "
             "reference; trim only where the curve says you would have won anyway."
@@ -184,14 +231,15 @@ def _opp_defended_wins(analysis: dict) -> Optional[Opportunity]:
                      f"{_money(defended)} booked at discount ≤ {_pct(rt)}",
                      "defended_vs_investigate.defended_value"),
             Evidence("leakage",
-                     f"{_money(investigate)} ({investigate_n:,} deals) above reference — see investigate list",
+                     f"{_money(investigate)} ({investigate_n:,} deals) above reference, see investigate list",
                      "defended_vs_investigate.investigate_value"),
         ],
-        methodology="Win-curve reference (Nagle) — discount at or below the band where win rate plateaus",
+        methodology="Win-curve reference (Nagle): discount at or below the band where win rate plateaus",
     )
 
 
-def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
+def _opp_excess_leakage(analysis: dict,
+                        degraded: Optional[list] = None) -> Optional[Opportunity]:
     """Excess vs each segment's own reference: the headline leakage.
 
     The diagnostic disowns the single global reference in favor of the
@@ -201,7 +249,13 @@ def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
     the global reference. The copilot reads the same lens the CRM screen
     shows, so the two never disagree on the headline number.
     """
+    if not _present(analysis, "leakage"):
+        _flag_missing(degraded, "leakage")
+        return None
     lk = analysis.get("leakage") or {}
+    if not _present(lk, "excess_vs_segment_reference_won"):
+        _flag_missing(degraded, "leakage", "excess_vs_segment_reference_won")
+        return None
     excess = float(lk.get("excess_vs_segment_reference_won") or 0)
     if excess <= 0:
         return None
@@ -222,7 +276,7 @@ def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
     return Opportunity(
         id=_new_id("excess"),
         kind="reduce_leakage",
-        scope="Whole book — discounts above each segment's own reference",
+        scope="Whole book: discounts above each segment's own reference",
         current=f"{_pct(pct)} of booked value discounted past the "
                 "segment-aware win point",
         recommended=("Tighten approvals above each segment's own reference "
@@ -246,9 +300,16 @@ def _opp_excess_leakage(analysis: dict) -> Optional[Opportunity]:
     )
 
 
-def _opp_off_policy(analysis: dict) -> Optional[Opportunity]:
+def _opp_off_policy(analysis: dict,
+                    degraded: Optional[list] = None) -> Optional[Opportunity]:
     """Off-policy leakage above the policy threshold."""
+    if not _present(analysis, "leakage"):
+        _flag_missing(degraded, "leakage")
+        return None
     lk = analysis.get("leakage") or {}
+    if not _present(lk, "off_policy_leakage_won"):
+        _flag_missing(degraded, "leakage", "off_policy_leakage_won")
+        return None
     off = float(lk.get("off_policy_leakage_won") or 0)
     if off <= 0:
         return None
@@ -279,26 +340,37 @@ def _opp_off_policy(analysis: dict) -> Optional[Opportunity]:
         revenue_impact_usd=impact,
         confidence=0.80,
         evidence=ev,
-        methodology="Discount governance — Nagle reference price + approval routing",
+        methodology="Discount governance: Nagle reference price + approval routing",
         caveat=_RECOVERABLE_CAVEAT,
     )
 
 
-def _opp_raise_prices(analysis: dict) -> list[Opportunity]:
+def _opp_raise_prices(analysis: dict,
+                      degraded: Optional[list] = None) -> list[Opportunity]:
     """Segments with high win rate AND high realization → price headroom.
 
     The signal: a segment that wins easily at the current discount is
     likely paying *less than it would be willing to pay*. Headroom for a
     selective list-price or discount-floor move.
     """
+    if not _present(analysis, "realization_by_segment"):
+        _flag_missing(degraded, "realization_by_segment")
+        return []
     rs = analysis.get("realization_by_segment")
     if rs is None:
+        # Present but explicitly None: the diagnostic ran and has nothing to
+        # report here, a real "no data" answer, not a missing key.
         return []
     # rs is a pandas DataFrame in normal flow but the API may pass a list of
     # dicts after JSON round-trip. Normalize.
     try:
         rows = rs.to_dict(orient="records") if hasattr(rs, "to_dict") else list(rs)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        # A malformed frame must not pass silently as "no headroom anywhere".
+        # Exception type only: a pandas message can quote a cell value, and
+        # row-level customer data does not leave this process, not even to a log.
+        logger.warning("copilot: realization_by_segment unreadable, raise-price "
+                       "opportunities skipped: %s", type(exc).__name__)
         return []
     opps: list[Opportunity] = []
     for row in rows:
@@ -330,18 +402,26 @@ def _opp_raise_prices(analysis: dict) -> list[Opportunity]:
                          f"Price realization {_pct(realization)}",
                          "realization_by_segment"),
             ],
-            methodology="Nagle — value-based pricing, EVC headroom",
+            methodology="Nagle: value-based pricing, EVC headroom",
             caveat=_RECOVERABLE_CAVEAT,
         ))
     return sorted(opps, key=lambda o: -o.revenue_impact_usd)[:3]
 
 
-def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
+def _opp_over_discounted_slices(analysis: dict,
+                                degraded: Optional[list] = None) -> list[Opportunity]:
     """For each hierarchy dimension (BU / line / family / SKU), find slices
     where average discount is materially above the reference threshold.
     """
+    if not _present(analysis, "hierarchy_slices"):
+        _flag_missing(degraded, "hierarchy_slices")
+        return []
     slices = analysis.get("hierarchy_slices") or {}
     if not slices:
+        return []
+    if not _present(analysis, "leakage") or not _present(
+            analysis.get("leakage") or {}, "reference_threshold"):
+        _flag_missing(degraded, "leakage", "reference_threshold")
         return []
     rt = _safe(analysis, "leakage", "reference_threshold")
     if not rt:
@@ -351,7 +431,9 @@ def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
     for dim, frame in slices.items():
         try:
             rows = frame.to_dict(orient="records") if hasattr(frame, "to_dict") else list(frame)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("copilot: hierarchy_slices.%s unreadable, slice "
+                           "skipped: %s", dim, type(exc).__name__)
             continue
         for row in rows:
             disc = float(row.get("avg_discount") or 0)
@@ -386,9 +468,16 @@ def _opp_over_discounted_slices(analysis: dict) -> list[Opportunity]:
     return sorted(opps, key=lambda o: -o.revenue_impact_usd)[:5]
 
 
-def _opp_quarter_end(analysis: dict) -> Optional[Opportunity]:
+def _opp_quarter_end(analysis: dict,
+                     degraded: Optional[list] = None) -> Optional[Opportunity]:
     """Quarter-end discount lift — attributable dollars."""
+    if not _present(analysis, "quarter_end"):
+        _flag_missing(degraded, "quarter_end")
+        return None
     qe = analysis.get("quarter_end") or {}
+    if not _present(qe, "attributable_discount_won"):
+        _flag_missing(degraded, "quarter_end", "attributable_discount_won")
+        return None
     attributable = float(qe.get("attributable_discount_won") or 0)
     if attributable < 100_000:
         return None
@@ -410,19 +499,26 @@ def _opp_quarter_end(analysis: dict) -> Optional[Opportunity]:
             Evidence("qe_lift", f"+{_pct(lift)} vs rest-of-quarter",
                      "quarter_end.lift"),
         ],
-        methodology="Discount governance — calendar effect mitigation",
+        methodology="Discount governance: calendar effect mitigation",
         caveat=_RECOVERABLE_CAVEAT,
     )
 
 
-def _opp_investigate(analysis: dict) -> Optional[Opportunity]:
+def _opp_investigate(analysis: dict,
+                     degraded: Optional[list] = None) -> Optional[Opportunity]:
     """Top deals to investigate — straight from the top_leak_deals frame."""
+    if not _present(analysis, "top_leak_deals"):
+        _flag_missing(degraded, "top_leak_deals")
+        return None
     top = analysis.get("top_leak_deals")
     if top is None:
+        # Present but explicitly None: a real "nothing to flag" answer.
         return None
     try:
         rows = top.to_dict(orient="records") if hasattr(top, "to_dict") else list(top)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("copilot: top_leak_deals unreadable, investigate card "
+                       "skipped: %s", type(exc).__name__)
         return None
     if not rows:
         return None
@@ -453,25 +549,31 @@ def _opp_investigate(analysis: dict) -> Optional[Opportunity]:
 # Public surface
 
 
-def opportunities(analysis: dict, *, min_impact_usd: float = 0.0) -> list[Opportunity]:
+def opportunities(analysis: dict, *, min_impact_usd: float = 0.0,
+                  degraded: Optional[list] = None) -> list[Opportunity]:
     """All opportunities the deterministic extractors produce, sorted by impact.
 
     Pure function. The LLM never touches this — every figure traces back
     to a key in the analysis dict. Add new extractors here; they fan in.
+
+    `degraded`, when passed a list, is appended in place with the dotted path
+    of every required analysis key that was absent (not merely falsy) so a
+    caller can tell "the book has nothing here" from "the analysis payload
+    was malformed" (silent-failure-hunter F1).
     """
     pool: list[Opportunity] = []
     for opp in (
-        _opp_defended_wins(analysis),
-        _opp_excess_leakage(analysis),
-        _opp_off_policy(analysis),
-        _opp_quarter_end(analysis),
-        _opp_investigate(analysis),
+        _opp_defended_wins(analysis, degraded),
+        _opp_excess_leakage(analysis, degraded),
+        _opp_off_policy(analysis, degraded),
+        _opp_quarter_end(analysis, degraded),
+        _opp_investigate(analysis, degraded),
     ):
         if opp is not None:
             pool.append(opp)
 
-    pool.extend(_opp_raise_prices(analysis))
-    pool.extend(_opp_over_discounted_slices(analysis))
+    pool.extend(_opp_raise_prices(analysis, degraded))
+    pool.extend(_opp_over_discounted_slices(analysis, degraded))
 
     if min_impact_usd > 0:
         pool = [o for o in pool if o.revenue_impact_usd >= min_impact_usd]
@@ -482,9 +584,11 @@ def opportunities(analysis: dict, *, min_impact_usd: float = 0.0) -> list[Opport
 # Canonical question routing
 
 
-def _opps_for_question(qid: str, analysis: dict, min_impact_usd: float = 0.0) -> list[Opportunity]:
+def _opps_for_question(qid: str, analysis: dict, min_impact_usd: float = 0.0,
+                       degraded: Optional[list] = None) -> list[Opportunity]:
     """Filter the opportunity pool by which canonical question is asked."""
-    all_opps = opportunities(analysis, min_impact_usd=min_impact_usd)
+    all_opps = opportunities(analysis, min_impact_usd=min_impact_usd,
+                             degraded=degraded)
     if qid == "losing_deals":
         return [o for o in all_opps if o.kind in ("reduce_leakage", "governance")][:5]
     if qid == "raise_prices":
@@ -503,10 +607,23 @@ def _opps_for_question(qid: str, analysis: dict, min_impact_usd: float = 0.0) ->
     return all_opps[:5]
 
 
+# Every Opportunity's dollar figure assumes an independently recoverable
+# share of the same underlying discount pool: the excess-leakage, off-policy,
+# and quarter-end shares can overlap on the same deals. Summing the list
+# overstates total upside, so this caveat travels with the list itself, not
+# just with the LLM's narration of it.
+_NON_ADDITIVE_CAVEAT = (
+    "These dollar figures are not additive: several opportunities draw on "
+    "overlapping recoverable shares of the same underlying discount, so "
+    "summing the list overstates total upside. Treat each as an independent "
+    "estimate, not a total."
+)
+
+
 _COPILOT_SYSTEM = (
     "You are 'Pricekeel', the in-product pricing copilot. The user has asked "
     "one of six canonical questions. A deterministic engine has already "
-    "extracted the structured opportunities relevant to that question — "
+    "extracted the structured opportunities relevant to that question, "
     "below as JSON. Your job is ONLY to narrate them in 120-180 words: "
     "(1) restate the question in one short sentence, (2) summarize what the "
     "data supports, (3) list the recommended moves with the dollar impact "
@@ -515,9 +632,16 @@ _COPILOT_SYSTEM = (
     "are not in the JSON. If any opportunity object carries a non-empty "
     "'caveat' field, state once, in your own words, that its dollar figure "
     "is a correlational estimate at an assumed recoverable share, not "
-    "bookable margin — do not drop this caveat even when tight on words. "
-    "If the opportunities list is empty, say so plainly. Cite the analysis "
-    "as [A]. Tone: calm, direct, finance-credible, no hype, no emoji."
+    "bookable margin; do not drop this caveat even when tight on words. If "
+    "the input notes 'DEGRADED', the opportunities list is incomplete "
+    "because part of the analysis payload was missing, not because the book "
+    "has no opportunities: say plainly that extraction is degraded for this "
+    "question, do not claim a clean 'no opportunities' result. If the "
+    "opportunities list is genuinely empty and not degraded, say so plainly. "
+    "If more than one opportunity is listed, note once that the dollar "
+    "figures are not additive and should not be summed. Cite the analysis "
+    "as [A]. Tone: calm, direct, finance-credible, no hype, no emoji. Do not "
+    "use em dashes; use commas, colons, or periods instead."
 )
 
 
@@ -525,24 +649,46 @@ def answer_canonical(qid: str, analysis: dict,
                      min_impact_usd: float = 0.0) -> Answer:
     """Deterministic opportunities + LLM narrative, glued together."""
     label = next((q["label"] for q in CANONICAL_QUESTIONS if q["id"] == qid), qid)
-    opps = _opps_for_question(qid, analysis, min_impact_usd=min_impact_usd)
+    degraded: list = []
+    opps = _opps_for_question(qid, analysis, min_impact_usd=min_impact_usd,
+                              degraded=degraded)
+    is_degraded = bool(degraded)
+    non_additive = _NON_ADDITIVE_CAVEAT if opps else ""
 
     if not assist.has_llm():
-        text = (f"Pricekeel: I would normally narrate the {len(opps)} "
-                f"opportunity{'ies' if len(opps) != 1 else ''} the engine "
-                "extracted for this question, but no LLM provider is "
-                "configured on this server.")
+        if is_degraded:
+            text = (
+                "Pricekeel: the analysis payload was missing expected data "
+                f"({', '.join(degraded)}), so opportunity extraction is "
+                "degraded for this question, not a confident empty result. "
+                "No LLM provider is configured on this server to narrate "
+                "further."
+            )
+        else:
+            text = (f"Pricekeel: I would normally narrate the {len(opps)} "
+                    f"opportunity{'ies' if len(opps) != 1 else ''} the engine "
+                    "extracted for this question, but no LLM provider is "
+                    "configured on this server.")
         return Answer(text=text, opportunities=opps, qid=qid,
-                      citations_used=["A"])
+                      citations_used=["A"], degraded=is_degraded,
+                      degraded_keys=list(degraded), non_additive=non_additive)
 
+    degraded_note = (
+        f"\nDEGRADED: the analysis payload was missing these keys: "
+        f"{', '.join(degraded)}. The opportunities list below is incomplete "
+        "because of that, not because the book has no opportunities.\n"
+        if is_degraded else ""
+    )
     user_msg = (
-        f"QUESTION: {label}\n\n"
+        f"QUESTION: {label}\n"
+        f"{degraded_note}\n"
         f"OPPORTUNITIES (JSON, deterministic):\n"
         f"{json.dumps([o.to_dict() for o in opps], default=str)}\n"
     )
     text = assist._complete(_COPILOT_SYSTEM, user_msg, max_tokens=400).strip()
     return Answer(text=text, opportunities=opps, qid=qid,
-                  citations_used=["A"])
+                  citations_used=["A"], degraded=is_degraded,
+                  degraded_keys=list(degraded), non_additive=non_additive)
 
 
 # The per-session in-memory decision log that used to live here moved to

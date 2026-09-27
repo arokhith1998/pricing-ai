@@ -25,7 +25,7 @@ opportunity-level fields only, with reps as internal identifiers.
 | Web app (pricekeel.com) | Vercel (US) | HTTP requests and session cookies. No deal data. |
 | Analysis API (api.pricekeel.com) | Render (US) | Your CSV during processing, **in memory only**. Nothing written to disk, no database of deal data. |
 | Database | Neon (US) | Contact details from the lead form and access codes. **No customer deal data, ever.** |
-| LLM | OpenAI API (US) | See "What the LLM sees" below. |
+| LLM | Anthropic API (US) | See "What the LLM sees" below. |
 | Email | Microsoft 365 (US/EEA) | Correspondence, including files you choose to email us. |
 
 Full subprocessor list with DPA links: pricekeel.com/subprocessors.

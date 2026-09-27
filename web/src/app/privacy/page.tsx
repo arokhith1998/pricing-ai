@@ -46,10 +46,10 @@ export default function PrivacyPage() {
         <span className="text-fg">{ENTITY_DESCRIPTION}</span>{" "}
         (&ldquo;we&rdquo;) collects, why, and
         what we do with it. We keep data collection to the minimum needed to
-        run the product, and we publish the full subprocessor list at{" "}
-        <a className="text-teal underline" href="/subprocessors">/subprocessors</a>{" "}
-        and the security posture at{" "}
-        <a className="text-teal underline" href="/trust">/trust</a>.
+        run the product, and we publish the full subprocessor list on our{" "}
+        <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
+        and the security posture on our{" "}
+        <a className="text-teal underline" href="/trust">Trust page</a>.
       </p>
 
       <Section id="categories" title="What we collect and why">
@@ -136,10 +136,13 @@ export default function PrivacyPage() {
           we send <span className="font-medium text-fg">aggregate analysis
           figures, column header names, document chunks you uploaded, your
           question text, and (for Competitor Watch) the public pricing-page
-          text</span> to our cloud LLM provider (OpenAI). We do not send
-          row-level deal data. The provider operates under a written
-          data-processing addendum that prohibits the use of inputs and
-          outputs for model training.
+          text</span> to our cloud LLM provider. The product runtime
+          currently uses Anthropic; see our{" "}
+          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
+          for the current provider and DPA link. We do not send row-level
+          deal data. The provider operates under a written data-processing
+          addendum that prohibits the use of inputs and outputs for model
+          training.
         </p>
         <p>
           Every recommendation surfaced by the Pricekeel copilot is
@@ -173,8 +176,8 @@ export default function PrivacyPage() {
         <p>
           We use a small set of subprocessors (hosting, database, LLM
           provider, email host, DNS). The full current list with regions
-          and DPA links is at{" "}
-          <a className="text-teal underline" href="/subprocessors">/subprocessors</a>.
+          and DPA links is on our{" "}
+          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>.
           They process data only on our instructions and only to provide
           their service to us.
         </p>
@@ -267,8 +270,8 @@ export default function PrivacyPage() {
           AES-256-GCM encryption layer before database storage.
           Multi-factor authentication enforced on every admin account.
           Change management via GitHub pull requests with CI. Point-in-time
-          database restore history. The full security posture is at{" "}
-          <a className="text-teal underline" href="/trust">/trust</a>.
+          database restore history. The full security posture is on our{" "}
+          <a className="text-teal underline" href="/trust">Trust page</a>.
         </p>
       </Section>
 

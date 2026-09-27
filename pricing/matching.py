@@ -1,9 +1,9 @@
-"""AI Product Matching v1 — your plans vs your named competitors' plans.
+"""AI Product Matching v1: your plans vs your named competitors' plans.
 
 What this is:
 
   - You provide your own pricing-page URL plus a small list of competitor
-    pricing-page URLs (the competitors *you* care about — usually 3-8).
+    pricing-page URLs (the competitors *you* care about, usually 3-8).
   - We fetch each URL once (with a short in-memory cache), strip the HTML
     to a clean text excerpt, and ask the LLM to return a structured list
     of plans: name, monthly price, billing cadence, included usage,
@@ -32,6 +32,7 @@ Honest constraints:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -48,6 +49,8 @@ from pricing import assist
 from pricing._safe_fetch import UnsafeFetchError, safe_get
 from pricing.docs import embed_texts
 
+logger = logging.getLogger("pricekeel.matching")
+
 # ---------------------------------------------------------------------------
 # Data shapes
 
@@ -63,6 +66,15 @@ class Plan:
     included_usage: str = ""  # "100K events", "1 TB", "unlimited"
     features: list[str] = field(default_factory=list)
     notes: str = ""           # caveats, gotchas, "contact sales" markers
+    # True when `price_monthly` could NOT be verified as appearing (in some
+    # formatted rendering) in the page text it was extracted from (ai-engineer
+    # F3): the LLM extracts, it does not compute, but nothing previously
+    # checked that its number was actually printed on the page rather than
+    # hallucinated or steered by injected page content. A low-confidence price
+    # still displays, but is excluded from price_delta_pct (see
+    # `_pricing_position` call site in `match_plans`), since an unverified
+    # number must not drive a market-position claim.
+    price_low_confidence: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -95,6 +107,10 @@ class Comparison:
     competitor_plans: list[Plan]
     matches: list[Match]
     summary: str = ""
+    # One entry per URL: {url, role, status, plans_found}. A comparison table
+    # cannot show what we could not read, so the caller gets told which pages
+    # are missing and why instead of seeing a confident partial table.
+    sources: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -103,6 +119,7 @@ class Comparison:
             "competitor_plans": [p.to_dict() for p in self.competitor_plans],
             "matches": [m.to_dict() for m in self.matches],
             "summary": self.summary,
+            "sources": self.sources,
         }
 
 
@@ -112,7 +129,7 @@ class Comparison:
 
 _FETCH_CACHE: dict[str, tuple[float, str]] = {}
 _FETCH_TTL_SECONDS = 60 * 60  # 1 hour
-_FETCH_MAX_BYTES = 250_000    # ~250KB max body — pricing pages are small
+_FETCH_MAX_BYTES = 250_000    # ~250KB max body, pricing pages are small
 _USER_AGENT = "PricekeelBot/1.0 (+https://pricekeel.com; one-time pricing extraction)"
 
 
@@ -140,7 +157,7 @@ class FetchBlocked(Exception):
         self.reason = reason
 
 
-# Static kill-switch — extend in-code for any host that asks us to stop, or
+# Static kill-switch, extend in-code for any host that asks us to stop, or
 # at runtime via the LEGAL_BLOCKED_HOSTS env var.
 _BLOCKED_HOSTS: set[str] = set()
 
@@ -166,7 +183,7 @@ def _runtime_blocked_hosts() -> set[str]:
 
 def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
     """Fetch + cache robots.txt for an origin. None if it could not be fetched
-    (in which case we conservatively *do* allow — robots.txt is not legally
+    (in which case we conservatively *do* allow, robots.txt is not legally
     mandatory and many sites do not publish one)."""
     now = time.time()
     cached = _ROBOTS_CACHE.get(origin)
@@ -177,7 +194,7 @@ def _robots_for(origin: str) -> urllib.robotparser.RobotFileParser | None:
     try:
         rp = urllib.robotparser.RobotFileParser()
         rp.set_url(f"{origin}/robots.txt")
-        # Use the SSRF-hardened fetcher — robots.txt has the same risk
+        # Use the SSRF-hardened fetcher, robots.txt has the same risk
         # profile as the pricing page itself (an attacker could give us a
         # competitor URL whose origin resolves to a private IP).
         resp = safe_get(
@@ -243,7 +260,7 @@ def fetch_pricing_page(url: str, *, ttl_seconds: int = _FETCH_TTL_SECONDS) -> st
     if cached and (now - cached[0]) < ttl_seconds:
         return cached[1]
 
-    # SSRF defense — DNS resolution + private-IP check + redirect cap.
+    # SSRF defense, DNS resolution + private-IP check + redirect cap.
     # Translate unsafe fetches into FetchBlocked so the caller's existing
     # error handling kicks in.
     try:
@@ -276,6 +293,47 @@ _CONTEXT_SYSTEM = (
     "strategy that the source does not state."
 )
 
+# JSON Schema for _complete(json_mode=True, json_schema=...) below. Anthropic's
+# structured-outputs subset does not accept a JSON Schema type array (see
+# pricing/assist.py's _json_output_config docstring and PK-5's review); every
+# nullable field here uses the anyOf form instead. Shaped to exactly what
+# extract_competitor_context reads out of `parsed` after this call, not to
+# what the prompt above asks for, every property is required at the object
+# level so the model always includes the key (a value can still be null),
+# consistent with pricing/assist.py's map_columns schema. `confidence` is
+# constrained to an enum (both here and per-claim below) rather than left as
+# a free string: the code silently rewrites any other value to "medium",
+# and per the explainability convention a silent, untraceable rewrite is
+# exactly what to remove when the schema can enforce it up front instead.
+# The normalization at :340/:350 stays as a backstop for values that predate
+# this schema or a provider that doesn't honor it.
+_CONFIDENCE = {"anyOf": [
+    {"type": "string", "enum": ["high", "medium", "low"]}, {"type": "null"},
+]}
+
+_CONTEXT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "confidence": _CONFIDENCE,
+        "claims": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "claim": {"type": "string"},
+                    "confidence": _CONFIDENCE,
+                    "evidence_excerpt": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["claim", "confidence", "evidence_excerpt"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary", "confidence", "claims"],
+    "additionalProperties": False,
+}
+
 
 def extract_competitor_context(url: str, *, competitor_name: str = "",
                                source_type: str = "other") -> dict:
@@ -299,6 +357,7 @@ def extract_competitor_context(url: str, *, competitor_name: str = "",
     })
     raw = assist._complete(  # noqa: SLF001 - shared provider boundary
         _CONTEXT_SYSTEM, user, json_mode=True, small=True, max_tokens=900,
+        json_schema=_CONTEXT_SCHEMA,
     )
     try:
         parsed = json.loads(raw)
@@ -348,16 +407,16 @@ _EXTRACT_SYSTEM = (
 _EXTRACT_SCHEMA_HINT = """\
 JSON schema:
 {
-  "vendor": "string — best guess at vendor name from the page",
+  "vendor": "string, best guess at vendor name from the page",
   "plans": [
     {
-      "name": "string — plan name as written on the page",
+      "name": "string, plan name as written on the page",
       "price_monthly": number or null,
-      "price_unit": "string — 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
-      "billed_annually": boolean,
-      "included_usage": "string — e.g. '100K events / mo', '1 TB', 'unlimited'",
+      "price_unit": "string, 'per user / month', 'per seat', 'platform fee', 'custom', etc.",
+      "billed_annually": boolean or null,
+      "included_usage": "string, e.g. '100K events / mo', '1 TB', 'unlimited'",
       "features": ["string", "string", "..."],
-      "notes": "string — any caveats, 'contact sales' flag, etc."
+      "notes": "string, any caveats, 'contact sales' flag, etc."
     }
   ]
 }
@@ -365,16 +424,78 @@ JSON schema:
 Rules:
 - If the page lists 'Contact us' instead of a price, set price_monthly=null and notes='custom pricing'.
 - Convert annual prices to monthly equivalent if both stated.
+- If the page never states a billing cadence for a plan, set billed_annually=null, do not guess.
 - Keep features short (≤ 8 words each). Aim for the high-signal product features, not boilerplate.
 - Return between 0 and 8 plans. If you cannot identify plans confidently, return an empty list.
 """
+
+# JSON Schema for _complete(json_mode=True, json_schema=...) below (see
+# _CONTEXT_SCHEMA above for why anyOf, not a type array, is used for every
+# nullable field). Shaped to exactly what extract_plans_from_text reads out
+# of `data` and passes into Plan(...): name, price_monthly, price_unit,
+# billed_annually, included_usage, features, notes.
+_EXTRACT_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "vendor": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "plans": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "price_monthly": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+                    "price_unit": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    # Nullable, not a plain boolean: under constrained
+                    # decoding a required non-nullable boolean forces the
+                    # model to guess true/false even when the page never
+                    # states a cadence, and that guess becomes a structured
+                    # competitor pricing "fact". Downstream already tolerates
+                    # null (bool(p.get("billed_annually") or False)).
+                    "billed_annually": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+                    "included_usage": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "features": {"type": "array", "items": {"type": "string"}},
+                    "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": ["name", "price_monthly", "price_unit", "billed_annually",
+                             "included_usage", "features", "notes"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["vendor", "plans"],
+    "additionalProperties": False,
+}
+
+
+def _price_verified_in_text(price: Optional[float], page_text: str) -> bool:
+    """True if some plausible formatted rendering of `price` appears verbatim
+    in `page_text` (ai-engineer F3).
+
+    Extraction is not computation, but nothing previously checked that the
+    LLM's `price_monthly` was the number actually printed on the page rather
+    than a hallucination, or a number an attacker's injected page content
+    steered the model toward. `price is None` verifies trivially true: a
+    plan the model correctly declined to price carries no false confidence.
+    """
+    if price is None:
+        return True
+    candidates = {f"{price:.2f}", f"{price:,.2f}"}
+    if float(price).is_integer():
+        i = int(price)
+        candidates.update({str(i), f"{i:,}"})
+    return any(c in page_text for c in candidates)
 
 
 def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
     """LLM-extract structured plans from a pricing page text. Best effort.
 
     Returns (vendor_name, plans). vendor_name may be empty if extraction
-    failed or the page has no clear vendor signal.
+    failed or the page has no clear vendor signal. Each plan's
+    `price_monthly` is checked against the source page text
+    (`_price_verified_in_text`); an unverified price is kept (still the
+    model's best guess) but flagged `price_low_confidence=True`, which
+    `match_plans` then excludes from `price_delta_pct`.
     """
     if not page_text or len(page_text) < 100:
         return fallback_vendor, []
@@ -390,9 +511,12 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         # above: the mini model is proven sufficient, so don't pay for gpt-4o here.
         raw = assist._complete(
             _EXTRACT_SYSTEM, user, json_mode=True, max_tokens=1500, small=True,
+            json_schema=_EXTRACT_JSON_SCHEMA,
         )
         data = json.loads(raw)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        # Zero plans reads as "this page lists no plans". Record the real cause.
+        logger.warning("matching: plan extraction failed: %s", type(exc).__name__)
         return fallback_vendor, []
 
     vendor = (data.get("vendor") or fallback_vendor or "").strip()
@@ -404,10 +528,17 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
         name = (p.get("name") or "").strip()
         if not name:
             continue
+        price_monthly = _safe_float(p.get("price_monthly"))
+        verified = _price_verified_in_text(price_monthly, page_text)
+        if price_monthly is not None and not verified:
+            logger.warning(
+                "matching: extracted price_monthly for %r did not appear in "
+                "the source page text; flagged low_confidence", name,
+            )
         plans.append(Plan(
             vendor=vendor,
             name=name,
-            price_monthly=_safe_float(p.get("price_monthly")),
+            price_monthly=price_monthly,
             price_unit=(p.get("price_unit") or "").strip(),
             billed_annually=bool(p.get("billed_annually") or False),
             included_usage=(p.get("included_usage") or "").strip(),
@@ -417,6 +548,7 @@ def extract_plans_from_text(page_text: str, *, fallback_vendor: str = "") -> tup
                 if isinstance(f, (str, int, float)) and str(f).strip()
             ][:12],
             notes=(p.get("notes") or "").strip(),
+            price_low_confidence=not verified,
         ))
     return vendor, plans
 
@@ -434,13 +566,35 @@ def _safe_float(x) -> Optional[float]:
     return v
 
 
-def extract_plans_from_url(url: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
-    """Convenience: fetch + extract. Returns ("", []) on refusal, network, or parse failure."""
+def _extract_with_status(url: str, *,
+                         fallback_vendor: str = "") -> tuple[str, list[Plan], str]:
+    """Fetch and extract, plus why the result is empty when it is.
+
+    Status is "ok", "blocked" (robots.txt, kill switch, or the SSRF guard),
+    "fetch_error" (network or HTTP), or "no_plans" (the page read fine and
+    carried nothing extractable, which is a real answer, not a failure).
+    Zero plans with no status is indistinguishable from a page we never read.
+    """
+    host = urlparse(url).netloc or "url"
     try:
         text = fetch_pricing_page(url)
-    except (FetchBlocked, requests.RequestException):
-        return fallback_vendor, []
-    return extract_plans_from_text(text, fallback_vendor=fallback_vendor)
+    except (FetchBlocked, UnsafeFetchError) as exc:
+        logger.warning("matching: %s refused: %s", host, type(exc).__name__)
+        return fallback_vendor, [], "blocked"
+    except requests.RequestException as exc:
+        logger.warning("matching: %s fetch failed: %s", host, type(exc).__name__)
+        return fallback_vendor, [], "fetch_error"
+    vendor, plans = extract_plans_from_text(text, fallback_vendor=fallback_vendor)
+    return vendor, plans, ("ok" if plans else "no_plans")
+
+
+def extract_plans_from_url(url: str, *, fallback_vendor: str = "") -> tuple[str, list[Plan]]:
+    """Convenience: fetch + extract. Returns ("", []) on refusal, network, or parse failure.
+
+    Callers that need to tell those apart use `_extract_with_status`.
+    """
+    vendor, plans, _status = _extract_with_status(url, fallback_vendor=fallback_vendor)
+    return vendor, plans
 
 
 # ---------------------------------------------------------------------------
@@ -548,7 +702,12 @@ def match_plans(my_plans: list[Plan],
                 only_mine = list(mp.features)
                 only_theirs = list(cp.features)
 
-            position, price_delta = _pricing_position(mp.price_monthly, cp.price_monthly)
+            # An unverified price (ai-engineer F3) never drives a
+            # market-position claim: it still displays on the Plan itself,
+            # but is excluded here exactly as a missing price would be.
+            my_price = None if mp.price_low_confidence else mp.price_monthly
+            their_price = None if cp.price_low_confidence else cp.price_monthly
+            position, price_delta = _pricing_position(my_price, their_price)
 
             # Confidence rolls blended similarity + how much of *mine* the
             # competitor actually covers. A 0.6 blended with 80% feature
@@ -576,7 +735,7 @@ def match_plans(my_plans: list[Plan],
 
 
 # ---------------------------------------------------------------------------
-# Public surface — compare your URL against N competitor URLs
+# Public surface, compare your URL against N competitor URLs
 
 
 def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
@@ -585,14 +744,24 @@ def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
     The LLM gets the structured comparison output (no raw page HTML) and
     is asked for a one-paragraph plain-language read for the dashboard.
     """
-    my_vendor, my_plans = extract_plans_from_url(my_url)
+    my_vendor, my_plans, my_status = _extract_with_status(my_url)
+    sources = [{"url": my_url, "role": "mine", "status": my_status,
+                "plans_found": len(my_plans)}]
     all_competitor_plans: list[Plan] = []
     for cu in competitor_urls:
-        _, plans = extract_plans_from_url(cu)
+        _vendor, plans, status = _extract_with_status(cu)
         all_competitor_plans.extend(plans)
+        sources.append({"url": cu, "role": "competitor", "status": status,
+                        "plans_found": len(plans)})
 
     matches = match_plans(my_plans, all_competitor_plans)
     summary = _summarize_matches(my_vendor, my_plans, all_competitor_plans, matches)
+    unread = [s for s in sources if s["status"] in ("blocked", "fetch_error")]
+    if unread:
+        reasons = ", ".join(sorted({s["status"] for s in unread}))
+        summary = (f"Pricekeel: {len(unread)} of {len(sources)} pricing pages "
+                   f"could not be read ({reasons}); the comparison below covers "
+                   f"the rest. ") + summary
 
     return Comparison(
         my_vendor=my_vendor or "Your pricing",
@@ -600,6 +769,7 @@ def compare(my_url: str, competitor_urls: list[str]) -> Comparison:
         competitor_plans=all_competitor_plans,
         matches=matches,
         summary=summary,
+        sources=sources,
     )
 
 
@@ -633,5 +803,6 @@ def _summarize_matches(my_vendor: str, my_plans: list[Plan],
         return assist._complete(
             _SUMMARY_SYSTEM, json.dumps(payload, default=str), max_tokens=350,
         ).strip()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("matching: summary failed: %s", type(exc).__name__)
         return "Pricekeel: summary unavailable; the comparison data is in the table."

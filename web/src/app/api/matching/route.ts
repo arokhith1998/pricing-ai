@@ -2,13 +2,17 @@
 // One method on this route:
 //   POST {action:"compare", my_url, competitor_urls[]}  -> Comparison
 //   POST {action:"competitor", url}                     -> single-URL Plan list
-import { requireAccess } from "@/lib/gate";
+import { customerRef, requireAccess } from "@/lib/gate";
 
 const API = process.env.PRICEKEEL_API ?? "http://127.0.0.1:8000";
-const API_HEADERS = {
-  "Content-Type": "application/json",
-  "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
-};
+
+async function apiHeaders(): Promise<Record<string, string>> {
+  return {
+    "Content-Type": "application/json",
+    "X-Pricekeel-Key": process.env.PRICEKEEL_API_KEY ?? "",
+    "X-Pricekeel-Customer": await customerRef(),
+  };
+}
 // Plan extraction is LLM-bound and pricing pages can be slow to fetch;
 // give the upstream more headroom than the default Vercel route limit.
 export const maxDuration = 60;
@@ -40,16 +44,17 @@ export async function POST(req: Request) {
   }
   const action = body.action ?? "compare";
   delete body.action;
+  const headers = await apiHeaders();
   if (action === "competitor") {
     return forwardJson(`${API}/matching/competitor`, {
       method: "POST",
-      headers: API_HEADERS,
+      headers,
       body: JSON.stringify(body),
     });
   }
   return forwardJson(`${API}/matching/compare`, {
     method: "POST",
-    headers: API_HEADERS,
+    headers,
     body: JSON.stringify(body),
   });
 }
