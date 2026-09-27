@@ -329,6 +329,22 @@ export type Recommendation = {
   band_context: BandContext;
   confidence: Confidence;
   curve: CurvePoint[];
+  // How the recommended discount was derived: "modeled_ev_curve" (enough
+  // cohort support to sweep the EV curve), "band_guardrail" (falls back to
+  // the segment's observed band), or "support_floor" (live CRM guidance with
+  // no curve at all). Optional so older cached payloads still render.
+  method?: string;
+  // The correlational-not-causal caveat that belongs next to the uplift
+  // figure: the strongest dollar claim on the page. Optional for the same
+  // cached-payload reason.
+  caveat?: string;
+  // top_factors above is evaluated at the deal's current discount;
+  // top_factors_at_recommended is the same explanation at the row the
+  // headline actually recommends. Optional: older payloads omit it.
+  top_factors_at_recommended?: Factor[];
+  // True when the recommended discount sits at the edge of the scored grid
+  // (so the "optimum" may just be where the grid stopped, not a real peak).
+  at_grid_edge?: boolean;
 };
 
 // --- Governance loop (exceptions + digest) ---------------------------------

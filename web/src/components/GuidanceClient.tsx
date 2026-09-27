@@ -175,6 +175,20 @@ function BandCohort({ ctx }: { ctx: BandContext }) {
 // of calling it negligible, since that is the deal where the tradeoff is real.
 export const WIN_PROB_BARELY_THRESHOLD_PTS = 2;
 
+// Plain-language labels for Recommendation.method (api/routers/model.py),
+// so the panel never shows the raw snake_case value. Unknown/future values
+// fall back to a de-snake-cased render rather than disappearing.
+const METHOD_LABEL: Record<string, string> = {
+  modeled_ev_curve: "modeled EV curve",
+  band_guardrail: "band guardrail",
+  support_floor: "support floor",
+};
+
+function methodLabel(method: string | undefined): string | null {
+  if (!method) return null;
+  return METHOD_LABEL[method] ?? method.replace(/_/g, " ");
+}
+
 function ConfidenceCaveat({ c }: { c: Confidence }) {
   return (
     <div className="mt-5 rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-slate">
@@ -351,6 +365,11 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               label="Recommended discount"
               value={pct0(rec.recommended_discount)}
               accent="teal"
+              sub={
+                methodLabel(rec.method)
+                  ? `via ${methodLabel(rec.method)}${rec.at_grid_edge ? ", at the edge of the tested range" : ""}`
+                  : undefined
+              }
             />
             <Stat
               label="Win probability"
@@ -364,6 +383,13 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               sub="vs the discount given"
             />
           </div>
+
+          {rec.caveat ? (
+            <p className="rounded-lg border border-mist bg-surface-2 p-3 text-xs leading-relaxed text-slate">
+              <span className="font-medium text-ink">About that expected-value figure.</span>{" "}
+              {rec.caveat}
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="rounded-xl border border-mist bg-surface p-5 shadow-sm lg:col-span-3">
@@ -390,7 +416,10 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               <p className="mt-1 text-sm text-slate">
                 The factors that move this deal&apos;s win chance the most.
               </p>
-              <ul className="mt-3">
+              <h3 className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate">
+                At the current discount ({pct0(rec.current_discount)})
+              </h3>
+              <ul className="mt-1">
                 {rec.top_factors.map((f) => (
                   <FactorRow
                     key={f.label}
@@ -400,6 +429,23 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
                   />
                 ))}
               </ul>
+              {rec.top_factors_at_recommended ? (
+                <>
+                  <h3 className="mt-4 text-xs font-semibold uppercase tracking-wider text-teal">
+                    At the recommended discount ({pct0(rec.recommended_discount)})
+                  </h3>
+                  <ul className="mt-1">
+                    {rec.top_factors_at_recommended.map((f) => (
+                      <FactorRow
+                        key={f.label}
+                        label={f.label}
+                        value={f.value}
+                        direction={f.direction}
+                      />
+                    ))}
+                  </ul>
+                </>
+              ) : null}
             </div>
           </div>
 
