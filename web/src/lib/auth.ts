@@ -19,6 +19,15 @@ export const LEAD_COOKIE = "pk_lead";
 export const ACCESS_COOKIE = "pk_access";
 export const DEMO_TENANT_COOKIE = "pk_demo_tenant";
 
+// Request header src/proxy.ts forwards downstream once it has established
+// (read or minted) a demo tenant id for the current request, carrying the raw
+// id (not the signed cookie value). gate.ts's customerRef() trusts this header
+// ahead of re-deriving the tenant from cookies, which is what makes a single
+// page load's parallel client-side fetches share one tenant instead of each
+// independently minting its own the first time the pk_demo_tenant cookie is
+// missing (see proxy.ts's module doc for the full race description).
+export const DEMO_TENANT_HEADER = "x-pk-demo-tenant";
+
 // Shared cookie settings for pk_lead. The value is a signed intent marker
 // ("this visitor passed the lead form at some point"), not an auth token,
 // so a long lifetime is fine. We refresh it on every gated visit in the

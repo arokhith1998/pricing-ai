@@ -21,10 +21,11 @@
 // is embedded in the cookie against the access_codes table, so revoking a
 // code in the database revokes that customer's API access immediately.
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   ACCESS_COOKIE,
   DEMO_TENANT_COOKIE,
+  DEMO_TENANT_HEADER,
   LEAD_COOKIE,
   demoTenantCookieOptions,
   makeDemoTenantCookieValue,
@@ -73,9 +74,38 @@ export async function customerRef(): Promise<string> {
     return verified.code;
   }
 
-  const existing = await verifyDemoTenantCookieValue(jar.get(DEMO_TENANT_COOKIE)?.value);
+  // src/proxy.ts runs ahead of every request and is the sole minter of the
+  // demo tenant id; it forwards the id it read or minted via this header.
+  // Trusting it here (instead of re-deriving from cookies every time) is what
+  // makes two parallel client-side fetches fired from the same page load
+  // share one tenant instead of each racing to mint its own the first time
+  // pk_demo_tenant looks missing (silent-failure-hunter finding 6): by the
+  // time those fetches go out, proxy already ran on the page navigation
+  // itself and put the same id on both.
+  const forwarded = (await headers()).get(DEMO_TENANT_HEADER);
+  if (forwarded) return `demo:${forwarded}`;
+
+  const existingValue = jar.get(DEMO_TENANT_COOKIE)?.value;
+  const existing = await verifyDemoTenantCookieValue(existingValue);
+  if (existingValue && !existing) {
+    // Present but does not verify: tampering, or PRICEKEEL_SECRET rotated
+    // under a live cookie. This used to fail silently straight into a fresh
+    // mint below; log it so the failure is visible instead of indistinguishable
+    // from an ordinary first visit.
+    console.error(
+      "[gate] pk_demo_tenant cookie failed signature verification; minting a replacement.",
+    );
+  }
   if (existing) return `demo:${existing}`;
 
+  // Fallback mint: only reached when proxy did not run ahead of this request
+  // (a route handler invoked directly, as the test suite does, or a
+  // deployment whose proxy matcher missed this path). Logged so a gap in
+  // proxy coverage is visible rather than silently duct-taped over here,
+  // since this path does not get the "share one tenant" guarantee above.
+  console.warn(
+    "[gate] customerRef() minted a demo tenant without an X-Pk-Demo-Tenant header from proxy; verify proxy.ts's matcher covers this route.",
+  );
   const id = crypto.randomUUID();
   jar.set(DEMO_TENANT_COOKIE, await makeDemoTenantCookieValue(id), demoTenantCookieOptions());
   return `demo:${id}`;

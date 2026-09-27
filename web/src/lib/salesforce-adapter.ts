@@ -326,6 +326,20 @@ export function assessReadiness(
       `Multiple Salesforce currencies are present (${currencies.join(", ")}); V1 will not combine them.`,
     );
   }
+  // This 30-deal floor is a cheap, book-level pre-check, deliberately looser
+  // than the pricing engine's actual requirement (metrics.SEGMENT_REF_MIN_
+  // BANDS: 3 real discount bands each clearing 15 closed deals): 30 closed
+  // deals bunched into one or two bands clears this floor but still cannot
+  // support a reference discount. Silent-failure-hunter finding 3: passing
+  // here used to read as "no blockers" right up until an open deal's
+  // guidance call failed with a 422 that salesforce-workspace.ts's caller
+  // then misclassified as a reauth/connection problem. Duplicating the
+  // engine's exact per-band bucketing here would drift from pricing/
+  // metrics.py, so the authoritative check instead stays server-side: a
+  // CRMUpstreamError from /crm/analyze naming the actual band counts is
+  // caught in salesforce-workspace.ts's loadSalesforceWorkspace() and
+  // appended to this same `blockers` array, and workspace/route.ts reserves
+  // `degraded` for a connection whose own status says so.
   if (closedUsable.length < 30) {
     blockers.push(
       `Only ${closedUsable.length} usable closed opportunities were found; at least 30 are required.`,
