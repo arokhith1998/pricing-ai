@@ -22,10 +22,12 @@ mid-import (main.py imports this router).
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import subprocess
 
+import psycopg
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -72,6 +74,24 @@ def _git_sha() -> str:
     return "unknown"
 
 
+def _records_hash(records: list[dict]) -> str:
+    """sha256 of canonical JSON of `records`, sorted by opportunity_id.
+
+    2026-09-26 blocker fix: the fingerprint used to hash `len(records)` and a
+    sync timestamp that reads "none" on every Salesforce adapter today (see
+    `_max_sync_timestamp`), so two DIFFERENT two-deal books hashed
+    identically -- evidence_version promised a fingerprint of the book that
+    produced a verdict and did not actually deliver one. Sorting by
+    opportunity_id makes the hash independent of request-payload row order.
+    """
+    canonical = sorted(
+        (dict(row) for row in records),
+        key=lambda row: str(row.get("opportunity_id") or ""),
+    )
+    blob = json.dumps(canonical, sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
 def _max_sync_timestamp(records: list[dict]) -> str:
     """Latest per-record sync/modification timestamp across the supplied
     book, when the caller provides one. The current Salesforce adapter sends
@@ -89,17 +109,35 @@ def _max_sync_timestamp(records: list[dict]) -> str:
 
 
 def evidence_version(records: list[dict], policy_threshold_pct: float,
-                     method: str) -> str:
-    """Reproducibility fingerprint for a CRM verdict: record count, max sync
-    timestamp, policy threshold, engine label, and git SHA, hashed together."""
-    fingerprint = "|".join([
-        f"records={len(records)}",
-        f"max_sync={_max_sync_timestamp(records)}",
-        f"policy_threshold_pct={float(policy_threshold_pct):g}",
-        f"method={method}",
-        f"git_sha={_git_sha()}",
-    ])
-    return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
+                     method: str) -> tuple[str, dict]:
+    """Reproducibility fingerprint for a CRM verdict: a hash of the book
+    itself (`_records_hash`), max sync timestamp, policy threshold, engine
+    label, and git SHA, hashed together.
+
+    Returns `(digest, inputs)`: the 16-hex-char digest AND the fingerprint
+    inputs it was built from (2026-09-26 fix), so a stored verdict can be
+    inspected for exactly what produced it, not just an opaque digest a
+    reviewer cannot decompose.
+    """
+    git_sha = _git_sha()
+    if git_sha == "unknown":
+        logger.warning(
+            "evidence_version: git SHA could not be resolved (no "
+            "PRICEKEEL_GIT_SHA / RENDER_GIT_COMMIT set, and `git rev-parse` "
+            "failed). Two different deployed builds will fingerprint "
+            "identically until this is set."
+        )
+    inputs = {
+        "records": len(records),
+        "records_hash": _records_hash(records),
+        "max_sync": _max_sync_timestamp(records),
+        "policy_threshold_pct": float(policy_threshold_pct),
+        "method": method,
+        "git_sha": git_sha,
+    }
+    fingerprint = "|".join(f"{k}={v}" for k, v in inputs.items())
+    digest = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
+    return digest, inputs
 
 
 def _insert_or_fail_closed(*, kind: str, deal_id: str, payload: dict,
@@ -327,7 +365,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         # so it carries this same evidence_version through unchanged; that is
         # correct; a decision is made on the evidence that was captured at
         # request time, not on a fresh fetch the approver happens to submit.
-        verdict["evidence_version"] = evidence_version(
+        verdict["evidence_version"], verdict["evidence_inputs"] = evidence_version(
             req.records, req.policy_threshold_pct, verdict["method"],
         )
     effective_justification = (
@@ -366,6 +404,29 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
     }
 
 
+def _store_reachable() -> bool:
+    """Cheap connectivity probe: is the decision log's database reachable
+    right now?
+
+    crm_reconcile used to check `persisted` inside `_insert_or_fail_closed`
+    once per outcome, so a DB blip partway through a large batch (up to 5000
+    outcomes) would 503 after N rows had already landed durably, with no way
+    for the caller to know which (code-reviewer finding). Probing once BEFORE
+    the loop lets a down/unreachable database fail the whole batch closed
+    immediately, before any row is written, in production. Mirrors
+    governance.DecisionStore.insert's own connect-or-fall-back logic without
+    duplicating the insert path itself.
+    """
+    url = governance_mod._db_url()
+    if url is None:
+        return False
+    try:
+        with psycopg.connect(url, connect_timeout=governance_mod._CONNECT_TIMEOUT_S):
+            return True
+    except Exception:  # noqa: BLE001 - a failed probe just means "not reachable"
+        return False
+
+
 class CRMOutcome(BaseModel):
     deal_id: str
     account: str = ""
@@ -385,6 +446,16 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     """
     from api import main  # deferred: see module docstring
     customer = main._customer_ref(request)
+    # Fail closed BEFORE writing anything, not partway through the batch: see
+    # _store_reachable's docstring.
+    if main._is_prod() and not _store_reachable():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The decision log could not be reached, so this reconcile "
+                "batch was not recorded. Try again shortly."
+            ),
+        )
     added = []
     outcomes = [
         item for item in req.outcomes[:5000]
@@ -438,10 +509,13 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
 
 class CRMWritebackReq(BaseModel):
     deal_id: str
-    actor: str
+    # Same unauthenticated-caller cap as CRMWorkflowReq.actor / task_id
+    # (code-reviewer finding 2): free text until a real identity exists, so
+    # both are bounded before they reach the decision log.
+    actor: str = Field(..., max_length=120)
     action_event: str
     success: bool
-    task_id: str = ""
+    task_id: str = Field("", max_length=200)
     error: str = ""
 
 

@@ -28,6 +28,19 @@ def analyze(df, load_report=None,
             policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
     """All diagnostic sections for an already-ingested (enriched) frame."""
     pkg = metrics.packaging_signals(df)
+    # 2026-09-26 perf fix: the global reference discount is a 500-sample
+    # bootstrap, and each of the three hierarchy reference tables (segment,
+    # business_unit, product_line) runs it again per qualifying value. Every
+    # caller below used to recompute all four independently -- one full
+    # diagnostic run on the demo book called reference_discount() ~153 times.
+    # Compute each ONCE here and thread it through every caller via the
+    # existing optional keyword parameters.
+    global_ref = metrics.reference_discount(df)
+    segment_table = metrics.segment_reference_table(df, global_ref=global_ref)
+    bu_table = metrics.business_unit_reference_table(df, global_ref=global_ref)
+    product_line_table = metrics.product_line_reference_table(df, global_ref=global_ref)
+    _refs = dict(global_ref=global_ref, segment_table=segment_table,
+                bu_table=bu_table, product_line_table=product_line_table)
     return {
         "data": df,
         # "What we read from your file" — section #1 of every readout.
@@ -35,35 +48,37 @@ def analyze(df, load_report=None,
         "overview": metrics.overview(df),
         # Customer wishlist (2026-06-10 dry-run): time trend, segment/rep cuts,
         # and a so-what (policy simulation) for the headline excess figure.
-        "trend_by_quarter": metrics.trend_by_quarter(df),
+        "trend_by_quarter": metrics.trend_by_quarter(df, **_refs),
         "segment_win_points": metrics.segment_win_points(df),
-        "policy_simulations": metrics.policy_simulations(df, policy_threshold),
+        "policy_simulations": metrics.policy_simulations(df, policy_threshold, **_refs),
         # New vs Renewal split (dry-run wishlist 4): renewal discounting is a
         # different disease from new-business discounting. Empty frame when
         # the deal-type column is missing, so the readout degrades gracefully.
         "new_vs_renewal": metrics.new_vs_renewal(df),
         "realization_by_segment": metrics.realization_by_segment(df),
         "win_rate_by_band": metrics.win_rate_by_band(df),
-        "reference_discount": metrics.reference_discount(df),
+        "reference_discount": global_ref,
         # Per-value-metric reference cut: a seat discount and a consumption
         # discount are not the same lever, so the pooled reference is read
         # alongside each metric's own win point (basis disclosed). Additive.
-        "value_metric_reference": metrics.value_metric_reference_table(df),
-        "leakage": metrics.leakage(df, policy_threshold),
+        "value_metric_reference": metrics.value_metric_reference_table(
+            df, global_ref=global_ref),
+        "leakage": metrics.leakage(df, policy_threshold, **_refs),
         "quarter_end": metrics.quarter_end_effect(df),
         "rep_discipline": metrics.rep_discipline(df),
         "governance": metrics.governance_gaps(df),
-        "top_leak_deals": metrics.top_leak_deals(df, policy_threshold=policy_threshold),
+        "top_leak_deals": metrics.top_leak_deals(
+            df, policy_threshold=policy_threshold, **_refs),
         # Optional hierarchy slicing: one frame per populated dimension, each
         # value's own reference discount and excess $ (PK-16), the slice's own
         # table (business_unit, product_line) when it earned one, else the
         # deal's per-deal reference (segment, else global), labeled either way.
         "hierarchy_slices": {
-            d: metrics.hierarchy_slice_reference(df, d)
+            d: metrics.hierarchy_slice_reference(df, d, **_refs)
             for d in metrics.present_hierarchy_dimensions(df)
         },
-        "business_unit_reference": metrics.business_unit_reference_table(df),
-        "product_line_reference": metrics.product_line_reference_table(df),
+        "business_unit_reference": bu_table,
+        "product_line_reference": product_line_table,
         # Framework signals (Rivera packaging, Simon-Kucher trade-or-give).
         "packaging_signals": pkg,
         "trade_or_give": metrics.trade_or_give(df),
@@ -80,7 +95,8 @@ def analyze(df, load_report=None,
         # Pure function of (won deals, reference_threshold) — no recovery
         # assumption. Surfaced so reps see what their discounting defended,
         # not only what it leaked.
-        "defended_vs_investigate": metrics.defended_vs_investigate(df, policy_threshold),
+        "defended_vs_investigate": metrics.defended_vs_investigate(
+            df, policy_threshold, **_refs),
     }
 
 
@@ -351,7 +367,7 @@ def print_report(res: dict) -> None:
                   f"({union['deals_affected']:,} won deals, no double counting)")
         print("   (Upper bound: correlational, some discount was needed to win.)")
 
-    print("\n(Note: excess-vs-reference is correlational — a prioritized list to")
+    print("\n(Note: excess-vs-reference is correlational, a prioritized list to")
     print(" investigate, not a refund figure. Validate with a pricing advisor.)")
 
 

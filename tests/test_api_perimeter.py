@@ -339,6 +339,79 @@ def test_compare_allows_urls_at_the_cap(client, monkeypatch):
 
 # --- 4. load_report in the diagnostic payload ----------------------------------
 
+# --- 5. mixed-currency book: 422 with the blocker text, not a bare 500 -------
+# (silent-failure-hunter finding 2, 2026-09-26: CurrencyBlockedError reached
+# no exception handler in api/main.py, so this used to be a 500 with the
+# per-currency row counts lost.)
+
+def _mixed_currency_csv_body(n_usd: int = 20, n_eur: int = 15) -> bytes:
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv"]
+    for i in range(n_usd):
+        rows.append(f"OPP-U{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,$100000,$90000")
+    for i in range(n_eur):
+        rows.append(f"OPP-E{i:03d},Acct {100 + i},closed_won,2025-01-01,"
+                    f"2025-02-15,SMB,Pro,hybrid,€100000,€90000")
+    return ("\n".join(rows)).encode("utf-8")
+
+
+def test_diagnostic_mixed_currency_returns_422_not_500(client):
+    r = client.post(
+        "/diagnostic",
+        files={"file": ("mixed.csv", io.BytesIO(_mixed_currency_csv_body()), "text/csv")},
+        data={"policy": "0.15"},
+    )
+    assert r.status_code == 422
+    body = r.json()
+    assert "USD" in body["detail"] and "EUR" in body["detail"]
+    # per-currency row counts survive onto the wire (not lost to a bare 500).
+    assert "20 row" in body["detail"] and "15 row" in body["detail"]
+    assert any("USD" in b and "EUR" in b for b in body.get("blockers", []))
+
+
+def _iso_only_mixed_currency_csv_body(n_usd: int = 20, n_eur: int = 15) -> bytes:
+    """A Salesforce CurrencyIsoCode-style export: an explicit ISO currency
+    column, no $/€ symbols anywhere."""
+    rows = ["opportunity_id,account_name,outcome,created_date,close_date,"
+            "segment,product_tier,value_metric,list_acv,booked_acv,currency"]
+    for i in range(n_usd):
+        rows.append(f"OPP-U{i:03d},Acct {i},closed_won,2025-01-01,2025-02-15,"
+                    f"SMB,Pro,hybrid,100000,90000,USD")
+    for i in range(n_eur):
+        rows.append(f"OPP-E{i:03d},Acct {100 + i},closed_won,2025-01-01,"
+                    f"2025-02-15,SMB,Pro,hybrid,100000,90000,EUR")
+    return ("\n".join(rows)).encode("utf-8")
+
+
+def test_diagnostic_mixed_currency_iso_column_only_returns_422(client):
+    """No currency symbols anywhere, just an explicit ISO code column: must
+    be blocked exactly like a symbol-based mix, not silently summed."""
+    r = client.post(
+        "/diagnostic",
+        files={"file": ("iso-only.csv",
+                        io.BytesIO(_iso_only_mixed_currency_csv_body()),
+                        "text/csv")},
+        data={"policy": "0.15"},
+    )
+    assert r.status_code == 422
+    body = r.json()
+    assert "USD" in body["detail"] and "EUR" in body["detail"]
+
+
+def test_diagnostic_missing_required_columns_returns_422_not_500(client):
+    """Any other SchemaError (not just CurrencyBlockedError) must reach the
+    ingest_mod.SchemaError handler as a 422, not fall through to a bare 500."""
+    body = b"a,b,c\n1,2,3\n"
+    r = client.post(
+        "/diagnostic",
+        files={"file": ("bad.csv", io.BytesIO(body), "text/csv")},
+        data={"policy": "0.15"},
+    )
+    assert r.status_code == 422
+    assert "missing" in r.json()["detail"].lower()
+
+
 def test_diagnostic_payload_contains_load_report(client):
     with open(DEMO_CSV, "rb") as fh:
         r = client.post(

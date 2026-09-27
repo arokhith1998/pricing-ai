@@ -53,10 +53,19 @@ l1.metric("Total discount given", money(lk["gross_discount_won"]),
 l2.metric(f"Above your policy ({pct(lk['policy_threshold'])})",
           money(lk["off_policy_leakage_won"]),
           help="Discount given above your policy line.")
-l3.metric(f"Beyond the win point ({pct(lk['reference_threshold'])})",
-          money(lk["excess_vs_reference_won"]),
-          help="Discount given beyond the point where extra discount stops "
-               "winning more deals. A list to investigate, not a refund.")
+if lk.get("excess_basis") == "insufficient data":
+    # 2026-09-26 blocker fix: the engine no longer manufactures a $0 headline
+    # off a collapsed 0% reference on a thin book. Show the disclosure the
+    # engine attaches instead of a confident dollar figure it cannot defend.
+    l3.metric("Beyond the win point", "Insufficient data",
+              help=lk.get("excess_disclosure") or
+                   "Not enough closed deals to compute a defensible reference "
+                   "discount yet.")
+else:
+    l3.metric(f"Beyond the win point ({pct(lk['reference_threshold'])})",
+              money(lk["excess_vs_reference_won"]),
+              help="Discount given beyond the point where extra discount stops "
+                   "winning more deals. A list to investigate, not a refund.")
 
 # --- quarter-end + governance ------------------------------------------------
 q, g = st.columns(2)

@@ -113,16 +113,94 @@ def test_degenerate_list_guard_skipped_when_field_explicitly_mapped():
     # Same degenerate (list == booked) book as above, but the customer has
     # told us they mapped a real pre-discount list field: an honest
     # near-zero-discount book is not a mapping error, so the guard must be a
-    # no-op (CONTRACT A).
-    records = _records()
+    # no-op (CONTRACT A). No open deal here on purpose: a book where every
+    # closed deal discounts 0% has exactly one populated band, so it can
+    # never clear the 3-band reference-sufficiency bar either -- a separate,
+    # correct refusal (see test_guidance_raises_instead_of_a_zero_percent_
+    # guardrail_on_thin_book) this test is not about.
+    records = [r for r in _records() if r.get("outcome") != "open"]
     for row in records:
-        if row.get("outcome") in {"closed_won", "closed_lost"}:
-            row["list_acv"] = row["booked_acv"]
+        row["list_acv"] = row["booked_acv"]
     with pytest.raises(crm.CRMDataError, match="near-identical"):
         crm.analyze_records(records, list_field_mapped=False)
 
     result = crm.analyze_records(records, list_field_mapped=True)
     assert result["analysis"]["overview"]["opportunities"] == 240
+    assert result["guidance"] == []
+
+
+# --- insufficient-reference blocker (2026-09-26 fix) -------------------------
+# A thin book (reference_discount sufficient=False) must never turn into a
+# live 0% guardrail: guidance_for_open_deal must refuse rather than recommend
+# clawing back the whole discount.
+
+def _insufficient_records() -> list[dict]:
+    """42 closed deals across 5 real discount bands, none clearing the
+    15-deal floor: reference_discount() returns sufficient=False. One open
+    deal in the same (only) segment, so nothing can fall back to a segment
+    that earned its own reference either."""
+    discounts = [0.02, 0.07, 0.12, 0.17, 0.22]
+    win_rates = [0.40, 0.50, 0.60, 0.60, 0.60]
+    counts = [8, 8, 8, 9, 9]
+    records: list[dict] = []
+    idx = 0
+    for disc, wr, n in zip(discounts, win_rates, counts):
+        n_won = round(n * wr)
+        for i in range(n):
+            list_acv = 100_000.0
+            records.append({
+                "opportunity_id": f"OPP-{idx}",
+                "account_name": f"Acct {idx}",
+                "outcome": "closed_won" if i < n_won else "closed_lost",
+                "created_date": "2025-01-01",
+                "close_date": "2025-02-15",
+                "product_tier": "Pro",
+                "value_metric": "hybrid",
+                "list_acv": list_acv,
+                "booked_acv": list_acv * (1 - disc),
+                "segment": "SMB",
+            })
+            idx += 1
+    assert len(records) == 42
+    records.append({
+        "opportunity_id": "SF-OPEN-THIN",
+        "account_name": "Thin Book Co",
+        "outcome": "open",
+        "created_date": "2026-08-01",
+        "close_date": "",
+        "product_tier": "Pro",
+        "value_metric": "hybrid",
+        "list_acv": 100_000.0,
+        "booked_acv": 85_000.0,
+        "segment": "SMB",
+    })
+    return records
+
+
+def test_guidance_raises_instead_of_a_zero_percent_guardrail_on_thin_book():
+    records = _insufficient_records()
+    with pytest.raises(crm.CRMDataError, match="Insufficient closed-deal data"):
+        crm.analyze_records(records, policy_threshold_pct=15.0)
+
+
+def test_crm_workflow_422_not_zero_guardrail_on_thin_book(client):
+    """The live path: /crm/workflow must return 422, never a 200 with
+    guardrail_pct 0 / recommended_discount 0.0 manufactured off the
+    insufficient-data sentinel."""
+    response = client.post("/crm/workflow", json={
+        "records": _insufficient_records(),
+        "deal_id": "SF-OPEN-THIN",
+        "event": "accepted",
+        "actor": "Account Executive",
+    })
+    assert response.status_code == 422
+    assert "insufficient" in response.json()["detail"].lower()
+
+
+def test_crm_analyze_422_not_zero_guardrail_on_thin_book(client):
+    response = client.post("/crm/analyze", json={"records": _insufficient_records()})
+    assert response.status_code == 422
+    assert "insufficient" in response.json()["detail"].lower()
 
 
 def test_selected_guidance_rejects_unknown_or_unusable_open_deal():
@@ -495,13 +573,13 @@ def test_analyze_records_reference_calls_do_not_scale_with_open_deal_count(
     original_ref = crm.metrics.reference_discount
     original_table = crm.metrics.segment_reference_table
 
-    def counted_ref(df):
+    def counted_ref(df, *a, **kw):
         calls["ref"] += 1
-        return original_ref(df)
+        return original_ref(df, *a, **kw)
 
-    def counted_table(df):
+    def counted_table(df, *a, **kw):
         calls["table"] += 1
-        return original_table(df)
+        return original_table(df, *a, **kw)
 
     monkeypatch.setattr(crm.metrics, "reference_discount", counted_ref)
     monkeypatch.setattr(crm.metrics, "segment_reference_table", counted_table)
@@ -545,6 +623,54 @@ def test_evidence_version_changes_with_record_count_and_method():
     baseline = crm_router.evidence_version(records, 15.0, "band_guardrail")
     assert crm_router.evidence_version(records[:-1], 15.0, "band_guardrail") != baseline
     assert crm_router.evidence_version(records, 15.0, "modeled_ev_curve") != baseline
+
+
+def test_evidence_version_fingerprints_the_book_content():
+    """2026-09-26 fix: the old fingerprint hashed len(records) and a sync
+    timestamp that reads 'none' on every real adapter, so two DIFFERENT
+    books of the SAME size hashed identically. Two two-deal books that differ
+    only in booked_acv must now hash differently."""
+    book_a = [
+        {"opportunity_id": "OPP-1", "booked_acv": 90_000.0, "outcome": "closed_won"},
+        {"opportunity_id": "OPP-2", "booked_acv": 80_000.0, "outcome": "closed_won"},
+    ]
+    book_b = [
+        {"opportunity_id": "OPP-1", "booked_acv": 90_000.0, "outcome": "closed_won"},
+        {"opportunity_id": "OPP-2", "booked_acv": 70_000.0, "outcome": "closed_won"},
+    ]
+    a_digest, a_inputs = crm_router.evidence_version(book_a, 15.0, "band_guardrail")
+    b_digest, b_inputs = crm_router.evidence_version(book_b, 15.0, "band_guardrail")
+    assert a_digest != b_digest
+    assert a_inputs["records_hash"] != b_inputs["records_hash"]
+    assert a_inputs["records"] == b_inputs["records"] == 2
+
+    # Row order must not matter: the hash is stable under reordering.
+    reordered_digest, reordered_inputs = crm_router.evidence_version(
+        list(reversed(book_a)), 15.0, "band_guardrail",
+    )
+    assert reordered_digest == a_digest
+    assert reordered_inputs["records_hash"] == a_inputs["records_hash"]
+
+
+def test_evidence_version_returns_fingerprint_inputs_alongside_the_hash():
+    digest, inputs = crm_router.evidence_version(_records(), 15.0, "band_guardrail")
+    assert isinstance(digest, str) and digest
+    for key in ("records", "records_hash", "max_sync", "policy_threshold_pct",
+               "method", "git_sha"):
+        assert key in inputs
+
+
+def test_evidence_version_warns_when_git_sha_is_unknown(monkeypatch, caplog):
+    monkeypatch.delenv("PRICEKEEL_GIT_SHA", raising=False)
+    monkeypatch.delenv("RENDER_GIT_COMMIT", raising=False)
+    monkeypatch.setattr(crm_router.subprocess, "run",
+                        lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+    with caplog.at_level(logging.WARNING, logger="pricekeel.api.crm"):
+        _digest, inputs = crm_router.evidence_version(
+            [{"opportunity_id": "OPP-1"}], 15.0, "band_guardrail",
+        )
+    assert inputs["git_sha"] == "unknown"
+    assert "git sha could not be resolved" in caplog.text.lower()
 
 
 def test_crm_workflow_verdict_carries_evidence_version(client, monkeypatch):

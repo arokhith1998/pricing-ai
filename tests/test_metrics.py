@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
-from pricing import metrics
-from pricing.ingest import enrich, resolve_identity
+from pricing import diagnostic, metrics
+from pricing.ingest import enrich, ingest_verbose, resolve_identity
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _build(rows: list[dict]) -> pd.DataFrame:
@@ -146,6 +150,86 @@ def test_reference_discount_insufficient_data_does_not_relax_floor():
     assert lk["excess_basis"] == "insufficient data"
     assert "Insufficient data" in lk["excess_disclosure"]
     assert lk["band_counts"]
+
+
+def _insufficient_hierarchy_rows(prefix, n, discount, win_rate, segment="SMB",
+                                 business_unit="BU-A", product_line="PL-A"):
+    """Like _band_block, but carries segment/business_unit/product_line so the
+    hierarchy-table and per-deal-reference paths have something to look up."""
+    list_acv, booked = 100_000.0, 100_000.0 * (1 - discount)
+    n_won = round(n * win_rate)
+    rows = []
+    for i in range(n):
+        rows.append(dict(
+            opportunity_id=f"{prefix}-{i}", account_id=f"{prefix}-{i}",
+            account_name=f"{prefix}-{i}",
+            outcome="closed_won" if i < n_won else "closed_lost",
+            list_acv=list_acv, booked_acv=booked,
+            segment=segment, business_unit=business_unit, product_line=product_line,
+        ))
+    return rows
+
+
+def _42_deal_insufficient_book() -> pd.DataFrame:
+    """42 deals across 5 real bands, none clearing the 15-deal floor (2026-09-26
+    blocker fix reproduction case). Every deal shares one segment/BU/product
+    line, so none of those slices can earn its own reference either."""
+    rows = []
+    rows += _insufficient_hierarchy_rows("b00", 8, 0.02, 0.40)
+    rows += _insufficient_hierarchy_rows("b05", 8, 0.07, 0.50)
+    rows += _insufficient_hierarchy_rows("b10", 8, 0.12, 0.60)
+    rows += _insufficient_hierarchy_rows("b15", 9, 0.17, 0.60)
+    rows += _insufficient_hierarchy_rows("b20", 9, 0.22, 0.60)
+    df = _build(rows)
+    assert len(df) == 42
+    return df
+
+
+def test_insufficient_book_propagates_through_every_downstream_consumer():
+    """2026-09-26 blocker fix: a thin (42-deal) book must not manufacture a
+    0% reference anywhere downstream of reference_discount(). Every consumer
+    must disclose 'insufficient data' with a NaN threshold and 0 excess,
+    never a confident number built off the sentinel 0.0 threshold."""
+    df = _42_deal_insufficient_book()
+    ref = metrics.reference_discount(df)
+    assert ref["sufficient"] is False
+
+    # _per_deal_reference: NaN thresholds when nothing (segment, BU, product
+    # line) earned its own and the global fallback is itself NaN.
+    won = df[df["is_won"]]
+    thr = metrics._per_deal_reference(won, df, float("nan"))
+    assert thr.isna().all()
+
+    # top_leak_deals: an EMPTY frame with a basis column, not an investigate
+    # list scored against a 0% threshold.
+    tld = metrics.top_leak_deals(df)
+    assert tld.empty
+    assert "reference_basis" in tld.columns
+
+    # Every hierarchy reference table: NaN threshold, "insufficient data" basis.
+    for table in (metrics.segment_reference_table(df),
+                 metrics.business_unit_reference_table(df),
+                 metrics.product_line_reference_table(df)):
+        assert table, "expected at least one row (the shared segment/BU/PL value)"
+        row = table[0]
+        assert row["basis"] == "insufficient data"
+        assert pd.isna(row["reference_threshold"])
+        assert row["reference_band"] is None
+
+    # hierarchy_slice_reference: NaN threshold, 0 excess, disclosed basis.
+    hs = metrics.hierarchy_slice_reference(df, "business_unit")
+    row = hs.iloc[0]
+    assert row["reference_basis"] == "insufficient data"
+    assert row["excess_won"] == 0.0
+    assert pd.isna(row["reference_threshold"])
+
+    # policy_simulations: lever 1 marked non-computable with a disclosure,
+    # not a silent $0 "nothing to hold back".
+    sims = metrics.policy_simulations(df)
+    lever1 = sims[0]
+    assert lever1["held_back"] == 0.0
+    assert lever1.get("non_computable") is True
+    assert "disclosure" in lever1 and "insufficient" in lever1["disclosure"].lower()
 
 
 def test_win_rate_by_band_is_ordered_and_complete():
@@ -333,6 +417,38 @@ def test_policy_simulations_union_is_not_a_sum(monkeypatch):
     assert union["held_back"] == pytest.approx(30_000.0)
     assert union["held_back"] < stacked_sum
     assert union["deals_affected"] == 3  # D1, D2, D3 each trip >= one lever
+
+
+# --- bootstrap repetition (2026-09-26 perf fix) ------------------------------
+
+def test_diagnostic_analyze_bounds_reference_discount_calls(monkeypatch):
+    """reference_discount() runs a 500-sample bootstrap; before this fix,
+    diagnostic.analyze on the demo book called it ~153 times because
+    hierarchy_slice_reference, defended_vs_investigate, trend_by_quarter, and
+    policy_simulations each rebuilt the segment/BU/product-line reference
+    tables independently instead of sharing the ones diagnostic.analyze
+    already computes once."""
+    df, report = ingest_verbose(ROOT / "data" / "synthetic" / "deals.csv")
+    calls = {"n": 0}
+    original = metrics.reference_discount
+
+    def counted(df_arg, *a, **kw):
+        calls["n"] += 1
+        return original(df_arg, *a, **kw)
+
+    monkeypatch.setattr(metrics, "reference_discount", counted)
+    diagnostic.analyze(df, report)
+    # Measured 19 on the current demo book (1 global + one bootstrap per
+    # segment/business_unit/product_line/value_metric value that clears its
+    # own sufficiency bar, plus segment_win_points' independent per-segment
+    # pass): bounded by the number of distinct hierarchy values, not by deal
+    # count or open-deal count, unlike the ~153 this replaces. 30 leaves
+    # headroom for a slightly richer book without flaking.
+    assert calls["n"] < 30, (
+        f"reference_discount called {calls['n']} times in one diagnostic.analyze "
+        "run; the shared global/segment/BU/product-line tables should bound "
+        "this to a small, roughly constant number regardless of book size."
+    )
 
 
 def test_packaging_signal_deals_returns_the_value_deals():

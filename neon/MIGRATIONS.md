@@ -43,20 +43,22 @@ See "Verification run, 2026-09-26" below for the actual output from this
 exercise against `2026-08-01-salesforce-crm-workflow.sql` and
 `2026-09-26-tenant-scoped-indexes.sql`.
 
-## Pre-check before the unique email index (real database only)
+## Why leads_lower_email_idx is a plain index, not a unique one
 
-`2026-09-26-tenant-scoped-indexes.sql` adds `leads_lower_email_key`, a unique
-index on `lower(email)`. If two existing `leads` rows already share a
-case-insensitive email, `CREATE UNIQUE INDEX` fails and the whole transaction
-rolls back (nothing partially applies — that is the point of wrapping it in
-`begin`/`commit`). Run this first against the real database:
-
-```sql
-select lower(email), count(*) from leads group by 1 having count(*) > 1;
-```
-
-If it returns rows, resolve the duplicates (decide which lead row is
-canonical, delete or merge the rest) before applying the migration.
+`2026-09-26-tenant-scoped-indexes.sql` originally added `leads_lower_email_key`
+as a UNIQUE index on `lower(email)`. Code review the same day caught two
+problems before this shipped to a real database: `email` was never unique on
+`leads`, and lead capture (`web/src/lib/store.ts`'s `saveLead`) does a plain
+`INSERT` with no `ON CONFLICT` clause and no pre-check. A unique index would
+(a) fail the whole migration outright the first time it hit a prod database
+with two existing rows sharing a case-insensitive email (`CREATE UNIQUE INDEX`
+rolls back the entire transaction), and (b) once past that, would 500 every
+returning visitor who resubmits the lead-gate form (an ordinary retry or
+double-click), since nothing in the write path catches the constraint
+violation. The migration now creates `leads_lower_email_idx` as a PLAIN index:
+same case-insensitive lookup speed-up, no write-time failure mode the app was
+not built to handle. See the verification transcript below for the unique-
+index failure mode this replaced, kept as a documented case study.
 
 ## Test coverage
 
@@ -152,7 +154,10 @@ $ psql -U postgres -d pricekeel_migration_scratch -c "select count(*) from sales
 -- table and row survived; the guard aborted the whole transaction
 ```
 
-Tenant-scoped indexes, up / down / up again:
+Tenant-scoped indexes, up / down / up again (transcript below predates the
+plain-vs-unique fix and still shows the original index name
+`leads_lower_email_key`; the migration now creates `leads_lower_email_idx`
+instead, with the same idempotent up/down/up behavior):
 
 ```
 $ psql -U postgres -d pricekeel_migration_scratch -c "delete from salesforce_connections where customer_ref='t1';"
@@ -195,9 +200,11 @@ CREATE INDEX
 COMMIT
 ```
 
-Unique-email guard, the CAVEAT case: two leads sharing a case-insensitive
-email, confirmed the whole transaction fails atomically (no partial index
-creation), then the pre-check query, then recovery:
+Unique-email failure mode this replaced (kept as a case study, not current
+behavior): two leads sharing a case-insensitive email, confirmed the whole
+transaction failed atomically (no partial index creation) when the index was
+still UNIQUE. This is exactly why the migration was changed to a plain index
+before shipping to any real database with lead data in it:
 
 ```
 $ psql -U postgres -d pricekeel_migration_scratch -f neon/migrations/2026-09-26-tenant-scoped-indexes.down.sql
@@ -223,26 +230,17 @@ Did not find any relation named "decision_log_tenant_kind_created_idx".
 -- all-or-nothing confirmed: the two indexes created before the failing
 -- statement did NOT survive; begin/commit rolled back the entire migration
 
-$ psql -U postgres -d pricekeel_migration_scratch -c "select lower(email), count(*) from leads group by 1 having count(*) > 1;"
-     lower     | count
----------------+-------
- test@acme.com |     2
-(1 row)
--- the pre-check query in the CAVEAT section above correctly finds it
-
 $ psql -U postgres -d pricekeel_migration_scratch -c "delete from leads where lower(email) = 'test@acme.com';"
 DELETE 2
-
-$ psql -U postgres -d pricekeel_migration_scratch -f neon/migrations/2026-09-26-tenant-scoped-indexes.sql
-BEGIN
-CREATE INDEX
-CREATE INDEX
-CREATE INDEX
-COMMIT
 
 $ psql -U postgres -c "drop database pricekeel_migration_scratch;"
 DROP DATABASE
 ```
+
+With today's plain (non-unique) `leads_lower_email_idx`, the two duplicate
+rows inserted above would not have blocked the migration at all -- which is
+the actual fix: a returning visitor resubmitting the lead-gate form was never
+supposed to be able to break ingestion.
 
 ## Deploy order per migration on main / in flight
 

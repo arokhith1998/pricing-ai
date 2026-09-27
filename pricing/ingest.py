@@ -98,7 +98,7 @@ class LoadReport:
         if self.above_list_deals:
             out.append(
                 f"  {self.above_list_deals} deal(s) closed ABOVE list "
-                "(booked > list) — a pricing-power signal, not leakage"
+                "(booked > list): a pricing-power signal, not leakage"
             )
         if self.blockers:
             for b in self.blockers:
@@ -111,7 +111,7 @@ class LoadReport:
         elif len(self.currencies) > 1:
             out.append(
                 f"  WARNING: mixed currency symbols in money columns "
-                f"({', '.join(self.currencies)}) — totals may combine currencies; "
+                f"({', '.join(self.currencies)}): totals may combine currencies, "
                 "verify the source uses one currency"
             )
         if self.blank_booked:
@@ -512,7 +512,7 @@ def _ambiguous_date_note(df: pd.DataFrame) -> str | None:
             second_gt12 = True
     if saw and not first_gt12 and not second_gt12:
         return ("close_date day/month order is ambiguous (every day <= 12); "
-                "assumed MM/DD/YYYY (month-first) — confirm if your export is "
+                "assumed MM/DD/YYYY (month-first), confirm if your export is "
                 "day-first")
     return None
 
@@ -748,12 +748,23 @@ def _ingest_loaded(
     # date order). These are surfaced in the report, not silently resolved.
     report.currencies = _scan_currencies(df)
     currency_codes = _detect_row_currency(df)   # raw-string symbol scan
-    mixed = len(report.currencies) > 1
+    # A Salesforce CurrencyIsoCode export (or any explicit currency column)
+    # can carry more than one ISO code with no currency SYMBOL anywhere in the
+    # money columns; report.currencies (the symbol scan above) then shows 0 or
+    # 1 symbols and the mix would slip through entirely. Fold the explicit
+    # column in before deciding "mixed" so an ISO-code-only mix is blocked
+    # exactly like a symbol-only mix (2026-09-26 fix); the explicit code wins
+    # per row, matching the final `df["currency"]` assignment below.
+    if "currency" in df.columns:
+        explicit_currency = df["currency"].astype(str).str.strip().str.upper()
+        currency_codes = currency_codes.mask(explicit_currency != "", explicit_currency)
+    mixed = len(report.currencies) > 1 or currency_codes.nunique() > 1
     if mixed:
         detail = _currency_row_counts(currency_codes)
+        codes_seen = sorted(currency_codes.unique())
         if fx_rates is None:
             blocker = (
-                f"Mixed currencies in money columns: {', '.join(report.currencies)} "
+                f"Mixed currencies in money columns: {', '.join(codes_seen)} "
                 f"({detail}). Ingestion blocked by default: summing different "
                 "currencies as one number would silently corrupt every dollar "
                 "total. Pass fx_rates (ISO code -> USD value) and a rate date, "
