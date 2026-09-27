@@ -13,6 +13,7 @@ from pricing.ingest import (
     _deal_type_of,
     apply_header_mapping,
     enrich,
+    ingest_frame_verbose,
     ingest_verbose,
     normalize_account_name,
     resolve_identity,
@@ -229,6 +230,29 @@ def test_mixed_currency_blocks_from_explicit_iso_column_with_no_symbols(tmp_path
     assert "USD" in str(err) and "EUR" in str(err)
     assert err.report.blockers
     assert "USD" in err.report.blockers[0] and "EUR" in err.report.blockers[0]
+
+
+def test_currency_column_with_null_cells_is_not_mixed():
+    """A currency column with explicit USD values and blank (None/NaN) cells
+    -- the shape a JSON/CRM caller sends when currency_iso is null on some
+    rows -- must not read as its own currency code and block the book as
+    mixed. astype(str) on a bare None cell renders the literal string 'None'
+    (NaN renders 'nan'), which used to compete as a distinct currency
+    alongside USD (2026-09-27 fix)."""
+    rows = []
+    for i in range(30):
+        rows.append(dict(
+            opportunity_id=f"OPP-{i}", account_name=f"Acct {i}",
+            outcome="closed_won", created_date="2025-01-01",
+            close_date="2025-02-15", segment="SMB", product_tier="Pro",
+            value_metric="hybrid", list_acv=100_000, booked_acv=90_000,
+            currency="USD" if i % 2 == 0 else None,
+        ))
+    df = pd.DataFrame(rows)
+    out, report = ingest_frame_verbose(df)
+    assert not report.blockers
+    assert report.fx_normalized is False
+    assert (out["currency"] == "USD").all()
 
 
 def test_single_currency_file_defaults_to_usd(tmp_path):

@@ -160,6 +160,12 @@ SYNONYMS: dict[str, list[str]] = {
     "currency": [
         "currency", "ccy", "curr", "currency code", "currency iso",
         "iso currency", "transaction currency",
+        # Salesforce's own multi-currency-org export header is the literal
+        # field name CurrencyIsoCode (no separators, so it normalizes to
+        # "currencyisocode" with nothing for the space-collapse regex to
+        # split on); "currency iso code" covers a spaced-out variant of the
+        # same header (2026-09-27 fix, PK-16/salesforce-readiness follow-up).
+        "currencyisocode", "currency iso code",
     ],
 }
 

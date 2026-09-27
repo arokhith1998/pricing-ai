@@ -223,26 +223,34 @@ def test_product_line_table_mirrors_segment_sufficiency_bar():
     assert table["BU-A"]["reference_threshold"] == pytest.approx(0.10)
 
 
-def test_per_deal_reference_prefers_business_unit_over_segment():
-    """A deal's own BU reference (when earned) wins over its segment
-    reference, which wins over global, even though every deal here shares
-    the same segment (ENT)."""
+def test_per_deal_reference_prefers_segment_over_business_unit():
+    """2026-09-27 precedence fix: a deal's own SEGMENT reference (when
+    earned) wins over its business_unit reference, which wins over global.
+    Every deal here shares the same segment (ENT), and ENT's pooled curve
+    happens to land at the same 10% BU-A's own curve does (BU-A dominates the
+    130-deal pool), so this also pins that the numbers agree; the precedence
+    ORDER itself (segment beats a coarser BU/product-line reference even when
+    both are "own win point") is pinned directly, with values that
+    deliberately differ, by
+    test_metrics.test_no_slice_reference_of_zero_ever_outranks_a_sufficient_segment."""
     df = _bu_book()
     won = df[df["is_won"]]
     seg_rt = metrics.reference_discount(df)["reference_threshold"]
     seg_refs = metrics.segment_reference_table(df)
+    bu_refs = metrics.business_unit_reference_table(df)
     ent_seg_threshold = {r["segment"]: r["reference_threshold"]
                         for r in seg_refs}["ENT"]
+    assert {r["business_unit"]: r["basis"] for r in bu_refs}["BU-A"] == metrics._BASIS_OWN
 
-    thr = metrics._per_deal_reference(won, df, seg_rt, seg_refs)
+    thr = metrics._per_deal_reference(won, df, seg_rt, seg_refs, bu_refs)
     bu_a_thr = thr[won["business_unit"] == "BU-A"].to_numpy()
     bu_b_thr = thr[won["business_unit"] == "BU-B"].to_numpy()
 
-    # BU-A earned its own (higher) reference -- every BU-A deal uses 10%,
-    # not the blended ENT segment threshold.
-    assert bu_a_thr == pytest.approx(0.10)
-    # BU-B is thin: it falls back through to the segment's own reference
-    # (ENT earned one from the combined 130-deal book), not straight to global.
+    # Every deal, regardless of business_unit, uses the segment's reference:
+    # ENT earned its own from the combined 130-deal book, so it applies to
+    # BU-A (which also separately earned an "own win point" BU reference, at
+    # the same 10% here) AND BU-B (thin, no BU reference of its own) alike.
+    assert bu_a_thr == pytest.approx(ent_seg_threshold)
     assert bu_b_thr == pytest.approx(ent_seg_threshold)
 
 

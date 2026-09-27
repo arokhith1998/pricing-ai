@@ -49,12 +49,12 @@ def analyze(df, load_report=None,
         # Customer wishlist (2026-06-10 dry-run): time trend, segment/rep cuts,
         # and a so-what (policy simulation) for the headline excess figure.
         "trend_by_quarter": metrics.trend_by_quarter(df, **_refs),
-        "segment_win_points": metrics.segment_win_points(df),
+        "segment_win_points": metrics.segment_win_points(df, global_ref=global_ref),
         "policy_simulations": metrics.policy_simulations(df, policy_threshold, **_refs),
         # New vs Renewal split (dry-run wishlist 4): renewal discounting is a
         # different disease from new-business discounting. Empty frame when
         # the deal-type column is missing, so the readout degrades gracefully.
-        "new_vs_renewal": metrics.new_vs_renewal(df),
+        "new_vs_renewal": metrics.new_vs_renewal(df, global_ref=global_ref),
         "realization_by_segment": metrics.realization_by_segment(df),
         "win_rate_by_band": metrics.win_rate_by_band(df),
         "reference_discount": global_ref,

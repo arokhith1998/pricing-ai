@@ -12,7 +12,8 @@ from pricing.ingest import ingest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-_KNOWN_BASES = {metrics._BASIS_OWN, metrics._BASIS_FALLBACK, metrics._BASIS_NO_SEGMENT}
+_KNOWN_BASES = {metrics._BASIS_OWN, metrics._BASIS_FALLBACK, metrics._BASIS_NO_SEGMENT,
+               metrics._BASIS_BAND_FLOOR}
 
 
 def _book() -> pd.DataFrame:
@@ -35,10 +36,17 @@ def test_well_populated_metrics_earn_their_own_win_point():
     df = _book()
     table = {row["value_metric"]: row for row in metrics.value_metric_reference_table(df)}
     # Each metric clears the 100-deal floor in the demo book, so it should not
-    # be silently pooled; it earns its own win point (or discloses a fallback).
+    # be silently pooled; it earns its own win point, discloses a fallback, or
+    # (2026-09-27 fix) discloses a band-floor fallthrough when its own
+    # win-point search degenerates to the cheapest real band (consumption on
+    # the current demo book: its search lands on 0-5% by a hair, so it falls
+    # through to the global reference rather than outranking a coarser one).
     for name in ("seats", "consumption", "hybrid"):
         assert table[name]["deals"] >= 100
-        assert table[name]["basis"] == metrics._BASIS_OWN
+        assert table[name]["basis"] in (metrics._BASIS_OWN, metrics._BASIS_BAND_FLOOR)
+    assert table["seats"]["basis"] == metrics._BASIS_OWN
+    assert table["hybrid"]["basis"] == metrics._BASIS_OWN
+    assert table["consumption"]["basis"] == metrics._BASIS_BAND_FLOOR
 
 
 def test_pooled_reference_is_unchanged_and_surfaced_alongside():

@@ -55,12 +55,14 @@ def test_split_math_known_answers():
     assert ren["avg_discount_won"] == pytest.approx(0.10)
     assert ren["price_realization_won"] == pytest.approx(0.90)
 
-    # Groups this thin cannot earn their own win point: the global reference
-    # is used and the fallback is disclosed, mirroring the segment rule.
-    assert (out["reference_basis"]
-            == "global fallback (insufficient data)").all()
-    g_rt = metrics.reference_discount(df)["reference_threshold"]
-    assert out["reference_threshold"].tolist() == pytest.approx([g_rt, g_rt])
+    # Groups this thin cannot earn their own win point, AND the pooled 6-deal
+    # book itself cannot support a global reference either (2026-09-27 fix:
+    # new_vs_renewal now honors global_ref["sufficient"] instead of always
+    # falling back to the global's manufactured 0.0 mislabeled as a fallback).
+    # So both groups disclose "insufficient data" with a NaN threshold.
+    assert (out["reference_basis"] == "insufficient data").all()
+    assert out["reference_threshold"].isna().all()
+    assert out["reference_band"].isna().all()
 
 
 def test_unrecognized_and_blank_types_land_in_other_bucket():
@@ -110,6 +112,54 @@ def test_sparse_deal_type_is_marked_insufficient_in_readout(capsys):
     out = capsys.readouterr().out
     assert "New vs Renewal" in out
     assert "insufficient data" in out
+
+
+def test_reuses_the_passed_global_ref_instead_of_recomputing(monkeypatch):
+    """2026-09-27 fix: new_vs_renewal used to call reference_discount(df)
+    unconditionally whenever deal_type was present, even when the caller
+    (diagnostic.analyze) already computed and threaded a global_ref through
+    every other consumer. Passing global_ref must skip that second bootstrap
+    entirely."""
+    df = _build([
+        _deal(f"N{i}", "closed_won", 100_000, 90_000, False) for i in range(12)
+    ] + [
+        _deal(f"R{i}", "closed_won", 100_000, 95_000, True) for i in range(12)
+    ])
+    g_ref = metrics.reference_discount(df)
+    calls = {"n": 0}
+    original = metrics.reference_discount
+
+    def counted(*a, **kw):
+        calls["n"] += 1
+        return original(*a, **kw)
+
+    monkeypatch.setattr(metrics, "reference_discount", counted)
+    metrics.new_vs_renewal(df, min_deals=1, global_ref=g_ref)
+    assert calls["n"] == 0, (
+        f"new_vs_renewal called reference_discount {calls['n']} times even "
+        "though the caller passed global_ref in"
+    )
+
+
+def test_insufficient_global_reference_is_disclosed_not_manufactured():
+    """When the pooled book cannot support a reference at all (sufficient is
+    False) and a deal_type group has not earned its own, the row must
+    disclose 'insufficient data' with a NaN threshold, never the global's
+    manufactured 0.0 (the same rule every other hierarchy consumer follows)."""
+    insufficient_ref = {"reference_threshold": 0.0, "reference_band": None,
+                        "sufficient": False, "basis": "insufficient data",
+                        "band_counts": {}}
+    df = _build([
+        _deal(f"N{i}", "closed_won", 100_000, 90_000, False) for i in range(12)
+    ] + [
+        _deal(f"R{i}", "closed_won", 100_000, 95_000, True) for i in range(12)
+    ])
+    out = metrics.new_vs_renewal(
+        df, min_deals=1, global_ref=insufficient_ref,
+    ).set_index("deal_type")
+    assert (out["reference_basis"] == "insufficient data").all()
+    assert out["reference_threshold"].isna().all()
+    assert out["reference_band"].isna().all()
 
 
 def test_readout_prints_split_and_disease_framing(capsys):

@@ -264,6 +264,54 @@ def test_digest_scoped_by_customer(client, deal_id):
     assert b["stats"]["exceptions_total"] == 0
 
 
+def test_digest_all_returns_one_digest_per_active_tenant_excluding_demo(client):
+    """2026-09-27 fix: after the per-visitor demo:<uuid> tenant fix, nobody
+    writes to the 'default' tenant GET /digest defaults to, so the cron email
+    reported zero activity forever. GET /digest/all walks every tenant with
+    decision-log activity in the window instead, excluding demo:* tenants
+    (each anonymous sample-page visitor mints its own)."""
+    governance.STORE.insert(
+        kind="exception", deal_id="A-1",
+        payload={"deal_id": "A-1", "requested_discount_pct": 22.0,
+                 "requested_by": "a@customer-a.com",
+                 "verdict": {"below_floor": True}},
+        decision="below_floor", requested_by="a@customer-a.com",
+        customer_ref="ACME-CODE",
+    )
+    governance.STORE.insert(
+        kind="exception", deal_id="B-1",
+        payload={"deal_id": "B-1", "requested_discount_pct": 5.0,
+                 "requested_by": "b@customer-b.com",
+                 "verdict": {"below_floor": False}},
+        decision="within_floor", requested_by="b@customer-b.com",
+        customer_ref="BRAVO-CODE",
+    )
+    # An anonymous demo visitor's activity must never appear here.
+    governance.STORE.insert(
+        kind="copilot", payload={"session_id": "s1"},
+        customer_ref="demo:11111111-1111-1111-1111-111111111111",
+    )
+
+    r = client.get("/digest/all")
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body["customers"]) == {"ACME-CODE", "BRAVO-CODE"}
+    assert not any(c.startswith("demo:") for c in body["customers"])
+
+    by_customer = {d["customer"]: d for d in body["digests"]}
+    assert by_customer["ACME-CODE"]["stats"]["exceptions_total"] == 1
+    assert by_customer["ACME-CODE"]["stats"]["exceptions_below_floor"] == 1
+    assert by_customer["BRAVO-CODE"]["stats"]["exceptions_total"] == 1
+    assert by_customer["BRAVO-CODE"]["stats"]["exceptions_below_floor"] == 0
+    assert all(d["book_source"] == "demo" for d in body["digests"])
+
+
+def test_digest_all_is_empty_when_no_tenant_has_activity(client):
+    r = client.get("/digest/all")
+    assert r.status_code == 200
+    assert r.json() == {"digests": [], "customers": []}
+
+
 # --- 2. /exceptions verdicts pinned on the demo book --------------------------
 
 def test_exception_below_floor_flag_on_both_sides_of_floor(client, deal_id):
