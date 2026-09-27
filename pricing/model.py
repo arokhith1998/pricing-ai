@@ -64,6 +64,19 @@ Design choices:
     "support_floor", never "modeled_ev_curve", and never add discount
     (mle-reviewer F1, 2026-09-26: 342 of 342 Enterprise recommendations sat
     on the grid's lower edge with zero win-probability gain).
+  * A support floor never ships an "uplift" dollar figure: `uplift` is None
+    for "support_floor" and "no_discount_on_record", because the model
+    measured no discount effect there, not a positive one. In its place,
+    "support_floor" carries `price_retained` (list ACV times the discount
+    points not added at the floor, always >= 0 since the floor never adds
+    discount), labeled as price retained, never as expected value gain
+    (mle-reviewer, 2026-09-27: 617 of 635 support floors on the demo book
+    shipped a $4.81M "expected value gain" the model never earned). A deal
+    whose own discount sits below the cohort's clipped grid entirely (its
+    rep already gave less than this cohort's floor) is a distinct
+    "below_support" case, `below_support=True`, with its own caveat: no
+    curve applies below the cohort's observed range, so there is nothing to
+    optimize against (mle-reviewer, 2026-09-27).
   * The deal's own discount is scored exactly, not snapped to the nearest
     grid point, so the uplift is measured against where the deal actually
     sits (code-reviewer, 2026-09-26: a deal at 11.2% with a 14-32% grid was
@@ -171,10 +184,16 @@ METHOD_CAVEATS = {
         "The modeled curve has no interior peak inside the range this cohort "
         "has actually given: either the win probability barely moves across "
         "the sweep, or the peak sits on the edge of the cohort's support. The "
-        "recommendation is the floor of that range, not a modeled optimum, "
-        "and the expected uplift is price retained on the assumption that win "
-        "odds hold, which the model could not tell apart across this range. "
-        "It never adds discount."
+        "recommendation is the floor of that range, not a modeled optimum, so "
+        "there is no uplift figure; the dollar figure shown is price retained "
+        "if win odds hold, not a value the model demonstrated. It never adds "
+        "discount."
+    ),
+    "below_support": (
+        "This deal sits below the discounts your cohort has closed at; no "
+        "curve applies. There is no uplift figure; the dollar figure shown "
+        "is price retained if win odds hold, not a value the model "
+        "demonstrated. It never adds discount."
     ),
     "band_guardrail": (
         "Too few comparable deals to sweep a curve. The recommendation caps "
@@ -471,9 +490,14 @@ def _band_guardrail_recommendation(tm: TrainedModel, X_row: pd.DataFrame,
         "expected_acv_at_current": ev_cur,
         "win_prob_at_current": p_cur,
         "uplift": ev_rec - ev_cur,
+        # Only "support_floor" and "below_support" carry price_retained
+        # (mle-reviewer, 2026-09-27); a band guardrail still ships a real
+        # uplift number above, so this stays None for shape consistency.
+        "price_retained": None,
         "curve": curve,
         "cohort_deals": int(len(cohort_discounts)),
         "at_grid_edge": False,
+        "below_support": False,
         "win_prob_gain": abs(p_rec - p_cur),
     }
 
@@ -493,10 +517,13 @@ def _no_discount_on_record(cohort_deals: int | None) -> dict:
         "expected_acv_at_current": None,
         "win_prob_at_current": None,
         "uplift": None,
+        # No current discount to measure price retained against either.
+        "price_retained": None,
         "curve": pd.DataFrame({"discount": [], "win_prob": [],
                                "expected_acv": []}, dtype=float),
         "cohort_deals": cohort_deals,
         "at_grid_edge": False,
+        "below_support": False,
         "win_prob_gain": None,
     }
 
@@ -576,11 +603,26 @@ def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
     Both `at_grid_edge` and `win_prob_gain` are returned so a caller can see
     which rule fired.
 
+    A "support_floor" whose *current* discount sits entirely below the
+    clipped cohort grid (the rep already gave less than this cohort's
+    observed floor) is additionally flagged `below_support=True`, with its
+    own caveat: no curve applies below the cohort's observed range, so there
+    is nothing for the model to optimize against (mle-reviewer, 2026-09-27:
+    OPP-00007 at 11.16%, an Enterprise cohort floor of 14.01%).
+
     The deal's own discount is scored exactly (`win_prob_at_current`,
-    `expected_acv_at_current`), never snapped to the nearest grid point, and
-    `uplift` is measured against that. When the current discount lies inside
-    the sweep's range it is also a candidate, so a recommendation never loses
-    to simply keeping what the deal already has.
+    `expected_acv_at_current`), never snapped to the nearest grid point.
+    For "modeled_ev_curve" and "band_guardrail", `uplift` is measured
+    against that, and when the current discount lies inside the sweep's
+    range it is also a candidate, so a recommendation never loses to simply
+    keeping what the deal already has. For "support_floor" (and
+    "no_discount_on_record"), `uplift` is None: the model measured no
+    discount effect there, so a dollar "gain" would be invented, not
+    modeled (mle-reviewer, 2026-09-27). In its place, "support_floor"
+    carries `price_retained`, list ACV times the discount points not added
+    at the floor (current minus recommended, always >= 0 since a floor
+    never adds discount), labeled as price retained if the floor holds,
+    never as expected value gain.
 
     A NaN current discount returns method "no_discount_on_record" with no
     numbers at all (mle-reviewer F2).
@@ -636,20 +678,41 @@ def recommend_discount(tm: TrainedModel, X_row: pd.DataFrame, list_acv: float,
             # A floor the model did not earn as an optimum never adds discount.
             rec_discount, p_rec, ev_rec = current, p_cur, ev_cur
 
+    # The deal's own discount sits below the clipped cohort grid entirely:
+    # there is no curve to speak of below the cohort's observed range, a
+    # distinct claim from "the floor of the range is the peak" (mle-reviewer,
+    # 2026-09-27).
+    below_support = bool(clipped and current < float(grid.min()) - 1e-9)
+
+    uplift: float | None = ev_rec - ev_cur
+    price_retained: float | None = None
+    caveat = METHOD_CAVEATS[method]
+    if method == "support_floor":
+        # Never invent a dollar gain the model did not measure: a support
+        # floor's only earned number is the discount not given, at list
+        # price, always >= 0 because a floor never adds discount above the
+        # deal's own current ask.
+        uplift = None
+        price_retained = float(list_acv * max(current - rec_discount, 0.0))
+        if below_support:
+            caveat = METHOD_CAVEATS["below_support"]
+
     return {
         "method": method,
-        "caveat": METHOD_CAVEATS[method],
+        "caveat": caveat,
         "recommended_discount": rec_discount,
         "expected_acv_at_rec": ev_rec,
         "win_prob_at_rec": p_rec,
         "current_discount": current,
         "expected_acv_at_current": ev_cur,
         "win_prob_at_current": p_cur,
-        "uplift": ev_rec - ev_cur,
+        "uplift": uplift,
+        "price_retained": price_retained,
         "curve": pd.DataFrame({"discount": grid, "win_prob": p,
                                "expected_acv": expected_acv}),
         "cohort_deals": cohort_n,
         "at_grid_edge": bool(at_grid_edge),
+        "below_support": below_support,
         "win_prob_gain": win_prob_gain,
     }
 
@@ -713,19 +776,33 @@ def band_context(df: pd.DataFrame, idx, recommended_discount: float) -> dict:
 
 
 def _argmax_discount_on_grid(tm: TrainedModel, X: pd.DataFrame,
-                             list_acv: np.ndarray, grid: np.ndarray) -> np.ndarray:
-    """EV-argmax discount per row of X over one shared grid (vectorized)."""
+                             list_acv: np.ndarray,
+                             grid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """EV-argmax discount per row of X over one shared grid (vectorized), plus
+    whether each row's argmax is a floor rather than a modeled peak: the
+    argmax sits on either edge of the grid, or this row's win probability
+    barely moves across it (`MIN_WIN_PROB_GAIN`), the same rule
+    `recommend_discount` applies to a single deal. Used to split
+    `leakage_vs_model` into its modeled and floor-based components
+    (mle-reviewer, 2026-09-27: on the demo book every Enterprise "justified"
+    discount is this kind of floor, not a model output, while the page called
+    the whole figure "judged deal by deal")."""
     g = len(grid)
     rep = X.loc[X.index.repeat(g)].reset_index(drop=True)
     rep["discount_pct"] = np.tile(grid, len(X))
     p = tm.model.predict_proba(rep[tm.features])[:, 1].reshape(len(X), g)
     ev = p * list_acv[:, None] * (1.0 - grid[None, :])
-    return grid[ev.argmax(axis=1)]
+    best = ev.argmax(axis=1)
+    win_prob_gain = p.max(axis=1) - p.min(axis=1)
+    at_edge = (best == 0) | (best == g - 1)
+    is_floor = at_edge | (win_prob_gain < MIN_WIN_PROB_GAIN)
+    return grid[best], is_floor
 
 
 def justified_discounts(tm: TrainedModel, df: pd.DataFrame,
                         grid: np.ndarray | None = None, *,
-                        min_cohort_deals: int = 50) -> pd.Series:
+                        min_cohort_deals: int = 50,
+                        return_floor: bool = False):
     """Per won deal, the discount the model can justify, indexed like the won
     rows of `df`. NaN where the deal's own discount is not on record.
 
@@ -737,18 +814,30 @@ def justified_discounts(tm: TrainedModel, df: pd.DataFrame,
     the same one /recommend uses); a cohort under `min_cohort_deals` gets the
     band-guardrail answer instead, min(actual, cohort median). An explicit
     `grid` applies to every row unchanged.
+
+    `return_floor=True` (used by `leakage_vs_model` to split modeled from
+    floor-based leakage, mle-reviewer 2026-09-27) additionally returns a
+    same-indexed boolean Series, True where the justified discount is a
+    band-guardrail reference or a support-floor edge rather than an interior
+    EV-curve peak with real win-probability movement; the public,
+    default-False contract (a single Series) is unchanged for existing
+    callers.
     """
     won = df[df["is_won"]]
     actual = pd.to_numeric(won["discount_pct"], errors="coerce").to_numpy(dtype=float)
     list_acv = pd.to_numeric(won["list_acv"], errors="coerce").to_numpy(dtype=float)
     justified = np.full(len(won), np.nan)
+    is_floor = np.zeros(len(won), dtype=bool)
     if won.empty:
-        return pd.Series(justified, index=won.index, name="justified_discount")
+        result = pd.Series(justified, index=won.index, name="justified_discount")
+        if return_floor:
+            return result, pd.Series(is_floor, index=won.index, name="is_floor")
+        return result
 
     X = tm.X_all.loc[won.index, tm.features]
     if grid is not None or "segment" not in df.columns:
         g = np.asarray(grid if grid is not None else _DEFAULT_GRID, dtype=float)
-        justified[:] = _argmax_discount_on_grid(tm, X, list_acv, g)
+        justified[:], is_floor[:] = _argmax_discount_on_grid(tm, X, list_acv, g)
     else:
         segments = won["segment"].to_numpy()
         for seg in pd.unique(segments):
@@ -757,11 +846,17 @@ def justified_discounts(tm: TrainedModel, df: pd.DataFrame,
             if len(cohort) < min_cohort_deals:
                 ref = float(np.median(cohort)) if len(cohort) else np.nan
                 justified[pos] = np.minimum(actual[pos], ref)
+                # A band-guardrail reference is never a modeled peak.
+                is_floor[pos] = True
                 continue
-            justified[pos] = _argmax_discount_on_grid(
+            justified[pos], is_floor[pos] = _argmax_discount_on_grid(
                 tm, X.iloc[pos], list_acv[pos], _cohort_grid(cohort))
     justified[~np.isfinite(actual)] = np.nan
-    return pd.Series(justified, index=won.index, name="justified_discount")
+    is_floor[~np.isfinite(actual)] = False
+    result = pd.Series(justified, index=won.index, name="justified_discount")
+    if return_floor:
+        return result, pd.Series(is_floor, index=won.index, name="is_floor")
+    return result
 
 
 def leakage_vs_model(tm: TrainedModel, df: pd.DataFrame,
@@ -777,30 +872,66 @@ def leakage_vs_model(tm: TrainedModel, df: pd.DataFrame,
     from `justified_discounts`, so they sit on the same cohort-clipped grid
     /recommend sweeps; deals with no discount on record are excluded from
     every figure rather than scored as a zero.
+
+    `model_excess_won` and `model_excess_pct_of_booked` are the total across
+    both components, kept for backward compatibility. The total mixes two
+    different claims (mle-reviewer, 2026-09-27: 61% of the demo book's $6.18M
+    was Enterprise, where every justified discount is a support-floor edge,
+    not a modeled curve, yet the page called the whole figure "judged deal by
+    deal"), so it is also split:
+      * `modeled_value`: deals whose justified discount is an interior EV-
+        curve peak with real win-probability movement. This is the only
+        component that is actually a model output; headline this one.
+      * `floor_based_value`: deals whose justified discount is a
+        band-guardrail median or a support-floor edge (`justified_discounts`
+        `is_floor`). Disclose, never headline: it is a floor, not a measured
+        effect.
+    Both carry their own `deals` count (deals with positive excess in that
+    component) so a caller can size each without re-deriving it; `deals` at
+    the top level is unchanged, the count of deals ok to score at all.
     """
     won = df[df["is_won"]]
+    empty_component = {"excess": 0.0, "deals": 0, "pct_of_booked": 0.0}
     empty = {"deals": 0, "mean_justified_discount": 0.0, "mean_actual_discount": 0.0,
              "model_excess_won": 0.0, "deals_over_justified": 0,
-             "model_excess_pct_of_booked": 0.0}
+             "model_excess_pct_of_booked": 0.0,
+             "modeled_value": dict(empty_component),
+             "floor_based_value": dict(empty_component)}
     if won.empty:
         return empty
 
-    justified = justified_discounts(tm, df, grid,
-                                    min_cohort_deals=min_cohort_deals).to_numpy()
+    justified, is_floor = justified_discounts(
+        tm, df, grid, min_cohort_deals=min_cohort_deals, return_floor=True)
+    justified = justified.to_numpy()
+    is_floor = is_floor.to_numpy()
     actual = pd.to_numeric(won["discount_pct"], errors="coerce").to_numpy(dtype=float)
     list_acv = pd.to_numeric(won["list_acv"], errors="coerce").to_numpy(dtype=float)
     ok = np.isfinite(actual) & np.isfinite(justified) & np.isfinite(list_acv)
     if not ok.any():
         return empty
     excess = np.clip(actual[ok] - justified[ok], 0.0, None) * list_acv[ok]
+    floor_ok = is_floor[ok]
     booked = float(pd.to_numeric(won.loc[ok, "booked_acv"], errors="coerce").sum())
+    total_excess = float(excess.sum())
+    modeled_excess = float(excess[~floor_ok].sum())
+    floor_excess = float(excess[floor_ok].sum())
+
+    def component(mask: np.ndarray, component_excess: float) -> dict:
+        return {
+            "excess": component_excess,
+            "deals": int((mask & (excess > 0)).sum()),
+            "pct_of_booked": float(component_excess / booked) if booked else 0.0,
+        }
+
     return {
         "deals": int(ok.sum()),
         "mean_justified_discount": float(justified[ok].mean()),
         "mean_actual_discount": float(actual[ok].mean()),
-        "model_excess_won": float(excess.sum()),
+        "model_excess_won": total_excess,
         "deals_over_justified": int((excess > 0).sum()),
-        "model_excess_pct_of_booked": float(excess.sum() / booked) if booked else 0.0,
+        "model_excess_pct_of_booked": float(total_excess / booked) if booked else 0.0,
+        "modeled_value": component(~floor_ok, modeled_excess),
+        "floor_based_value": component(floor_ok, floor_excess),
     }
 
 
@@ -832,11 +963,16 @@ def main() -> None:
     for idx in won.index:
         X_row = tm.X_all.loc[[idx]]
         rec = recommend_discount(tm, X_row, float(df.loc[idx, "list_acv"]))
+        # "support_floor" (and "no_discount_on_record") never ship a dollar
+        # uplift, since the model measured no discount effect there; print
+        # price retained instead so this CLI can't invent the same number the
+        # guidance page was fixed not to (mle-reviewer, 2026-09-27).
+        value = (f"E[ACV] uplift ${rec['uplift']:,.0f}" if rec["uplift"] is not None
+                 else f"price retained ${(rec['price_retained'] or 0.0):,.0f}")
         print(f"{df.loc[idx, 'opportunity_id']}  list ${df.loc[idx,'list_acv']:,.0f}  "
               f"| gave {rec['current_discount']:.0%} -> recommend "
               f"{rec['recommended_discount']:.0%}  "
-              f"(P(win) {rec['win_prob_at_rec']:.0%}, "
-              f"E[ACV] uplift ${rec['uplift']:,.0f})")
+              f"(P(win) {rec['win_prob_at_rec']:.0%}, {value})")
     print("\n(Guidance maximizes expected ACV on a saturating win curve; it is")
     print(" decision support for humans in the loop, not an autopilot.)")
 
@@ -846,7 +982,10 @@ def main() -> None:
           f"{ml['mean_actual_discount']:.1%}. "
           f"${ml['model_excess_won']:,.0f} given above each deal's justified "
           f"discount across {ml['deals_over_justified']:,} deals "
-          f"({ml['model_excess_pct_of_booked']:.1%} of booked ACV).")
+          f"({ml['model_excess_pct_of_booked']:.1%} of booked ACV), of which "
+          f"${ml['modeled_value']['excess']:,.0f} is a modeled curve peak and "
+          f"${ml['floor_based_value']['excess']:,.0f} is a floor, not a "
+          "measured effect.")
 
 
 if __name__ == "__main__":

@@ -85,6 +85,32 @@ def test_summary_facts_uses_only_provided_numbers():
     assert "off_policy_unapproved_deals=12" in facts
 
 
+def test_summary_facts_narrates_insufficient_reference_instead_of_zero():
+    """silent-failure-hunter, 2026-09-27: when metrics.reference_discount
+    could not estimate a reference (`sufficient=False`), the facts block must
+    say so, with the band counts that explain why, not print
+    reference_discount=0.000, which reads as a real, zero-cost reference
+    rather than as "we could not measure one"."""
+    res = {
+        "overview": {"booked_acv_won": 1_000_000, "price_realization_won": 0.8,
+                     "avg_discount_won": 0.2, "win_rate": 0.55, "won": 110, "lost": 90},
+        "leakage": {"reference_threshold": 0.0, "excess_vs_reference_won": 0.0,
+                    "excess_pct_of_booked": 0.0, "off_policy_leakage_won": 40_000,
+                    "gross_discount_won": 250_000},
+        "reference_discount": {
+            "sufficient": False, "reference_threshold": 0.0,
+            "band_counts": {"0-5%": 4, "5-10%": 9},
+        },
+        "quarter_end": {},
+        "governance": {"off_policy_unapproved_won": 12,
+                       "unapproved_discount_dollars": 55_000},
+    }
+    facts = assist.summary_facts(res)
+    assert "reference_discount=0.000" not in facts
+    assert "reference: insufficient data" in facts
+    assert "0-5%=4" in facts and "5-10%=9" in facts
+
+
 def test_summary_facts_tolerates_missing_quarter_end():
     res = {
         "overview": {"booked_acv_won": 1.0, "price_realization_won": 0.9,

@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.metrics import brier_score_loss
 
@@ -149,6 +150,43 @@ def test_leakage_vs_model_is_sane(trained):
     assert 0.0 <= ml["model_excess_pct_of_booked"] < 1.0
     # the synthetic data has real over-discounting → some model excess exists
     assert ml["model_excess_won"] > 0.0
+    # mle-reviewer, 2026-09-27: the total mixes an actual model output with a
+    # band-guardrail/support-floor reference; the split must account for
+    # every dollar and every deal in the total.
+    for key in ("modeled_value", "floor_based_value"):
+        assert ml[key]["excess"] >= 0.0
+        assert ml[key]["deals"] >= 0
+        assert 0.0 <= ml[key]["pct_of_booked"] < 1.0
+    assert ml["modeled_value"]["excess"] + ml["floor_based_value"]["excess"] == pytest.approx(
+        ml["model_excess_won"])
+    assert ml["modeled_value"]["deals"] + ml["floor_based_value"]["deals"] == ml["deals_over_justified"]
+
+
+def test_leakage_vs_model_splits_modeled_from_floor_based_on_deals_csv(
+        trained_on_deals_csv):
+    """mle-reviewer, 2026-09-27: on the demo book 61% of the total figure is
+    Enterprise, where every justified discount is a support-floor edge, not
+    a curve the model found. The split must put it there, not in the
+    headline modeled component, and the two components must reconstruct the
+    kept `model_excess_won` total exactly."""
+    df, tm = trained_on_deals_csv
+    ml = model.leakage_vs_model(tm, df)
+    assert ml["modeled_value"]["excess"] + ml["floor_based_value"]["excess"] == pytest.approx(
+        ml["model_excess_won"])
+    assert ml["modeled_value"]["deals"] + ml["floor_based_value"]["deals"] == ml["deals_over_justified"]
+
+    justified, is_floor = model.justified_discounts(tm, df, return_floor=True)
+    won = df[df["is_won"]]
+    ent_idx = won.index[won["segment"] == "Enterprise"]
+    assert len(ent_idx) > 0
+    # Every Enterprise justified discount is a floor on this book, so none of
+    # its excess may land in the modeled component.
+    assert bool(is_floor.loc[ent_idx].all())
+    ent_actual = pd.to_numeric(won.loc[ent_idx, "discount_pct"], errors="coerce")
+    ent_list = pd.to_numeric(won.loc[ent_idx, "list_acv"], errors="coerce")
+    ent_excess = ((ent_actual - justified.loc[ent_idx]).clip(lower=0.0) * ent_list).sum()
+    assert ent_excess > 0.0
+    assert ent_excess <= ml["floor_based_value"]["excess"] + 1e-6
 
 
 def test_comparable_deals_are_relevant(trained):
@@ -520,7 +558,18 @@ def test_enterprise_grid_edge_optimum_is_a_support_floor_not_a_modeled_peak(
             assert rec["method"] == "support_floor"
             assert rec["at_grid_edge"] or rec["win_prob_gain"] < model.MIN_WIN_PROB_GAIN
             assert rec["recommended_discount"] <= rec["current_discount"] + 1e-9
-            assert "not a modeled optimum" in rec["caveat"]
+            # No dollar uplift on a floor the model did not earn as an
+            # optimum (mle-reviewer, 2026-09-27); price_retained is the only
+            # number, and it is never negative since a floor never adds
+            # discount above the deal's own current ask.
+            assert rec["uplift"] is None
+            assert rec["price_retained"] is not None and rec["price_retained"] >= -1e-6
+            if rec["below_support"]:
+                # A deal below the cohort's clipped grid entirely gets its
+                # own caveat: no curve applies, not "the floor of the range".
+                assert rec["caveat"] == model.METHOD_CAVEATS["below_support"]
+            else:
+                assert "not a modeled optimum" in rec["caveat"]
             assert "—" not in rec["caveat"]
     # The finding itself: this cohort earns no modeled label at all today.
     # If a retrain ever gives Enterprise a real interior optimum this line is
@@ -553,10 +602,48 @@ def test_uplift_is_measured_at_the_deals_own_discount_not_the_nearest_grid_edge(
     assert rec["expected_acv_at_current"] != pytest.approx(
         float(rec["curve"]["expected_acv"].iloc[0]))
     # Never told to add discount on a support floor: stays at 11.2%, no
-    # uplift claimed.
+    # uplift claimed. Below the cohort's clipped grid entirely, so this is
+    # the "below_support" branch, not "the floor of the range" (mle-reviewer,
+    # 2026-09-27), and price_retained is 0 since the discount never moved.
     assert rec["method"] == "support_floor"
+    assert rec["below_support"] is True
     assert rec["recommended_discount"] == pytest.approx(current)
-    assert rec["uplift"] == pytest.approx(0.0)
+    assert rec["uplift"] is None
+    assert rec["price_retained"] == pytest.approx(0.0)
+    assert rec["caveat"] == model.METHOD_CAVEATS["below_support"]
+
+
+def test_every_support_floor_on_the_demo_book_ships_price_retained_not_uplift(
+        trained_on_deals_csv):
+    """Acceptance test for mle-reviewer, 2026-09-27: 617 of 635 support-floor
+    recommendations on the demo book cut discount by 11.6 points on average
+    and summed to $4.81M of "uplift" the model never measured. Every
+    support_floor recommendation on the full book must instead ship
+    uplift=None and a non-negative price_retained; band_guardrail and
+    modeled_ev_curve are unaffected and keep their real uplift number."""
+    df, tm = trained_on_deals_csv
+    cohort_discounts_by_segment = {
+        seg: model.cohort_discounts_for(df, df.index[df["segment"] == seg][0])
+        for seg in df["segment"].unique()
+    }
+    n_support_floor = 0
+    for idx in df.index:
+        cohort_discounts = cohort_discounts_by_segment[df.loc[idx, "segment"]]
+        rec = model.recommend_discount(
+            tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
+            cohort_discounts=cohort_discounts)
+        if rec["method"] == "support_floor":
+            n_support_floor += 1
+            assert rec["uplift"] is None, df.loc[idx, "opportunity_id"]
+            assert rec["price_retained"] is not None, df.loc[idx, "opportunity_id"]
+            assert rec["price_retained"] >= -1e-6, df.loc[idx, "opportunity_id"]
+        elif rec["method"] in ("modeled_ev_curve", "band_guardrail"):
+            assert rec["uplift"] is not None, df.loc[idx, "opportunity_id"]
+            assert rec["price_retained"] is None, df.loc[idx, "opportunity_id"]
+    # The finding was real on this book (635 of 2,000 measured 2026-09-27);
+    # a future retrain that erased support_floor entirely would make this
+    # test vacuous, so pin a floor on the count too.
+    assert n_support_floor > 0
 
 
 def test_current_inside_the_sweep_is_a_candidate_so_uplift_is_never_negative(
@@ -564,7 +651,10 @@ def test_current_inside_the_sweep_is_a_candidate_so_uplift_is_never_negative(
     """With the current discount scored exactly, a deal sitting between two
     grid points could otherwise beat both neighbours and be handed a negative
     uplift. Inside the swept range the current point competes, so uplift is
-    never below zero on any deal of the two well-supported segments."""
+    never below zero on any deal of the two well-supported segments.
+
+    A "support_floor" ships no uplift at all (mle-reviewer, 2026-09-27): its
+    price_retained, not uplift, is the number that must never go negative."""
     df, tm = trained_on_deals_csv
     for seg in ("SMB", "MidMarket"):
         cohort = df[df["segment"] == seg]
@@ -576,7 +666,11 @@ def test_current_inside_the_sweep_is_a_candidate_so_uplift_is_never_negative(
             rec = model.recommend_discount(
                 tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
                 cohort_discounts=cohort_discounts)
-            assert rec["uplift"] >= -1e-6, df.loc[idx, "opportunity_id"]
+            if rec["method"] == "support_floor":
+                assert rec["uplift"] is None, df.loc[idx, "opportunity_id"]
+                assert rec["price_retained"] >= -1e-6, df.loc[idx, "opportunity_id"]
+            else:
+                assert rec["uplift"] >= -1e-6, df.loc[idx, "opportunity_id"]
 
 
 def test_nan_in_cohort_is_dropped_instead_of_raising(trained_on_deals_csv):
@@ -661,6 +755,7 @@ def test_recommend_endpoint_survives_a_blank_discount_in_the_segment(monkeypatch
     b = blank.json()
     assert b["method"] == "no_discount_on_record"
     assert b["uplift"] is None and b["recommended_discount"] is None
+    assert b["price_retained"] is None
     assert b["top_factors_at_recommended"] == []
     assert b["band_context"]["current_band"] is None
     api_main._rate_state_reset()
@@ -680,11 +775,19 @@ def test_recommend_endpoint_exposes_edge_and_gain_and_method_caveat(monkeypatch)
     body = r.json()
     assert body["method"] == "support_floor"
     assert isinstance(body["at_grid_edge"], bool)
+    assert body["below_support"] is True
     assert body["win_prob_gain"] is not None and body["win_prob_gain"] >= 0.0
-    assert "not a modeled optimum" in body["caveat"]
+    # OPP-00007 sits below the cohort's clipped grid entirely, so this is the
+    # "below_support" caveat, not "the floor of the range" (mle-reviewer,
+    # 2026-09-27), plus the general correlational caveat appended by the
+    # router.
+    assert "no curve applies" in body["caveat"]
     assert "correlational" in body["caveat"]
+    assert body["uplift"] is None
+    assert body["price_retained"] == pytest.approx(0.0)
     assert body["win_prob_at_current"] == pytest.approx(
         body["win_prob_at_rec"])  # recommended == current on this deal
+    assert "in_sample" in body and isinstance(body["in_sample"], bool)
     api_main._rate_state_reset()
 
 
