@@ -450,8 +450,10 @@ async function getJSON<T>(path: string, headers?: Record<string, string>): Promi
 }
 
 // The decision log is scoped per customer. The web proxy passes the verified
-// access code (or "default" for lead-only demo visitors) as this header; the
-// governance store filters reads and tags writes by it.
+// access code, or a per-visitor demo:<uuid> (gate.ts) for lead-only demo
+// visitors, as this header; the governance store filters reads and tags
+// writes by it. (2026-09-27: this used to say "default" for demo visitors,
+// stale since gate.ts started minting a distinct demo:<uuid> per visitor.)
 const CUSTOMER_HEADER = "X-Pricekeel-Customer";
 
 export const getDemo = (policy = 0.15) =>
@@ -521,6 +523,14 @@ export const getExceptions = (limit = 50, customer = "default") =>
 
 export const getDigest = (customer = "default") =>
   getJSON<Digest>("/digest", { [CUSTOMER_HEADER]: customer });
+
+// One digest per real customer with decision-log activity in the last 7
+// days, excluding demo:* tenants (2026-09-27 fix). GET /digest is scoped to
+// a single tenant via X-Pricekeel-Customer, which is why the cron sender
+// used to always hit "default" and get zero activity back once no one wrote
+// to that tenant anymore; this walks every active tenant server-side instead.
+export const getDigestAll = () =>
+  getJSON<{ digests: Digest[]; customers: string[] }>("/digest/all");
 
 export async function getSummary(
   policy = 0.15,

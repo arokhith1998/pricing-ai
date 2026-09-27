@@ -156,3 +156,43 @@ def digest(request: Request) -> dict:
     # realization/excess figures for this tenant's own book.
     result["book_source"] = "demo"
     return result
+
+
+@router.get("/digest/all")
+def digest_all() -> dict:
+    """One digest per real customer with decision-log activity in the last 7
+    days, excluding demo:* tenants (2026-09-27 fix).
+
+    GET /digest is scoped to the CALLER's own tenant via X-Pricekeel-Customer;
+    it has no way to report on tenants other than itself. After the
+    per-visitor demo:<uuid> fix (web/src/lib/gate.ts), nobody writes to the
+    "default" tenant anymore, so a cron hitting GET /digest for "default"
+    (the old behavior of web/src/app/api/digest/send/route.ts) reports zero
+    activity forever. This endpoint is what the cron sender should call
+    instead: it walks every tenant with activity and returns one digest each,
+    same book-diagnostics degrade-not-500 behavior as GET /digest. Behind the
+    same X-Pricekeel-Key perimeter as every other endpoint (api/main.py); GET
+    requests are not currently rate-limited anywhere in this API (see
+    api/main.py's perimeter_middleware, POST-only), so this carries the same
+    protection level as GET /digest, no less."""
+    analysis = None
+    try:
+        if DEMO_CSV.exists():
+            mtime = DEMO_CSV.stat().st_mtime
+            if _DIGEST_BOOK["mtime"] != mtime:
+                _DIGEST_BOOK.update(
+                    mtime=mtime,
+                    analysis=run(str(DEMO_CSV), policy_threshold=0.15),
+                )
+            analysis = _DIGEST_BOOK["analysis"]
+    except Exception:  # noqa: BLE001  (digest must degrade, not 500)
+        logger.warning("digest/all: book diagnostics unavailable", exc_info=True)
+    customers = governance_mod.active_customers(window_days=7)
+    digests = []
+    for customer in customers:
+        result = governance_mod.build_digest(
+            analysis=analysis, window_days=7, customer=customer,
+        )
+        result["book_source"] = "demo"
+        digests.append(result)
+    return {"digests": digests, "customers": customers}
