@@ -27,6 +27,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from pricing import governance as governance_mod
+from pricing import model
 from pricing.diagnostic import run
 from api.shared import DEMO_CSV, engine
 
@@ -54,7 +55,7 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
 
     Response shape: {id, verdict, created_at, persisted}. `persisted` is True
     when the decision was written durably to the database, False when it landed
-    in the in-memory fallback (database unset or unreachable) — the response
+    in the in-memory fallback (database unset or unreachable), the response
     never claims durability it does not have (Finding 5). The write is scoped to the
     caller's tenant via X-Pricekeel-Customer (Finding 3)."""
     from api import main  # deferred: see module docstring
@@ -72,9 +73,12 @@ def create_exception(req: ExceptionReq, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="Unknown deal_id")
     idx = matches[0]
 
+    # Same cohort helper as /recommend, so the two endpoints score one deal
+    # on the same clipped sweep (code-reviewer major, 2026-09-26).
     verdict = governance_mod.exception_verdict(
         tm, tm.X_all.loc[[idx]], float(df.loc[idx, "list_acv"]),
         req.requested_discount_pct,
+        cohort_discounts=model.cohort_discounts_for(df, idx),
     )
     row = governance_mod.STORE.insert(
         kind="exception",

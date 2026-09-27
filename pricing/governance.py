@@ -1,4 +1,4 @@
-"""Governance loop — persistent decision store, exception verdicts, weekly digest.
+"""Governance loop: persistent decision store, exception verdicts, weekly digest.
 
 The decision log is the product's system-of-record moat: every copilot
 decision and every discount-exception request is appended here with the
@@ -8,13 +8,13 @@ database call never fails the request: we log, fall back to memory, and keep
 serving.
 
 Honesty rules (same as pricing/copilot.py): every number in a verdict or
-digest is deterministic — read off the win-probability model's EV curve or
+digest is deterministic, read off the win-probability model's EV curve or
 the diagnostic aggregates. No LLM is involved anywhere in this module, the
 digest carries the correlational caveat, and no generated text contains an
 em dash (house style).
 
 Percent convention (the API surface): discount and realization figures are
-percent 0-100 — requested_discount_pct=22.5 means a 22.5 percent discount,
+percent 0-100, requested_discount_pct=22.5 means a 22.5 percent discount,
 floor_pct defaults to 15.0. Win probabilities stay 0-1 fractions, EV deltas
 are dollars. Internal model math stays in 0-1 fractions; conversion happens
 at this module's boundary.
@@ -93,7 +93,7 @@ class DecisionStore:
       justification, requested_by, created_at (ISO-8601 string).
 
     Memory holds rows written while the database was unset OR unreachable, so
-    reads merge both sources — a transient outage loses nothing for the
+    reads merge both sources, a transient outage loses nothing for the
     lifetime of the process.
     """
 
@@ -149,7 +149,7 @@ class DecisionStore:
                 if row:
                     return {**_row_out(row), "persisted": True}
                 raise ValueError("insert returned no row")
-            except Exception as exc:  # noqa: BLE001 — degrade, never 500
+            except Exception as exc:  # noqa: BLE001 (degrade, never 500)
                 logger.warning("decision_log insert fell back to memory: %s", exc)
         # persisted=False: this is the memory fallback, not durable storage.
         # The flag lives on the stored row too (harmless: readers select the
@@ -290,7 +290,7 @@ STORE = DecisionStore()
 
 
 # ---------------------------------------------------------------------------
-# Copilot decision log — same request/response shapes the existing web UI
+# Copilot decision log, same request/response shapes the existing web UI
 # consumes from /copilot/log and /copilot/decisions, now persisted.
 
 
@@ -325,42 +325,47 @@ def copilot_decisions(session_id: str, *,
 
 
 # ---------------------------------------------------------------------------
-# Exception verdict — deterministic, from the same EV curve /recommend uses.
+# Exception verdict, deterministic, from the same EV curve /recommend uses.
 
 
 def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
                       requested_pct: float,
-                      floor_pct: float = FLOOR_PCT_DEFAULT) -> dict:
+                      floor_pct: float = FLOOR_PCT_DEFAULT, *,
+                      cohort_discounts=None) -> dict:
     """Score a requested discount against the deal's own EV curve.
 
     Percent convention: `requested_pct` and `floor_pct` come in as percent
     0-100 (22.5 means a 22.5 percent discount), and the *_pct fields in the
     returned verdict are percent 0-100 too. Win probabilities are 0-1
     fractions. `ev_delta_vs_recommended` is dollars, EV(requested) minus
-    EV(recommended); it is never positive because the recommended discount
-    maximizes expected ACV on the sweep.
+    EV(recommended). It is never positive while the request sits inside the
+    swept range, because the recommendation maximizes expected ACV over that
+    range and the request itself is a candidate; a request outside the
+    cohort's support (below its 5th or above its 95th percentile) is scored
+    exactly where it is and can, on a flat curve, beat the support floor.
 
     Reuses model.recommend_discount (the /guidance / /recommend math) with
-    the requested discount substituted as the deal's current discount, so
-    "EV at requested" and "EV at recommended" come off the exact same sweep
-    (nearest grid point, same as /recommend's win_prob_at_current). Pure
-    function of (model, deal row, list ACV, requested discount, floor).
-    No LLM; rationale is one plain sentence built from the numbers.
+    the requested discount substituted as the deal's current discount, and
+    the same `cohort_discounts` the /recommend router passes (built with
+    model.cohort_discounts_for), so /exceptions and /recommend can never
+    disagree on one deal (code-reviewer major, 2026-09-26: this call used
+    to omit the cohort and swept the unclipped 0-40% grid). EV at the
+    request is a direct score at that discount, not the nearest grid point.
+    Pure function of (model, deal row, list ACV, requested discount, floor,
+    cohort). No LLM; rationale is one plain sentence built from the numbers.
     """
     requested = float(requested_pct)
     req_frac = requested / 100.0
     row = X_row.copy()
     row["discount_pct"] = req_frac
-    rec = model.recommend_discount(tm, row, float(list_acv))
-
-    curve = rec["curve"]
-    req_row = curve.iloc[(curve["discount"] - req_frac).abs().argmin()]
+    rec = model.recommend_discount(tm, row, float(list_acv),
+                                   cohort_discounts=cohort_discounts)
 
     recommended = float(rec["recommended_discount"]) * 100.0
-    win_req = float(req_row["win_prob"])
+    win_req = float(rec["win_prob_at_current"])
     win_rec = float(rec["win_prob_at_rec"])
-    # EV(requested) - EV(recommended). <= 0 by construction: the recommended
-    # discount maximizes expected ACV on the sweep.
+    # EV(requested) - EV(recommended). <= 0 whenever the request lies inside
+    # the swept range (see docstring).
     ev_delta = float(rec["expected_acv_at_current"] - rec["expected_acv_at_rec"])
     below_floor = requested > float(floor_pct)
 
@@ -398,17 +403,19 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
         "win_prob_at_requested": win_req,
         "win_prob_at_recommended": win_rec,
         "rationale": rationale,
-        # How this verdict was produced. The modeled EV curve is the strong
-        # engine; it currently runs on the demo book. The live Salesforce path
-        # ships a correlational band guardrail (see crm.guidance_for_open_deal),
-        # so every verdict is labeled with its method and nothing is passed off
-        # as more than it is.
-        "method": "modeled_ev_curve",
+        # How this verdict was produced, straight from the engine: the
+        # modeled EV curve when the optimum is interior, "support_floor" when
+        # it is the edge of the cohort's support, "band_guardrail" on thin
+        # support. The live Salesforce path ships a correlational band
+        # guardrail (see crm.guidance_for_open_deal), so every verdict is
+        # labeled with its method and nothing is passed off as more than it
+        # is.
+        "method": rec["method"],
     }
 
 
 # ---------------------------------------------------------------------------
-# Weekly digest — deterministic aggregation of the decision log + the loaded
+# Weekly digest, deterministic aggregation of the decision log + the loaded
 # book's diagnostic aggregates. No row-level customer data beyond what was
 # explicitly logged as decisions.
 
@@ -463,7 +470,7 @@ def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,
     """Assemble the digest payload for GET /digest.
 
     `analysis` is the diagnostic result dict (pricing.diagnostic.run) for the
-    currently loaded book, or None when no book is loaded — then the
+    currently loaded book, or None when no book is loaded, then the
     realization stats are null and the digest covers the log alone.
 
     Percent convention matches /exceptions: `floor_pct` and the
