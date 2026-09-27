@@ -25,7 +25,7 @@ vi.mock("next/headers", () => ({
 }));
 
 // No access code cookie is ever set in these tests, so verifyAccessCookieValue
-// short-circuits on the missing cookie before this is called — mocked anyway
+// short-circuits on the missing cookie before this is called: mocked anyway
 // so the test never touches the Neon/store module boundary.
 vi.mock("@/lib/store", () => ({ isValidAccessCode: vi.fn(async () => false) }));
 
