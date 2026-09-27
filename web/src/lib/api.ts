@@ -459,10 +459,11 @@ export const getDeals = (limit = 40) =>
 
 export async function getRecommendation(
   opportunity_id: string,
+  customer = "default",
 ): Promise<Recommendation> {
   const res = await apiFetch("/recommend", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify({ opportunity_id }),
   });
   if (!res.ok) throw await toApiError(res);

@@ -1,5 +1,5 @@
 import { ApiError, getRecommendation } from "@/lib/api";
-import { requireLead } from "@/lib/gate";
+import { customerRef, requireLead } from "@/lib/gate";
 
 // Same-origin proxy to the FastAPI /recommend endpoint. Keeps the API base URL
 // server-side (PRICEKEEL_API), so the browser only ever talks to this origin.
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "opportunity_id required" }, { status: 400 });
   }
   try {
-    const rec = await getRecommendation(opportunity_id);
+    const rec = await getRecommendation(opportunity_id, await customerRef());
     return Response.json(rec);
   } catch (err) {
     // A 4xx from the backend means it understood the request and rejected
