@@ -7,7 +7,7 @@ fields the metrics layer needs.
 Identity resolution is deliberately simple and explainable (explainability >
 accuracy in enterprise): normalize the account name to a core, then collapse
 rows sharing a core or an account_id into one resolved account. This is a
-heuristic, not entity-resolution-as-a-service — it is documented as such and is
+heuristic, not entity-resolution-as-a-service, it is documented as such and is
 the right amount of machinery for a CSV diagnostic.
 """
 
@@ -36,7 +36,7 @@ from pricing.schema import (
 MIN_CLOSED_DEALS = 30
 _CLOSED = {Outcome.WON.value, Outcome.LOST.value}
 # CSV decode cascade for the common real-world encodings. latin-1 maps every
-# byte, so it never raises — it is the guaranteed last resort.
+# byte, so it never raises, it is the guaranteed last resort.
 _ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
 
 
@@ -45,7 +45,7 @@ class LoadReport:
     """What we read from a file, and what we set aside and why.
 
     This is the 'here is what we read from your file' artifact the diagnostic
-    should surface first — the explainability posture applied to ingestion.
+    should surface first, the explainability posture applied to ingestion.
     Every silent-corruption trap (open deals retained, duplicates double-counted,
     a mis-decoded name) becomes a visible line here instead of a wrong number.
     """
@@ -154,7 +154,7 @@ class CurrencyBlockedError(SchemaError):
     """Raised when money columns mix currencies and no fx_rates were supplied.
 
     Carries the partially-populated `report` (a LoadReport) so a caller can
-    still show what was found — which currencies, how many rows each — even
+    still show what was found, which currencies, how many rows each, even
     though ingestion refused to produce a dollar total that would silently
     combine them. See `_ingest_loaded` for the default-block / opt-in-normalize
     contract.
@@ -268,7 +268,7 @@ def load_csv(path: str | Path) -> pd.DataFrame:
 def apply_header_mapping(df: pd.DataFrame,
                          report: "LoadReport | None" = None) -> pd.DataFrame:
     """Rename incoming headers to canonical schema names via the deterministic
-    mapper (synonyms + fuzzy only — no embeddings/LLM, so ingest stays offline
+    mapper (synonyms + fuzzy only, no embeddings/LLM, so ingest stays offline
     and reproducible). Unmapped columns keep their original names.
 
     Optional fields are claimed only on HIGH confidence (a synonym or near-exact
@@ -419,7 +419,7 @@ def _deal_type_of(value: object) -> str:
     ("Renewal", "Existing Business", "New Business"). Existing-business
     variants count as renewal-side: the disease framing is existing-customer
     discounting vs new-business discounting. Anything unrecognized maps to ''
-    (unknown) rather than being guessed — never silently fillna a deal type.
+    (unknown) rather than being guessed, never silently fillna a deal type.
     Order matters: "renewal" contains the substring "new".
     """
     s = str(value).strip().lower()
@@ -538,7 +538,7 @@ def _scan_currencies(df: pd.DataFrame) -> list[str]:
 _CURRENCY_SYMBOLS: dict[str, str] = {"$": "USD", "€": "EUR", "£": "GBP", "¥": "JPY"}
 DEFAULT_CURRENCY = "USD"
 # Money columns that are true currency amounts. quantity is units, not money;
-# renewal_uplift is a fraction (0.07 = 7%), not money — neither is converted.
+# renewal_uplift is a fraction (0.07 = 7%), not money, neither is converted.
 _FX_MONEY_COLS = [c for c in _NUMERIC if c not in ("quantity", "renewal_uplift")]
 
 
@@ -559,7 +559,7 @@ def _detect_row_currency(df: pd.DataFrame) -> pd.Series:
 
 
 def _currency_row_counts(currency_codes: pd.Series) -> str:
-    """'EUR (45 row(s)), USD (255 row(s))' — used in blocker/disclosure text."""
+    """'EUR (45 row(s)), USD (255 row(s))', used in blocker/disclosure text."""
     counts = currency_codes.value_counts().to_dict()
     return ", ".join(f"{code} ({n} row(s))" for code, n in sorted(counts.items()))
 
@@ -666,12 +666,12 @@ def enrich(df: pd.DataFrame, policy_threshold: float = DEFAULT_POLICY_THRESHOLD)
     df = df.copy()
     list_acv = df["list_acv"].replace(0, np.nan)
     # Cap realization at 1.5 (booked up to 1.5x list) as a data-sanity bound,
-    # not at 1.0 — deals booked ABOVE list (expansion, CPI indexation, scarcity)
+    # not at 1.0, deals booked ABOVE list (expansion, CPI indexation, scarcity)
     # are legitimate pricing-power signals, the opposite of leakage.
     df["price_realization"] = (df["booked_acv"] / list_acv).clip(upper=1.5)
     # round to 6dp so band assignment is deterministic at boundaries
     # (e.g. 1 - 0.8 == 0.19999999999999996 in float would mis-band a clean 20%).
-    # NOTE: no lower clamp — discount_pct may be negative (above-list deals); the
+    # NOTE: no lower clamp, discount_pct may be negative (above-list deals); the
     # realization cap above is the sanity bound. Clamping here erased them.
     df["discount_pct"] = (1.0 - df["price_realization"]).clip(upper=1.0).round(6)
     # discount_amount is "discount given", so it floors at 0 (an above-list deal
@@ -725,7 +725,7 @@ def _ingest_loaded(
     Currency: fx_rates is opt-in (explicit param, else PRICEKEEL_FX_RATES).
     When the file mixes currencies (report.currencies has more than one
     symbol) and no fx_rates were supplied, this raises CurrencyBlockedError
-    rather than silently summing EUR and USD as one number — see
+    rather than silently summing EUR and USD as one number, see
     _detect_row_currency / _normalize_currency.
     """
     if fx_rates is None:

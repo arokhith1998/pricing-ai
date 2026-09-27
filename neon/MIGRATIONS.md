@@ -15,7 +15,7 @@ Every migration is additive, transactional, and reversible:
   column, drop a table, collapse a key), it must check for data first and
   `raise exception` to abort the transaction rather than delete it. See the
   DO-block pattern in `2026-08-01-salesforce-crm-workflow.down.sql` and
-  `2026-09-26-tenant-scoped-indexes.down.sql` (no guard needed there — index
+  `2026-09-26-tenant-scoped-indexes.down.sql` (no guard needed there, index
   drops never destroy data).
 - Use `if not exists` / `if exists` everywhere so the file is safe to apply
   twice.
@@ -65,7 +65,7 @@ index failure mode this replaced, kept as a documented case study.
 `neon/test_migrations.py` asserts, structurally, that every `<slug>.sql` in
 `neon/migrations/` has a matching `<slug>.down.sql` and vice versa, and that
 every down file wraps its work in `begin;`/`commit;`. It does not run SQL
-against a database (no CI database exists yet) — it is a cheap guardrail
+against a database (no CI database exists yet), it is a cheap guardrail
 against the exact gap this runbook exists to close (main shipped one
 migration with no down for seven weeks). The up/down/up verification above is
 still a manual step before merging a migration.

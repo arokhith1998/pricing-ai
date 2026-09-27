@@ -32,7 +32,7 @@
 -- salesforce_mappings, and competitor_context_sources has been rolled back or
 -- undeployed. Running the down-migration first, while the old code is still
 -- serving, breaks every live Salesforce connection, sync, and competitor-
--- context read with a "relation does not exist" error — a production
+-- context read with a "relation does not exist" error, a production
 -- incident, not a migration. The up-migration has no such ordering constraint
 -- (it only creates tables/indexes, so it is safe before, during, or after the
 -- code deploy); this down-migration is the one that must come after.

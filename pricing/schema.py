@@ -1,4 +1,4 @@
-"""Canonical deal schema — the single source of truth for the platform.
+"""Canonical deal schema, the single source of truth for the platform.
 
 Everything speaks this schema: the synthetic generator, the ingestion/identity
 layer, the metrics, and the GTM "data request" we hand a prospect. Keeping one
@@ -142,7 +142,7 @@ FIELDS: list[Field] = [
           "Booked ACV scheduled for contract year 2 on a ramped multi-year "
           "deal. Blank if not ramped. STEADY-STATE CONVENTION: there is no "
           "ramp_year_3_acv field. Year 3 (and any later year) of a ramped "
-          "deal is, by convention, booked_acv itself — the annualized "
+          "deal is, by convention, booked_acv itself, the annualized "
           "steady-state figure the ramp climbs to. A 36-month ramped deal "
           "therefore expresses its full ramp as (ramp_year_1_acv, "
           "ramp_year_2_acv, booked_acv). Documented here rather than adding a "
@@ -154,7 +154,7 @@ FIELDS: list[Field] = [
     Field("renewal_uplift", "float", False,
           "Price uplift applied at renewal vs the prior term, as a fraction "
           "(0.07 = 7%). Blank for non-renewals.", "0.07"),
-    # --- Cost (OPTIONAL) — enables the Phase 3 margin layer ----------------
+    # --- Cost (OPTIONAL), enables the Phase 3 margin layer ----------------
     Field("cogs_acv", "float", False,
           "Annualized cost of goods sold attributable to the deal (infra / "
           "delivery cost). Enables gross-margin analysis; the leakage "

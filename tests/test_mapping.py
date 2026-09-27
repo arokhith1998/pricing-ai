@@ -49,7 +49,7 @@ def test_close_dt_resolves_via_fuzzy_layer_without_llm():
 def test_messy_headers_together_resolve_deterministically():
     """All three together: only one header may claim opportunity_id (the
     canonical field maps to exactly one header), and that is correct
-    behavior, not a bug — 'Opp ID' stays unmapped when 'Deal #' claims the
+    behavior, not a bug, 'Opp ID' stays unmapped when 'Deal #' claims the
     field first."""
     out = mapping.map_headers(["Deal #", "Opp ID", "Close Dt"], llm_fallback=False)
     assert out["mapping"]["opportunity_id"] in ("Deal #", "Opp ID")

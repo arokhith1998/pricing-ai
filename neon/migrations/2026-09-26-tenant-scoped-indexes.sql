@@ -3,7 +3,7 @@
 -- WHY
 -- Every tenant-scoped read in pricing/governance.py filters on customer_ref
 -- first (clauses = ["customer_ref = %s", ...]) before kind/date, but
--- decision_log's only index is (kind, created_at desc) — a full scan grows
+-- decision_log's only index is (kind, created_at desc), a full scan grows
 -- with total rows across every tenant, not just the one being read.
 -- access_codes.lead_id has no supporting index for the leads -> access_codes
 -- join done on issue/lookup. leads.email has no supporting index for the
@@ -30,7 +30,7 @@
 --
 -- DEPLOY ORDER
 -- Additive only: new indexes, no column/table changes, nothing renamed or
--- dropped. Safe to run before, during, or after the code deploy — no running
+-- dropped. Safe to run before, during, or after the code deploy, no running
 -- code depends on these indexes existing, they only make existing queries
 -- faster, and none of them can fail on existing data (no uniqueness
 -- constraint is being added).
