@@ -72,6 +72,15 @@ export type Leakage = {
   excess_vs_segment_reference_won?: number;
   excess_segment_pct_of_booked?: number;
   deals_above_segment_reference?: number;
+  // When the book is too sparse for reference_discount() to compute a
+  // reference at all, the backend returns every excess figure above as 0.0
+  // with excess_basis "insufficient data" and excess_disclosure carrying the
+  // human-readable reason (band counts, etc). That 0.0 is NOT a finding of
+  // "no pricing upside": it means the book does not support the estimate
+  // yet. Every surface showing these dollar figures must check excess_basis
+  // and render excess_disclosure instead of a bare $0 when it is set.
+  excess_basis?: string;
+  excess_disclosure?: string;
 };
 
 export type WinRateBand = {
@@ -201,6 +210,9 @@ export type DefendedVsInvestigate = {
   investigate_value: number;
   investigate_deals: number;
   defended_pct_of_booked: number;
+  // "insufficient data" when the book was too sparse to compute a reference
+  // at all; both value/deal counts above are 0 in that case, not a $0 finding.
+  reference_basis?: string;
 };
 
 export type Diagnostic = {
