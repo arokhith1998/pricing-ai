@@ -133,3 +133,43 @@ recommendation says whether it is a modeled optimum or a support floor; a
 readout within two weeks of a CSV, phrased as the offer. Drop: "usage or
 hybrid SaaS", "system of record", every market-size figure, the evidence-stack
 grid, the M&A paragraph in the hero, and the free diagnostic framing.
+
+## Closure status, end of 2026-09-27
+
+Branch fix/eval2-findings (this PR) plus feat/landing-crisp (PR #70).
+Python suite 403 passed; web 70 tests, typecheck, lint and build green.
+
+Closed here:
+- Finding 1: segment reference first, BU and product line refine only, a
+  band-floor slice is marked "not applied" and falls through; demo headline
+  back to $8.95M and pinned by a known-answer test; sample-fallback.json
+  regenerated; new_vs_renewal and segment_win_points honor the shared
+  reference.
+- Finding 2: support_floor and no_discount_on_record ship price_retained,
+  never uplift; leakage_vs_model split into modeled and floor-based (demo
+  book $1.47M modeled, $4.71M floor-based, Enterprise entirely floor-based);
+  below_support branch for deals under their cohort grid; in_sample flag on
+  /recommend and /deals; assist narrates insufficient data instead of
+  reference 0.000.
+- Finding 3: exact insufficient-data check in the workspace, thin-book
+  disclosure on the Executive and Pricing tabs, readiness blocker from the
+  engine's band counts, copilot proxy forwards status and detail, token
+  path logs cause codes and returns revocation_unconfirmed, demo tenant
+  minted once in the proxy, DecisionControl shows persisted.
+- Finding 4: GET /digest/all, one digest per active non-demo tenant; the
+  send route emails per access-code customer.
+- Finding 5: blank currency cells, CurrencyIsoCode synonym, /copilot/log
+  caps, generator ramp order, crm.py reuses analyze() tables, neon tests
+  collected via pytest.ini, perimeter test no longer pays the embedding
+  cold start, stale comments fixed.
+- Landing page (PR #70): five sections, about 264 words, hero number from
+  the sample data, no usage-or-hybrid, system-of-record or market-size
+  claims, bibliography moved to /methodology.
+
+Still open, unchanged from the list above: per-user actor identity; the
+band-floor decision; usage-based positioning; PR #61 rebase; decision_log
+retention; deck source and pitch-base numbers (market-sizing lists every
+line); pricing page price and ROI table; funnel, legal, package; board
+reconciliation and the PR #62 split (pk-lead lists the commands); sentinel
+wrapping, narration cache and usage logging in the AI layer; true
+out-of-fold scoring for the demo (in_sample is disclosed instead).
