@@ -9,9 +9,15 @@
 //    cookie carries per-customer identity and revoking a code in the
 //    access_codes table actually revokes that customer (gate.ts re-checks
 //    the embedded code against the table on API calls).
+//  - pk_demo_tenant: signed payload embedding a random per-visitor id, minted
+//    the first time a lead-gated visitor's customerRef() is read (gate.ts).
+//    The shared demo book (book_source "demo") stays shared; only the
+//    decision-log tenant is per-visitor, so one lead-gated visitor's typed
+//    justification is never readable by another via GET /exceptions.
 
 export const LEAD_COOKIE = "pk_lead";
 export const ACCESS_COOKIE = "pk_access";
+export const DEMO_TENANT_COOKIE = "pk_demo_tenant";
 
 // Shared cookie settings for pk_lead. The value is a signed intent marker
 // ("this visitor passed the lead form at some point"), not an auth token,
@@ -35,6 +41,18 @@ export const accessCookieOptions = () => ({
   path: "/",
   secure: process.env.NODE_ENV === "production",
   maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
+});
+
+// Same lifetime as pk_lead: it identifies the same visitor for as long as
+// the lead cookie does, so the two should not drift apart.
+export const DEMO_TENANT_COOKIE_MAX_AGE_SECONDS = LEAD_COOKIE_MAX_AGE_SECONDS;
+
+export const demoTenantCookieOptions = () => ({
+  httpOnly: true as const,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: DEMO_TENANT_COOKIE_MAX_AGE_SECONDS,
 });
 
 // Free / personal email domains we reject for lead capture (company email only).
@@ -172,4 +190,28 @@ export async function verifyAccessCookieValue(
     return { ok: false };
   }
   return { ok: true, code };
+}
+
+// --- pk_demo_tenant ------------------------------------------------------
+
+const DEMO_TENANT_PREFIX = "pricekeel-demo-tenant:v1";
+
+/** Signed pk_demo_tenant cookie value embedding a random per-visitor id.
+ *  No expiry check on read (unlike pk_access): a demo tenant id carries no
+ *  privilege, it only partitions the shared demo book's decision log so two
+ *  visitors never read each other's typed exception requests. */
+export async function makeDemoTenantCookieValue(id: string): Promise<string> {
+  return signPayload(`${DEMO_TENANT_PREFIX}|${id}`);
+}
+
+/** Verify signature and extract the embedded demo tenant id, or null. */
+export async function verifyDemoTenantCookieValue(
+  value: string | undefined,
+): Promise<string | null> {
+  if (!value) return null;
+  const payload = await verifySigned(value);
+  if (!payload) return null;
+  const parts = payload.split("|");
+  if (parts.length !== 2 || parts[0] !== DEMO_TENANT_PREFIX || !parts[1]) return null;
+  return parts[1];
 }
