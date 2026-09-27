@@ -72,6 +72,15 @@ export type Leakage = {
   excess_vs_segment_reference_won?: number;
   excess_segment_pct_of_booked?: number;
   deals_above_segment_reference?: number;
+  // When the book is too sparse for reference_discount() to compute a
+  // reference at all, the backend returns every excess figure above as 0.0
+  // with excess_basis "insufficient data" and excess_disclosure carrying the
+  // human-readable reason (band counts, etc). That 0.0 is NOT a finding of
+  // "no pricing upside": it means the book does not support the estimate
+  // yet. Every surface showing these dollar figures must check excess_basis
+  // and render excess_disclosure instead of a bare $0 when it is set.
+  excess_basis?: string;
+  excess_disclosure?: string;
 };
 
 export type WinRateBand = {
@@ -201,6 +210,9 @@ export type DefendedVsInvestigate = {
   investigate_value: number;
   investigate_deals: number;
   defended_pct_of_booked: number;
+  // "insufficient data" when the book was too sparse to compute a reference
+  // at all; both value/deal counts above are 0 in that case, not a $0 finding.
+  reference_basis?: string;
 };
 
 export type Diagnostic = {
@@ -329,6 +341,22 @@ export type Recommendation = {
   band_context: BandContext;
   confidence: Confidence;
   curve: CurvePoint[];
+  // How the recommended discount was derived: "modeled_ev_curve" (enough
+  // cohort support to sweep the EV curve), "band_guardrail" (falls back to
+  // the segment's observed band), or "support_floor" (live CRM guidance with
+  // no curve at all). Optional so older cached payloads still render.
+  method?: string;
+  // The correlational-not-causal caveat that belongs next to the uplift
+  // figure: the strongest dollar claim on the page. Optional for the same
+  // cached-payload reason.
+  caveat?: string;
+  // top_factors above is evaluated at the deal's current discount;
+  // top_factors_at_recommended is the same explanation at the row the
+  // headline actually recommends. Optional: older payloads omit it.
+  top_factors_at_recommended?: Factor[];
+  // True when the recommended discount sits at the edge of the scored grid
+  // (so the "optimum" may just be where the grid stopped, not a real peak).
+  at_grid_edge?: boolean;
 };
 
 // --- Governance loop (exceptions + digest) ---------------------------------
@@ -459,10 +487,11 @@ export const getDeals = (limit = 40) =>
 
 export async function getRecommendation(
   opportunity_id: string,
+  customer = "default",
 ): Promise<Recommendation> {
   const res = await apiFetch("/recommend", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CUSTOMER_HEADER]: customer },
     body: JSON.stringify({ opportunity_id }),
   });
   if (!res.ok) throw await toApiError(res);

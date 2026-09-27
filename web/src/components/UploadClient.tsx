@@ -99,6 +99,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function Results({ d }: { d: Diagnostic }) {
   const { overview: o, leakage: l } = d;
+  const insufficientReference = l.excess_basis === "insufficient data";
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -111,20 +112,31 @@ function Results({ d }: { d: Diagnostic }) {
           value={<CountUp to={o.price_realization_won} format="pct" />}
           sub={`Average discount ${pct(o.avg_discount_won)}`}
         />
-        <MetricCard
-          label="Pricing upside to pursue"
-          value={
-            <CountUp
-              to={l.excess_vs_segment_reference_won ?? l.excess_vs_reference_won}
-              format="money"
-            />
-          }
-          sub={`${pct(
-            l.excess_segment_pct_of_booked ?? l.excess_pct_of_booked,
-          )} of booked value, past each segment's own win point`}
-          secondary={`Global reference: ${money(l.excess_vs_reference_won)} (overstates by design)`}
-          accent="coral"
-        />
+        {insufficientReference ? (
+          <MetricCard
+            label="Pricing upside to pursue"
+            value="Insufficient data"
+            sub={
+              l.excess_disclosure ||
+              "Too few closed deals in enough discount bands for a reliable win point yet. Not a $0 finding."
+            }
+          />
+        ) : (
+          <MetricCard
+            label="Pricing upside to pursue"
+            value={
+              <CountUp
+                to={l.excess_vs_segment_reference_won ?? l.excess_vs_reference_won}
+                format="money"
+              />
+            }
+            sub={`${pct(
+              l.excess_segment_pct_of_booked ?? l.excess_pct_of_booked,
+            )} of booked value, past each segment's own win point`}
+            secondary={`Global reference: ${money(l.excess_vs_reference_won)} (overstates by design)`}
+            accent="coral"
+          />
+        )}
         <MetricCard
           label="Win rate"
           value={<CountUp to={o.win_rate} format="pct" />}

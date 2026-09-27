@@ -43,6 +43,12 @@ type Message =
       text: string;
       opportunities: Opportunity[];
       decisions: Record<string, "accepted" | "rejected" | "pending">;
+      // True when the analysis payload was missing a key this question
+      // needed (pricing/copilot.py's Answer.degraded): an empty
+      // opportunities list under degraded must never read as a confident
+      // "nothing found," which is why this is tracked separately.
+      degraded?: boolean;
+      degradedKeys?: string[];
     };
 
 type UploadedDoc = { name: string; chunks: number };
@@ -244,6 +250,8 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
           text: data.text || "",
           opportunities: data.opportunities ?? [],
           decisions,
+          degraded: Boolean(data.degraded),
+          degradedKeys: data.degraded_keys ?? [],
         },
       ]);
     } catch (e) {
@@ -563,11 +571,28 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                       />
                     ) : null}
                     {m.opportunities.length === 0 ? (
-                      <div className="rounded-lg border border-mist bg-surface-2 px-3 py-2 text-xs text-muted">
-                        No opportunities cleared the deterministic threshold
-                        for this question. Try the free-form composer below
-                        or upload your own CSV in /upload for a richer answer.
-                      </div>
+                      m.degraded ? (
+                        <div className="rounded-lg border border-amber/40 bg-amber/5 px-3 py-2 text-xs text-amber">
+                          This answer is degraded: the analysis was missing{" "}
+                          {m.degradedKeys && m.degradedKeys.length > 0
+                            ? m.degradedKeys.map((k) => (
+                                <code key={k} className="mx-0.5 rounded bg-mist/60 px-1 py-0.5 text-[10px] text-ink">
+                                  {k}
+                                </code>
+                              ))
+                            : "data this question needed"}
+                          , so an empty result here is not a confident
+                          &ldquo;nothing found&rdquo;. Try the free-form
+                          composer below or upload your own CSV in /upload
+                          for a richer answer.
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-mist bg-surface-2 px-3 py-2 text-xs text-muted">
+                          No opportunities cleared the deterministic threshold
+                          for this question. Try the free-form composer below
+                          or upload your own CSV in /upload for a richer answer.
+                        </div>
+                      )
                     ) : (
                       <div className="space-y-2">
                         {m.opportunities.map((o) => (
