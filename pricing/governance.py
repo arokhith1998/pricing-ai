@@ -263,6 +263,43 @@ class DecisionStore:
                 latest[deal] = row
         return latest
 
+    def distinct_customers(self, *, since: datetime | None = None) -> list[str]:
+        """Distinct customer_ref values with at least one row since `since`
+        (every row, when None). Database and memory merged and de-duplicated.
+
+        Backs GET /digest/all (2026-09-27 fix): the cron digest used to
+        always target the "default" tenant, which nobody writes to once a
+        customer is verified (access code) or anonymous (demo:<uuid>), so it
+        reported zero activity forever. This lets the digest sender iterate
+        every tenant that actually did something in the window instead.
+        """
+        found: set[str] = set()
+        url = _db_url()
+        if url is not None:
+            clauses: list[str] = []
+            vals: list[Any] = []
+            if since is not None:
+                clauses.append("created_at >= %s")
+                vals.append(since)
+            where = f" where {' and '.join(clauses)}" if clauses else ""
+            query = f"select distinct customer_ref from {_TABLE}{where}"
+            try:
+                with psycopg.connect(url, connect_timeout=_CONNECT_TIMEOUT_S) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(query, vals)
+                        found.update(str(row[0]) for row in cur.fetchall())
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("decision_log distinct_customers fell back to "
+                               "memory: %s", exc)
+        with self._lock:
+            for row in self._memory:
+                if since is not None:
+                    created = _parse_iso(row.get("created_at", ""))
+                    if created is None or created < since:
+                        continue
+                found.add(str(row.get("customer_ref", "default")))
+        return sorted(found)
+
     @staticmethod
     def _matches(row: dict, kind: str | None, session_id: str | None,
                   deal_id: str | None, source: str | None,
@@ -462,6 +499,24 @@ def _request_pct(payload: dict) -> float:
     if pct is None:
         pct = (payload.get("verdict") or {}).get("requested_pct")
     return float(pct or 0.0)
+
+
+def active_customers(*, store: DecisionStore | None = None,
+                     window_days: int = 7) -> list[str]:
+    """Real customer_ref values with decision-log activity in the last
+    `window_days`, excluding demo:* tenants.
+
+    Each anonymous sample-page visitor mints its own `demo:<uuid>` tenant
+    (web/src/lib/gate.ts), so including those would turn "one digest per
+    customer" into "one digest per visitor who ever loaded the sample page".
+    Backs GET /digest/all (2026-09-27 fix): the cron email used to always
+    target the "default" tenant, which nobody writes to once a visitor is
+    either verified (an access code) or anonymous (demo:<uuid>).
+    """
+    store = store or STORE
+    since = _now_utc() - timedelta(days=window_days)
+    return sorted(c for c in store.distinct_customers(since=since)
+                 if c and not c.startswith("demo:"))
 
 
 def build_digest(*, analysis: dict | None, store: DecisionStore | None = None,

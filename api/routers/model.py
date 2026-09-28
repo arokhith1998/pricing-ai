@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pricing import model
-from api.shared import engine, records
+from api.shared import engine, in_sample, in_sample_mask, records
 
 router = APIRouter()
 
@@ -59,12 +59,19 @@ def model_info() -> dict:
 @router.get("/deals")
 def deals(limit: int = 40) -> dict:
     """Candidate deals for the guidance picker (largest won deals first)."""
-    df, _tm = engine()
+    df, tm = engine()
     won = df[df["is_won"]].sort_values("list_acv", ascending=False).head(limit)
     cols = ["opportunity_id", "resolved_account_name", "segment", "industry",
             "product_tier", "list_acv", "discount_pct", "competitor_present",
             "is_quarter_end"]
-    return {"deals": records(won[cols])}
+    out = won[cols].copy()
+    # Disclosed, not hidden: most of this list is rows the model trained on,
+    # not a held-out row (mle-reviewer, 2026-09-27). True out-of-fold scoring
+    # would need a submodel per fold re-queried at every discount /recommend
+    # sweeps, not only the deal's recorded one; this flag is the honest,
+    # cheap alternative.
+    out["in_sample"] = in_sample_mask(tm, df, won.index)
+    return {"deals": records(out)}
 
 
 def _explain_factors(tm: "model.TrainedModel", df: pd.DataFrame, idx, *,
@@ -167,7 +174,16 @@ def recommend(req: RecommendReq) -> dict:
         # then the general correlational caveat.
         "caveat": f"{rec['caveat']} {_RECOMMEND_CAVEAT}",
         "at_grid_edge": rec["at_grid_edge"],
+        # True only for "support_floor": the deal's own discount sits below
+        # the cohort's clipped grid entirely, so no curve applies at all
+        # (mle-reviewer, 2026-09-27; see METHOD_CAVEATS["below_support"]).
+        "below_support": rec["below_support"],
         "win_prob_gain": rec["win_prob_gain"],
+        # Disclosed: whether this deal's row was in the training partition
+        # rather than the holdout the model's metrics were scored on
+        # (mle-reviewer, 2026-09-27). A win probability shown for an
+        # in-sample deal is optimistic relative to a genuinely held-out one.
+        "in_sample": in_sample(tm, df, idx),
         "list_acv": list_acv,
         "current_discount": rec["current_discount"],
         "recommended_discount": rec["recommended_discount"],
@@ -178,6 +194,11 @@ def recommend(req: RecommendReq) -> dict:
         "expected_acv_at_current": rec["expected_acv_at_current"],
         "expected_acv_at_rec": rec["expected_acv_at_rec"],
         "uplift": rec["uplift"],
+        # None for "support_floor"/"no_discount_on_record": no dollar figure
+        # the model did not measure. "support_floor" instead carries
+        # price_retained, list ACV times the discount points not added at
+        # the floor (mle-reviewer, 2026-09-27).
+        "price_retained": rec["price_retained"],
         # "top_factors" stays the current-discount explanation (unchanged
         # shape for existing callers); "top_factors_at_recommended" is the
         # new, separately labeled explanation at the row the headline

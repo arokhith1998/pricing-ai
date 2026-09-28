@@ -18,16 +18,40 @@ async function apiHeaders(): Promise<Record<string, string>> {
 }
 
 async function forwardJson(url: string, init: RequestInit) {
+  let upstream: Response;
   try {
-    const upstream = await fetch(url, init);
-    if (!upstream.ok) {
-      const text = await upstream.text().catch(() => "");
-      return Response.json({ error: text || "Copilot upstream error." }, { status: 502 });
-    }
-    return Response.json(await upstream.json());
+    upstream = await fetch(url, init);
   } catch {
     return Response.json({ error: "Copilot is unavailable." }, { status: 502 });
   }
+  if (!upstream.ok) {
+    // Parse the upstream's own detail (FastAPI's HTTPException shape is
+    // {detail}, this app's own routes use {error}) and forward its status
+    // for a 4xx instead of collapsing every non-2xx into a 502 body-as-error.
+    // A 4xx means the backend understood the request and rejected it (a
+    // pydantic validation error, e.g. one echoing the posted analysis back,
+    // an unknown session_id, ...): the fix is in the request, and the raw
+    // upstream body used to be dumped straight into `error` with the status
+    // always flattened to 502, so ChatPanel could not tell "the LLM is down"
+    // from "you sent a bad request" (silent-failure-hunter finding 4). 401/403
+    // stay a 502: those mean the shared X-Pricekeel-Key itself is wrong, an
+    // infra problem, not something the caller's input can fix.
+    const body = (await upstream.json().catch(() => null)) as
+      | { detail?: unknown; error?: unknown }
+      | null;
+    const detail =
+      body && typeof body.detail === "string"
+        ? body.detail
+        : body && typeof body.error === "string"
+          ? body.error
+          : undefined;
+    const status =
+      upstream.status >= 400 && upstream.status < 500 && ![401, 403].includes(upstream.status)
+        ? upstream.status
+        : 502;
+    return Response.json({ error: detail || "Copilot upstream error." }, { status });
+  }
+  return Response.json(await upstream.json());
 }
 
 export async function GET(req: Request) {

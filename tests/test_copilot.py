@@ -309,3 +309,15 @@ def test_opportunity_ui_strings_contain_no_em_dashes():
     for o in opps:
         for field in (o.scope, o.current, o.recommended, o.methodology, o.caveat):
             assert "—" not in field, f"{o.kind}: em dash in {field!r}"
+
+
+def test_no_llm_answer_is_flagged_not_narrated(monkeypatch):
+    """With no provider the opportunities are still engine output; the UI
+    needs a structured flag, not a prose apology, to say the narration is
+    off (2026-09-27 external review)."""
+    from pricing import assist, copilot
+    monkeypatch.setattr(assist, "has_llm", lambda: False)
+    analysis = copilot.__dict__.get("_demo_analysis", None)
+    ans = copilot.answer_canonical("q1", {"leakage": {}, "defended_vs_investigate": {}})
+    assert ans.narrated is False
+    assert "opportunityies" not in ans.text

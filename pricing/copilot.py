@@ -113,6 +113,9 @@ class Answer:
     # independently-recoverable share of the same underlying discount pool,
     # so the figures overlap and summing the list overstates total upside.
     non_additive: str = ""
+    # False when no LLM provider is configured: the opportunities are still
+    # deterministic engine output; only the prose is missing (2026-09-27).
+    narrated: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -123,6 +126,7 @@ class Answer:
             "degraded": self.degraded,
             "degraded_keys": self.degraded_keys,
             "non_additive": self.non_additive,
+            "narrated": self.narrated,
         }
 
 
@@ -666,12 +670,13 @@ def answer_canonical(qid: str, analysis: dict,
             )
         else:
             text = (f"Pricekeel: I would normally narrate the {len(opps)} "
-                    f"opportunity{'ies' if len(opps) != 1 else ''} the engine "
+                    f"{'opportunities' if len(opps) != 1 else 'opportunity'} the engine "
                     "extracted for this question, but no LLM provider is "
                     "configured on this server.")
         return Answer(text=text, opportunities=opps, qid=qid,
                       citations_used=["A"], degraded=is_degraded,
-                      degraded_keys=list(degraded), non_additive=non_additive)
+                      degraded_keys=list(degraded), non_additive=non_additive,
+                      narrated=False)
 
     degraded_note = (
         f"\nDEGRADED: the analysis payload was missing these keys: "

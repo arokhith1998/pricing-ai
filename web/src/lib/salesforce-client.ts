@@ -244,20 +244,56 @@ export async function createSalesforceTask(
   return { id: body.id };
 }
 
-export async function disconnectSalesforce(customerRef: string): Promise<void> {
-  const connection = await getSalesforceConnection(customerRef);
+export async function disconnectSalesforce(
+  customerRef: string,
+): Promise<{ revocationConfirmed: boolean }> {
+  let connection: SalesforceConnection | null = null;
+  try {
+    connection = await getSalesforceConnection(customerRef);
+  } catch (cause) {
+    // Cannot decrypt the stored refresh token (e.g.
+    // SALESFORCE_TOKEN_ENCRYPTION_KEY rotated): revocation at Salesforce is
+    // impossible without it, but local deletion below only needs
+    // customer_ref, not the decrypted secrets. Log the cause so this is
+    // distinguishable from an ordinary revoke failure, and fall through
+    // rather than leaving an undecryptable, permanently orphaned row.
+    console.error(
+      "[salesforce-client] disconnect: could not decrypt stored tokens; skipping the Salesforce revoke call",
+      cause,
+    );
+  }
+  // Nothing to revoke (already disconnected, or undecryptable) counts as
+  // confirmed: there is no live refresh token this deletion could leave
+  // behind at Salesforce.
+  let revocationConfirmed = true;
   if (connection) {
     try {
-      await fetch(new URL("/services/oauth2/revoke", salesforceLoginUrl()), {
+      const response = await fetch(new URL("/services/oauth2/revoke", salesforceLoginUrl()), {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ token: connection.refresh_token }),
         cache: "no-store",
       });
-    } catch {
-      // Local removal is authoritative for Pricekeel. Revocation is best effort
-      // because a Salesforce outage must not trap a customer connection here.
+      revocationConfirmed = response.ok;
+      if (!response.ok) {
+        console.error(
+          `[salesforce-client] disconnect: Salesforce rejected the revoke request (status ${response.status})`,
+        );
+      }
+    } catch (cause) {
+      // Local removal is authoritative for Pricekeel: a Salesforce outage
+      // must not trap a customer connection here. But the refresh token
+      // stays live at Salesforce until it is revoked or expires, so this is
+      // logged with a cause code, and reported back to the caller, instead
+      // of swallowed silently (silent-failure-hunter finding 5): the UI must
+      // not say "tokens removed" when this happened.
+      revocationConfirmed = false;
+      console.error(
+        "[salesforce-client] disconnect: revoke request failed (network/timeout)",
+        cause,
+      );
     }
   }
   await deleteSalesforceConnection(customerRef);
+  return { revocationConfirmed };
 }

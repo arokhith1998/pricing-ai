@@ -1,42 +1,38 @@
-// Static low-fidelity preview of /diagnostic, rendered with the real sample
-// figures so visitors see the actual product structure before clicking.
-// Designed to be swap-replaced with a real screen capture when you have one;
-// until then, this avoids needing image files in the repo.
-//
-// The visual treatment mimics a browser window with the live URL and the same
-// KPI/chart/table layout the real /diagnostic page uses, with three callout
-// labels pointing at the things a buyer wants to see first.
-//
-// All numbers below come from the bundled synthetic 2,000-deal sample and
-// match what /sample produces on first load.
+// The one product mockup on the landing page. Data comes from the caller
+// (page.tsx), which reads it straight out of the bundled
+// src/data/sample-fallback.json snapshot, so every number here is real
+// output of the diagnostic on the synthetic 2,000-deal sample, not a
+// hand-typed illustration. Regenerate the snapshot (see src/lib/api.ts) and
+// these figures update on their own.
 "use client";
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
+import CountUp from "@/components/CountUp";
+import { pct } from "@/lib/format";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// Win-rate-by-band figures from the real demo payload (policy 0.15), rounded
-// to the nearest point. Win point = the 5-10% band (reference threshold 5%):
-// win rate peaks there at ~68% and then flattens and falls. Regenerate by
-// dumping pricing.diagnostic.run on data/synthetic/deals.csv if the sample
-// dataset changes.
-const BANDS = [
-  { label: "0-5%", win: 0.54 },
-  { label: "5-10%", win: 0.68, winPoint: true },
-  { label: "10-15%", win: 0.66 },
-  { label: "15-20%", win: 0.62 },
-  { label: "20-25%", win: 0.58 },
-  { label: "25%+", win: 0.42 },
-];
+export type Band = { label: string; winRate: number; isReference: boolean };
 
-function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
+export type DiagnosticPreviewData = {
+  opportunities: number;
+  bookedAcvWon: number;
+  priceRealizationWon: number;
+  avgDiscountWon: number;
+  excessSegment: number;
+  excessSegmentPct: number;
+  winRate: number;
+  bands: Band[];
+};
+
+function Bar({ band, index }: { band: Band; index: number }) {
   const reduce = useReducedMotion();
-  const heightPct = Math.round(band.win * 100);
+  const heightPct = Math.round(band.winRate * 100);
   return (
     <div className="flex flex-1 flex-col items-center">
       <div className="relative flex h-32 w-full items-end">
-        {band.winPoint ? (
+        {band.isReference ? (
           <div className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-coral/50 bg-bg/90 px-1.5 py-0.5 text-xs font-semibold text-coral shadow">
             win point
           </div>
@@ -45,9 +41,7 @@ function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
             win-rate curve reads as a motion, not a static picture. */}
         <motion.div
           className={`mx-auto w-full max-w-[28px] rounded-t-md ${
-            band.winPoint
-              ? "bg-coral/70 ring-2 ring-coral/40"
-              : "bg-teal/60"
+            band.isReference ? "bg-coral/70 ring-2 ring-coral/40" : "bg-teal/60"
           }`}
           initial={{ height: reduce ? `${heightPct}%` : 0 }}
           whileInView={{ height: `${heightPct}%` }}
@@ -56,7 +50,7 @@ function Bar({ band, index }: { band: (typeof BANDS)[number]; index: number }) {
           aria-label={`Win rate at ${band.label} discount: ${heightPct}%`}
         />
       </div>
-      <div className="mt-1 text-xs text-muted">{band.label}</div>
+      <div className="mt-1 whitespace-nowrap text-[10px] text-muted">{band.label}</div>
     </div>
   );
 }
@@ -68,7 +62,7 @@ function Kpi({
   accent = false,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   sub: string;
   accent?: boolean;
 }) {
@@ -93,25 +87,14 @@ function Kpi({
   );
 }
 
-export default function DiagnosticPreview() {
+export default function DiagnosticPreview({ data }: { data: DiagnosticPreviewData }) {
   return (
-    <section aria-label="What the diagnostic looks like" className="relative">
+    <section aria-label="The diagnostic on the sample book" className="relative">
       <div className="text-center">
         <p className="text-xs font-semibold uppercase tracking-wider text-teal">
-          What you see when you click
+          Scroll to see it run
         </p>
-        <h2 className="mt-2 text-2xl font-bold text-fg sm:text-3xl">
-          The diagnostic, on a synthetic sample of 2,000 closed deals
-        </h2>
-        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
-          Below is the actual structure of the page on{" "}
-          <Link href="/sample" className="text-teal underline">
-            /sample
-          </Link>
-          : KPIs, win-rate curve with the calculated win point, and the deal
-          list to investigate. In the connected workflow, these numbers come
-          from live Salesforce Opportunity history.
-        </p>
+        <h2 className="mt-2 text-2xl font-bold text-fg sm:text-3xl">The diagnostic</h2>
       </div>
 
       <div className="pk-card-3d mx-auto mt-6 max-w-4xl rounded-2xl border border-mist bg-bg p-1 shadow-xl shadow-navy/20">
@@ -127,78 +110,44 @@ export default function DiagnosticPreview() {
 
         {/* page content */}
         <div className="space-y-4 rounded-b-xl bg-surface p-5">
+          <p className="text-center text-xs font-semibold uppercase tracking-wider text-teal">
+            Real output of the engine on a synthetic 2,000-deal book
+          </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Kpi
               label="Booked value"
-              value="$67.1M"
-              sub="1,215 won deals"
+              value={<CountUp to={data.bookedAcvWon} format="moneyShort" />}
+              sub={`${data.opportunities.toLocaleString()} opportunities`}
             />
             <Kpi
               label="Price realization"
-              value="81.4%"
-              sub="avg discount 13.8%"
+              value={<CountUp to={data.priceRealizationWon} format="pct" />}
+              sub={`avg discount ${pct(data.avgDiscountWon)}`}
             />
             <Kpi
-              label="Gap to segment reference win point"
-              value="$8.9M"
-              sub="Pilot tests actual recovery · 13.3% of booked"
+              label="Gap to segment win point"
+              value={<CountUp to={data.excessSegment} format="moneyShort" />}
+              sub={`${pct(data.excessSegmentPct)} of booked`}
               accent
             />
-            <Kpi label="Win rate" value="60.8%" sub="2,000 opportunities" />
+            <Kpi
+              label="Win rate"
+              value={<CountUp to={data.winRate} format="pct" />}
+              sub="won deals"
+            />
           </div>
-          <p className="text-xs leading-4 text-muted">
-            Price realization is dollar-weighted on won deals; average
-            discount is deal-count-weighted, so the two figures differ by
-            design.
-          </p>
 
           {/* win curve */}
           <div className="rounded-lg border border-mist bg-surface-2 p-4">
-            <div className="mb-3 flex items-baseline justify-between">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Win rate by discount band
-                </div>
-                <div className="text-sm font-semibold text-fg">
-                  Win point at the 5 to 10% band; bigger discounts don&rsquo;t
-                  buy more wins
-                </div>
-              </div>
-              <div className="hidden text-xs text-muted sm:block">
-                won / discount %
-              </div>
-            </div>
+            <div className="text-sm font-semibold text-fg">Win rate by discount band</div>
             <div className="flex items-end gap-1 pt-5">
-              {BANDS.map((b, i) => (
+              {data.bands.map((b, i) => (
                 <Bar key={b.label} band={b} index={i} />
               ))}
             </div>
-          </div>
-
-          {/* mini deals-to-investigate */}
-          <div className="rounded-lg border border-mist bg-surface-2 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Top deals to investigate
-            </div>
-            <div className="mt-2 space-y-1.5 text-xs text-ink">
-              {[
-                // Top of top_leak_deals from the same demo payload (rounded).
-                ["Lattice AI Corp.", "Enterprise", "40%", "$188K"],
-                ["Cobalt AI Inc.", "Enterprise", "27%", "$121K"],
-                ["Initech Systems Inc", "Enterprise", "36%", "$106K"],
-                ["Fathom Digital LLC", "Enterprise", "24%", "$106K"],
-              ].map(([account, segment, discount, leak]) => (
-                <div
-                  key={account}
-                  className="grid grid-cols-4 gap-2 rounded border border-mist bg-bg px-2 py-1.5"
-                >
-                  <span className="truncate font-medium text-fg">{account}</span>
-                  <span className="truncate text-muted">{segment}</span>
-                  <span className="text-coral">−{discount}</span>
-                  <span className="text-right tabular-nums text-fg">{leak}</span>
-                </div>
-              ))}
-            </div>
+            <p className="mt-3 text-xs leading-5 text-muted">
+              Discounts past the win point buy fewer wins, not more.
+            </p>
           </div>
         </div>
       </div>
@@ -208,14 +157,8 @@ export default function DiagnosticPreview() {
           href="/sample"
           className="inline-flex items-center gap-1 text-sm font-semibold text-teal hover:underline"
         >
-          See the full diagnostic on the sample data →
+          Run it on the full sample &rarr;
         </Link>
-        <p className="mt-1 text-xs text-muted">
-          Illustrative figures from a synthetic 2,000-deal sample; not
-          customer data. Your workspace reads Salesforce; CSV/XLSX remains
-          available for onboarding and other CRMs. A book too thin to
-          compute a reliable win point shows that disclosure, not a $0.
-        </p>
       </div>
     </section>
   );

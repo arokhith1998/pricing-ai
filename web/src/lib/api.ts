@@ -267,9 +267,20 @@ export type ModelInfo = {
     deals: number;
     mean_justified_discount: number;
     mean_actual_discount: number;
+    // Total across modeled_value + floor_based_value, kept for callers
+    // written before the split below. Do not headline this alone: 61% of it
+    // on the demo book is Enterprise, where every justified discount is a
+    // support-floor edge, not a modeled curve (mle-reviewer, 2026-09-27).
     model_excess_won: number;
     deals_over_justified: number;
     model_excess_pct_of_booked: number;
+    // The only component that is actually a model output: an interior EV-
+    // curve peak with real win-probability movement. Headline this one.
+    // Optional so an older cached payload (pre-split) still renders.
+    modeled_value?: { excess: number; deals: number; pct_of_booked: number };
+    // A band-guardrail median or a support-floor edge, never a curve peak.
+    // Disclose, never headline.
+    floor_based_value?: { excess: number; deals: number; pct_of_booked: number };
   };
 };
 
@@ -335,16 +346,28 @@ export type Recommendation = {
   win_prob_at_rec: number;
   expected_acv_at_current: number;
   expected_acv_at_rec: number;
-  uplift: number;
+  // None for "support_floor" and "no_discount_on_record": the model measured
+  // no discount effect there, so a dollar "gain" would be invented rather
+  // than modeled (mle-reviewer, 2026-09-27). Optional for cached payloads
+  // from before uplift could be null.
+  uplift: number | null;
+  // Only "support_floor" carries this: list ACV times the discount points
+  // not added at the floor (current minus recommended), always >= 0 since a
+  // floor never adds discount. Render as "price retained if the floor
+  // holds", never as expected value gain. Optional for cached payloads.
+  price_retained?: number | null;
   top_factors: Factor[];
   comparables: ComparableDeal[];
   band_context: BandContext;
   confidence: Confidence;
   curve: CurvePoint[];
-  // How the recommended discount was derived: "modeled_ev_curve" (enough
-  // cohort support to sweep the EV curve), "band_guardrail" (falls back to
-  // the segment's observed band), or "support_floor" (live CRM guidance with
-  // no curve at all). Optional so older cached payloads still render.
+  // How the recommended discount was derived: "modeled_ev_curve" (an interior
+  // EV-curve peak with real win-probability movement), "band_guardrail"
+  // (too few comparable deals, caps at the cohort's observed median), or
+  // "support_floor" (the model path's own edge case: the clipped EV-curve
+  // argmax lands on the edge of the cohort's support, or the curve barely
+  // moves; never a modeled peak, and never adds discount). Optional so older
+  // cached payloads still render.
   method?: string;
   // The correlational-not-causal caveat that belongs next to the uplift
   // figure: the strongest dollar claim on the page. Optional for the same
@@ -357,6 +380,15 @@ export type Recommendation = {
   // True when the recommended discount sits at the edge of the scored grid
   // (so the "optimum" may just be where the grid stopped, not a real peak).
   at_grid_edge?: boolean;
+  // True only for "support_floor" when the deal's own discount sits entirely
+  // below the cohort's clipped grid: no curve applies at all, a distinct
+  // claim from "the floor of the range is the peak" (mle-reviewer, 2026-09-27).
+  below_support?: boolean;
+  // Disclosed: whether this deal's row was in the training partition rather
+  // than the holdout the model's own metrics were scored on. A win
+  // probability shown for an in-sample deal is optimistic relative to a
+  // genuinely held-out one (mle-reviewer, 2026-09-27).
+  in_sample?: boolean;
 };
 
 // --- Governance loop (exceptions + digest) ---------------------------------
@@ -386,10 +418,15 @@ export type ExceptionInput = {
 };
 
 // POST /exceptions response: the verdict plus the log entry's identity.
+// `persisted` (api/routers/governance.py) is true only when the decision
+// landed in the durable store; false means it fell back to the in-memory
+// log (DATABASE_URL unset/unreachable) and will not survive a restart.
+// Optional so an older cached response still parses.
 export type ExceptionResult = {
   id: string;
   verdict: ExceptionVerdict;
   created_at: string;
+  persisted?: boolean;
 };
 
 // GET /exceptions items: the original request fields plus verdict + created_at.
@@ -416,6 +453,24 @@ export type Digest = {
   // the digest email must disclose that. Optional so a pre-contract cached
   // response still renders (treated as non-demo).
   book_source?: "demo" | "live";
+};
+
+// Copilot canonical-question answer, mirrored from pricing/copilot.py's
+// Answer.to_dict(). `narrated` is optional so an older cached response (from
+// before this field existed) still types-check; treat a missing value as
+// narrated (the pre-2026-09-27 behavior). `narrated: false` means no LLM
+// provider is configured on this server: `text` is the deterministic
+// engine's own fallback line, not model-generated prose, and callers must
+// label it as such rather than presenting it as a normal chat reply.
+export type CopilotAnswer = {
+  text: string;
+  opportunities: unknown[];
+  qid: string;
+  citations_used: string[];
+  degraded: boolean;
+  degraded_keys: string[];
+  non_additive: string;
+  narrated?: boolean;
 };
 
 // Hung backends should fail the page fast (and let /sample fall back to the
@@ -450,8 +505,10 @@ async function getJSON<T>(path: string, headers?: Record<string, string>): Promi
 }
 
 // The decision log is scoped per customer. The web proxy passes the verified
-// access code (or "default" for lead-only demo visitors) as this header; the
-// governance store filters reads and tags writes by it.
+// access code, or a per-visitor demo:<uuid> (gate.ts) for lead-only demo
+// visitors, as this header; the governance store filters reads and tags
+// writes by it. (2026-09-27: this used to say "default" for demo visitors,
+// stale since gate.ts started minting a distinct demo:<uuid> per visitor.)
 const CUSTOMER_HEADER = "X-Pricekeel-Customer";
 
 export const getDemo = (policy = 0.15) =>
@@ -521,6 +578,14 @@ export const getExceptions = (limit = 50, customer = "default") =>
 
 export const getDigest = (customer = "default") =>
   getJSON<Digest>("/digest", { [CUSTOMER_HEADER]: customer });
+
+// One digest per real customer with decision-log activity in the last 7
+// days, excluding demo:* tenants (2026-09-27 fix). GET /digest is scoped to
+// a single tenant via X-Pricekeel-Customer, which is why the cron sender
+// used to always hit "default" and get zero activity back once no one wrote
+// to that tenant anymore; this walks every active tenant server-side instead.
+export const getDigestAll = () =>
+  getJSON<{ digests: Digest[]; customers: string[] }>("/digest/all");
 
 export async function getSummary(
   policy = 0.15,

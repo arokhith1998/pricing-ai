@@ -86,24 +86,54 @@ export async function loadSalesforceWorkspace(customerRef: string) {
       outcomes_reconciled: outcomesReconciled,
     };
   }
-  const response = await crmFetch("/crm/analyze", customerRef, {
-    method: "POST",
-    body: JSON.stringify({
-      records: source.records,
-      policy_threshold_pct: config.policy_threshold_pct,
-      list_field_mapped: Boolean(config.mapping.list_value_field),
-    }),
-  });
-  const result = await upstreamJson(response);
-  await markSalesforceSync(customerRef, closed, open);
-  return {
-    mapping: config,
-    source_readiness: source.readiness,
-    analysis: result.analysis ?? null,
-    guidance: result.guidance ?? [],
-    engine_readiness: result.readiness ?? null,
-    outcomes_reconciled: outcomesReconciled,
-  };
+  try {
+    const response = await crmFetch("/crm/analyze", customerRef, {
+      method: "POST",
+      body: JSON.stringify({
+        records: source.records,
+        policy_threshold_pct: config.policy_threshold_pct,
+        list_field_mapped: Boolean(config.mapping.list_value_field),
+      }),
+    });
+    const result = await upstreamJson(response);
+    await markSalesforceSync(customerRef, closed, open);
+    return {
+      mapping: config,
+      source_readiness: source.readiness,
+      analysis: result.analysis ?? null,
+      guidance: result.guidance ?? [],
+      engine_readiness: result.readiness ?? null,
+      outcomes_reconciled: outcomesReconciled,
+    };
+  } catch (error) {
+    // A client-error status here is the pricing engine explicitly refusing
+    // this book (not enough closed deals across enough discount bands for a
+    // defensible reference discount on some open deal's segment, multiple
+    // Salesforce currencies, a degenerate list-value mapping, ...). That is a
+    // data-readiness problem on an otherwise-healthy connection, not an
+    // expired or revoked Salesforce session, so it must not reach
+    // workspace/route.ts's catch-all, which reads any thrown error here as
+    // "needs reauthorization" (silent-failure-hunter finding 3: the readiness
+    // panel said "no blockers" at 30 closed deals, then a sync error read as
+    // a reauth prompt reconnecting cannot fix). Surface the engine's own
+    // message, band counts and all, as a readiness blocker instead, and
+    // leave the Salesforce connection's status untouched.
+    if (error instanceof CRMUpstreamError && error.status >= 400 && error.status < 500) {
+      await markSalesforceSync(customerRef, closed, open);
+      return {
+        mapping: config,
+        source_readiness: {
+          ...source.readiness,
+          blockers: [...source.readiness.blockers, error.message],
+        },
+        analysis: null,
+        guidance: [],
+        engine_readiness: null,
+        outcomes_reconciled: outcomesReconciled,
+      };
+    }
+    throw error;
+  }
 }
 
 export type SalesforceWorkflowInput = {
