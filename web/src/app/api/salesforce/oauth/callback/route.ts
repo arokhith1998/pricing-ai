@@ -38,14 +38,32 @@ export async function GET(req: Request) {
   if (!code || customer === "default" || !attempt) {
     return clearAttempt(crmRedirect(req, "error", "invalid_oauth_state"));
   }
+  // Every step below used to fold into the same silent "token_exchange_failed"
+  // redirect with zero server-side signal (silent-failure-hunter finding 5).
+  // Each catch here logs a distinguishable cause code (exchange, origin, key,
+  // database_url, save_connection) so an operator does not have to guess
+  // which one actually failed; the user-facing redirect is unchanged.
+  let token;
   try {
-    const token = await exchangeSalesforceCode(code, attempt.verifier, req.url);
+    token = await exchangeSalesforceCode(code, attempt.verifier, req.url);
+  } catch (cause) {
+    console.error("[salesforce-oauth] callback: cause=exchange", cause);
+    return clearAttempt(crmRedirect(req, "error", "token_exchange_failed"));
+  }
+  let instanceUrl: string;
+  try {
+    instanceUrl = validatedSalesforceOrigin(token.instance_url);
+  } catch (cause) {
+    console.error("[salesforce-oauth] callback: cause=origin", cause);
+    return clearAttempt(crmRedirect(req, "error", "token_exchange_failed"));
+  }
+  try {
     const identity = salesforceIdentity(token);
     await saveSalesforceConnection({
       customer_ref: customer,
       org_id: identity.orgId,
       user_id: identity.userId,
-      instance_url: validatedSalesforceOrigin(token.instance_url),
+      instance_url: instanceUrl,
       access_token: token.access_token,
       refresh_token: token.refresh_token ?? "",
       token_type: token.token_type,
@@ -53,7 +71,18 @@ export async function GET(req: Request) {
       issued_at: token.issued_at,
     });
     return clearAttempt(crmRedirect(req, "connected", "1"));
-  } catch {
+  } catch (cause) {
+    // saveSalesforceConnection fails for reasons worth telling apart:
+    // SALESFORCE_TOKEN_ENCRYPTION_KEY missing (encryptSalesforceSecret),
+    // DATABASE_URL missing/unreachable in production (salesforce-store's
+    // db()), or a real Neon write failure.
+    const message = cause instanceof Error ? cause.message : String(cause);
+    const causeCode = /SALESFORCE_TOKEN_ENCRYPTION_KEY/i.test(message)
+      ? "key"
+      : /DATABASE_URL/i.test(message)
+        ? "database_url"
+        : "save_connection";
+    console.error(`[salesforce-oauth] callback: cause=${causeCode}`, cause);
     return clearAttempt(crmRedirect(req, "error", "token_exchange_failed"));
   }
 }

@@ -22,6 +22,11 @@ function makeJar(): FakeJar {
 const state = vi.hoisted(() => ({ jar: null as FakeJar | null }));
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => state.jar),
+  // No proxy ran ahead of these direct customerRef() calls, so the
+  // X-Pk-Demo-Tenant header gate.ts looks for is absent, exercising the
+  // fallback mint path (see gate-demo-tenant-header.test.ts for the header
+  // fast path these tests do not cover).
+  headers: vi.fn(async () => new Headers()),
 }));
 
 // No access code cookie is ever set in these tests, so verifyAccessCookieValue

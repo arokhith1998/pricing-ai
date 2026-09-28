@@ -189,7 +189,7 @@ function methodLabel(method: string | undefined): string | null {
   return METHOD_LABEL[method] ?? method.replace(/_/g, " ");
 }
 
-function ConfidenceCaveat({ c }: { c: Confidence }) {
+function ConfidenceCaveat({ c, inSample }: { c: Confidence; inSample?: boolean }) {
   return (
     <div className="mt-5 rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-slate">
       <span className="font-semibold text-ink">How to read this.</span> These
@@ -212,7 +212,14 @@ function ConfidenceCaveat({ c }: { c: Confidence }) {
       Across those deals it predicts {pct(c.mean_pred, 0)} wins against{" "}
       {pct(c.base_rate, 0)} actual, an average that holds better than any single
       deal&apos;s probability does. It learned from{" "}
-      {c.n_train.toLocaleString()} of your closed deals.
+      {c.n_train.toLocaleString()} of your closed deals.{" "}
+      {inSample ? (
+        <>
+          This deal&apos;s own row was part of that training data, not the
+          held-out set the numbers above are scored on, so its win
+          probability is optimistic compared to a deal the model never saw.
+        </>
+      ) : null}
     </div>
   );
 }
@@ -272,7 +279,18 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
     };
   }, [selected]);
 
-  const lower = rec ? rec.recommended_discount < rec.current_discount : false;
+  // Compare at the precision the copy renders (whole points). A 14.01% deal
+  // recommended at 14.00% is "holding", not "lowering to 14% from 14%"
+  // (2026-09-27 external review).
+  const lower = rec
+    ? Math.round(rec.recommended_discount * 100) < Math.round(rec.current_discount * 100)
+    : false;
+  const same = rec
+    ? Math.round(rec.recommended_discount * 100) === Math.round(rec.current_discount * 100)
+    : false;
+  // Named once so every downstream branch narrows off the same identifier:
+  // null only for "support_floor" (mle-reviewer, 2026-09-27), never invented.
+  const upliftValue = rec ? rec.uplift : 0;
   // Percentage-point change in win probability, derived from the same
   // rounded integers the stat tile below renders (pct0 of each probability),
   // not from rounding the raw difference. Rounding the raw difference and
@@ -314,44 +332,69 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
             <p className="text-lg text-ink">
               On <span className="font-semibold text-fg">{rec.account}</span>, the
               model suggests{" "}
-              {lower ? "lowering the discount to " : "a discount of "}
+              {lower ? "lowering the discount to " : same ? "holding the discount at " : "a discount of "}
               <span className="font-semibold text-teal">
                 {pct0(rec.recommended_discount)}
               </span>{" "}
               {lower ? (
+                upliftValue === null ? (
+                  // "support_floor" never ships a dollar uplift: the model
+                  // measured no discount effect here, so a "worth about $X"
+                  // claim would be invented, not modeled (mle-reviewer,
+                  // 2026-09-27). Say what is actually retained instead.
+                  <>
+                    from {pct0(rec.current_discount)}, keeping{" "}
+                    <span className="font-semibold text-fg">
+                      {money(rec.price_retained ?? 0)}
+                    </span>{" "}
+                    at list price if win odds hold. The model measured no
+                    discount effect on this deal&apos;s cohort, so this is
+                    price retained, not a modeled gain.
+                  </>
+                ) : (
+                  <>
+                    from {pct0(rec.current_discount)}
+                    {!Number.isFinite(dWinPts) ? (
+                      <>
+                        . That changes the discount, for about{" "}
+                      </>
+                    ) : Math.abs(dWinPts) <= WIN_PROB_BARELY_THRESHOLD_PTS ? (
+                      <>
+                        . That gives up less price while barely moving the odds
+                        of winning, for about{" "}
+                      </>
+                    ) : dWinPts < 0 ? (
+                      <>
+                        , for a {Math.abs(dWinPts)} point drop in
+                        win probability, worth about{" "}
+                      </>
+                    ) : (
+                      <>
+                        , which also lifts the odds of winning by{" "}
+                        {dWinPts} points, for about{" "}
+                      </>
+                    )}
+                    {upliftValue >= 0 ? (
+                      <>
+                        <span className="font-semibold text-fg">{money(upliftValue)}</span>{" "}
+                        more in expected value.
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-coral">{money(Math.abs(upliftValue))}</span>{" "}
+                        less in expected value.
+                      </>
+                    )}
+                  </>
+                )
+              ) : rec.method === "support_floor" ? (
+                // recommended === current here: a support floor never adds
+                // discount, so this is either "below_support" (no curve
+                // applies at all) or a floor the deal is already sitting on.
                 <>
-                  from {pct0(rec.current_discount)}
-                  {!Number.isFinite(dWinPts) ? (
-                    <>
-                      . That changes the discount, for about{" "}
-                    </>
-                  ) : Math.abs(dWinPts) <= WIN_PROB_BARELY_THRESHOLD_PTS ? (
-                    <>
-                      . That gives up less price while barely moving the odds
-                      of winning, for about{" "}
-                    </>
-                  ) : dWinPts < 0 ? (
-                    <>
-                      , for a {Math.abs(dWinPts)} point drop in
-                      win probability, worth about{" "}
-                    </>
-                  ) : (
-                    <>
-                      , which also lifts the odds of winning by{" "}
-                      {dWinPts} points, for about{" "}
-                    </>
-                  )}
-                  {rec.uplift >= 0 ? (
-                    <>
-                      <span className="font-semibold text-fg">{money(rec.uplift)}</span>{" "}
-                      more in expected value.
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-semibold text-coral">{money(Math.abs(rec.uplift))}</span>{" "}
-                      less in expected value.
-                    </>
-                  )}
+                  {rec.below_support
+                    ? "since this deal already sits below the discounts this cohort has ever given, so no curve applies."
+                    : "since this is the floor of the discounts this cohort has actually given, not a modeled peak."}
                 </>
               ) : (
                 <>to maximize expected value on a {money(rec.list_acv)} list deal.</>
@@ -376,17 +419,35 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               value={pct0(rec.win_prob_at_rec)}
               sub={`was ${pct0(rec.win_prob_at_current)} at the current discount`}
             />
-            <Stat
-              label="Expected value gain"
-              value={money(rec.uplift)}
-              accent={rec.uplift >= 0 ? "navy" : "coral"}
-              sub="vs the discount given"
-            />
+            {upliftValue === null ? (
+              // "support_floor" never ships a dollar uplift: the model
+              // measured no discount effect on this deal's cohort, so
+              // "expected value gain" would be a number the model never
+              // demonstrated (mle-reviewer, 2026-09-27). Price retained is
+              // the number it actually earned.
+              <Stat
+                label="Price retained if the floor holds"
+                value={money(rec.price_retained ?? 0)}
+                accent="navy"
+                sub="not a modeled gain"
+              />
+            ) : (
+              <Stat
+                label="Expected value gain"
+                value={money(upliftValue)}
+                accent={upliftValue >= 0 ? "navy" : "coral"}
+                sub="vs the discount given"
+              />
+            )}
           </div>
 
           {rec.caveat ? (
             <p className="rounded-lg border border-mist bg-surface-2 p-3 text-xs leading-relaxed text-slate">
-              <span className="font-medium text-ink">About that expected-value figure.</span>{" "}
+              <span className="font-medium text-ink">
+                {upliftValue === null
+                  ? "About that price-retained figure."
+                  : "About that expected-value figure."}
+              </span>{" "}
               {rec.caveat}
             </p>
           ) : null}
@@ -462,7 +523,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
               <Comparables rows={rec.comparables} />
               <BandCohort ctx={rec.band_context} />
             </div>
-            <ConfidenceCaveat c={rec.confidence} />
+            <ConfidenceCaveat c={rec.confidence} inSample={rec.in_sample} />
           </section>
 
           {/* The governance loop closes here: the recommendation above, the

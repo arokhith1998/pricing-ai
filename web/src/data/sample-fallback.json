@@ -12,6 +12,7 @@
   "above_list_deals": 0,
   "currencies": [],
   "blank_booked": 0,
+  "blank_list_acv": 0,
   "field_sources": {
    "opportunity_id": "opportunity_id (synonyms, high)",
    "account_id": "account_id (synonyms, high)",
@@ -41,6 +42,9 @@
   },
   "unmapped_columns": [],
   "notes": [],
+  "blockers": [],
+  "fx_normalized": false,
+  "fx_rate_date": "",
   "summary": "Read 2000 closed deals from deals.csv."
  },
  "overview": {
@@ -91,7 +95,17 @@
   ],
   "excess_vs_segment_reference_won": 8946770.475597959,
   "deals_above_segment_reference": 1087,
-  "excess_segment_pct_of_booked": 0.13343138214292116
+  "excess_segment_pct_of_booked": 0.13343138214292116,
+  "excess_basis": "own win point",
+  "excess_disclosure": "",
+  "band_counts": {
+   "10-15%": 468,
+   "15-20%": 453,
+   "5-10%": 389,
+   "20-25%": 278,
+   "0-5%": 237,
+   "25%+": 175
+  }
  },
  "reference_discount": {
   "reference_threshold": 0.05,
@@ -133,8 +147,45 @@
     0.36,
     0.4857142857142857
    ]
-  }
+  },
+  "basis": "own win point",
+  "sufficient": true,
+  "band_counts": {
+   "10-15%": 468,
+   "15-20%": 453,
+   "5-10%": 389,
+   "20-25%": 278,
+   "0-5%": 237,
+   "25%+": 175
+  },
+  "reference_band_median_discount": 0.080483
  },
+ "value_metric_reference": [
+  {
+   "value_metric": "consumption",
+   "deals": 477,
+   "bands_populated": 6,
+   "reference_threshold": 0.05,
+   "reference_band": "5-10%",
+   "basis": "band floor, not applied"
+  },
+  {
+   "value_metric": "hybrid",
+   "deals": 1106,
+   "bands_populated": 6,
+   "reference_threshold": 0.05,
+   "reference_band": "5-10%",
+   "basis": "own win point"
+  },
+  {
+   "value_metric": "seats",
+   "deals": 417,
+   "bands_populated": 6,
+   "reference_threshold": 0.05,
+   "reference_band": "5-10%",
+   "basis": "own win point"
+  }
+ ],
  "quarter_end": {
   "qe_deals": 301,
   "qe_avg_discount": 0.17120422923588038,
@@ -147,6 +198,220 @@
   "off_policy_unapproved_won": 123,
   "unapproved_discount_dollars": 2711633.7399999998
  },
+ "trend_by_quarter": [
+  {
+   "quarter": "2024-Q3",
+   "deals": 460,
+   "won": 277,
+   "win_rate": 0.602173913,
+   "booked_acv": 15337178.34,
+   "price_realization": 0.8162129021,
+   "excess_won": 1979210.71993661,
+   "excess_pct_of_booked": 0.1290466001,
+   "excess_won_global": 2524595.29824767,
+   "excess_basis": "own win point"
+  },
+  {
+   "quarter": "2024-Q4",
+   "deals": 511,
+   "won": 317,
+   "win_rate": 0.6203522505,
+   "booked_acv": 16515848.489999998,
+   "price_realization": 0.8170549961,
+   "excess_won": 2210106.9403184196,
+   "excess_pct_of_booked": 0.1338173417,
+   "excess_won_global": 2704512.29681842,
+   "excess_basis": "own win point"
+  },
+  {
+   "quarter": "2025-Q1",
+   "deals": 514,
+   "won": 284,
+   "win_rate": 0.5525291829,
+   "booked_acv": 15399092.66,
+   "price_realization": 0.8116354881,
+   "excess_won": 2119665.7048128303,
+   "excess_pct_of_booked": 0.1376487402,
+   "excess_won_global": 2633848.91781283,
+   "excess_basis": "own win point"
+  },
+  {
+   "quarter": "2025-Q2",
+   "deals": 515,
+   "won": 337,
+   "win_rate": 0.654368932,
+   "booked_acv": 19799351.7,
+   "price_realization": 0.8129861343,
+   "excess_won": 2637787.1105301,
+   "excess_pct_of_booked": 0.1332259334,
+   "excess_won_global": 3353244.2010300998,
+   "excess_basis": "own win point"
+  }
+ ],
+ "segment_win_points": [
+  {
+   "segment": "Enterprise",
+   "deals": 342,
+   "reference_band": "10-15%",
+   "peak_band": "10-15%",
+   "peak_win_rate": 0.6666666666666666,
+   "sufficient": true,
+   "basis": "own win point"
+  },
+  {
+   "segment": "MidMarket",
+   "deals": 772,
+   "reference_band": "5-10%",
+   "peak_band": "5-10%",
+   "peak_win_rate": 0.6956521739130435,
+   "sufficient": true,
+   "basis": "own win point"
+  },
+  {
+   "segment": "SMB",
+   "deals": 886,
+   "reference_band": "5-10%",
+   "peak_band": "10-15%",
+   "peak_win_rate": 0.6720647773279352,
+   "sufficient": true,
+   "basis": "own win point"
+  }
+ ],
+ "policy_simulations": [
+  {
+   "policy": "Hold each deal at its own reference win point",
+   "held_back": 8946770.475597959,
+   "deals_affected": 1087
+  },
+  {
+   "policy": "Require approval above the policy line (15%)",
+   "held_back": 4137333.5015807706,
+   "deals_affected": 514
+  },
+  {
+   "policy": "Freeze extra discounting in the quarter-end window",
+   "held_back": 2032797.1632650457,
+   "deals_affected": 301
+  },
+  {
+   "policy": "Union of the three levers (no double counting)",
+   "held_back": 8946770.47559796,
+   "deals_affected": 1106,
+   "union_value": 8946770.47559796,
+   "non_additive": true
+  }
+ ],
+ "new_vs_renewal": [],
+ "rep_discipline": [
+  {
+   "rep_id": "REP-05",
+   "won_deals": 113,
+   "avg_discount": 0.1744187522,
+   "booked_acv": 6677974.17,
+   "total_deals": 170,
+   "win_rate": 0.6647058824,
+   "discount_vs_median": 0.0280387247
+  },
+  {
+   "rep_id": "REP-03",
+   "won_deals": 123,
+   "avg_discount": 0.1566070976,
+   "booked_acv": 7298682.1899999995,
+   "total_deals": 187,
+   "win_rate": 0.6577540107,
+   "discount_vs_median": 0.0102270701
+  },
+  {
+   "rep_id": "REP-07",
+   "won_deals": 98,
+   "avg_discount": 0.1555648367,
+   "booked_acv": 5185870.35,
+   "total_deals": 166,
+   "win_rate": 0.5903614458,
+   "discount_vs_median": 0.0091848093
+  },
+  {
+   "rep_id": "REP-02",
+   "won_deals": 108,
+   "avg_discount": 0.1534339907,
+   "booked_acv": 5281819.49,
+   "total_deals": 176,
+   "win_rate": 0.6136363636,
+   "discount_vs_median": 0.0070539633
+  },
+  {
+   "rep_id": "REP-00",
+   "won_deals": 88,
+   "avg_discount": 0.1519801136,
+   "booked_acv": 5108502.11,
+   "total_deals": 144,
+   "win_rate": 0.6111111111,
+   "discount_vs_median": 0.0056000862
+  },
+  {
+   "rep_id": "REP-01",
+   "won_deals": 109,
+   "avg_discount": 0.1474787248,
+   "booked_acv": 5085589.83,
+   "total_deals": 171,
+   "win_rate": 0.6374269006,
+   "discount_vs_median": 0.0010986973
+  },
+  {
+   "rep_id": "REP-08",
+   "won_deals": 106,
+   "avg_discount": 0.1452813302,
+   "booked_acv": 6143301.44,
+   "total_deals": 179,
+   "win_rate": 0.5921787709,
+   "discount_vs_median": -0.0010986973
+  },
+  {
+   "rep_id": "REP-10",
+   "won_deals": 97,
+   "avg_discount": 0.1301375773,
+   "booked_acv": 4585916.08,
+   "total_deals": 173,
+   "win_rate": 0.5606936416,
+   "discount_vs_median": -0.0162424502
+  },
+  {
+   "rep_id": "REP-04",
+   "won_deals": 118,
+   "avg_discount": 0.1279990847,
+   "booked_acv": 5947352.25,
+   "total_deals": 181,
+   "win_rate": 0.6519337017,
+   "discount_vs_median": -0.0183809427
+  },
+  {
+   "rep_id": "REP-06",
+   "won_deals": 85,
+   "avg_discount": 0.1109093059,
+   "booked_acv": 4611864.68,
+   "total_deals": 142,
+   "win_rate": 0.5985915493,
+   "discount_vs_median": -0.0354707216
+  },
+  {
+   "rep_id": "REP-11",
+   "won_deals": 87,
+   "avg_discount": 0.096031931,
+   "booked_acv": 5719629.9,
+   "total_deals": 141,
+   "win_rate": 0.6170212766,
+   "discount_vs_median": -0.0503480964
+  },
+  {
+   "rep_id": "REP-09",
+   "won_deals": 83,
+   "avg_discount": 0.0784191205,
+   "booked_acv": 5404968.7,
+   "total_deals": 170,
+   "win_rate": 0.4882352941,
+   "discount_vs_median": -0.067960907
+  }
+ ],
  "win_rate_by_band": [
   {
    "discount_band": "0-5%",
@@ -482,7 +747,11 @@
     "list_acv": 30727048.25,
     "booked_acv": 24809493.18,
     "avg_discount": 0.1438732689,
-    "price_realization": 0.8074154399
+    "price_realization": 0.8074154399,
+    "reference_threshold": 0.05,
+    "reference_basis": "own win point",
+    "excess_won": 4400786.89248053,
+    "excess_pct_of_booked": 0.177383184
    },
    {
     "business_unit": "Cloud",
@@ -490,7 +759,11 @@
     "list_acv": 26009344.68,
     "booked_acv": 21199730.12,
     "avg_discount": 0.1365931617,
-    "price_realization": 0.8150812864
+    "price_realization": 0.8150812864,
+    "reference_threshold": 0.05,
+    "reference_basis": "own win point",
+    "excess_won": 3522536.3487756797,
+    "excess_pct_of_booked": 0.1661594902
    },
    {
     "business_unit": "Data",
@@ -498,7 +771,11 @@
     "list_acv": 25594920.61,
     "booked_acv": 21042247.89,
     "avg_discount": 0.1334181782,
-    "price_realization": 0.8221259292
+    "price_realization": 0.8221259292,
+    "reference_threshold": 0.0569306931,
+    "reference_basis": "band floor, not applied",
+    "excess_won": 2615249.30665281,
+    "excess_pct_of_booked": 0.1242856429
    }
   ],
   "product_line": [
@@ -508,7 +785,11 @@
     "list_acv": 15670827.84,
     "booked_acv": 12596605.7,
     "avg_discount": 0.1419609388,
-    "price_realization": 0.8038251603
+    "price_realization": 0.8038251603,
+    "reference_threshold": 0.05,
+    "reference_basis": "own win point",
+    "excess_won": 2302602.79264049,
+    "excess_pct_of_booked": 0.1827954965
    },
    {
     "product_line": "Observability",
@@ -516,7 +797,11 @@
     "list_acv": 15056220.41,
     "booked_acv": 12212887.48,
     "avg_discount": 0.1456329718,
-    "price_realization": 0.8111522778
+    "price_realization": 0.8111522778,
+    "reference_threshold": 0.05,
+    "reference_basis": "own win point",
+    "excess_won": 2098184.09984004,
+    "excess_pct_of_booked": 0.1718008213
    },
    {
     "product_line": "Warehouse",
@@ -524,7 +809,11 @@
     "list_acv": 14008962.82,
     "booked_acv": 11512206.64,
     "avg_discount": 0.1370547621,
-    "price_realization": 0.8217743732
+    "price_realization": 0.8217743732,
+    "reference_threshold": 0.0577669903,
+    "reference_basis": "band floor, not applied",
+    "excess_won": 1416811.2861417201,
+    "excess_pct_of_booked": 0.1230703488
    },
    {
     "product_line": "Compute",
@@ -532,7 +821,11 @@
     "list_acv": 13548100.39,
     "booked_acv": 11073118.81,
     "avg_discount": 0.1402992222,
-    "price_realization": 0.8173189223
+    "price_realization": 0.8173189223,
+    "reference_threshold": 0.0565217391,
+    "reference_basis": "band floor, not applied",
+    "excess_won": 1464438.26712994,
+    "excess_pct_of_booked": 0.1322516531
    },
    {
     "product_line": "Storage",
@@ -540,7 +833,11 @@
     "list_acv": 12461244.29,
     "booked_acv": 10126611.31,
     "avg_discount": 0.1326590359,
-    "price_realization": 0.8126484863
+    "price_realization": 0.8126484863,
+    "reference_threshold": 0.05,
+    "reference_basis": "own win point",
+    "excess_won": 1717625.85614574,
+    "excess_pct_of_booked": 0.169615067
    },
    {
     "product_line": "Streaming",
@@ -548,7 +845,11 @@
     "list_acv": 11585957.790000001,
     "booked_acv": 9530041.25,
     "avg_discount": 0.1296346616,
-    "price_realization": 0.8225510072
+    "price_realization": 0.8225510072,
+    "reference_threshold": 0.0560606061,
+    "reference_basis": "band floor, not applied",
+    "excess_won": 1198438.0205110898,
+    "excess_pct_of_booked": 0.1257537076
    }
   ]
  },
@@ -742,5 +1043,16 @@
    "discount_pct": 0.372515,
    "discount_amount": 122206.44
   }
- ]
+ ],
+ "defended_vs_investigate": {
+  "reference_threshold": 0.05,
+  "reference_basis": "segment-aware (per deal)",
+  "defended_value": 2403926.75,
+  "defended_deals": 128,
+  "investigate_value": 64647544.44,
+  "investigate_deals": 1087,
+  "defended_pct_of_booked": 0.03585196129683907,
+  "defended_value_global": 2250177.44,
+  "investigate_value_global": 64801293.75
+ }
 }

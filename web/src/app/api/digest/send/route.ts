@@ -1,4 +1,4 @@
-import { getDigest } from "@/lib/api";
+import { getDigestAll } from "@/lib/api";
 import { sendDigest } from "@/lib/notify";
 
 // The weekly digest sender. Hit by a cron (Vercel cron, GitHub Action, or
@@ -14,10 +14,15 @@ import { sendDigest } from "@/lib/notify";
 //   CRON_SECRET unset, production        → 503 (refuse to run an open relay)
 //   CRON_SECRET unset, dev               → allow (local testing)
 //
-// The digest itself comes from the FastAPI GET /digest (server-side via
-// apiFetch, which adds X-Pricekeel-Key and the timeout) and goes out through
-// sendDigest in notify.ts. With RESEND_API_KEY unset, sendDigest logs the
-// rendered text and reports a dry run.
+// The digests come from the FastAPI GET /digest/all (server-side via
+// apiFetch, which adds X-Pricekeel-Key and the timeout): one per real
+// customer with decision-log activity in the window, excluding demo:*
+// tenants. (2026-09-27 fix: this used to call GET /digest for the "default"
+// tenant, which nobody writes to once a visitor is either a verified access
+// code or an anonymous demo:<uuid>, so the cron email reported zero activity
+// forever.) Each digest goes out through sendDigest in notify.ts; with
+// RESEND_API_KEY unset, sendDigest logs the rendered text and reports a dry
+// run. One tenant's send failure does not block the others.
 
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -33,26 +38,36 @@ export async function POST(req: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let digest;
+  let digests, customers;
   try {
-    digest = await getDigest();
+    ({ digests, customers } = await getDigestAll());
   } catch {
     return Response.json(
-      { error: "Could not fetch the digest. Is the API running?" },
+      { error: "Could not fetch the digests. Is the API running?" },
       { status: 502 },
     );
   }
 
-  try {
-    const { sent_to, dry_run } = await sendDigest(digest);
-    if (dry_run) {
-      return Response.json({ ok: true, dry_run: true });
-    }
-    return Response.json({ ok: true, sent_to, headline: digest.headline });
-  } catch {
-    return Response.json(
-      { error: "Digest rendered but the email send failed." },
-      { status: 502 },
-    );
+  if (digests.length === 0) {
+    return Response.json({ ok: true, dry_run: true, customers: [] });
   }
+
+  const results = await Promise.allSettled(digests.map((d) => sendDigest(d)));
+  const sent: { customer: string; sent_to: string; dry_run: boolean }[] = [];
+  const failed: string[] = [];
+  results.forEach((result, i) => {
+    const customer = customers[i];
+    if (result.status === "fulfilled") {
+      sent.push({ customer, ...result.value });
+    } else {
+      failed.push(customer);
+    }
+  });
+
+  return Response.json({
+    ok: failed.length === 0,
+    sent_count: sent.length,
+    sent,
+    failed,
+  });
 }

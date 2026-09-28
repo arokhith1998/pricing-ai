@@ -70,14 +70,29 @@ ml = get_model_leakage(csv)
 # No claim that this figure is "more dependable" than the Diagnostic page's
 # (mle-reviewer F4): it is judged per deal on each deal's own cohort-clipped
 # sweep, the same one the guidance panel below uses, and that is all it is.
+# Headline only the modeled component (mle-reviewer, 2026-09-27): 61% of this
+# figure on the demo book was Enterprise, where every "justified" discount is
+# a support-floor edge, not a curve the model found. The floor-based
+# component is disclosed, not hidden, but never leads.
 st.info(
-    f"**Judged deal by deal:** these wins needed about "
+    f"**Judged deal by deal, modeled component only:** these wins needed about "
     f"**{pct(ml['mean_justified_discount'])}** discount on average to win, versus "
-    f"**{pct(ml['mean_actual_discount'])}** actually given. That gap is "
-    f"**{money(ml['model_excess_won'])}** ({pct(ml['model_excess_pct_of_booked'])} "
-    f"of booked value) across {ml['deals_over_justified']:,} deals. Each deal is "
-    "judged against the discounts its own segment has actually given, never "
-    "against a range the segment has no history in."
+    f"**{pct(ml['mean_actual_discount'])}** actually given. Of the gap, "
+    f"**{money(ml['modeled_value']['excess'])}** "
+    f"({pct(ml['modeled_value']['pct_of_booked'])} of booked value) across "
+    f"{ml['modeled_value']['deals']:,} deals is an interior EV-curve peak the "
+    "model actually found. Each deal is judged against the discounts its own "
+    "segment has actually given, never against a range the segment has no "
+    "history in."
+)
+st.caption(
+    f"Disclosed, not headlined: a further "
+    f"**{money(ml['floor_based_value']['excess'])}** "
+    f"({pct(ml['floor_based_value']['pct_of_booked'])} of booked value) across "
+    f"{ml['floor_based_value']['deals']:,} deals sits above a band-guardrail "
+    "median or a support-floor edge, not a modeled curve peak. Total across "
+    f"both components: {money(ml['model_excess_won'])} "
+    f"({pct(ml['model_excess_pct_of_booked'])} of booked value)."
 )
 
 gl, gr = st.columns([2, 3])
@@ -124,9 +139,20 @@ with gr:
         d2.metric("Recommended discount", pct(rec["recommended_discount"]),
                   f"{rec['recommended_discount'] - rec['current_discount']:+.0%}",
                   delta_color="off")
-        d3.metric("Extra value expected", money(rec["uplift"]),
-                  help="Expected annual value at the recommended discount versus "
-                       "the one given.")
+        # "support_floor" never ships a dollar uplift: the model measured no
+        # discount effect there, so "expected value gain" would be invented
+        # (mle-reviewer, 2026-09-27). It ships price retained instead, list
+        # ACV times the discount points not added at the floor.
+        if rec["uplift"] is not None:
+            d3.metric("Extra value expected", money(rec["uplift"]),
+                      help="Expected annual value at the recommended discount "
+                           "versus the one given.")
+        else:
+            d3.metric("Price retained if the floor holds",
+                      money(rec["price_retained"] or 0.0),
+                      help="List value times the discount points not given at "
+                           "the floor. Not a modeled gain: the model measured "
+                           "no discount effect on this deal's cohort.")
 
         curve = rec["curve"]
         base = alt.Chart(curve).encode(

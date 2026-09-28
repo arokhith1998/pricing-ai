@@ -71,14 +71,21 @@ export default function WinRateChart({
   });
 
   return (
-    <div className="h-72 min-w-0 w-full">
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-        minWidth={0}
-        minHeight={1}
-        initialDimension={{ width: 640, height: 288 }}
-      >
+    // 2026-09-27 review: /diagnostic overflowed at a 390px viewport.
+    // Recharts' ResponsiveContainer used to be given `initialDimension`
+    // (a guessed pixel width) to render before its ResizeObserver had
+    // measured the real container even once; on a narrow viewport that
+    // guess was wider than the viewport, and its measuring wrapper is
+    // deliberately width:0/overflow-visible (a documented recharts trick so
+    // the chart can shrink), so nothing clipped the oversized first render
+    // and it widened the whole document. Without `initialDimension`,
+    // recharts renders nothing until it has measured a real, positive size
+    // (its mount effect measures synchronously, before paint, so this is not
+    // visually a flash of empty space in practice) instead of guessing a
+    // fixed width that can be wrong. `overflow-hidden` is defense in depth
+    // for the rare environment where ResizeObserver itself is unavailable.
+    <div className="h-72 min-w-0 w-full overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
         <ComposedChart data={data} margin={{ top: 28, right: 16, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={MIST} vertical={false} />
           <XAxis

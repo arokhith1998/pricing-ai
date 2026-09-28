@@ -177,16 +177,29 @@ def _insufficient_records() -> list[dict]:
     return records
 
 
-def test_guidance_raises_instead_of_a_zero_percent_guardrail_on_thin_book():
+def test_analyze_records_readiness_blocker_instead_of_raising_on_thin_book():
+    """2026-09-27 fix (silent-failure-hunter): readiness passes at 30 usable
+    closed deals while the engine needs 3 real discount bands at 15 deals
+    each. Before this fix, analyze_records raised CRMDataError on the FIRST
+    open deal, discarding the whole analysis; a caller like /crm/analyze
+    wants the book-level analysis and readiness counts even when open-deal
+    guidance cannot be computed. Now it returns 200-shaped output: empty
+    guidance, and readiness names the blocker."""
     records = _insufficient_records()
-    with pytest.raises(crm.CRMDataError, match="Insufficient closed-deal data"):
-        crm.analyze_records(records, policy_threshold_pct=15.0)
+    result = crm.analyze_records(records, policy_threshold_pct=15.0)
+    assert result["guidance"] == []
+    assert "analysis" in result and result["analysis"]
+    blocker = result["readiness"]["reference_blocker"]
+    assert "Insufficient closed-deal data" in blocker
+    assert result["readiness"]["closed_usable"] == 42
 
 
 def test_crm_workflow_422_not_zero_guardrail_on_thin_book(client):
-    """The live path: /crm/workflow must return 422, never a 200 with
+    """The live path: /crm/workflow (a single selected deal) must still
+    return 422 with the insufficient-data reason, never a 200 with
     guardrail_pct 0 / recommended_discount 0.0 manufactured off the
-    insufficient-data sentinel."""
+    insufficient-data sentinel, and never the generic 'not usable' message
+    that would otherwise mask the real reason (see selected_guidance)."""
     response = client.post("/crm/workflow", json={
         "records": _insufficient_records(),
         "deal_id": "SF-OPEN-THIN",
@@ -197,10 +210,15 @@ def test_crm_workflow_422_not_zero_guardrail_on_thin_book(client):
     assert "insufficient" in response.json()["detail"].lower()
 
 
-def test_crm_analyze_422_not_zero_guardrail_on_thin_book(client):
+def test_crm_analyze_200_with_readiness_blocker_on_thin_book(client):
+    """The book-level /crm/analyze must degrade to a 200 with the analysis
+    and readiness counts intact, disclosing the blocker instead of losing the
+    whole response to a raised exception (2026-09-27 fix)."""
     response = client.post("/crm/analyze", json={"records": _insufficient_records()})
-    assert response.status_code == 422
-    assert "insufficient" in response.json()["detail"].lower()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["guidance"] == []
+    assert "insufficient" in body["readiness"]["reference_blocker"].lower()
 
 
 def test_selected_guidance_rejects_unknown_or_unusable_open_deal():

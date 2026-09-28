@@ -280,14 +280,45 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0,
     df, report = _ingest_closed(closed, policy)
     _guard_degenerate_list(df, list_field_mapped=list_field_mapped)
     analysis = diagnostic.analyze(df, report, policy_threshold=policy)
-    # The reference discount and segment reference table are pure functions
-    # of `df` alone (this one closed book), so compute each once here rather
-    # than once per open deal: guidance_for_open_deal's own bootstrap
-    # (metrics.reference_discount) otherwise re-ran on identical input for
-    # every open Salesforce opportunity in the same analyze_records call
-    # (backend-engineer perf finding, scoped to this call site).
-    global_ref = metrics.reference_discount(df)
-    segment_table = metrics.segment_reference_table(df)
+    # 2026-09-27 fix: diagnostic.analyze already computed the global reference
+    # and the segment reference table for this exact `df` (they are pure
+    # functions of `df` alone); analysis["reference_discount"] and
+    # analysis["leakage"]["segment_references"] ARE those values. Reuse them
+    # instead of re-running metrics.reference_discount's 500-sample bootstrap
+    # and metrics.segment_reference_table a second time on identical input.
+    global_ref = analysis["reference_discount"]
+    segment_table = analysis["leakage"]["segment_references"]
+    readiness = {
+        "records_received": len(records),
+        "closed_received": len(closed_all),
+        "closed_usable": len(closed),
+        "closed_excluded_missing_value": len(closed_all) - len(closed),
+        "open_received": len(open_all),
+        "open_usable": len(open_usable),
+        "open_excluded_missing_value": len(open_all) - len(open_usable),
+        "currencies": currencies,
+    }
+    if not global_ref.get("sufficient", True):
+        # 2026-09-26's blocker fix made guidance_for_open_deal raise
+        # CRMDataError when neither the deal's segment nor the pooled global
+        # book supports a defensible reference. Readiness passes at 30 closed
+        # deals while the engine needs 3 real discount bands at 15 deals each
+        # (up to 45+), so a 30-44 deal book used to blow up analyze_records on
+        # the FIRST open deal instead of returning a 200 that names the
+        # blocker (silent-failure-hunter finding, 2026-09-27). A segment is
+        # always a subset of the pooled book, so if the global reference
+        # cannot clear the sufficiency bar, no segment can either: skip
+        # guidance entirely rather than raise, and disclose why in readiness.
+        band_counts = global_ref.get("band_counts", {})
+        readiness["reference_blocker"] = (
+            "Insufficient closed-deal data for a defensible reference "
+            f"discount: no {metrics.SEGMENT_REF_MIN_BANDS} real discount "
+            "bands each clear 15 closed deals. Band counts: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(band_counts.items()))
+            + ". Collect more closed Salesforce opportunities before "
+              "open-deal guidance can be shown."
+        )
+        return {"analysis": analysis, "guidance": [], "readiness": readiness}
     guidance = [
         guidance_for_open_deal(df, deal, policy, global_ref=global_ref,
                                segment_table=segment_table)
@@ -303,20 +334,7 @@ def analyze_records(records: list[dict], policy_threshold_pct: float = 15.0,
         not bool(row["below_guardrail"]),
         float(row["expected_acv_delta"]),
     ), reverse=True)
-    return {
-        "analysis": analysis,
-        "guidance": guidance,
-        "readiness": {
-            "records_received": len(records),
-            "closed_received": len(closed_all),
-            "closed_usable": len(closed),
-            "closed_excluded_missing_value": len(closed_all) - len(closed),
-            "open_received": len(open_all),
-            "open_usable": len(open_usable),
-            "open_excluded_missing_value": len(open_all) - len(open_usable),
-            "currencies": currencies,
-        },
-    }
+    return {"analysis": analysis, "guidance": guidance, "readiness": readiness}
 
 
 def selected_guidance(records: list[dict], deal_id: str,
@@ -327,4 +345,13 @@ def selected_guidance(records: list[dict], deal_id: str,
     for row in result["guidance"]:
         if row["opportunity_id"] == deal_id:
             return row
+    # 2026-09-27 fix: when the book-wide reference is insufficient,
+    # analyze_records now returns an empty guidance list with the reason in
+    # readiness["reference_blocker"] (see analyze_records) instead of raising.
+    # A single-deal caller (this function, and /crm/workflow above it) has no
+    # readiness surface of its own to show that disclosure on, so surface it
+    # here as the 422 detail rather than the generic, misleading "not usable".
+    blocker = result["readiness"].get("reference_blocker")
+    if blocker:
+        raise CRMDataError(blocker)
     raise CRMDataError("The selected open Salesforce opportunity is not usable.")

@@ -16,7 +16,7 @@ mid-import (main.py imports this router).
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pricing import copilot as copilot_mod
 from pricing import governance as governance_mod
@@ -62,11 +62,16 @@ def copilot_canonical(req: CanonicalReq, request: Request) -> dict:
 
 
 class DecisionLogReq(BaseModel):
-    session_id: str
+    session_id: str = Field(..., max_length=120)
     qid: str
-    accepted: list[str] = []
-    rejected: list[str] = []
-    note: str = ""
+    # No canonical question ever surfaces more than 5 opportunities (see
+    # pricing/copilot.py's per-kind slices), so an accept/reject list past a
+    # couple dozen is already suspect; 50 is a generous cap that still bounds
+    # an unauthenticated caller's write into Neon (same class of gap fixed on
+    # /exceptions' justification/requested_by).
+    accepted: list[str] = Field(default_factory=list, max_length=50)
+    rejected: list[str] = Field(default_factory=list, max_length=50)
+    note: str = Field("", max_length=2000)
 
 
 @router.post("/copilot/log")

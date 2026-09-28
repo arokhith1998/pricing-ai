@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from pricing import diagnostic, metrics
-from pricing.ingest import enrich, ingest_verbose, resolve_identity
+from pricing.ingest import enrich, ingest_frame_verbose, ingest_verbose, resolve_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -451,6 +451,36 @@ def test_diagnostic_analyze_bounds_reference_discount_calls(monkeypatch):
     )
 
 
+def test_diagnostic_analyze_bounds_reference_discount_calls_with_deal_type(monkeypatch):
+    """2026-09-27 fix (item 2): the demo CSV above has no deal_type/is_renewal
+    column, so new_vs_renewal's old bug -- calling reference_discount(df)
+    unconditionally instead of taking the caller's already-computed
+    global_ref -- was invisible to the count test above. Add is_renewal here
+    so new_vs_renewal actually runs, and pin that it reuses the shared global
+    reference rather than recomputing it a second time."""
+    raw = pd.read_csv(ROOT / "data" / "synthetic" / "deals.csv",
+                      dtype=str, keep_default_na=False)
+    raw["is_renewal"] = [i % 2 == 0 for i in range(len(raw))]
+    df, report = ingest_frame_verbose(raw)
+    calls = {"n": 0}
+    original = metrics.reference_discount
+
+    def counted(df_arg, *a, **kw):
+        calls["n"] += 1
+        return original(df_arg, *a, **kw)
+
+    monkeypatch.setattr(metrics, "reference_discount", counted)
+    diagnostic.analyze(df, report)
+    # A book with deal_type adds at most a couple more own-reference
+    # bootstraps (New / Renewal groups), never a second independent global
+    # recompute; still bounded, not doubled.
+    assert calls["n"] < 35, (
+        f"reference_discount called {calls['n']} times in one diagnostic.analyze "
+        "run on a book with deal_type; new_vs_renewal must reuse the shared "
+        "global reference (threaded via global_ref), not recompute it."
+    )
+
+
 def test_packaging_signal_deals_returns_the_value_deals():
     """packaging_signal_deals returns only the won deals in the flagged value."""
     rows = [
@@ -468,3 +498,95 @@ def test_packaging_signal_deals_returns_the_value_deals():
     deals = metrics.packaging_signal_deals(df, "segment", "SMB")
     assert list(deals["opportunity_id"]) == ["P1", "P2"]
     assert (deals["segment"] == "SMB").all()
+
+
+# --- BU/product-line-over-segment precedence blocker (2026-09-27 fix) -------
+
+def test_demo_book_segment_aware_headline_is_pinned():
+    """Known-answer test for the demo book's headline number: sum of per-deal
+    excess measured against each deal's own reference, segment applied first.
+
+    Before this fix, business_unit and product_line references (applied over
+    segment) outranked the Enterprise segment's real ~10% reference with a
+    degenerate 0% reference earned by BU "Data" and three product lines, so
+    56 of 180 Enterprise won deals were measured at 0% instead of 10% and the
+    headline read $12.48M -- ABOVE the $11.22M global lens the sample page
+    labels as overstating by design. Pinned to the last known-good value
+    (also the bundled sample-fallback.json figure) within 1%."""
+    df, report = ingest_verbose(ROOT / "data" / "synthetic" / "deals.csv")
+    lk = metrics.leakage(df)
+    headline = lk["excess_vs_segment_reference_won"]
+    global_lens = lk["excess_vs_reference_won"]
+    assert headline == pytest.approx(8_946_770.48, rel=0.01)
+    # The methodology point the sample page makes must hold: the segment-aware
+    # headline is LOWER than the global lens it is shown beside as overstating.
+    assert headline < global_lens
+
+
+def test_sample_fallback_json_headline_matches_the_live_demo_book():
+    """web/src/data/sample-fallback.json is a bundled snapshot of GET /demo
+    (api.shared.diagnostic_payload on the demo CSV), served when the FastAPI
+    backend is unreachable. It must not silently drift from what the live
+    engine actually computes -- that was exactly this blocker's second bug:
+    the bundled file held the last-known-good $8.95M while the live,
+    precedence-broken API answered $12.48M."""
+    import json
+
+    path = ROOT / "web" / "src" / "data" / "sample-fallback.json"
+    bundled = json.loads(path.read_text(encoding="utf-8"))
+    df, report = ingest_verbose(ROOT / "data" / "synthetic" / "deals.csv")
+    live = metrics.leakage(df)
+    assert (bundled["leakage"]["excess_vs_segment_reference_won"]
+            == pytest.approx(live["excess_vs_segment_reference_won"], rel=0.01))
+    assert (bundled["leakage"]["excess_vs_reference_won"]
+            == pytest.approx(live["excess_vs_reference_won"], rel=0.01))
+
+
+def test_no_slice_reference_of_zero_ever_outranks_a_sufficient_segment():
+    """Direct precedence test: even if a business_unit or product_line table
+    reports a 0.0 'own win point' (the degenerate case the band-floor fix
+    prevents upstream, see test_band_floor_slice_falls_through_on_demo_book),
+    _per_deal_reference must apply the segment's own sufficient reference
+    LAST, so it always wins over a coarser 0.0."""
+    rows = pd.DataFrame({
+        "segment": ["Enterprise", "Enterprise", "SMB"],
+        "business_unit": ["Data", "Data", "Data"],
+        "product_line": ["Compute", "Compute", "Compute"],
+    })
+    seg_refs = [{"segment": "Enterprise", "reference_threshold": 0.10,
+                "reference_band": "10-15%", "basis": metrics._BASIS_OWN,
+                "deals": 300, "bands_populated": 4}]
+    bu_refs = [{"business_unit": "Data", "reference_threshold": 0.0,
+               "reference_band": "0-5%", "basis": metrics._BASIS_OWN,
+               "deals": 600, "bands_populated": 6}]
+    pl_refs = [{"product_line": "Compute", "reference_threshold": 0.0,
+               "reference_band": "0-5%", "basis": metrics._BASIS_OWN,
+               "deals": 300, "bands_populated": 6}]
+    thr = metrics._per_deal_reference(rows, rows, 0.05, seg_refs, bu_refs, pl_refs)
+    # Rows 0/1 (Enterprise) get the segment's 10%, not BU/product-line's 0%.
+    assert thr.iloc[0] == pytest.approx(0.10)
+    assert thr.iloc[1] == pytest.approx(0.10)
+    # Row 2 (SMB, no segment reference earned) falls through to BU's 0.0,
+    # since BU is still preferred over product_line and over the global 5%.
+    assert thr.iloc[2] == pytest.approx(0.0)
+
+
+def test_band_floor_slice_falls_through_on_demo_book():
+    """On the real demo book, BU 'Data' and product lines 'Compute',
+    'Streaming', 'Warehouse' each clear the sufficiency bar but their own
+    win-point search lands on the cheapest real band (0-5%, threshold 0.0).
+    They must be labeled 'band floor, not applied' and fall through to the
+    global reference, never 'own win point' at a manufactured 0%."""
+    df = ingest_verbose(ROOT / "data" / "synthetic" / "deals.csv")[0]
+    g_ref = metrics.reference_discount(df)
+    bu_table = metrics.business_unit_reference_table(df, global_ref=g_ref)
+    pl_table = metrics.product_line_reference_table(df, global_ref=g_ref)
+    for table in (bu_table, pl_table):
+        for row in table:
+            if row["basis"] == metrics._BASIS_OWN:
+                assert row["reference_threshold"] > metrics._MIN_POSITIVE_BAND_EDGE
+    bu_basis = {r["business_unit"]: r["basis"] for r in bu_table}
+    pl_basis = {r["product_line"]: r["basis"] for r in pl_table}
+    assert bu_basis["Data"] == metrics._BASIS_BAND_FLOOR
+    for pl in ("Compute", "Streaming", "Warehouse"):
+        assert pl_basis[pl] == metrics._BASIS_BAND_FLOOR
