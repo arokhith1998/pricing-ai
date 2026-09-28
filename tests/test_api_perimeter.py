@@ -479,3 +479,14 @@ def test_copilot_log_caps_accepted_and_rejected_length_422(client):
         "accepted": [f"o{i}" for i in range(50)],
     })
     assert at_cap.status_code == 200
+
+
+def test_hsts_header_on_every_response(client):
+    """TLS terminates upstream and neither proxy adds HSTS for the API origin;
+    the trust page promises preload eligibility, so the app sets it itself
+    (2026-09-27 external review)."""
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.headers.get("strict-transport-security") == (
+        "max-age=63072000; includeSubDomains; preload"
+    )

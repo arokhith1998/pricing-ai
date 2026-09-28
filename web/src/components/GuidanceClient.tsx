@@ -279,7 +279,15 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
     };
   }, [selected]);
 
-  const lower = rec ? rec.recommended_discount < rec.current_discount : false;
+  // Compare at the precision the copy renders (whole points). A 14.01% deal
+  // recommended at 14.00% is "holding", not "lowering to 14% from 14%"
+  // (2026-09-27 external review).
+  const lower = rec
+    ? Math.round(rec.recommended_discount * 100) < Math.round(rec.current_discount * 100)
+    : false;
+  const same = rec
+    ? Math.round(rec.recommended_discount * 100) === Math.round(rec.current_discount * 100)
+    : false;
   // Named once so every downstream branch narrows off the same identifier:
   // null only for "support_floor" (mle-reviewer, 2026-09-27), never invented.
   const upliftValue = rec ? rec.uplift : 0;
@@ -324,7 +332,7 @@ export default function GuidanceClient({ deals }: { deals: Deal[] }) {
             <p className="text-lg text-ink">
               On <span className="font-semibold text-fg">{rec.account}</span>, the
               model suggests{" "}
-              {lower ? "lowering the discount to " : "a discount of "}
+              {lower ? "lowering the discount to " : same ? "holding the discount at " : "a discount of "}
               <span className="font-semibold text-teal">
                 {pct0(rec.recommended_discount)}
               </span>{" "}
