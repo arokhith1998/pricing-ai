@@ -455,6 +455,24 @@ export type Digest = {
   book_source?: "demo" | "live";
 };
 
+// Copilot canonical-question answer, mirrored from pricing/copilot.py's
+// Answer.to_dict(). `narrated` is optional so an older cached response (from
+// before this field existed) still types-check; treat a missing value as
+// narrated (the pre-2026-09-27 behavior). `narrated: false` means no LLM
+// provider is configured on this server: `text` is the deterministic
+// engine's own fallback line, not model-generated prose, and callers must
+// label it as such rather than presenting it as a normal chat reply.
+export type CopilotAnswer = {
+  text: string;
+  opportunities: unknown[];
+  qid: string;
+  citations_used: string[];
+  degraded: boolean;
+  degraded_keys: string[];
+  non_additive: string;
+  narrated?: boolean;
+};
+
 // Hung backends should fail the page fast (and let /sample fall back to the
 // bundled snapshot) instead of stalling SSR until the platform kills it.
 const API_TIMEOUT_MS = 8_000;

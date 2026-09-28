@@ -4,6 +4,10 @@ import { NextRequest } from "next/server";
 import { ACCESS_COOKIE, DEMO_TENANT_COOKIE, DEMO_TENANT_HEADER } from "@/lib/auth";
 import { proxy } from "@/proxy";
 
+function diagnosticReq() {
+  return new NextRequest("https://pricekeel.com/diagnostic");
+}
+
 // A path outside both pre-existing page-gating branches (/upload,/crm,
 // /competitor-watch need an access code; /diagnostic,/guidance need a lead)
 // so these tests exercise only the demo-tenant minting this file adds,
@@ -41,6 +45,29 @@ function forwardedRequestHeader(response: Response, name: string): string | null
 describe("proxy (Next.js 16's middleware, src/proxy.ts)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("without a lead cookie, /diagnostic redirects to /sample (the gate is on by default)", async () => {
+    const response = await proxy(diagnosticReq());
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("/sample");
+  });
+
+  it("PRICEKEEL_DEV_UNLOCK=1 bypasses the lead gate on /diagnostic outside production", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("PRICEKEEL_DEV_UNLOCK", "1");
+    const response = await proxy(diagnosticReq());
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get("location")).toBeFalsy();
+  });
+
+  it("PRICEKEEL_DEV_UNLOCK=1 is ignored when NODE_ENV is production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("PRICEKEEL_DEV_UNLOCK", "1");
+    const response = await proxy(diagnosticReq());
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("/sample");
   });
 
   it("mints a demo tenant and forwards it via both Set-Cookie and the request header when neither cookie is present", async () => {
