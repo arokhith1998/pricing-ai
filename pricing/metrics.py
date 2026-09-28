@@ -62,6 +62,18 @@ _BASIS_NO_SEGMENT = "global fallback (no segment value)"
 # not a manufactured 0.0, and every caller must refuse to headline a dollar
 # figure off it.
 _BASIS_INSUFFICIENT = "insufficient data"
+# 2026-09-27 blocker fix: a slice (segment/BU/product-line/value-metric) whose
+# own win-point search lands on the cheapest real band is not a curve with a
+# distinguishable peak, it is a degenerate reference at the band floor (0% on
+# the current DISCOUNT_BANDS table). Treating that 0% as the slice's "own win
+# point" let BU "Data" and three product lines outrank the Enterprise
+# segment's real ~10% reference (see _per_deal_reference), scoring 56 of 180
+# Enterprise won deals at 0% instead of 10% and inflating the demo book's
+# headline excess_vs_segment_reference_won from $8.95M to $12.48M, above the
+# $11.22M global lens the page labels as overstating. A band-floor slice falls
+# through to the next coarser reference instead of being treated as "own".
+_BASIS_BAND_FLOOR = "band floor, not applied"
+_MIN_POSITIVE_BAND_EDGE = min(v for v in _BAND_EDGES.values() if v >= 0.0)
 
 
 def _won(df: pd.DataFrame) -> pd.DataFrame:
@@ -407,6 +419,15 @@ def _hierarchy_reference_table(df: pd.DataFrame, column: str,
     top_leak_deals, hierarchy_slice_reference, and crm.guidance_for_open_deal
     used to consume as if it were a real reference.
 
+    2026-09-27 fix: a value that clears the sufficiency bar but whose own
+    win-point search still lands on the cheapest real band (reference_threshold
+    at or below `_MIN_POSITIVE_BAND_EDGE`, currently 0%) is NOT given
+    `_BASIS_OWN`. That degenerate case is a flat/noisy curve, not a real
+    win-point estimate, and letting it stand as "own" let it outrank a
+    coarser, better-estimated reference (segment over BU/product-line, see
+    _per_deal_reference). It is labeled `_BASIS_BAND_FLOOR` and falls through
+    to the global reference (or insufficient data) like a thin slice would.
+
     Returns one row per value (plus a "(blank)" row when deals carry no value
     for `column`): {column}, deals, bands_populated, reference_threshold,
     reference_band, basis.
@@ -422,8 +443,21 @@ def _hierarchy_reference_table(df: pd.DataFrame, column: str,
         sub = df[col == value]
         bands = _populated_real_bands(sub)
         if len(sub) >= min_deals and bands >= min_bands:
-            ref, basis = reference_discount(sub), _BASIS_OWN
-            threshold, reference_band = float(ref["reference_threshold"]), ref["reference_band"]
+            ref = reference_discount(sub)
+            band_floor = (ref["reference_band"] is not None
+                         and float(ref["reference_threshold"]) <= _MIN_POSITIVE_BAND_EDGE)
+            if band_floor:
+                basis = _BASIS_BAND_FLOOR
+                if g_sufficient:
+                    threshold, reference_band = (
+                        float(g_ref["reference_threshold"]), g_ref["reference_band"],
+                    )
+                else:
+                    threshold, reference_band = float("nan"), None
+            else:
+                threshold, reference_band, basis = (
+                    float(ref["reference_threshold"]), ref["reference_band"], _BASIS_OWN,
+                )
         elif g_sufficient:
             ref, basis = g_ref, _BASIS_FALLBACK
             threshold, reference_band = float(ref["reference_threshold"]), ref["reference_band"]
@@ -543,20 +577,37 @@ def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
                         product_line_refs: list[dict] | None = None) -> pd.Series:
     """Reference threshold per deal.
 
-    Precedence, most specific first (PK-16), each level applied only where it
-    was actually EARNED (see business_unit_reference_table /
-    product_line_reference_table / segment_reference_table):
-      1. The deal's own business_unit reference, when that BU cleared the
-         sufficiency bar (basis == "own win point"). Arbitrarily but
-         explicitly preferred over product_line when a deal's BU AND product
-         line both earned one, since BU is usually the coarser, more stable cut.
-      2. Else the deal's own product_line reference, when that product line
+    Precedence (2026-09-27 fix), segment first, each level applied only where
+    it was actually EARNED (see segment_reference_table /
+    business_unit_reference_table / product_line_reference_table, basis ==
+    "own win point"):
+      1. The deal's own SEGMENT reference, when the segment earned one. This
+         is the 2026-06-10 dry-run's finding: Enterprise's win-rate curve sits
+         well above the global one, so segment is where the methodology gap
+         was actually found and where the headline excess figure is measured.
+         It outranks BU and product line on purpose: those are narrower,
+         thinner-data cuts of the same book, and a BU/product-line reference
+         that happens to also clear the sufficiency bar is not evidence the
+         segment curve is wrong.
+      2. Else the deal's own business_unit reference, when that BU earned one.
+         Arbitrarily but explicitly preferred over product_line when a deal's
+         BU AND product line both earned one and the segment did not, since BU
+         is usually the coarser, more stable cut.
+      3. Else the deal's own product_line reference, when that product line
          earned one.
-      3. Else the deal's own segment reference (segment_reference_table always
-         has a row once the segment column exists, own win point or a
-         disclosed global fallback).
-      4. Else the global reference (`global_rt`): no segment column, or the
-         deal's segment/BU/product_line value is blank and untracked.
+      4. Else the global reference (`global_rt`): no segment/BU/product_line
+         column, or the deal's value on every level is blank, untracked, or
+         only earned a disclosed fallback (never "own win point").
+
+    2026-09-27 blocker fix: applying BU and product-line references OVER the
+    segment let a slice with a degenerate 0% reference (see
+    _BASIS_BAND_FLOOR / hierarchy_reference_table) outrank the Enterprise
+    segment's real ~10% reference, so 56 of 180 Enterprise won deals were
+    measured at 0% instead of 10% and the demo book's headline excess read
+    $12.48M, above the $11.22M global lens the page labels as overstating by
+    design. Segment-first with segment_reference_table's own band-floor
+    fallthrough fixes both bugs at once: no reference of 0.0 can outrank a
+    segment that actually earned a sufficient double-digit reference.
     """
     if seg_refs is None:
         seg_refs = segment_reference_table(df)
@@ -567,10 +618,12 @@ def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
 
     thr = pd.Series(global_rt, index=rows.index, dtype="float64")
 
-    if seg_refs and "segment" in rows.columns:
-        thr_map = {r["segment"]: r["reference_threshold"] for r in seg_refs}
-        seg_thr = rows["segment"].astype(str).str.strip().map(thr_map)
-        thr = seg_thr.fillna(thr)
+    if bu_refs and "business_unit" in rows.columns:
+        own = {r["business_unit"]: r["reference_threshold"]
+              for r in bu_refs if r["basis"] == _BASIS_OWN}
+        if own:
+            bu_thr = rows["business_unit"].astype(str).str.strip().map(own)
+            thr = bu_thr.fillna(thr)
 
     if product_line_refs and "product_line" in rows.columns:
         own = {r["product_line"]: r["reference_threshold"]
@@ -579,12 +632,12 @@ def _per_deal_reference(rows: pd.DataFrame, df: pd.DataFrame,
             pl_thr = rows["product_line"].astype(str).str.strip().map(own)
             thr = pl_thr.fillna(thr)
 
-    if bu_refs and "business_unit" in rows.columns:
-        own = {r["business_unit"]: r["reference_threshold"]
-              for r in bu_refs if r["basis"] == _BASIS_OWN}
+    if seg_refs and "segment" in rows.columns:
+        own = {r["segment"]: r["reference_threshold"]
+              for r in seg_refs if r["basis"] == _BASIS_OWN}
         if own:
-            bu_thr = rows["business_unit"].astype(str).str.strip().map(own)
-            thr = bu_thr.fillna(thr)
+            seg_thr = rows["segment"].astype(str).str.strip().map(own)
+            thr = seg_thr.fillna(thr)
 
     return thr
 
@@ -1039,17 +1092,46 @@ def trend_by_quarter(df: pd.DataFrame, min_deals: int = 10, *,
     return pd.DataFrame(out, columns=cols)
 
 
-def segment_win_points(df: pd.DataFrame, min_deals: int = 30) -> list[dict]:
+def segment_win_points(df: pd.DataFrame, min_deals: int = 30, *,
+                       global_ref: dict | None = None) -> list[dict]:
     """Each segment's own win point. Enterprise and SMB curves differ, so a
-    single global reference hides where the real saturation is per segment."""
+    single global reference hides where the real saturation is per segment.
+
+    2026-09-27 fix: this used to bootstrap every segment's own reference
+    unconditionally, silently showing `reference_band=None` with no
+    explanation whenever a segment's own curve was insufficient. Since a
+    segment is always a SUBSET of the pooled book, its per-band deal counts
+    can never exceed the pooled book's: if the global reference itself cannot
+    clear `SEGMENT_REF_MIN_BANDS` real bands at 15 deals each, no segment
+    subset can either. `global_ref` (the caller's already-computed
+    `reference_discount(df)`, recomputed when not supplied) lets this short-
+    circuit that case with an explicit `sufficient=False` /
+    `basis="insufficient data"` disclosure instead of running a bootstrap that
+    can only also come back insufficient. Every row now carries `sufficient`
+    and `basis` so a caller can tell "own win point" apart from a fallback
+    disclosure instead of reading a bare `None` as if it were data.
+    """
     out: list[dict] = []
     if "segment" not in df.columns:
         return out
+    g_ref = global_ref if global_ref is not None else reference_discount(df)
+    g_sufficient = g_ref.get("sufficient", True)
     for seg in sorted(df["segment"].dropna().astype(str).unique()):
         if not seg or seg.lower() in ("nan", "none", ""):
             continue
         g = df[df["segment"] == seg]
         if len(g) < min_deals:
+            continue
+        if not g_sufficient:
+            out.append({
+                "segment": seg,
+                "deals": int(len(g)),
+                "reference_band": None,
+                "peak_band": None,
+                "peak_win_rate": 0.0,
+                "sufficient": False,
+                "basis": _BASIS_INSUFFICIENT,
+            })
             continue
         rd = reference_discount(g)
         out.append({
@@ -1058,6 +1140,8 @@ def segment_win_points(df: pd.DataFrame, min_deals: int = 30) -> list[dict]:
             "reference_band": rd["reference_band"],
             "peak_band": rd["peak_band"],
             "peak_win_rate": float(rd["peak_win_rate"]),
+            "sufficient": rd.get("sufficient", True),
+            "basis": rd.get("basis", _BASIS_OWN),
         })
     return out
 
@@ -1162,7 +1246,8 @@ _NVR_COLS = ["deal_type", "deals", "won", "win_rate", "avg_discount_won",
 
 def new_vs_renewal(df: pd.DataFrame, min_deals: int = 10,
                    ref_min_deals: int = SEGMENT_REF_MIN_DEALS,
-                   ref_min_bands: int = SEGMENT_REF_MIN_BANDS) -> pd.DataFrame:
+                   ref_min_bands: int = SEGMENT_REF_MIN_BANDS, *,
+                   global_ref: dict | None = None) -> pd.DataFrame:
     """Realization, average discount, win rate, and win point by deal type.
 
     Renewal discounting is a different disease from new-business discounting:
@@ -1178,6 +1263,21 @@ def new_vs_renewal(df: pd.DataFrame, min_deals: int = 10,
     degrades gracefully. Each group gets its own win point only when it passes
     the same sufficiency bar as segments (ref_min_deals + ref_min_bands);
     otherwise the global reference is shown with the fallback disclosed.
+
+    `global_ref`: the caller's already-computed `reference_discount(df)`
+    (2026-09-27 fix), threaded through the same way every other consumer in
+    this module does. This used to call `reference_discount(df)`
+    unconditionally, recomputing the 500-sample bootstrap a second time (and,
+    worse, independently of the one diagnostic.analyze already shares) on any
+    book that has a `deal_type` column -- masked on the synthetic demo book
+    only because it has none. Recomputed when not supplied, so a direct call
+    stays correct.
+
+    When the global reference is itself insufficient (`sufficient` is False)
+    and a group has not earned its own, there is nothing defensible to fall
+    back to: the row carries `reference_basis="insufficient data"` and a NaN
+    threshold, same as every other hierarchy consumer, instead of the
+    global's manufactured 0.0.
     """
     if "deal_type" not in df.columns or df.empty:
         return pd.DataFrame(columns=_NVR_COLS)
@@ -1187,7 +1287,8 @@ def new_vs_renewal(df: pd.DataFrame, min_deals: int = 10,
         ("Renewal", dt == "renewal"),
         ("Other/unknown", ~dt.isin(("new", "renewal"))),
     ]
-    g_ref = reference_discount(df)
+    g_ref = global_ref if global_ref is not None else reference_discount(df)
+    g_sufficient = g_ref.get("sufficient", True)
     out: list[dict] = []
     for label, mask in groups:
         sub = df[mask]
@@ -1199,8 +1300,13 @@ def new_vs_renewal(df: pd.DataFrame, min_deals: int = 10,
         if (len(sub) >= ref_min_deals
                 and _populated_real_bands(sub) >= ref_min_bands):
             ref, basis = reference_discount(sub), _BASIS_OWN
-        else:
+            threshold, reference_band = float(ref["reference_threshold"]), ref["reference_band"]
+        elif g_sufficient:
             ref, basis = g_ref, _BASIS_FALLBACK
+            threshold, reference_band = float(ref["reference_threshold"]), ref["reference_band"]
+        else:
+            basis = _BASIS_INSUFFICIENT
+            threshold, reference_band = float("nan"), None
         out.append({
             "deal_type": label,
             "deals": int(len(sub)),
@@ -1210,8 +1316,8 @@ def new_vs_renewal(df: pd.DataFrame, min_deals: int = 10,
                                  if len(won) else 0.0),
             "price_realization_won": (booked / list_won) if list_won else 0.0,
             "booked_acv_won": booked,
-            "reference_threshold": float(ref["reference_threshold"]),
-            "reference_band": ref["reference_band"],
+            "reference_threshold": threshold,
+            "reference_band": reference_band,
             "reference_basis": basis,
         })
     return pd.DataFrame(out, columns=_NVR_COLS)

@@ -205,12 +205,24 @@ def summary_facts(res: dict) -> str:
     model may use). Pure function — safe to cache/test offline."""
     ov, lk = res["overview"], res["leakage"]
     qe, gv = res.get("quarter_end") or {}, res["governance"]
+    ref = res.get("reference_discount") or {}
+    if ref.get("sufficient", True):
+        reference_line = f"reference_discount={lk['reference_threshold']:.3f}"
+    else:
+        # A 0.0 threshold here would read as "the reference discount is
+        # zero", not as "there is no reference": the book had too few real
+        # discount bands with enough closed deals to estimate one
+        # (metrics.reference_discount's own insufficient-data state, silent-
+        # failure-hunter 2026-09-27). Narrate the reason, never the zero.
+        band_counts = ref.get("band_counts", {})
+        counts = ", ".join(f"{k}={v}" for k, v in sorted(band_counts.items()))
+        reference_line = f"reference: insufficient data (band counts: {counts})"
     lines = [
         f"booked_acv_won={ov['booked_acv_won']:.0f}",
         f"price_realization_won={ov['price_realization_won']:.3f}",
         f"avg_discount_won={ov['avg_discount_won']:.3f}",
         f"win_rate={ov['win_rate']:.3f} (won={ov['won']}, lost={ov['lost']})",
-        f"reference_discount={lk['reference_threshold']:.3f}",
+        reference_line,
         f"excess_vs_reference_won={lk['excess_vs_reference_won']:.0f} "
         f"({lk['excess_pct_of_booked']:.3f} of booked ACV, correlational)",
         f"off_policy_leakage_won={lk['off_policy_leakage_won']:.0f}",

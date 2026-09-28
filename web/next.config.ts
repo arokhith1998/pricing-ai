@@ -8,6 +8,9 @@ import type { NextConfig } from "next";
 const CSP = "object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
 
 const SECURITY_HEADERS = [
+  // Vercel sets max-age only; the trust page promises preload eligibility,
+  // which needs includeSubDomains and preload (2026-09-27 external review).
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // Redundant with frame-ancestors for modern browsers; kept for older ones.

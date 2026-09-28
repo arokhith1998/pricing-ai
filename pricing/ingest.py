@@ -756,7 +756,17 @@ def _ingest_loaded(
     # exactly like a symbol-only mix (2026-09-26 fix); the explicit code wins
     # per row, matching the final `df["currency"]` assignment below.
     if "currency" in df.columns:
-        explicit_currency = df["currency"].astype(str).str.strip().str.upper()
+        # astype(str) turns a None cell into the literal string "None" and a
+        # NaN cell into "nan", so an explicit currency column with blank rows
+        # (a Salesforce export with CurrencyIsoCode set on some Opportunities
+        # and not others) used to read as its own currency code and block the
+        # whole book as "mixed: NONE, USD" (2026-09-27 fix). Blank cells must
+        # not compete as a currency; treat them the same as _MISSING_STRINGS.
+        # pandas 3 keeps NaN through astype(str); fill first so blanks compare equal to "".
+        explicit_currency = df["currency"].fillna("").astype(str).str.strip().str.upper()
+        explicit_currency = explicit_currency.mask(
+            explicit_currency.str.lower().isin(_MISSING_STRINGS), "",
+        )
         currency_codes = currency_codes.mask(explicit_currency != "", explicit_currency)
     mixed = len(report.currencies) > 1 or currency_codes.nunique() > 1
     if mixed:
@@ -797,7 +807,10 @@ def _ingest_loaded(
         )
         df["currency"] = DEFAULT_CURRENCY
     elif "currency" in df.columns:
-        supplied = df["currency"].astype(str).str.strip().str.upper()
+        # Same blank-cell fix as above: a None/NaN cell must fall back to the
+        # row's detected currency code, not the literal string "NONE"/"NAN".
+        supplied = df["currency"].fillna("").astype(str).str.strip().str.upper()
+        supplied = supplied.mask(supplied.str.lower().isin(_MISSING_STRINGS), "")
         df["currency"] = supplied.where(supplied != "", currency_codes)
     else:
         df["currency"] = currency_codes

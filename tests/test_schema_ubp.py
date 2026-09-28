@@ -61,6 +61,26 @@ def test_ramp_only_on_multiyear(df):
     # year 2 steps up over year 1 on a ramp
     assert (df.loc[multiyear, "ramp_year_2_acv"]
             > df.loc[multiyear, "ramp_year_1_acv"]).all()
+    # 2026-09-27 fix: the ramp climbs TO the steady-state booked figure
+    # (schema.py documents year 3+ == booked_acv), so year 2 must never
+    # exceed it. Year 2 used to draw 1.00-1.25x booked, contradicting that
+    # convention.
+    assert (df.loc[multiyear, "ramp_year_2_acv"]
+            <= df.loc[multiyear, "booked_acv"]).all()
+
+
+def test_ramp_year_2_ceiling_holds_on_a_fresh_seed():
+    """Same invariant as test_ramp_only_on_multiyear, on a seed the pinned
+    data/synthetic/deals.csv never used, so this is not just re-checking one
+    fixed draw."""
+    fresh = generate(n=1200, seed=97)
+    multiyear = fresh["term_months"] >= 24
+    assert multiyear.any()
+    y1 = fresh.loc[multiyear, "ramp_year_1_acv"]
+    y2 = fresh.loc[multiyear, "ramp_year_2_acv"]
+    booked = fresh.loc[multiyear, "booked_acv"]
+    assert (y1 < y2).all()
+    assert (y2 <= booked).all()
 
 
 def test_renewal_flag_and_uplift_are_consistent(df):

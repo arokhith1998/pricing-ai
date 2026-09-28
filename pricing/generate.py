@@ -148,10 +148,16 @@ def _add_ubp_cost_columns(df: pd.DataFrame, seed: int) -> None:
     overage = np.round(unit_rate * rng.uniform(1.1, 1.6, n), 2)
     overage_rate = np.where(has_usage, overage, np.nan)
 
-    # Two-year ramp on multi-year deals: year 1 below, year 2 above, the
-    # annualized booked figure.
+    # Two-year ramp on multi-year deals, climbing TO the steady-state booked
+    # figure (schema.py documents year 3+ == booked_acv): year 1 well below,
+    # year 2 closer but still at or under it, never above (2026-09-27 fix --
+    # year 2 used to draw 1.00-1.25x booked, contradicting that convention).
+    # [0.60, 0.80) and [0.80, 1.00] are disjoint except at the shared
+    # boundary, so year 1 < year 2 <= booked_acv holds on every draw. Same
+    # two rng.uniform(..., n) calls in the same order as before, so no other
+    # draw in this stream shifts.
     y1 = np.round(booked * rng.uniform(0.60, 0.80, n), 2)
-    y2 = np.round(booked * rng.uniform(1.00, 1.25, n), 2)
+    y2 = np.round(booked * rng.uniform(0.80, 1.00, n), 2)
     ramp_year_1_acv = np.where(multiyear, y1, np.nan)
     ramp_year_2_acv = np.where(multiyear, y2, np.nan)
 

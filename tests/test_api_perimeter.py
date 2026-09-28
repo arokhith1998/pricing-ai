@@ -21,6 +21,7 @@ from fastapi import HTTPException, UploadFile
 from fastapi.testclient import TestClient
 
 from api import main
+from pricing import mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO_CSV = ROOT / "data" / "synthetic" / "deals.csv"
@@ -148,6 +149,12 @@ def test_oversize_upload_rejected_413(client, monkeypatch):
 
 def test_small_upload_passes_size_middleware(client, monkeypatch):
     monkeypatch.setattr(main, "MAX_UPLOAD_BYTES", 1024 * 1024)
+    # This test is about the 413 size middleware, not header-mapping quality;
+    # /map-headers' embedding layer (layer 3, fastembed) pays a one-time model
+    # download + load on first use, which used to make this perimeter check
+    # take 14-46s (QA re-eval, 2026-09-27 fix). No-op it so the assertion
+    # below stays a fast, deterministic perimeter test.
+    monkeypatch.setattr(mapping, "embedding_match", lambda *a, **kw: None)
     # Tiny but schema-less file: must get past the 413 middleware and fail
     # later in ingest/validation (i.e. NOT with 413).
     r = client.post(
@@ -430,3 +437,56 @@ def test_diagnostic_payload_contains_load_report(client):
     for field in ("rows_read", "excluded_open", "exact_duplicates_dropped",
                   "unmapped_columns", "notes"):
         assert field in rep
+
+
+# --- /copilot/log body caps (2026-09-27 fix) ---------------------------------
+# Unauthenticated lead-gated writes into Neon; same class of gap already
+# fixed on /exceptions (justification/requested_by). note and session_id get
+# a max_length; accepted/rejected get a list-length cap.
+
+def test_copilot_log_caps_note_and_session_id_422(client):
+    over_note = client.post("/copilot/log", json={
+        "session_id": "s1", "qid": "reduce_leakage", "note": "x" * 2001,
+    })
+    assert over_note.status_code == 422
+
+    over_session_id = client.post("/copilot/log", json={
+        "session_id": "s" * 121, "qid": "reduce_leakage",
+    })
+    assert over_session_id.status_code == 422
+
+    at_cap = client.post("/copilot/log", json={
+        "session_id": "s" * 120, "qid": "reduce_leakage", "note": "x" * 2000,
+    })
+    assert at_cap.status_code == 200
+
+
+def test_copilot_log_caps_accepted_and_rejected_length_422(client):
+    over_accepted = client.post("/copilot/log", json={
+        "session_id": "s1", "qid": "reduce_leakage",
+        "accepted": [f"o{i}" for i in range(51)],
+    })
+    assert over_accepted.status_code == 422
+
+    over_rejected = client.post("/copilot/log", json={
+        "session_id": "s1", "qid": "reduce_leakage",
+        "rejected": [f"o{i}" for i in range(51)],
+    })
+    assert over_rejected.status_code == 422
+
+    at_cap = client.post("/copilot/log", json={
+        "session_id": "s1", "qid": "reduce_leakage",
+        "accepted": [f"o{i}" for i in range(50)],
+    })
+    assert at_cap.status_code == 200
+
+
+def test_hsts_header_on_every_response(client):
+    """TLS terminates upstream and neither proxy adds HSTS for the API origin;
+    the trust page promises preload eligibility, so the app sets it itself
+    (2026-09-27 external review)."""
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.headers.get("strict-transport-security") == (
+        "max-age=63072000; includeSubDomains; preload"
+    )

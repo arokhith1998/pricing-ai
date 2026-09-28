@@ -195,6 +195,15 @@ def test_currency_synonyms_resolve_via_layer_one():
         assert mapping.synonyms_match(header) == "currency", header
 
 
+def test_currency_iso_code_header_resolves_via_layer_one():
+    """A stock Salesforce multi-currency-org export's literal header is
+    CurrencyIsoCode (no separators for normalize()'s space-collapse regex to
+    split on); a spaced-out 'Currency ISO Code' must resolve the same way
+    (2026-09-27 salesforce-readiness fix)."""
+    for header in ("CurrencyIsoCode", "currencyisocode", "Currency ISO Code"):
+        assert mapping.synonyms_match(header) == "currency", header
+
+
 def test_currency_synonym_entry_does_not_break_existing_field_resolution():
     """Adding 'currency' to SYNONYMS must not collide with or shadow any
     existing field's resolution."""

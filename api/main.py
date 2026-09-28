@@ -276,6 +276,19 @@ async def perimeter_middleware(request: Request, call_next):
 
     return await call_next(request)
 
+
+@app.middleware("http")
+async def hsts_middleware(request: Request, call_next):
+    """Registered after perimeter_middleware, so it wraps it and stamps every
+    response, including the early 401/413/503 returns above. TLS terminates at
+    Cloudflare and Render, neither of which adds HSTS for this origin, and the
+    trust page promises preload eligibility (2026-09-27 external review)."""
+    response = await call_next(request)
+    response.headers.setdefault(
+        "Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"
+    )
+    return response
+
 # CORS: lock to known origins by default. Wildcard "*" only when
 # PRICEKEEL_ENV is EXPLICITLY "dev": an unset env var (e.g. a fresh Render
 # service) must fail closed, not open (CTO review). Set
