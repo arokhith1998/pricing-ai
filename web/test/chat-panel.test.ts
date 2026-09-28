@@ -67,3 +67,75 @@ describe("ChatPanel copilot error handling distinguishes 4xx from 5xx", () => {
     expect(screen.queryByText(/upstream 503 noise/i)).toBeNull();
   });
 });
+
+// pricing/copilot.py's Answer.narrated is false when no LLM provider is
+// configured server-side: `text` is then the engine's own fallback line
+// ("Pricekeel: I would normally narrate..."), not model-generated prose.
+// Presenting that as a normal chat bubble reads as an apologetic reply from
+// a model, so ChatPanel must label it plainly instead (2026-09-27 review).
+describe("ChatPanel narration-off banner (narrated: false)", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  const OPPORTUNITY = {
+    id: "opp-1",
+    kind: "investigate",
+    scope: "Enterprise segment",
+    current: "18% average discount",
+    recommended: "Review against the win point",
+    revenue_impact_usd: 42_000,
+    confidence: 0.7,
+    evidence: [],
+    methodology: "reference-discount",
+  };
+
+  it("shows the narration-off banner instead of the apology text, and keeps the opportunities", async () => {
+    stubFetch(
+      new Response(
+        JSON.stringify({
+          text: "Pricekeel: I would normally narrate the 1 opportunity...",
+          opportunities: [OPPORTUNITY],
+          narrated: false,
+        }),
+        { status: 200 },
+      ),
+    );
+    await openAndAsk();
+    await waitFor(() => screen.getByText(/ai narration is off on this server/i));
+    expect(screen.queryByText(/i would normally narrate/i)).toBeNull();
+    screen.getByText(/enterprise segment/i);
+  });
+
+  it("shows the narrated text normally when narrated is true", async () => {
+    stubFetch(
+      new Response(
+        JSON.stringify({
+          text: "Discount is concentrated in the enterprise segment.",
+          opportunities: [OPPORTUNITY],
+          narrated: true,
+        }),
+        { status: 200 },
+      ),
+    );
+    await openAndAsk();
+    await waitFor(() => screen.getByText(/discount is concentrated/i));
+    expect(screen.queryByText(/ai narration is off on this server/i)).toBeNull();
+  });
+
+  it("treats a missing narrated field (an older cached response) as narrated", async () => {
+    stubFetch(
+      new Response(
+        JSON.stringify({
+          text: "Discount is concentrated in the enterprise segment.",
+          opportunities: [OPPORTUNITY],
+        }),
+        { status: 200 },
+      ),
+    );
+    await openAndAsk();
+    await waitFor(() => screen.getByText(/discount is concentrated/i));
+    expect(screen.queryByText(/ai narration is off on this server/i)).toBeNull();
+  });
+});

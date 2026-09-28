@@ -88,7 +88,7 @@ function ReceiptsTable({ rows, intro }: { rows: FindingDeal[]; intro: string }) 
     <div className="mt-4">
       <div className="text-sm font-semibold text-fg">The receipts</div>
       <p className="mt-0.5 text-xs text-slate">{intro}</p>
-      <div className="mt-2 overflow-x-auto">
+      <div className="mt-2 w-full min-w-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-mist text-left text-slate">
@@ -102,7 +102,7 @@ function ReceiptsTable({ rows, intro }: { rows: FindingDeal[]; intro: string }) 
           <tbody>
             {rows.map((r) => (
               <tr key={r.opportunity_id} className="border-b border-mist/60">
-                <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                <td className="py-1.5 pr-3 font-medium text-fg break-words">{r.resolved_account_name}</td>
                 <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
@@ -183,7 +183,7 @@ function ValueMetricReferenceTable({ rows }: { rows: Diagnostic["value_metric_re
         Seats, consumption, and hybrid deals earn discount differently.
         The book-wide win point above blends them; this splits it out.
       </p>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 w-full min-w-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-mist text-left text-slate">
@@ -196,12 +196,12 @@ function ValueMetricReferenceTable({ rows }: { rows: Diagnostic["value_metric_re
           <tbody>
             {rows.map((row) => (
               <tr key={row.value_metric} className="border-b border-mist/60">
-                <td className="py-1.5 pr-3 font-medium text-fg">{row.value_metric}</td>
+                <td className="py-1.5 pr-3 font-medium text-fg break-words">{row.value_metric}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{row.deals.toLocaleString()}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums text-coral">
                   {row.reference_band} ({pct(row.reference_threshold, 0)})
                 </td>
-                <td className="py-1.5 text-xs text-slate">{row.basis}</td>
+                <td className="py-1.5 text-xs text-slate break-words">{row.basis}</td>
               </tr>
             ))}
           </tbody>
@@ -303,13 +303,13 @@ export default async function DiagnosticPage() {
               {d.packaging_signals.slice(0, 5).map((s) => (
                 <li
                   key={`${s.dimension}:${s.value}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-mist/60 pb-2 last:border-0 last:pb-0"
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-mist/60 pb-2 last:border-0 last:pb-0"
                 >
-                  <span className="text-ink">
+                  <span className="min-w-0 break-words text-ink">
                     <span className="font-medium text-fg">{s.value}</span>{" "}
                     <span className="text-muted">({s.dimension.replace("_", " ")})</span>
                   </span>
-                  <span className="tabular-nums text-muted">
+                  <span className="min-w-0 tabular-nums text-muted">
                     realization{" "}
                     <span className="font-semibold text-coral">{pct(s.price_realization)}</span>
                     {" vs median "}
@@ -361,7 +361,7 @@ export default async function DiagnosticPage() {
                   The biggest of these deals by discount given. Each one is
                   off-policy, won, with no longer term and no approver on record.
                 </p>
-                <div className="mt-2 overflow-x-auto">
+                <div className="mt-2 w-full min-w-0 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-mist text-left text-slate">
@@ -375,7 +375,7 @@ export default async function DiagnosticPage() {
                     <tbody>
                       {d.trade_or_give_deals.map((r) => (
                         <tr key={r.opportunity_id} className="border-b border-mist/60">
-                          <td className="py-1.5 pr-3 font-medium text-fg">{r.resolved_account_name}</td>
+                          <td className="py-1.5 pr-3 font-medium text-fg break-words">{r.resolved_account_name}</td>
                           <td className="py-1.5 pr-3 text-slate">{r.segment}</td>
                           <td className="py-1.5 pr-3 text-right tabular-nums">{money(r.list_acv)}</td>
                           <td className="py-1.5 pr-3 text-right tabular-nums">{pct(r.discount_pct)}</td>
@@ -409,7 +409,7 @@ export default async function DiagnosticPage() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {qe ? (
-          <Reveal inView>
+          <Reveal inView className="min-w-0">
             <Card title="Quarter-end effect">
               <p className="text-ink">
                 Deals closing near quarter end are discounted{" "}
@@ -436,7 +436,7 @@ export default async function DiagnosticPage() {
           </Reveal>
         ) : null}
 
-        <Reveal inView>
+        <Reveal inView className="min-w-0">
           <Card title="Governance gaps">
             <p className="text-ink">
               <span className="font-semibold">
@@ -458,7 +458,7 @@ export default async function DiagnosticPage() {
           title="Deals to look at first"
           subtitle="Ranked by discount given beyond the win point. A prioritized list to investigate, not a refund figure."
         >
-          <div className="overflow-x-auto">
+          <div className="w-full min-w-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-mist text-left text-slate">
@@ -473,7 +473,7 @@ export default async function DiagnosticPage() {
               <tbody>
                 {d.top_leak_deals.slice(0, 8).map((row) => (
                   <tr key={row.opportunity_id} className="border-b border-mist/60">
-                    <td className="py-2 pr-4 font-medium text-fg">
+                    <td className="py-2 pr-4 font-medium text-fg break-words">
                       {row.resolved_account_name}
                     </td>
                     <td className="py-2 pr-4 text-slate">{row.segment}</td>

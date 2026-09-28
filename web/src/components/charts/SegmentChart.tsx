@@ -54,14 +54,10 @@ export default function SegmentChart({
   // Worst realization first: that is where the money leaks.
   const data = [...rows].sort((a, b) => a.price_realization - b.price_realization);
   return (
-    <div className="h-64 min-w-0 w-full">
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-        minWidth={0}
-        minHeight={1}
-        initialDimension={{ width: 640, height: 256 }}
-      >
+    // No `initialDimension`, plus overflow-hidden: see WinRateChart.tsx for
+    // why (2026-09-27 review: /diagnostic overflowed at a 390px viewport).
+    <div className="h-64 min-w-0 w-full overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
         <BarChart data={data} margin={{ top: 20, right: 16, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={MIST} vertical={false} />
           <XAxis

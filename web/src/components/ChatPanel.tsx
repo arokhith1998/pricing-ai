@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { Diagnostic } from "@/lib/api";
+import type { CopilotAnswer, Diagnostic } from "@/lib/api";
 import { renderInlineMarkdown, renderMarkdown } from "@/lib/markdown";
 
 type Citation = {
@@ -49,6 +49,10 @@ type Message =
       // "nothing found," which is why this is tracked separately.
       degraded?: boolean;
       degradedKeys?: string[];
+      // False when no LLM provider is configured server-side (2026-09-27):
+      // `text` is then the engine's own fallback line, not narrated prose.
+      // Undefined (an older cached response) is treated as narrated.
+      narrated?: boolean;
     };
 
 type UploadedDoc = { name: string; chunks: number };
@@ -101,8 +105,8 @@ function OpportunityCard({
         verdict === "rejected" ? "opacity-50" : ""
       }`}
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-muted">
           {opp.scope}
         </div>
         <div className="shrink-0 text-right">
@@ -117,10 +121,10 @@ function OpportunityCard({
         </div>
       </div>
       <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-ink">
-        <div>
+        <div className="break-words">
           <span className="text-muted">Now:</span> {opp.current}
         </div>
-        <div>
+        <div className="break-words">
           <span className="text-muted">Move:</span> {opp.recommended}
         </div>
       </div>
@@ -131,7 +135,7 @@ function OpportunityCard({
         </summary>
         <ul className="mt-1 space-y-0.5 pl-3 text-[11px] text-muted">
           {opp.evidence.map((e, i) => (
-            <li key={i}>
+            <li key={i} className="break-words">
               <span className="text-teal">[A]</span> {e.value}{" "}
               <span className="text-mist">· {e.source}</span>
             </li>
@@ -248,7 +252,9 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
             : "Copilot is unavailable. Try again shortly.",
         );
       }
-      const data = await r.json();
+      const data = (await r.json()) as Partial<CopilotAnswer> & {
+        opportunities?: Opportunity[];
+      };
       const label =
         canonicalQs.find((q) => q.id === qid)?.label ?? qid;
       const decisions: Record<string, "pending"> = {};
@@ -264,6 +270,7 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
           decisions,
           degraded: Boolean(data.degraded),
           degradedKeys: data.degraded_keys ?? [],
+          narrated: data.narrated,
         },
       ]);
     } catch (e) {
@@ -419,12 +426,16 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
 
   return (
     <>
+      {/* Smaller on small screens (2026-09-27 review): at a 390px viewport
+          the full-size pill sat over report content. */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-full bg-teal px-5 py-3 text-sm font-semibold text-bg shadow-lg shadow-teal/30 transition hover:scale-[1.03] hover:shadow-xl"
+        className="fixed bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-full bg-teal px-3 py-2 text-xs font-semibold text-bg shadow-lg shadow-teal/30 transition hover:scale-[1.03] hover:shadow-xl sm:bottom-6 sm:right-6 sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
         aria-label="Open Ask your Pricekeel"
       >
-        <span aria-hidden>✦</span> Ask your Pricekeel
+        <span aria-hidden>✦</span>
+        <span className="hidden sm:inline">Ask your Pricekeel</span>
+        <span className="sm:hidden">Ask</span>
       </button>
 
       <AnimatePresence>
@@ -469,8 +480,8 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
 
             {/* Docs row */}
             <div className="border-b border-mist px-4 py-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 break-words text-muted">
                   {docs.length === 0
                     ? "Add policy / playbook / contracts for richer answers."
                     : `${docs.length} doc${docs.length === 1 ? "" : "s"}, ${docs.reduce((s, d) => s + d.chunks, 0)} chunks indexed.`}
@@ -574,7 +585,19 @@ export default function ChatPanel({ analysis }: { analysis: Diagnostic }) {
                 // copilot message
                 return (
                   <div key={i} className="flex flex-col gap-2">
-                    {m.text ? (
+                    {m.narrated === false ? (
+                      // No LLM provider configured server-side: the engine's
+                      // own fallback line lives in m.text, but presenting it
+                      // as a chat bubble reads as an apologetic reply from a
+                      // model. Label it plainly instead and keep the
+                      // opportunities list, which is deterministic engine
+                      // output either way.
+                      <div className="rounded-lg border border-amber/40 bg-amber/5 px-3 py-2 text-xs text-amber">
+                        AI narration is off on this server. The findings
+                        below are computed by the deterministic engine, not
+                        generated.
+                      </div>
+                    ) : m.text ? (
                       <div
                         className="pk-prose max-w-[95%] rounded-2xl rounded-bl-sm border border-teal/30 bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink"
                         dangerouslySetInnerHTML={{

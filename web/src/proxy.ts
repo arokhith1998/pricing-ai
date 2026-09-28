@@ -45,6 +45,17 @@ export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
+// Dev-only unlock for the lead gate on /diagnostic and /guidance, so those
+// pages can be reproduced and inspected (full DOM, real classes) without
+// first capturing a lead. Read at request time (not module load) so tests
+// can flip NODE_ENV / the flag per case. Gated on NODE_ENV so a production
+// deploy can never honor this even if the env var is set by mistake:
+// PRICEKEEL_DEV_UNLOCK is meant for a local `npm run dev` session only. See
+// web/.env.example.
+function devUnlockEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.PRICEKEEL_DEV_UNLOCK === "1";
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -107,6 +118,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/diagnostic") ||
     pathname.startsWith("/guidance")
   ) {
+    if (devUnlockEnabled()) return withDemoTenantCookie(next());
     const value = request.cookies.get(LEAD_COOKIE)?.value;
     if (await verifyLeadCookieValue(value)) {
       // Rolling refresh. An engaged visitor never expires.
