@@ -218,6 +218,10 @@ of a future `cost_line` record, not new values of this enum.
 ingest, so every existing CSV still loads and nothing is labeled margin by
 default. Any function that computes a margin figure must refuse `crm_proxy`
 input rather than compute and caveat. Adding a fourth value requires a
-superseding ADR. The response builder and the PK-29 evals are the enforcement;
+superseding ADR. `erp_verified` may be set only by a connector path Pricekeel
+operates; the CSV and frame upload paths reject it with a `SchemaError`, and the
+data request lists `crm_proxy | declared_cost` as the values a customer may
+supply (added 2026-11-07 after the PR 73 review found a typed cell could earn the
+strongest label). The response builder and the PK-29 evals are the enforcement;
 until PK-29 lands, this is a rule in prose, which is the state this ADR exists
 to end.

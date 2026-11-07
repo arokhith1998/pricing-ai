@@ -6,8 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-11-07T16:43:17Z
+Active work: 1/2
+Updated: 2026-11-07T16:50:44Z
+
+## REWORK_REQUIRED
+- **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
+  - owns: pricing/schema.py, pricing/ingest.py#numeric, pricing/mapping.py#synonyms, gtm/data-request.md, tests/test_schema_provenance.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -20,8 +24,6 @@ Updated: 2026-11-07T16:43:17Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
-  - owns: pricing/schema.py, pricing/ingest.py#numeric, pricing/mapping.py#synonyms, gtm/data-request.md, tests/test_schema_provenance.py
 - **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
   - owns: docs/design/2026-11-07-contract-structure-lens-spec.md
 
