@@ -41,7 +41,7 @@ Acceptance:
 
 | Id | Title | Owner | Deps | Owns | Days | Gate |
 |---|---|---|---|---|---|---|
-| PK-23 | Add source and provenance fields to the canonical deal | data-engineer | none | `pricing/schema.py`, `tests/test_schema_provenance.py` | 1.5 | plan approval |
+| PK-23 | Add source, provenance and contract-structure fields to the canonical deal | data-engineer | none | `pricing/schema.py`, `pricing/ingest.py#numeric`, `pricing/mapping.py#synonyms`, `gtm/data-request.md`, `tests/test_schema_provenance.py` | 2 | plan approval |
 | PK-24 | Add a migration for saved mappings and a decision-log source index | data-engineer | PK-23 | `neon/schema.sql`, `neon/migrations/2026-11-*-source-mappings*.sql` | 1 | plan approval |
 | PK-25 | Make Salesforce the first adapter behind a neutral guardrail | backend-engineer | PK-23 | `pricing/crm.py`, `pricing/guardrail.py`, `api/routers/crm.py`, `pricing/governance.py#exception_source`, `tests/test_guardrail.py` | 3 | plan approval |
 | PK-26 | Rename the web canonical type to CanonicalDeal | web-engineer | PK-25 | `web/src/lib/salesforce-*.ts` | 1 | plan approval |
@@ -50,7 +50,7 @@ Acceptance:
 | PK-29 | Add numeric-fidelity and cost-basis label evals | ai-engineer | ADR-006 | `tests/test_numeric_fidelity.py`, `tests/test_cost_basis_label.py` | 3 | none |
 
 Acceptance:
-- **PK-23:** all new fields are optional (`source_system`, source ids, `source_url`, `value_metric_unit`, `cost_basis` defaulting to `crm_proxy`). Existing fixtures load unchanged; pinned dataset byte-identical.
+- **PK-23:** all new fields are optional (`source_system`, source ids, `source_url`, `value_metric_unit`, `cost_basis` defaulting to `crm_proxy`, plus `list_unit_rate` and `credits_tcv` approved 2026-11-07 per the lens spec section 2: in `FIELDS` after `ramp_year_2_acv`, in ingest `_NUMERIC` and `_FX_MONEY_COLS`, mapper synonyms added, listed as optional in `gtm/data-request.md`). Existing fixtures load unchanged; pinned dataset byte-identical.
 - **PK-24:** up and down, with a row-count guard; QA pastes scratch up/down/up output; no deal rows stored.
 - **PK-25:** no "Salesforce" string remains in `guardrail.py`. Legacy `salesforce_crm` rows resolve; a CSV-sourced exception appears in the log filter; `tests/test_crm.py` and governance suites pass unchanged.
 - **PK-26:** tsc, tests and build pass; `/crm` unchanged.
@@ -89,7 +89,7 @@ Acceptance:
 - **PK-36:** confirm table before scoring; no PDF or free-text extraction; "insufficient data" with no book; logged as `source.system = "manual"`; eslint, tsc, build pass.
 - **PK-38:** a test asserts no row values or account names in the snapshot; `evidence_version` stamped.
 
-**Totals:** 22 tasks, 47.5 days. Phase A (7 days) and PK-30 need no answer. Without D1(a), drop PK-37 and PK-38: 20 tasks, 44 days.
+**Totals:** 22 tasks, 48 days (PK-23 grew by 0.5 day on 2026-11-07 for the two lens fields). Phase A (7 days) and PK-30 need no answer. Without D1(a), drop PK-37 and PK-38: 20 tasks, 44 days.
 
 ## What can run in parallel
 

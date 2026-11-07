@@ -109,7 +109,7 @@ Not used: `cogs_acv` (no cost input), `renewal_uplift`, `is_renewal`, `usage_acv
 | `list_unit_rate` (new) | float | False | list price per usage unit, same unit as `quantity` and `overage_rate`, deal currency. Typically from a CPQ rate card | 1, 3 |
 | `credits_tcv` (new) | float | False | total value over the whole term of service credits, free months and other off-invoice price concessions, deal currency | 5 |
 
-Ripple for the two new fields (PK-31 or an extension of PK-23, founder or pk-lead assigns, section 8 Q6): add to `FIELDS` in `pricing/schema.py` after `ramp_year_2_acv`; add to `_NUMERIC` in `pricing/ingest.py`; both are money and belong in `_FX_MONEY_COLS` (`list_unit_rate` is a per-unit price exactly like `overage_rate`, which is already there); add synonyms in `pricing/mapping.py` `SYNONYMS` (for example "list unit price", "rate card price", "unit list price"; "credits", "service credits", "free months value"); add to `gtm/data-request.md` as optional. Both optional, so every existing CSV still loads and the pinned dataset stays byte-identical.
+Ripple for the two new fields (approved 2026-11-07, rides on PK-23, section 8): add to `FIELDS` in `pricing/schema.py` after `ramp_year_2_acv`; add to `_NUMERIC` in `pricing/ingest.py`; both are money and belong in `_FX_MONEY_COLS` (`list_unit_rate` is a per-unit price exactly like `overage_rate`, which is already there); add synonyms in `pricing/mapping.py` `SYNONYMS` (for example "list unit price", "rate card price", "unit list price"; "credits", "service credits", "free months value"); add to `gtm/data-request.md` as optional. Both optional, so every existing CSV still loads and the pinned dataset stays byte-identical.
 
 ### 2.3 Required fields per lever
 
@@ -630,7 +630,9 @@ Recovery test (PK-32): for every flag, the set of won `opportunity_id` the lens 
 
 ## 8. Open questions for the founder
 
-Only questions whose answer changes a formula or threshold. Each has the default this spec uses.
+**Answered 2026-11-07.** The founder confirmed all six defaults below and approved the two new fields, `list_unit_rate` (new) and `credits_tcv` (new). pk-lead call on Q6: the fields ride on PK-23 (the schema task), whose owned paths widen to `pricing/ingest.py#numeric`, `pricing/mapping.py#synonyms` and `gtm/data-request.md` so the ripple in section 2 lands in one reviewable diff; PK-31 then plants answers against fields that already exist. The questions stay here as the record of what was decided and why.
+
+Only questions whose answer changes a formula or threshold. Each has the default this spec uses, now the decided value.
 
 1. **Hybrid commitment.** Does `committed_acv` on a hybrid deal include the platform fee? Default yes, so `committed_usage_acv = committed_acv - platform_fee_acv`; the schema calls the commitment "the floor the customer commits to regardless of usage", and the platform fee is paid regardless of usage. If no, levers 1 and 3 use `committed_acv` directly for hybrid and check R2 is dropped.
 2. **Quantity grain.** Is `quantity` committed units per year? Default yes. If partners export per-term or per-month units, `effective_committed_unit_rate` needs a grain field or a per-tenant setting.
