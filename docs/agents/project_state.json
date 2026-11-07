@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-09-15T22:17:38Z",
+  "updated": "2026-11-07T15:57:52Z",
   "config": {
     "max_concurrent": 2
   },
@@ -705,6 +705,254 @@
       "created": "2026-09-11T23:37:30Z",
       "updated": "2026-09-11T23:37:30Z",
       "notes": []
+    },
+    {
+      "id": "PK-17",
+      "title": "Publish a platform census of target accounts",
+      "agent": "market-sizing-analyst",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md"
+      ],
+      "branch": "agent/market-sizing-analyst/PK-17",
+      "worktree": null,
+      "acceptance": [
+        "at least 48 accounts, each with CRM, CPQ or quote tool, and billing platform, each cell carrying a public source URL and retrieval date or marked unknown",
+        "shares reported with n for each system; unknowns counted separately, never folded into a share",
+        "HubSpot share stated against the 30 percent preset threshold with an explicit yes or no",
+        "no retired sizing figure appears; Tier A stays 350 to 480 unless the note derives otherwise with sources",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:46Z",
+      "updated": "2026-11-07T15:55:17Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:14Z",
+          "note": "claimed 1 path(s)"
+        }
+      ]
+    },
+    {
+      "id": "PK-18",
+      "title": "Add the pricing-surface interview module",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "vault/GTM/problem-interview-guide.md",
+        "docs/ops/funnel-tracker.csv",
+        "docs/ops/funnel-tracker-example.csv"
+      ],
+      "branch": "agent/customer-success/PK-18",
+      "worktree": null,
+      "acceptance": [
+        "the six questions from customer-success.md section 4 appear as an optional module after Q7, past tense only, no pitch language",
+        "funnel-tracker.csv and funnel-tracker-example.csv gain four columns: pricing_surface, cost_data_availability, commit_setting_method, reprice_event; the operating tracker stays header-only",
+        "the after-the-call logging section names the four new fields and the disqualifier line",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:15Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-19",
+      "title": "Write per-source data-readiness checklists",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "gtm/data-readiness-checklists.md"
+      ],
+      "branch": "agent/customer-success/PK-19",
+      "worktree": null,
+      "acceptance": [
+        "three sections: quote or CPQ tool, billing platform, other CRM; each is a column list, never a request for data",
+        "each section states the closed-lost gate (no win rate without closed-lost) and asks the shared-deal-ID question",
+        "export only; no API keys, OAuth tokens or event streams requested for pilot 1",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:15Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-20",
+      "title": "Create the data register",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "docs/ops/data-register.md"
+      ],
+      "branch": "agent/customer-success/PK-20",
+      "worktree": null,
+      "acceptance": [
+        "rows for deal rows (per customer), Salesforce refresh tokens, SALESFORCE_TOKEN_ENCRYPTION_KEY, decision log, mapping headers, and the per-tenant derived snapshot marked approved D1(a) not yet built",
+        "every row has location, retention, deletion owner, and a last-verified date",
+        "matches the SOP section 5 contract in docs/ops/data-handling-sop.md and is the scoping source incident-response.md already points to",
+        "no customer data, no secrets values, no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:16Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-21",
+      "title": "Amend incident response for credentials and new data classes",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-20",
+        "PK-6"
+      ],
+      "owns": [
+        "docs/ops/incident-response.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "containment revokes customer integration credentials and rotates the token encryption key",
+        "scoping reads docs/ops/data-register.md and names cost and usage data as categories",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:48Z",
+      "updated": "2026-11-07T15:52:48Z",
+      "notes": []
+    },
+    {
+      "id": "PK-22",
+      "title": "Draft the NDA data-classes schedule for counsel",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "docs/legal/one-page-mutual-nda-data-addendum.md"
+      ],
+      "branch": "agent/customer-success/PK-22",
+      "worktree": null,
+      "acceptance": [
+        "Classes 1 to 3 drafted as a schedule: deal and price data, usage data as aggregates or monthly rollups only, cost data as a customer-supplied percentage table by product family only",
+        "Class 3 excluded from section 9 benchmarking; no supplier names or part-level BOM accepted",
+        "section 4 gains a sentence on per-tenant aggregate retention per D1(a), rows deleted",
+        "every new block marked [DRAFT, for counsel]; nothing presented as executed; no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:48Z",
+      "updated": "2026-11-07T15:57:52Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:16Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:52Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-30",
+      "title": "Specify the contract-structure lens",
+      "agent": "pricing-strategist",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "docs/design/2026-11-07-contract-structure-lens-spec.md"
+      ],
+      "branch": "agent/pricing-strategist/PK-30",
+      "worktree": null,
+      "acceptance": [
+        "formulas, labels and thresholds for each lever: effective committed unit rate and realization, commit share, overage fence, ramp depth and ramp concession dollars, revenue-side pocket waterfall",
+        "every output labeled method: policy rule; each lever returns scored, insufficient_data or not_provided with the condition for each",
+        "no cost input anywhere; nothing labeled margin; levers reported separately, never blended",
+        "uses only fields already in pricing/schema.py, named exactly; lists decision-record concession fields",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:49Z",
+      "updated": "2026-11-07T15:55:18Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:14Z",
+          "note": "claimed 1 path(s)"
+        }
+      ]
     }
   ]
 }

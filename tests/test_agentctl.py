@@ -290,6 +290,32 @@ def test_concurrency_cap_blocks_a_third_active_task(ctl):
     assert run(["assign", "PK-3"]) == 0
 
 
+def test_documentation_tasks_do_not_count_against_the_cap(ctl):
+    """The cap protects a shared code checkout. A task that owns only gtm/,
+    docs/ or vault/ paths edits no code, so it neither consumes a slot nor is
+    refused when the slots are full (ADR-003, amended 2026-11-07)."""
+    add_task("PK-1", owns=["pricing/metrics.py"])
+    add_task("PK-2", owns=["web/src"])
+    add_task("PK-3", agent="customer-success", owns=["gtm/checklists.md"])
+    add_task("PK-4", agent="market-sizing-analyst",
+             owns=["vault/Competitive/census.md", "docs/ops/register.md"])
+    add_task("PK-5", owns=["neon"])
+    for i in range(1, 6):
+        run(["ready", f"PK-{i}"])
+    assert run(["assign", "PK-1"]) == 0
+    assert run(["assign", "PK-2"]) == 0
+    # Cap is full for code, and doc tasks still get in.
+    assert run(["assign", "PK-3"]) == 0
+    assert run(["assign", "PK-4"]) == 0
+    # A third code task is still refused.
+    assert run(["assign", "PK-5"]) == 1
+    assert run(["check"]) == 0
+    # A doc task that claims a code path counts as code.
+    add_task("PK-6", owns=["docs/design/spec.md", "pricing/lens.py"])
+    run(["ready", "PK-6"])
+    assert run(["assign", "PK-6"]) == 1
+
+
 # --- integrity ---------------------------------------------------------------
 
 def test_check_passes_on_a_clean_board(ctl, capsys):

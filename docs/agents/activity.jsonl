@@ -80,3 +80,32 @@
 {"ts": "2026-09-12T00:10:25Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 34660616795"}
 {"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as a977dd0, human-approved by adhithya (explicit: yeah, 2026-09-15)"}
 {"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-07T15:52:46Z", "event": "add", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "Publish a platform census of target accounts"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-18", "agent": "customer-success", "detail": "Add the pricing-surface interview module"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-19", "agent": "customer-success", "detail": "Write per-source data-readiness checklists"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-20", "agent": "customer-success", "detail": "Create the data register"}
+{"ts": "2026-11-07T15:52:48Z", "event": "add", "task": "PK-21", "agent": "customer-success", "detail": "Amend incident response for credentials and new data classes"}
+{"ts": "2026-11-07T15:52:48Z", "event": "add", "task": "PK-22", "agent": "customer-success", "detail": "Draft the NDA data-classes schedule for counsel"}
+{"ts": "2026-11-07T15:52:49Z", "event": "add", "task": "PK-30", "agent": "pricing-strategist", "detail": "Specify the contract-structure lens"}
+{"ts": "2026-11-07T15:52:49Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:49Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:51Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:55:14Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:14Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:15Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-07T15:55:15Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:16Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:16Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:52Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}

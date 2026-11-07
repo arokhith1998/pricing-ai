@@ -1,15 +1,17 @@
 ---
 title: Proposed tasks, platform-agnostic intake and usage-native guidance
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-07
 tags: [tasks, proposal, product-direction]
-status: draft
+status: active
 source: docs/design/2026-11-06-platform-agnostic-intake-and-usage-native-guidance.md
 ---
 
-# Proposed tasks (not on the board)
+# Proposed tasks
 
-Proposal only; nothing enters `project_state.json` until the founder approves. Ids follow the board's PK-16. Days come from the reports. "Gate" names a founder decision (design doc section 5).
+**Status 2026-11-07.** Founder answered D1 (a), D3 unknown, D4 approved. Phase A tasks PK-17 to PK-22 and PK-30 are on the board (`docs/agents/PROJECT_STATE.md`); PK-17, PK-18, PK-19, PK-20, PK-22 and PK-30 dispatched, PK-21 waits on PK-20 and PK-6. Owner changes on entry: PK-21 and PK-22 are drafted by customer-success and PK-30 by pricing-strategist, with the founder as approver, because the board needs an agent owner. Phases B to D stay proposed until the plan is approved.
+
+Original proposal text follows. Nothing in Phases B to D enters `project_state.json` until the founder approves. Ids follow the board's PK-16. Days come from the reports. "Gate" names a founder decision (design doc section 5).
 
 Notes on the board:
 - Phase A paths (`gtm/`, `vault/`, `docs/ops/`, `docs/legal/`) sit outside the engineering task machine (OWNERSHIP.md), so they do not count against the cap of 2.

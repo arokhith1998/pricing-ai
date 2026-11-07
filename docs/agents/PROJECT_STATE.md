@@ -7,7 +7,23 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-09-15T22:17:38Z
+Updated: 2026-11-07T15:57:52Z
+
+## IN_PROGRESS
+- **PK-17** Publish a platform census of target accounts  (market-sizing-analyst)
+  - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
+- **PK-30** Specify the contract-structure lens  (pricing-strategist)
+  - owns: docs/design/2026-11-07-contract-structure-lens-spec.md
+
+## REVIEW
+- **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
+  - owns: vault/GTM/problem-interview-guide.md, docs/ops/funnel-tracker.csv, docs/ops/funnel-tracker-example.csv
+- **PK-19** Write per-source data-readiness checklists  (customer-success, PR #62)
+  - owns: gtm/data-readiness-checklists.md
+- **PK-20** Create the data register  (customer-success, PR #62)
+  - owns: docs/ops/data-register.md
+- **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
+  - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -22,6 +38,8 @@ Updated: 2026-09-15T22:17:38Z
 - **PK-16** Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference  (backend-engineer)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
   - owns: tools/agentctl.py
+- **PK-21** Amend incident response for credentials and new data classes  (customer-success, deps PK-20,PK-6)
+  - owns: docs/ops/incident-response.md
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)

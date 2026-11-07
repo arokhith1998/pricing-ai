@@ -86,6 +86,14 @@ CLAIMING = {"ASSIGNED", "IN_PROGRESS", "REVIEW", "QA", "APPROVED",
 # coding agent has stopped writing, so the cap is about simultaneous editing.
 ACTIVE_WORK = {"ASSIGNED", "IN_PROGRESS", "REWORK_REQUIRED"}
 
+# Paths outside the engineering task machine (OWNERSHIP.md: gtm/, docs/ops/,
+# vault/ and the rest of docs/). A task whose every claim sits under one of
+# these is documentation work: it edits no code, so it does not count against
+# the concurrency cap, which exists to keep parallel agents from overwriting
+# each other in one code checkout (ADR-003, amended 2026-11-07). It still
+# holds its file claims, so two doc tasks cannot own the same file.
+DOC_PREFIXES = ("gtm/", "docs/", "vault/")
+
 # A dependency is satisfied only once it is on main.
 SATISFIED = {"MERGED", "DONE"}
 
@@ -292,7 +300,8 @@ def set_status(state: dict, task: dict, new: str, *, note: str = "",
     # The cap is enforced here rather than in `assign` alone, because assign is
     # not the only door into active work: unblock, rework, and a rejected
     # review all push a task back into it, and a rejected review is routine.
-    if new in ACTIVE_WORK and old not in ACTIVE_WORK and not force:
+    if (new in ACTIVE_WORK and old not in ACTIVE_WORK and not force
+            and not is_doc_only(task)):
         cap = state["config"]["max_concurrent"]
         if active_count(state, exclude=task["id"]) >= cap:
             raise Refused(
@@ -322,9 +331,20 @@ def unmet_dependencies(state: dict, task: dict) -> list[str]:
     return unmet
 
 
+def is_doc_only(task: dict) -> bool:
+    """True when every owned path is documentation, so the cap does not apply.
+
+    A task with no declared paths is not doc-only: an unbounded claim could be
+    anything, and the cap is the conservative default.
+    """
+    owns = task.get("owns") or []
+    return bool(owns) and all(p.startswith(DOC_PREFIXES) for p in owns)
+
+
 def active_count(state: dict, exclude: str | None = None) -> int:
     return sum(1 for t in state["tasks"]
-               if t["status"] in ACTIVE_WORK and t["id"] != exclude)
+               if t["status"] in ACTIVE_WORK and t["id"] != exclude
+               and not is_doc_only(t))
 
 
 REQUIRED_TASK_KEYS = ("id", "title", "status")

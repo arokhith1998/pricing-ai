@@ -93,6 +93,16 @@ the common case, while keeping the blast radius small enough to reason about.
 **Consequences.** A third ready task waits. Raise the cap deliberately, after
 the worktree flow has been exercised, not because a queue looks full.
 
+**Amended 2026-11-07.** The cap counts coding tasks only. A task whose every
+owned path sits under `gtm/`, `docs/` or `vault/` (the paths OWNERSHIP.md already
+places outside the engineering task machine) neither consumes a slot nor is
+refused when the slots are full; `agentctl.is_doc_only` is the test, and a task
+with no declared paths still counts. Reason: the cap protects one shared code
+checkout from parallel edits, and documentation tasks edit no code. Trigger: the
+2026-11-07 Phase A evidence tasks (PK-17 to PK-22, PK-30) put six documentation
+tasks in flight at once and `check` reported the board as failing. The file
+claims still apply, so two documentation tasks cannot own the same file.
+
 ---
 
 ## ADR-004: Merging stays human, because GitHub cannot enforce it here

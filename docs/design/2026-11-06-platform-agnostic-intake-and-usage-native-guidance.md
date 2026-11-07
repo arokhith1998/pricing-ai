@@ -1,7 +1,7 @@
 ---
 title: Platform-agnostic intake and usage-native guidance, first increment
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-07
 tags: [design, product-direction, intake, ubp, decision-log]
 status: draft
 source: docs/reviews/2026-11-06-product-direction/ (BRIEF.md and nine reports)
@@ -124,6 +124,8 @@ Each lever returns `scored | insufficient_data | not_provided`, no global fallba
 7. No claim on the site exceeds what ships. No em dashes.
 
 ## 5. Founder decisions required before dispatch
+
+**Status 2026-11-07.** D1 approved as option (a), persisted aggregates with no rows and no named comparables. D4 approved: the census gates every connector, HubSpot preset only at 30 percent or more. D3 answered: the first partner's tool is unknown. Recorded in `vault/Decisions/2026-11-07-per-tenant-snapshot-and-connector-gate.md`. D2, D5, D6, D7, D8 and D9 remain open. Phase A (PK-17 to PK-20, PK-22) and PK-30 dispatched the same day.
 
 | # | Decision | Options and what each unblocks | Sources |
 |---|---|---|---|
