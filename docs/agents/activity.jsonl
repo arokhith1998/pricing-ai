@@ -128,3 +128,4 @@
 {"ts": "2026-11-07T17:08:31Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-07T17:15:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-07T17:15:21Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #73"}
+{"ts": "2026-11-07T17:19:00Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
