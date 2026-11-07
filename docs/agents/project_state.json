@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-07T17:08:31Z",
+  "updated": "2026-11-07T17:15:21Z",
   "config": {
     "max_concurrent": 2
   },
@@ -966,7 +966,7 @@
       "id": "PK-23",
       "title": "Add source, provenance and contract-structure fields to the canonical deal",
       "agent": "data-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "pricing/schema.py",
@@ -1003,7 +1003,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-07T17:08:31Z",
+      "updated": "2026-11-07T17:15:21Z",
       "notes": [
         {
           "ts": "2026-11-07T16:32:20Z",
@@ -1024,6 +1024,10 @@
         {
           "ts": "2026-11-07T17:08:31Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-07T17:15:21Z",
+          "note": "PR #73"
         }
       ]
     },
