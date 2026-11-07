@@ -65,7 +65,7 @@ Include any you have; each one adds depth (governance signals, win-rate drivers,
 | `source_quote_id` | str | Quote or CPQ document id in the source system. |
 | `source_url` | str | Deep link to the record in the source system. |
 | `value_metric_unit` | str | Free text naming the unit behind `value_metric` (for example "audio minute", "1K tokens"). |
-| `cost_basis` | enum | Trust level of any cost figure: `crm_proxy` \| `declared_cost` \| `erp_verified`. Defaults to `crm_proxy`; a `crm_proxy` value is never labeled margin. |
+| `cost_basis` | enum | Trust level of any cost figure: `crm_proxy` \| `declared_cost`. Defaults to `crm_proxy`; a `crm_proxy` value is never labeled margin. (`erp_verified` is set only by a Pricekeel-operated integration and is rejected in an uploaded file.) |
 | `list_unit_rate` | float | List price per usage unit, in the same unit as `quantity` and `overage_rate`, in the deal currency. |
 | `credits_tcv` | float | Total value over the whole term of service credits, free months and other off-invoice concessions, in the deal currency. |
 

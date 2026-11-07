@@ -29,7 +29,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pricing.schema import ALL_COLUMNS, DEFAULT_POLICY_THRESHOLD, Outcome
+from pricing.schema import GENERATOR_COLUMNS, DEFAULT_POLICY_THRESHOLD, Outcome
 
 # --- segment economics -------------------------------------------------------
 # (list_acv lognormal params in $, mix weight, base discount level)
@@ -328,7 +328,7 @@ def generate(n: int = 2000, seed: int = 7,
             "lost_reason": lost_reason,
         })
 
-    df = pd.DataFrame(rows, columns=ALL_COLUMNS)
+    df = pd.DataFrame(rows, columns=GENERATOR_COLUMNS)
     # Synthetic deals are all USD; a constant assignment consumes no RNG draws
     # so it cannot perturb the main sequence (same rule as the optional
     # hierarchy/UBP columns above).

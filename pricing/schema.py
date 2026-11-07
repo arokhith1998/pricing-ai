@@ -171,18 +171,6 @@ FIELDS: list[Field] = [
           "ramp_year_2_acv, booked_acv). Documented here rather than adding a "
           "third field: it is the smaller change, and term_months already "
           "tells you whether year 3 exists for a given deal.", "96000.00"),
-    Field("is_renewal", "bool", False,
-          "Whether this opportunity is a renewal of an existing contract "
-          "(vs new business or expansion).", "false"),
-    Field("renewal_uplift", "float", False,
-          "Price uplift applied at renewal vs the prior term, as a fraction "
-          "(0.07 = 7%). Blank for non-renewals.", "0.07"),
-    # --- Cost (OPTIONAL), enables the Phase 3 margin layer ----------------
-    Field("cogs_acv", "float", False,
-          "Annualized cost of goods sold attributable to the deal (infra / "
-          "delivery cost). Enables gross-margin analysis; the leakage "
-          "diagnostic itself is price-based and does not require it.",
-          "28000.00"),
     # --- Source, provenance and contract structure (all OPTIONAL) ---------
     # Provenance fields say where a row came from so a connector, a CSV and a
     # manual entry can be told apart. The contract-structure fields carry the
@@ -217,19 +205,31 @@ FIELDS: list[Field] = [
           "Total value over the whole term of service credits, free months "
           "and other off-invoice concessions, in the deal currency. Money.",
           "12000.00"),
+    Field("is_renewal", "bool", False,
+          "Whether this opportunity is a renewal of an existing contract "
+          "(vs new business or expansion).", "false"),
+    Field("renewal_uplift", "float", False,
+          "Price uplift applied at renewal vs the prior term, as a fraction "
+          "(0.07 = 7%). Blank for non-renewals.", "0.07"),
+    # --- Cost (OPTIONAL), enables the Phase 3 margin layer ----------------
+    Field("cogs_acv", "float", False,
+          "Annualized cost of goods sold attributable to the deal (infra / "
+          "delivery cost). Enables cost-proxy analysis; never labeled margin "
+          "(ADR-006). The leakage diagnostic itself is price-based and does not "
+          "require it.",
+          "28000.00"),
 ]
 
 REQUIRED_FIELDS: list[str] = [f.name for f in FIELDS if f.required]
 
-# Optional provenance / contract-structure columns added by PK-23. The
-# generator does not emit them by default so data/synthetic/deals.csv stays
-# byte-stable; ALL_COLUMNS is therefore the explicit pre-PK-23 column list.
+# Optional provenance columns added by PK-23 (non-money). The two contract
+# structure money fields are named separately so ingest can treat them as money.
 PROVENANCE_FIELDS: list[str] = [
     "source_system", "source_record_id", "source_account_id",
     "source_quote_id", "source_url", "value_metric_unit", "cost_basis",
-    "list_unit_rate", "credits_tcv",
 ]
-# Defaults applied when the column is absent from a file.
+CONTRACT_MONEY_FIELDS: list[str] = ["list_unit_rate", "credits_tcv"]
+# Defaults applied by ingest when the column is absent from a file.
 PROVENANCE_DEFAULTS: dict[str, str] = {
     "source_system": SourceSystem.CSV.value,
     "cost_basis": CostBasis.CRM_PROXY.value,
@@ -239,54 +239,20 @@ PROVENANCE_ENUMS: dict[str, frozenset[str]] = {
     "source_system": frozenset(m.value for m in SourceSystem),
     "cost_basis": frozenset(m.value for m in CostBasis),
 }
-
-
-class InvalidEnumValueError(ValueError):
-    """A provenance enum column holds a value outside its allowed set.
-
-    Names the column, the offending values and the allowed set. Never coerced
-    to the default: a wrong cost_basis silently read as crm_proxy would hide
-    the fact that the customer meant something else.
-    """
-
-
-def apply_provenance_defaults(df):
-    """Return a copy of df with source_system and cost_basis defaulted.
-
-    A missing column is added with the default; blank cells in a present
-    column are filled with it. Values are stripped and lower-cased. Values
-    outside the allowed set raise InvalidEnumValueError (see
-    validate_provenance_enums); they are never replaced by the default.
-    """
-    df = df.copy()
-    for col, default in PROVENANCE_DEFAULTS.items():
-        if col not in df.columns:
-            df[col] = default
-            continue
-        v = df[col].fillna("").astype(str).str.strip().str.lower()
-        df[col] = v.where(v != "", default)
-    validate_provenance_enums(df)
-    return df
-
-
-def validate_provenance_enums(df) -> None:
-    """Raise InvalidEnumValueError if any enum provenance column is invalid."""
-    for col, allowed in PROVENANCE_ENUMS.items():
-        if col not in df.columns:
-            continue
-        v = df[col].fillna("").astype(str).str.strip().str.lower()
-        bad = sorted(set(v[(v != "") & ~v.isin(allowed)]))
-        if bad:
-            raise InvalidEnumValueError(
-                f"Invalid {col} value(s) {bad}; allowed: {sorted(allowed)}. "
-                f"Not coerced to the default."
-            )
-
-
-# Every canonical field name, including the provenance fields.
+# Every canonical field name.
 ALL_FIELD_NAMES: list[str] = [f.name for f in FIELDS]
-# Columns the synthetic generator emits (pre-PK-23 list, kept explicit).
-ALL_COLUMNS: list[str] = [n for n in ALL_FIELD_NAMES if n not in PROVENANCE_FIELDS]
+# Columns the synthetic generator emits. Explicit pre-PK-23 list: the new
+# optional columns are not generated, so data/synthetic output stays stable.
+GENERATOR_COLUMNS: list[str] = [
+    n for n in ALL_FIELD_NAMES
+    if n not in PROVENANCE_FIELDS and n not in CONTRACT_MONEY_FIELDS
+]
+# ALL_COLUMNS is kept equal to GENERATOR_COLUMNS, NOT every field: the existing
+# tests/test_schema_ubp.py::test_new_columns_do_not_perturb_main_sequence
+# indexes generator output by ALL_COLUMNS and would KeyError on the new
+# columns. Use ALL_FIELD_NAMES for "every field". Lead decision needed to
+# repoint that test (outside this task's owned paths).
+ALL_COLUMNS: list[str] = GENERATOR_COLUMNS
 
 # Discount bands used for win-rate-by-band analysis. Half-open bins on
 # discount_pct = 1 - booked_acv/list_acv. The first band is NEGATIVE: deals

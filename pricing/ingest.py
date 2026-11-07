@@ -27,9 +27,9 @@ from pricing import mapping
 from pricing.schema import (
     DEFAULT_POLICY_THRESHOLD,
     REQUIRED_FIELDS,
-    InvalidEnumValueError,
     Outcome,
-    apply_provenance_defaults,
+    PROVENANCE_DEFAULTS,
+    PROVENANCE_ENUMS,
     band_for,
 )
 
@@ -337,6 +337,60 @@ def validate(df: pd.DataFrame) -> None:
             f"Input is missing {len(missing)} required column(s): {missing}. "
             f"See pricing/schema.py and gtm/data-request.md."
         )
+
+
+_MAX_BAD_VALUES = 5
+_MAX_BAD_VALUE_LEN = 40
+
+
+def validate_provenance_enums(df: pd.DataFrame, allow_erp_verified: bool = False) -> None:
+    """Raise SchemaError if source_system or cost_basis holds an invalid value.
+
+    The error names the column and the offending values (at most 5 distinct,
+    each truncated to 40 characters, then "and N more"). A bad value is never
+    coerced to the default. cost_basis=erp_verified is reserved for a
+    Pricekeel-operated connector (ADR-006) and is rejected unless
+    allow_erp_verified is True.
+    """
+    for col, allowed in PROVENANCE_ENUMS.items():
+        if col not in df.columns:
+            continue
+        v = df[col].fillna("").astype(str).str.strip().str.lower()
+        bad = sorted(set(v[(v != "") & ~v.isin(allowed)]))
+        if bad:
+            shown = [b if len(b) <= _MAX_BAD_VALUE_LEN else b[:_MAX_BAD_VALUE_LEN] + "..."
+                     for b in bad[:_MAX_BAD_VALUES]]
+            more = f" and {len(bad) - len(shown)} more" if len(bad) > len(shown) else ""
+            raise SchemaError(
+                f"Invalid {col} value(s) {shown}{more}; allowed: "
+                f"{sorted(allowed)}. Not coerced to the default."
+            )
+    if not allow_erp_verified and "cost_basis" in df.columns:
+        v = df["cost_basis"].fillna("").astype(str).str.strip().str.lower()
+        if (v == "erp_verified").any():
+            raise SchemaError(
+                "cost_basis=erp_verified may only be set by a Pricekeel-operated "
+                "connector, not by an uploaded file or frame. Use crm_proxy or "
+                "declared_cost."
+            )
+
+
+def apply_provenance_defaults(df: pd.DataFrame, allow_erp_verified: bool = False) -> pd.DataFrame:
+    """Return a copy of df with source_system and cost_basis defaulted.
+
+    A missing column is added with its default; blank cells in a present
+    column are filled with it. Values are stripped and lower-cased, then
+    validated (see validate_provenance_enums).
+    """
+    df = df.copy()
+    for col, default in PROVENANCE_DEFAULTS.items():
+        if col not in df.columns:
+            df[col] = default
+            continue
+        v = df[col].fillna("").astype(str).str.strip().str.lower()
+        df[col] = v.where(v != "", default)
+    validate_provenance_enums(df, allow_erp_verified=allow_erp_verified)
+    return df
 
 
 def _dedupe(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
@@ -721,6 +775,7 @@ def _ingest_loaded(
     policy_threshold: float,
     fx_rates: dict[str, float] | None = None,
     fx_rates_date: str | None = None,
+    allow_erp_verified: bool = False,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """Run the canonical pipeline on an already-loaded frame.
 
@@ -798,10 +853,7 @@ def _ingest_loaded(
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
-    try:
-        df = apply_provenance_defaults(df)  # source_system / cost_basis
-    except InvalidEnumValueError as exc:
-        raise SchemaError(str(exc)) from exc
+    df = apply_provenance_defaults(df, allow_erp_verified=allow_erp_verified)
     if mixed:
         detail = _currency_row_counts(currency_codes)
         df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]
@@ -845,16 +897,21 @@ def ingest_frame_verbose(
     policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
     fx_rates: dict[str, float] | None = None,
     fx_rates_date: str | None = None,
+    allow_erp_verified: bool = False,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """In-memory counterpart to ingest_verbose.
 
     CRM connectors use this path so live opportunity rows never need a
     temporary file. The validation, disclosure, and enrichment behavior is
     otherwise identical to a CSV/XLSX diagnostic.
+
+    allow_erp_verified is for a Pricekeel-operated connector only: it lets
+    cost_basis=erp_verified through. Customer upload paths leave it False.
     """
     report = LoadReport(source=source)
     return _ingest_loaded(frame.copy(), report, policy_threshold,
-                          fx_rates=fx_rates, fx_rates_date=fx_rates_date)
+                          fx_rates=fx_rates, fx_rates_date=fx_rates_date,
+                          allow_erp_verified=allow_erp_verified)
 
 
 def ingest_verbose(
