@@ -109,3 +109,5 @@
 {"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
 {"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
 {"ts": "2026-11-07T15:57:52Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:07:37Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:07:38Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "IN_PROGRESS -> REVIEW: PR #62"}

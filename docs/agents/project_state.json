@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-07T15:57:52Z",
+  "updated": "2026-11-07T16:07:38Z",
   "config": {
     "max_concurrent": 2
   },
@@ -710,7 +710,7 @@
       "id": "PK-17",
       "title": "Publish a platform census of target accounts",
       "agent": "market-sizing-analyst",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md"
@@ -728,15 +728,19 @@
         "required": [],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 62,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T15:52:46Z",
-      "updated": "2026-11-07T15:55:17Z",
+      "updated": "2026-11-07T16:07:37Z",
       "notes": [
         {
           "ts": "2026-11-07T15:55:14Z",
           "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T16:07:37Z",
+          "note": "PR #62"
         }
       ]
     },
@@ -924,7 +928,7 @@
       "id": "PK-30",
       "title": "Specify the contract-structure lens",
       "agent": "pricing-strategist",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "docs/design/2026-11-07-contract-structure-lens-spec.md"
@@ -942,15 +946,19 @@
         "required": [],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 62,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T15:52:49Z",
-      "updated": "2026-11-07T15:55:18Z",
+      "updated": "2026-11-07T16:07:38Z",
       "notes": [
         {
           "ts": "2026-11-07T15:55:14Z",
           "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T16:07:38Z",
+          "note": "PR #62"
         }
       ]
     }
