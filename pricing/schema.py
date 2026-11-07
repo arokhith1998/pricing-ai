@@ -247,12 +247,7 @@ GENERATOR_COLUMNS: list[str] = [
     n for n in ALL_FIELD_NAMES
     if n not in PROVENANCE_FIELDS and n not in CONTRACT_MONEY_FIELDS
 ]
-# ALL_COLUMNS is kept equal to GENERATOR_COLUMNS, NOT every field: the existing
-# tests/test_schema_ubp.py::test_new_columns_do_not_perturb_main_sequence
-# indexes generator output by ALL_COLUMNS and would KeyError on the new
-# columns. Use ALL_FIELD_NAMES for "every field". Lead decision needed to
-# repoint that test (outside this task's owned paths).
-ALL_COLUMNS: list[str] = GENERATOR_COLUMNS
+ALL_COLUMNS: list[str] = ALL_FIELD_NAMES  # alias: every field
 
 # Discount bands used for win-rate-by-band analysis. Half-open bins on
 # discount_pct = 1 - booked_acv/list_acv. The first band is NEGATIVE: deals
