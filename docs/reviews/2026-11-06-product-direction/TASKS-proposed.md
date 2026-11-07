@@ -54,7 +54,7 @@ Acceptance:
 - **PK-24:** up and down, with a row-count guard; QA pastes scratch up/down/up output; no deal rows stored.
 - **PK-25:** no "Salesforce" string remains in `guardrail.py`. Legacy `salesforce_crm` rows resolve; a CSV-sourced exception appears in the log filter; `tests/test_crm.py` and governance suites pass unchanged.
 - **PK-26:** tsc, tests and build pass; `/crm` unchanged.
-- **PK-27:** fixtures detect crm_opportunity and cpq_line profiles. Quote lines roll up to one deal; unknown stage goes to "ask user", never "lost"; refuse path fires without outcome; LLM payload holds headers only.
+- **PK-27:** `assist.mapping_targets()` filters out `EXACT_ONLY_FIELDS` so the LLM column suggester cannot offer the exact-only fields (PR 73 re-review nit, 2026-11-07; `api/routers/diagnostic.py` map-columns returns it directly). Fixtures detect crm_opportunity and cpq_line profiles. Quote lines roll up to one deal; unknown stage goes to "ask user", never "lost"; refuse path fires without outcome; LLM payload holds headers only.
 - **PK-28:** same headers skip confirmation; a test asserts no row values persist.
 - **PK-29:** every figure in narrated text appears in the source dict. The word "margin" never appears when basis is `crm_proxy`.
 
