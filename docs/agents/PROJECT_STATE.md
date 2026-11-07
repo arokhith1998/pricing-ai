@@ -6,8 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-11-07T16:07:38Z
+Active work: 1/2
+Updated: 2026-11-07T16:32:21Z
+
+## IN_PROGRESS
+- **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer)
+  - owns: pricing/schema.py, pricing/ingest.py#numeric, pricing/mapping.py#synonyms, gtm/data-request.md, tests/test_schema_provenance.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -38,6 +42,18 @@ Updated: 2026-11-07T16:07:38Z
   - owns: tools/agentctl.py
 - **PK-21** Amend incident response for credentials and new data classes  (customer-success, deps PK-20,PK-6)
   - owns: docs/ops/incident-response.md
+- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
+- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, deps PK-23)
+  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
+- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, deps PK-25)
+  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
+- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, deps PK-23)
+  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
+- **PK-28** Persist the confirmed mapping per tenant, headers only  (backend-engineer, deps PK-24,PK-27)
+  - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
+- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
+  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)

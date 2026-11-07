@@ -111,3 +111,13 @@
 {"ts": "2026-11-07T15:57:52Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
 {"ts": "2026-11-07T16:07:37Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
 {"ts": "2026-11-07T16:07:38Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-23", "agent": "data-engineer", "detail": "Add source, provenance and contract-structure fields to the canonical deal"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-24", "agent": "data-engineer", "detail": "Add a migration for saved mappings and a decision-log source index"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-25", "agent": "backend-engineer", "detail": "Make Salesforce the first adapter behind a neutral guardrail"}
+{"ts": "2026-11-07T16:32:04Z", "event": "add", "task": "PK-26", "agent": "web-engineer", "detail": "Rename the web canonical type to CanonicalDeal"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-27", "agent": "ai-engineer", "detail": "Add source profiles and export presets to the mapper"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-28", "agent": "backend-engineer", "detail": "Persist the confirmed mapping per tenant, headers only"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-29", "agent": "ai-engineer", "detail": "Add numeric-fidelity and cost-basis label evals"}
+{"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
+{"ts": "2026-11-07T16:32:21Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

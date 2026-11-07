@@ -173,3 +173,51 @@ flags a `MERGED` task with no recorded human approval: state set outside the
 tool is detectable after the fact even when it cannot be prevented. Losing the
 board is recoverable by replaying commands; losing a worktree would not be,
 which is another argument for ADR-002.
+
+---
+
+## ADR-006: One cost-basis enum, label text owned by code, no "margin" for a proxy
+
+**Date:** 2026-11-07 · **Status:** accepted
+
+**Decision.** The canonical deal carries one optional field, `cost_basis`, with
+exactly three values: `crm_proxy` (default; any cost figure that arrived through
+a CRM or CSV export, including `cogs_acv`), `declared_cost` (a cost rate or
+percentage table the customer typed or supplied in writing, by product family),
+and `erp_verified` (cost read from the customer's billing or ERP system through
+an integration Pricekeel operates). The label a reader sees is produced by one
+response builder in code from this enum, never written freehand in copy or
+prompts: `crm_proxy` renders as "cost proxy, not margin"; `declared_cost` as
+"contribution margin, customer-supplied cost basis"; `erp_verified` as
+"gross margin, ERP-verified cost". No output may contain the word "margin"
+when the basis is `crm_proxy`, and a test (PK-29) asserts it. Net margin per
+deal is not produced for any basis.
+
+**Context.** The 2026-11-06 product-direction review had three agents propose
+three different enums (ai-engineer: `erp_billing | user_supplied | crm_proxy`;
+data-engineer: six cost-line bases including `bom_standard` and `landed_actual`;
+backend: label guard only). The design doc asked for one ADR before any margin
+code. The field is entering the schema now on PK-23 because the founder
+approved Phase B on 2026-11-07, while margin computation itself (founder decision
+D2) is still open.
+
+**Alternatives.** Data-engineer's six-value enum: precise for a Phase-3 cost
+book, but it names cost sources no current customer can supply and would ship
+unused values that copy could drift onto. A free-text basis: unenforceable.
+Dropping the field until D2 is answered: then the first margin code adds it
+under deadline pressure, which is how the proxy gets called margin.
+
+**Reason.** Three values cover every input the next two years can produce
+(proxy, told, read) and map one to one onto label text a Head of Pricing can
+defend. The 2026-08-08 honesty decision (vault) already forbids calling CRM
+numbers margin; this makes that rule a type, not a sentence. Finer Phase-3
+distinctions (BOM standard versus actual, landed, allocated) become attributes
+of a future `cost_line` record, not new values of this enum.
+
+**Consequences.** `cost_basis` is optional and defaults to `crm_proxy` on
+ingest, so every existing CSV still loads and nothing is labeled margin by
+default. Any function that computes a margin figure must refuse `crm_proxy`
+input rather than compute and caveat. Adding a fourth value requires a
+superseding ADR. The response builder and the PK-29 evals are the enforcement;
+until PK-29 lands, this is a rule in prose, which is the state this ADR exists
+to end.

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-07T16:07:38Z",
+  "updated": "2026-11-07T16:32:21Z",
   "config": {
     "max_concurrent": 2
   },
@@ -961,6 +961,254 @@
           "note": "PR #62"
         }
       ]
+    },
+    {
+      "id": "PK-23",
+      "title": "Add source, provenance and contract-structure fields to the canonical deal",
+      "agent": "data-engineer",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "pricing/schema.py",
+        "pricing/ingest.py#numeric",
+        "pricing/mapping.py#synonyms",
+        "gtm/data-request.md",
+        "tests/test_schema_provenance.py"
+      ],
+      "branch": "agent/data-engineer/PK-23",
+      "worktree": ".claude/worktrees/PK-23",
+      "acceptance": [
+        "nine new optional Fields in schema.py: source_system (enum, default csv), source_record_id, source_account_id, source_quote_id, source_url, value_metric_unit (str), cost_basis (enum crm_proxy | declared_cost | erp_verified per ADR-006, default crm_proxy), list_unit_rate (float, money), credits_tcv (float, money); descriptions name units and the currency Field lists both money columns",
+        "every existing fixture under data/ and tests/ loads unchanged; data/synthetic/deals.csv is not modified and every test that pins it passes without re-pinning",
+        "ingest: list_unit_rate and credits_tcv in _NUMERIC and in the FX money columns; cost_basis and source_system filled with their defaults when absent; an unknown cost_basis value is rejected with a named error, never coerced",
+        "mapping.py SYNONYMS gains entries for both money fields (list unit price, rate card price, unit list price; credits, service credits, free months value); gtm/data-request.md lists all nine as optional",
+        "tests/test_schema_provenance.py covers defaults, the rejected enum value, a CSV with and without the new columns, and that no new field is required; nothing anywhere labels a value margin"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_provenance.py",
+          "tests/test_schema_ubp.py",
+          "tests/test_metrics.py",
+          "tests/test_model.py",
+          "tests/test_ingest.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-07T16:32:21Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T16:32:20Z",
+          "note": "claimed 5 path(s)"
+        }
+      ]
+    },
+    {
+      "id": "PK-24",
+      "title": "Add a migration for saved mappings and a decision-log source index",
+      "agent": "data-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [
+        "neon/schema.sql",
+        "neon/migrations/2026-11-source-mappings.sql",
+        "neon/migrations/2026-11-source-mappings.down.sql"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "up and down migrations, with a row-count guard; QA pastes scratch up/down/up output",
+        "saved mappings hold header strings only, no deal rows; a schema comment says so",
+        "decision_log gains a source index; no existing row changes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_provenance.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-07T16:32:03Z",
+      "notes": []
+    },
+    {
+      "id": "PK-25",
+      "title": "Make Salesforce the first adapter behind a neutral guardrail",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [
+        "pricing/crm.py",
+        "pricing/guardrail.py",
+        "api/routers/crm.py",
+        "pricing/governance.py#exception_source",
+        "tests/test_guardrail.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "no Salesforce string remains in pricing/guardrail.py; the adapter protocol has exactly two implementations, Salesforce and CSV",
+        "legacy salesforce_crm and salesforce_crm_writeback source strings resolve as aliases so existing decision_log rows still load",
+        "a CSV-sourced exception appears in the decision-log source filter",
+        "tests/test_crm.py and the governance suites pass unchanged"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_guardrail.py",
+          "tests/test_crm.py",
+          "tests/test_governance.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-07T16:32:03Z",
+      "notes": []
+    },
+    {
+      "id": "PK-26",
+      "title": "Rename the web canonical type to CanonicalDeal",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-25"
+      ],
+      "owns": [
+        "web/src/lib/salesforce-adapter.ts",
+        "web/src/lib/salesforce-types.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "CanonicalCrmDeal is renamed CanonicalDeal everywhere under web/src/lib, with source fields mirroring PK-23",
+        "tsc, web tests and the production build pass; /crm behavior unchanged"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:04Z",
+      "updated": "2026-11-07T16:32:04Z",
+      "notes": []
+    },
+    {
+      "id": "PK-27",
+      "title": "Add source profiles and export presets to the mapper",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [
+        "pricing/mapping.py",
+        "tests/test_mapping_profiles.py",
+        "tests/fixtures/mapping_profiles"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "a deterministic layer-0 source profile detects crm_opportunity and cpq_line from headers; fixtures for each",
+        "quote lines roll up to one deal; unknown stage maps to ask-user, never to lost; the refuse path fires when an export cannot supply outcome",
+        "the LLM payload holds header strings only, no row values; a test asserts it",
+        "per the 2026-11-07 census (D4): no HubSpot preset; generic crm_opportunity and cpq_line profiles only, validated against the first real partner export when one exists"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_mapping_profiles.py",
+          "tests/test_mapping.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-07T16:32:05Z",
+      "notes": []
+    },
+    {
+      "id": "PK-28",
+      "title": "Persist the confirmed mapping per tenant, headers only",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-24",
+        "PK-27"
+      ],
+      "owns": [
+        "pricing/mapping_store.py",
+        "api/routers/diagnostic.py#map_headers",
+        "tests/test_mapping_store.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "the same headers skip confirmation on the next upload for that tenant",
+        "a test asserts no row values persist, only header strings and the confirmed field names",
+        "tenant-scoped; one tenant cannot read another tenant's mapping"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_mapping_store.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-07T16:32:05Z",
+      "notes": []
+    },
+    {
+      "id": "PK-29",
+      "title": "Add numeric-fidelity and cost-basis label evals",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [
+        "tests/test_numeric_fidelity.py",
+        "tests/test_cost_basis_label.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "every figure in narrated text appears in the source dict the narration was built from",
+        "the word margin never appears in any payload when cost_basis is crm_proxy (ADR-006); declared_cost renders as contribution margin, customer-supplied cost basis",
+        "evals run offline with a recorded provider response; no live LLM call in CI"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_numeric_fidelity.py",
+          "tests/test_cost_basis_label.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-07T16:32:05Z",
+      "notes": []
     }
   ]
 }
