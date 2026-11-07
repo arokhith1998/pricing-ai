@@ -135,7 +135,7 @@ class LoadReport:
 
 _NUMERIC = ["list_acv", "booked_acv", "platform_fee_acv", "usage_acv", "quantity",
             "committed_acv", "overage_rate", "ramp_year_1_acv", "ramp_year_2_acv",
-            "renewal_uplift", "cogs_acv"]
+            "renewal_uplift", "cogs_acv", "list_unit_rate", "credits_tcv"]
 _LEGAL_TOKENS = {"inc", "llc", "corp", "co", "ltd", "incorporated", "llp", "plc"}
 _PUNCT = re.compile(r"[^a-z0-9\s]")
 _WS = re.compile(r"\s+")

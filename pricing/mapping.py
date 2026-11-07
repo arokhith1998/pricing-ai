@@ -137,6 +137,12 @@ SYNONYMS: dict[str, list[str]] = {
         "overage rate", "overage", "on demand rate", "on-demand rate",
         "overage price", "unit overage", "burst rate", "rate per unit",
     ],
+    "list_unit_rate": [
+        "list unit price", "rate card price", "unit list price", "list rate",
+    ],
+    "credits_tcv": [
+        "credits", "service credits", "free months value", "credit value",
+    ],
     "ramp_year_1_acv": [
         "ramp year 1", "year 1 acv", "y1 acv", "ramp y1", "year one acv",
         "ramp_year_1", "yr1 acv",

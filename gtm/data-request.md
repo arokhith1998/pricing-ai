@@ -59,6 +59,15 @@ Include any you have; each one adds depth (governance signals, win-rate drivers,
 | `competitor_present` | bool | Whether a competitor was in the deal (discount-pressure signal). |
 | `lost_reason` | str | Reason captured on closed_lost deals (`price` \| `product` \| `no_decision` \| `competitor` \| `timing`). |
 | `currency` | str | ISO 4217 code (`USD`, `EUR`, `GBP`). Defaults to USD. If absent we infer it from the currency symbol in the money columns. A file that mixes currencies is blocked with a disclosure rather than summed; send one currency per file, or tell us the FX rate and date to normalize on. |
+| `source_system` | enum | Where the row came from: `csv` \| `salesforce` \| `hubspot` \| `cpq` \| `billing` \| `manual`. Defaults to `csv`. |
+| `source_record_id` | str | Opportunity or record id in the source system. |
+| `source_account_id` | str | Account id in the source system. |
+| `source_quote_id` | str | Quote or CPQ document id in the source system. |
+| `source_url` | str | Deep link to the record in the source system. |
+| `value_metric_unit` | str | Free text naming the unit behind `value_metric` (for example "audio minute", "1K tokens"). |
+| `cost_basis` | enum | Trust level of any cost figure: `crm_proxy` \| `declared_cost` \| `erp_verified`. Defaults to `crm_proxy`; a `crm_proxy` value is never labeled margin. |
+| `list_unit_rate` | float | List price per usage unit, in the same unit as `quantity` and `overage_rate`, in the deal currency. |
+| `credits_tcv` | float | Total value over the whole term of service credits, free months and other off-invoice concessions, in the deal currency. |
 
 ## Identity and PII
 
