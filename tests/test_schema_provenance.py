@@ -8,7 +8,7 @@ import pytest
 from pricing.generate import generate
 from pricing.ingest import (
     _FX_MONEY_COLS, _NUMERIC, _NUMERIC_NONMONEY, SchemaError,
-    apply_provenance_defaults, ingest, ingest_frame_verbose,
+    LoadReport, apply_provenance_defaults, ingest, ingest_frame_verbose,
     validate_provenance_enums,
 )
 from pricing.mapping import SYNONYMS, map_headers, synonyms_match
@@ -102,7 +102,7 @@ def test_money_columns_are_fx_normalized(tmp_path):
 
 
 def test_defaults_applied_when_columns_absent():
-    out = apply_provenance_defaults(_base(10))
+    out = apply_provenance_defaults(_base(10), LoadReport())
     assert (out["source_system"] == "csv").all()
     assert (out["cost_basis"] == "crm_proxy").all()
 
@@ -111,7 +111,7 @@ def test_defaults_fill_blank_cells_only():
     df = _base(4)
     df["source_system"] = ["salesforce", "", "hubspot", " "]
     df["cost_basis"] = ["declared_cost", "", "crm_proxy", ""]
-    out = apply_provenance_defaults(df)
+    out = apply_provenance_defaults(df, LoadReport())
     assert out["source_system"].tolist() == ["salesforce", "csv", "hubspot", "csv"]
     assert out["cost_basis"].tolist() == [
         "declared_cost", "crm_proxy", "crm_proxy", "crm_proxy"]
@@ -122,7 +122,8 @@ def test_defaults_fill_blank_cells_only():
 def test_invalid_enum_rejected_with_named_error(col, bad):
     df = _base(5)
     df[col] = ["crm_proxy" if col == "cost_basis" else "csv"] * 4 + [bad]
-    for fn in (apply_provenance_defaults, validate_provenance_enums):
+    for fn in (lambda d: apply_provenance_defaults(d, LoadReport()),
+               validate_provenance_enums):
         with pytest.raises(SchemaError) as e:
             fn(df)
         assert col in str(e.value)
@@ -251,11 +252,10 @@ def test_unknown_source_system_defaults_and_is_disclosed(tmp_path):
 
 
 def test_source_system_disclosure_is_capped():
-    from pricing.ingest import LoadReport
     df = _base()
     df["source_system"] = [f"weird system {i} " + "y" * 60 for i in range(60)]
     rep = LoadReport()
-    out = apply_provenance_defaults(df, report=rep)
+    out = apply_provenance_defaults(df, rep)
     assert (out["source_system"] == "csv").all()
     assert "and 55 more" in rep.notes[0] and "y" * 41 not in rep.notes[0]
 
@@ -266,3 +266,26 @@ def test_system_source_values_no_longer_fail_upload(tmp_path):
     p = tmp_path / "deals.csv"
     df.to_csv(p, index=False)
     assert (ingest(p)["source_system"] == "salesforce").all()
+
+
+def test_missing_placeholders_count_as_blank(tmp_path):
+    from pricing.ingest import ingest_verbose
+    df = _base()
+    df["Cost Basis"] = "None"
+    df["Source System"] = "n/a"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out, report = ingest_verbose(p)
+    assert (out["cost_basis"] == "crm_proxy").all()
+    assert (out["source_system"] == "csv").all()
+    assert not [n for n in report.notes if "source_system" in n or "cost_basis" in n]
+
+
+@pytest.mark.parametrize("raw", ["Salesforce CRM", "salesforce-crm", "HubSpot CRM"])
+def test_source_system_alias_spacing_and_hyphens(raw):
+    df = _base(3)
+    df["source_system"] = raw
+    rep = LoadReport()
+    out = apply_provenance_defaults(df, rep)
+    assert (out["source_system"] == raw.lower().split()[0].split("-")[0]).all()
+    assert rep.notes == []

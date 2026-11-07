@@ -385,8 +385,8 @@ def _capped(values: list[str]) -> str:
 
 def apply_provenance_defaults(
     df: pd.DataFrame,
+    report: LoadReport,
     allow_erp_verified: bool = False,
-    report: LoadReport | None = None,
 ) -> pd.DataFrame:
     """Return a copy of df with source_system and cost_basis defaulted.
 
@@ -394,7 +394,9 @@ def apply_provenance_defaults(
     column are filled with it. Values are stripped and lower-cased.
     source_system is provenance, not a trust label: known aliases (sfdc,
     salesforce_crm, hubspot_crm) are normalized, and an unknown value is
-    replaced by the default and disclosed in report.notes (never rejected).
+    replaced by the default and disclosed in report.notes (never rejected). Placeholders such as
+    none, null, na, n/a count as blank. report is required so a replacement
+    can never go undisclosed.
     cost_basis is strict (see validate_provenance_enums).
     """
     df = df.copy()
@@ -403,17 +405,17 @@ def apply_provenance_defaults(
             df[col] = default
             continue
         v = df[col].fillna("").astype(str).str.strip().str.lower()
-        df[col] = v.where(v != "", default)
-    ss = df["source_system"].replace(_SOURCE_SYSTEM_ALIASES)
+        df[col] = v.where(~v.isin(_MISSING_STRINGS | {"n/a"}), default)
+    ss = (df["source_system"].str.replace(r"[\s\-]+", "_", regex=True)
+          .replace(_SOURCE_SYSTEM_ALIASES))
     bad_mask = ~ss.isin(PROVENANCE_ENUMS["source_system"])
     if bad_mask.any():
         bad = sorted(set(ss[bad_mask]))
-        if report is not None:
-            report.notes.append(
-                f"warning: source_system held unrecognized value(s) "
-                f"{_capped(bad)} in {int(bad_mask.sum())} row(s); replaced with "
-                f"the default '{PROVENANCE_DEFAULTS['source_system']}'"
-            )
+        report.notes.append(
+            f"warning: source_system held unrecognized value(s) "
+            f"{_capped(bad)} in {int(bad_mask.sum())} row(s); replaced with "
+            f"the default '{PROVENANCE_DEFAULTS['source_system']}'"
+        )
         ss = ss.where(~bad_mask, PROVENANCE_DEFAULTS["source_system"])
     df["source_system"] = ss
     validate_provenance_enums(df, allow_erp_verified=allow_erp_verified)
@@ -880,8 +882,8 @@ def _ingest_loaded(
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
-    df = apply_provenance_defaults(df, allow_erp_verified=allow_erp_verified,
-                                    report=report)
+    df = apply_provenance_defaults(df, report,
+                                    allow_erp_verified=allow_erp_verified)
     if mixed:
         detail = _currency_row_counts(currency_codes)
         df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]
