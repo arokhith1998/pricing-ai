@@ -1,0 +1,92 @@
+# Production uptime check. Exists because the API sat suspended on Render for
+# days in November 2026 (unpaid card, billing reminders unread) and nothing
+# noticed until a session happened to curl /health. This probes the API and the
+# site every 30 minutes and makes a failure loud by opening a GitHub issue
+# labelled "uptime" (and closing it again on recovery), so the signal survives
+# an unread inbox. Scheduled workflows only run from the default branch.
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Probe production endpoints
+        id: probe
+        shell: bash
+        run: |
+          set -u
+          failures=()
+
+          # probe <label> <url> <expected substring or empty>
+          # Three attempts 20 seconds apart so a cold start on Render does not
+          # page anyone; a sustained failure still does.
+          probe() {
+            local label="$1" url="$2" expect="$3" code body
+            for attempt in 1 2 3; do
+              body=$(curl -s --max-time 30 -w '\n%{http_code}' "$url" || true)
+              code=${body##*$'\n'}
+              body=${body%$'\n'*}
+              if [ "$code" = "200" ] && { [ -z "$expect" ] || grep -q "$expect" <<<"$body"; }; then
+                echo "ok   $label $code"
+                return 0
+              fi
+              echo "warn $label attempt $attempt -> $code"
+              [ "$attempt" -lt 3 ] && sleep 20
+            done
+            failures+=("$label returned $code (expected 200${expect:+ with \"$expect\"})")
+            return 1
+          }
+
+          probe "api /health" "https://api.pricekeel.com/health" '"status":"ok"' || true
+          probe "www /"        "https://www.pricekeel.com/"         ""              || true
+          probe "www /sample"  "https://www.pricekeel.com/sample"   ""              || true
+
+          if [ "${#failures[@]}" -gt 0 ]; then
+            printf '%s\n' "${failures[@]}" > failures.txt
+            echo "down=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "down=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the uptime issue on failure
+        if: steps.probe.outputs.down == 'true'
+        shell: bash
+        run: |
+          set -eu
+          when=$(date -u +'%Y-%m-%d %H:%M UTC')
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body=$(printf 'Probe failed at %s.\n\n```\n%s\n```\n\nRun: %s\n\nFirst things to check: Render billing (the November 2026 outage was an unpaid card), then the pricekeel-api service logs on Render, then Vercel for the site.' "$when" "$(cat failures.txt)" "$run_url")
+          existing=$(gh issue list --label uptime --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --label uptime --title "Production down: uptime probe failing since $when" --body "$body"
+          fi
+          exit 1
+
+      - name: Close the uptime issue on recovery
+        if: steps.probe.outputs.down == 'false'
+        shell: bash
+        run: |
+          set -eu
+          existing=$(gh issue list --label uptime --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "Recovered: all probes returned 200 at $(date -u +'%Y-%m-%d %H:%M UTC')."
+          fi
