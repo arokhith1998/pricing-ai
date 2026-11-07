@@ -27,7 +27,9 @@ from pricing import mapping
 from pricing.schema import (
     DEFAULT_POLICY_THRESHOLD,
     REQUIRED_FIELDS,
+    InvalidEnumValueError,
     Outcome,
+    apply_provenance_defaults,
     band_for,
 )
 
@@ -796,6 +798,10 @@ def _ingest_loaded(
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
+    try:
+        df = apply_provenance_defaults(df)  # source_system / cost_basis
+    except InvalidEnumValueError as exc:
+        raise SchemaError(str(exc)) from exc
     if mixed:
         detail = _currency_row_counts(currency_codes)
         df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]

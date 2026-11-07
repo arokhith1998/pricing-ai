@@ -125,3 +125,24 @@ def test_invalid_enum_rejected_with_named_error(col, bad):
 
 def test_no_new_field_is_required():
     assert all(not f.required for f in FIELDS if f.name in NEW)
+
+
+def test_loader_applies_defaults_when_columns_absent(tmp_path):
+    p = tmp_path / "deals.csv"
+    _base().to_csv(p, index=False)
+    out = ingest(p)
+    assert (out["source_system"] == "csv").all()
+    assert (out["cost_basis"] == "crm_proxy").all()
+
+
+@pytest.mark.parametrize("col,bad", [("cost_basis", "true_cost"),
+                                     ("source_system", "oracle")])
+def test_loader_rejects_invalid_enum_with_schema_error(tmp_path, col, bad):
+    from pricing.ingest import SchemaError
+    df = _base()
+    df[col] = bad
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    with pytest.raises(SchemaError) as e:
+        ingest(p)
+    assert col in str(e.value) and bad in str(e.value)
