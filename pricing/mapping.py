@@ -205,7 +205,13 @@ _NORM_SYN = _normalized_synonyms()
 # columns ("Credits" is a unit count in a credit-based book; Salesforce
 # UnitPrice is the net sales price, not list). Same lesson as the Forecast
 # Category guard in fuzzy_match. PR 73 review, 2026-11-07.
-EXACT_ONLY_FIELDS = frozenset({"list_unit_rate", "credits_tcv"})
+EXACT_ONLY_FIELDS = frozenset({
+    "list_unit_rate", "credits_tcv",
+    # Provenance fields: bare words like "Source" or "Account Source" are
+    # ordinary CRM columns, so these claim only an exact synonym or name.
+    "source_system", "source_record_id", "source_account_id", "source_quote_id",
+    "source_url", "value_metric_unit", "cost_basis",
+})
 for _f in EXACT_ONLY_FIELDS:
     _NORM_SYN[_f].append(normalize(_f))
 

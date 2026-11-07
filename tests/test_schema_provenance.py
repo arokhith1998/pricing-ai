@@ -118,8 +118,7 @@ def test_defaults_fill_blank_cells_only():
 
 
 @pytest.mark.parametrize("col,bad", [("cost_basis", "margin"),
-                                     ("cost_basis", "ERP"),
-                                     ("source_system", "oracle")])
+                                     ("cost_basis", "ERP")])
 def test_invalid_enum_rejected_with_named_error(col, bad):
     df = _base(5)
     df[col] = ["crm_proxy" if col == "cost_basis" else "csv"] * 4 + [bad]
@@ -142,8 +141,7 @@ def test_loader_applies_defaults_when_columns_absent(tmp_path):
     assert (out["cost_basis"] == "crm_proxy").all()
 
 
-@pytest.mark.parametrize("col,bad", [("cost_basis", "true_cost"),
-                                     ("source_system", "oracle")])
+@pytest.mark.parametrize("col,bad", [("cost_basis", "true_cost")])
 def test_loader_rejects_invalid_enum_with_schema_error(tmp_path, col, bad):
     df = _base()
     df[col] = bad
@@ -219,3 +217,52 @@ def test_enum_error_is_capped_and_truncated(tmp_path):
     assert "and 55 more" in msg
     assert "x" * 41 not in msg
     assert msg.count("free text note") == 5
+
+
+@pytest.mark.parametrize("header", [
+    "Source", "Account Source", "Source Account", "Source Id", "Record Source",
+    "Source Quote", "Metric Unit", "System Source"])
+def test_provenance_fields_not_claimed_by_loose_headers(header):
+    for emb in (False, True):
+        m = map_headers([header], llm_fallback=False, use_embeddings=emb)["mapping"]
+        assert not [f for f in PROVENANCE_FIELDS if m[f]], (header, emb)
+
+
+@pytest.mark.parametrize("header,field", [
+    ("Source System", "source_system"), ("Cost Basis", "cost_basis"),
+    ("Source Record Id", "source_record_id"), ("Source Url", "source_url"),
+    ("Value Metric Unit", "value_metric_unit")])
+def test_provenance_exact_headers_still_map(header, field):
+    m = map_headers([header], llm_fallback=False, use_embeddings=False)["mapping"]
+    assert m[field] == header
+
+
+def test_unknown_source_system_defaults_and_is_disclosed(tmp_path):
+    from pricing.ingest import ingest_verbose
+    df = _base()
+    df["source_system"] = ["SFDC"] * 20 + ["hubspot_crm"] * 10 + ["oracle"] * 15 + [""] * 15
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out, report = ingest_verbose(p)
+    vc = out["source_system"].value_counts().to_dict()
+    assert vc == {"salesforce": 20, "hubspot": 10, "csv": 30}
+    warn = [n for n in report.notes if n.startswith("warning:") and "source_system" in n]
+    assert len(warn) == 1 and "oracle" in warn[0] and "15 row(s)" in warn[0]
+
+
+def test_source_system_disclosure_is_capped():
+    from pricing.ingest import LoadReport
+    df = _base()
+    df["source_system"] = [f"weird system {i} " + "y" * 60 for i in range(60)]
+    rep = LoadReport()
+    out = apply_provenance_defaults(df, report=rep)
+    assert (out["source_system"] == "csv").all()
+    assert "and 55 more" in rep.notes[0] and "y" * 41 not in rep.notes[0]
+
+
+def test_system_source_values_no_longer_fail_upload(tmp_path):
+    df = _base()
+    df["Source System"] = "SFDC"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    assert (ingest(p)["source_system"] == "salesforce").all()

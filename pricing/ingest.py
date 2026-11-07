@@ -358,11 +358,8 @@ def validate_provenance_enums(df: pd.DataFrame, allow_erp_verified: bool = False
         v = df[col].fillna("").astype(str).str.strip().str.lower()
         bad = sorted(set(v[(v != "") & ~v.isin(allowed)]))
         if bad:
-            shown = [b if len(b) <= _MAX_BAD_VALUE_LEN else b[:_MAX_BAD_VALUE_LEN] + "..."
-                     for b in bad[:_MAX_BAD_VALUES]]
-            more = f" and {len(bad) - len(shown)} more" if len(bad) > len(shown) else ""
             raise SchemaError(
-                f"Invalid {col} value(s) {shown}{more}; allowed: "
+                f"Invalid {col} value(s) {_capped(bad)}; allowed: "
                 f"{sorted(allowed)}. Not coerced to the default."
             )
     if not allow_erp_verified and "cost_basis" in df.columns:
@@ -375,12 +372,30 @@ def validate_provenance_enums(df: pd.DataFrame, allow_erp_verified: bool = False
             )
 
 
-def apply_provenance_defaults(df: pd.DataFrame, allow_erp_verified: bool = False) -> pd.DataFrame:
+_SOURCE_SYSTEM_ALIASES = {"sfdc": "salesforce", "salesforce_crm": "salesforce",
+                          "hubspot_crm": "hubspot"}
+
+
+def _capped(values: list[str]) -> str:
+    shown = [b if len(b) <= _MAX_BAD_VALUE_LEN else b[:_MAX_BAD_VALUE_LEN] + "..."
+             for b in values[:_MAX_BAD_VALUES]]
+    more = f" and {len(values) - len(shown)} more" if len(values) > len(shown) else ""
+    return f"{shown}{more}"
+
+
+def apply_provenance_defaults(
+    df: pd.DataFrame,
+    allow_erp_verified: bool = False,
+    report: LoadReport | None = None,
+) -> pd.DataFrame:
     """Return a copy of df with source_system and cost_basis defaulted.
 
     A missing column is added with its default; blank cells in a present
-    column are filled with it. Values are stripped and lower-cased, then
-    validated (see validate_provenance_enums).
+    column are filled with it. Values are stripped and lower-cased.
+    source_system is provenance, not a trust label: known aliases (sfdc,
+    salesforce_crm, hubspot_crm) are normalized, and an unknown value is
+    replaced by the default and disclosed in report.notes (never rejected).
+    cost_basis is strict (see validate_provenance_enums).
     """
     df = df.copy()
     for col, default in PROVENANCE_DEFAULTS.items():
@@ -389,6 +404,18 @@ def apply_provenance_defaults(df: pd.DataFrame, allow_erp_verified: bool = False
             continue
         v = df[col].fillna("").astype(str).str.strip().str.lower()
         df[col] = v.where(v != "", default)
+    ss = df["source_system"].replace(_SOURCE_SYSTEM_ALIASES)
+    bad_mask = ~ss.isin(PROVENANCE_ENUMS["source_system"])
+    if bad_mask.any():
+        bad = sorted(set(ss[bad_mask]))
+        if report is not None:
+            report.notes.append(
+                f"warning: source_system held unrecognized value(s) "
+                f"{_capped(bad)} in {int(bad_mask.sum())} row(s); replaced with "
+                f"the default '{PROVENANCE_DEFAULTS['source_system']}'"
+            )
+        ss = ss.where(~bad_mask, PROVENANCE_DEFAULTS["source_system"])
+    df["source_system"] = ss
     validate_provenance_enums(df, allow_erp_verified=allow_erp_verified)
     return df
 
@@ -853,7 +880,8 @@ def _ingest_loaded(
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
-    df = apply_provenance_defaults(df, allow_erp_verified=allow_erp_verified)
+    df = apply_provenance_defaults(df, allow_erp_verified=allow_erp_verified,
+                                    report=report)
     if mixed:
         detail = _currency_row_counts(currency_codes)
         df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]
