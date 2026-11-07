@@ -121,3 +121,4 @@
 {"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
 {"ts": "2026-11-07T16:32:21Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T16:43:17Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #73"}
