@@ -178,9 +178,9 @@ export default function CompetitorWatchPage() {
           Public pages are fetched with <code>robots.txt</code> and SSRF
           controls enforced. By submitting a URL you warrant that you have
           the right to query it under the terms of use of the competitor
-          site that owns the page, not Pricekeel&rsquo;s. Extraction is AI-assisted and
-          qualitative; competitor claims never alter the numerical discount
-          guardrail.
+          site that owns the page, not Pricekeel&rsquo;s. Extraction is
+          AI-assisted and qualitative; competitor claims never alter the
+          numerical discount guardrail.
         </p>
       </Reveal>
 
