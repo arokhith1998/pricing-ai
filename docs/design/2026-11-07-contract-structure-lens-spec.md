@@ -1,7 +1,7 @@
 ---
 title: Contract-structure lens v0, specification
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-09
 status: draft
 tags: [design, spec, ubp, contract-structure, deal-guidance, governance, pk-30]
 source: "PK-30, drafted by the pricing-strategist agent for founder approval"
@@ -627,6 +627,14 @@ Recovery test (PK-32): for every flag, the set of won `opportunity_id` the lens 
 | Cost-indexed value metric flag (tokens, compute priced near cost) | Needs `value_metric_unit` | PK-23 landing `value_metric_unit` |
 | Setting a repricing cadence | The engine records cadence, it does not decide it | None; humans decide |
 | Any change to `exception_verdict`, the EV grid or model features | Out of scope by design | The modeled-curve trigger above |
+
+## 7a. Amendments from the PK-32 implementation review, 2026-11-09
+
+1. Rounding before every threshold comparison applies to `price_realization` as well as to the lens's own ratios: compare `round(price_realization, 6)` against the floor (the PR 88 review found cent-denominated deals at exactly 15 percent off landing at 0.8499999974 and failing the floor while passing policy).
+2. Lever 1 and lever 3 condition C4 gains: `platform_fee_acv < 0` on a hybrid deal gives `insufficient_data` with reason `invalid_money_value`; a negative fee must never inflate committed usage.
+3. Lever 5 gains two rows: `booked_acv <= 0` gives `insufficient_data` with reason `booked_missing_or_zero`; `pocket_realization < 0` gives `insufficient_data` with reason `pocket_realization_out_of_bounds`. A supplied `list_unit_rate` must be finite and positive to count as supplied.
+4. `contract_structure_readout` is a public function of `pricing/contract_structure.py` and belongs to PK-32, producing the per-flag deal lists, sorts, the trade check, coverage and the sentence templates of sections 3.1, 3.4, 3.5 and 5 (including the EV-grid note, the supplied-or-derived clause, the ramp steady-state sentence and the "Excludes {step}: not in the file." label). PK-33 wires the readout into `pricing/diagnostic.py`, the decision record and the API response and converts NaN summary values (such as `flagged_share` under 15 scored deals) to null at the API boundary.
+5. The lens requires the enriched columns `discount_pct` and `price_realization` and raises a clear error when they are absent rather than recomputing them; the won mask requires `is_won` or `outcome` and raises when neither is present.
 
 ## 8. Open questions for the founder
 

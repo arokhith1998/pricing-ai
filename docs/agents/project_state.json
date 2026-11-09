@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:19:28Z",
+  "updated": "2026-11-09T23:20:43Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1678,7 +1678,7 @@
       "id": "PK-32",
       "title": "Score commit, ramp, overage and unit-rate floors",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-31"
       ],
@@ -1701,10 +1701,15 @@
         "ci_run": null
       },
       "pr": 88,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T23:20:43Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T23:03:00Z",
+      "updated": "2026-11-09T23:20:43Z",
       "notes": [
         {
           "ts": "2026-11-09T22:49:03Z",
@@ -1713,6 +1718,10 @@
         {
           "ts": "2026-11-09T23:03:00Z",
           "note": "PR #88"
+        },
+        {
+          "ts": "2026-11-09T23:20:43Z",
+          "note": "review rejected: "
         }
       ]
     },
