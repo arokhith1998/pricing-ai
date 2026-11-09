@@ -6,16 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/4
-Updated: 2026-11-09T23:46:50Z
+Active work: 4/4
+Updated: 2026-11-09T23:48:27Z
 
 ## IN_PROGRESS
 - **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
   - owns: pricing/billing.py, tests/test_billing.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
-- **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer)
-  - owns: web/src/lib/salesforce-adapter.ts
 
 ## REWORK_REQUIRED
 - **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, PR #88, deps PK-31)
@@ -40,6 +38,8 @@ Updated: 2026-11-09T23:46:50Z
   - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
+- **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
+  - owns: web/src/lib/salesforce-adapter.ts
 
 ## QA
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)

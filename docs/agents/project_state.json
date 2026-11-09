@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:46:50Z",
+  "updated": "2026-11-09T23:48:27Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3592,7 +3592,7 @@
       "id": "PK-89",
       "title": "Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "web/src/lib/salesforce-adapter.ts"
@@ -3609,15 +3609,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 92,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T23:19:10Z",
-      "updated": "2026-11-09T23:19:28Z",
+      "updated": "2026-11-09T23:48:27Z",
       "notes": [
         {
           "ts": "2026-11-09T23:19:23Z",
           "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:48:27Z",
+          "note": "PR #92"
         }
       ]
     }

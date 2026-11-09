@@ -353,3 +353,4 @@
 {"ts": "2026-11-09T23:43:23Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
 {"ts": "2026-11-09T23:43:27Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T23:46:50Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T23:48:27Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #92"}
