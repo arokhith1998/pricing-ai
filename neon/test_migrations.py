@@ -161,8 +161,9 @@ def test_pk41_no_column_can_hold_a_plaintext_credential_or_deal_value():
             )
     body = _table_body(up, "source_connections")
     # Ciphertext format is enforced, so a bare token or an rk_ key cannot be stored.
-    assert "credential_encrypted ~ '^v[0-9]+\\.'" in body
-    assert "access_token_encrypted ~ '^v[0-9]+\\.'" in body
+    fmt = r"~ '^v[0-9]+(\.[a-za-z0-9_-]+){2,}$'"
+    assert f"credential_encrypted {fmt}" in body
+    assert f"access_token_encrypted {fmt}" in body
     assert "ciphertext only" in up
 
 
@@ -230,3 +231,53 @@ def test_pk41_schema_sql_matches_migration_ddl():
     assert "create index if not exists source_connections_status_updated_idx" in low
     # Legacy tables stay in schema.sql until PK-70 drops them.
     assert "create table if not exists salesforce_connections" in low
+
+
+def _code(text: str) -> str:
+    return "\n".join(line.split("--")[0] for line in text.splitlines())
+
+
+def test_pk41_last_sync_counts_is_allowlisted_non_negative_integers():
+    body = _table_body(PK41_UP.read_text(encoding="utf-8").lower(), "source_connections")
+    assert "last_sync_counts - array['closed','open','deals_fetched','mappings'] = '{}'::jsonb" in body
+    assert "jsonb_path_exists(last_sync_counts" in body
+    assert 'strict $.* ? (@.type() != "number" || @ < 0 || @.floor() != @)' in body
+
+
+def test_pk41_mapping_values_are_strings_only_and_sf_needs_instance_url():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    cfg = _table_body(up, "source_connection_config")
+    mapping = cfg[cfg.index("mapping "):cfg.index("stage_map")]
+    assert "jsonb_path_exists(mapping, 'strict $.* ? (@.type() != \"string\")')" in mapping
+    conn = _table_body(up, "source_connections")
+    assert "check (source_system <> 'salesforce' or instance_url is not null)" in conn
+    assert "check (key_id <> '' or credential_encrypted like 'v1.%')" in conn
+
+
+def test_pk41_lock_timeout_and_access_exclusive_up_front():
+    for p in (PK41_UP, PK41_DOWN):
+        code = _code(p.read_text(encoding="utf-8").lower())
+        assert "set local lock_timeout = '5s';" in code
+        assert code.index("lock_timeout") < code.index("lock table access_codes in access exclusive mode;")
+        assert code.index("access exclusive") < code.index("share mode")
+
+
+def test_pk41_down_drift_refusal_is_narrowed_to_keyed_data():
+    down = PK41_DOWN.read_text(encoding="utf-8").lower()
+    for table in ("decision_log", "source_mappings", "source_connections",
+                  "salesforce_connections", "salesforce_mappings"):
+        assert f"'{table}'" in down
+    assert "t.customer_ref = a.tenant_ref" in down
+    # the old blanket refusal (any drifted row) is gone
+    assert "select count(*) from access_codes where tenant_ref is distinct from code'" not in down
+
+
+def test_pk41_header_rerun_safety_and_tenant_ref_secret_wording():
+    up = PK41_UP.read_text(encoding="utf-8")
+    assert "RERUN SAFETY" in up
+    assert "NEVER rerun this up and NEVER run down" in up
+    assert "must re-run this file" not in up
+    assert "PK-43 revoke must also delete the legacy rows" in up
+    assert "bearer secret" in up and "never log it" in up
+    schema = SCHEMA_SQL.read_text(encoding="utf-8")
+    assert "EQUALS THE ACCESS CODE" in schema and "EQUALS THE ACCESS CODE" in up

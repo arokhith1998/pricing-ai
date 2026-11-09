@@ -18,10 +18,13 @@
 --    No column can hold a plaintext credential or a deal value: the two token
 --    columns are text holding CIPHERTEXT ONLY, named *_encrypted, and a CHECK
 --    refuses any value that is not in the versioned ciphertext format
---    ("v<n>." prefix, as written by web/src/lib/salesforce-crypto.ts v1 and the
---    v2 format PK-42 adds). A Stripe restricted key (rk_...) or a bare token
---    cannot be stored. Everything else is identifiers, statuses, timestamps and
---    sync counts (jsonb object of counts, never records).
+--    (v<n>.<part>.<part>..., at least two url-safe segments after the version:
+--    the v1 iv.ciphertext shape written by web/src/lib/salesforce-crypto.ts and
+--    the v2 shape with a key id that PK-42 adds). A Stripe restricted key
+--    (rk_...), "v1.rk_live_..." or a bare token cannot be stored. A v2 row must
+--    carry a key_id. last_sync_counts is non-negative integers under an
+--    allowlisted key set. scope, last_error and external_account_id are FREE
+--    TEXT: keeping secrets out of them is PK-42's token-scan job, not a CHECK.
 -- 2. source_connection_config, keyed the same way, composite foreign key to
 --    source_connections ON DELETE CASCADE. Generalises salesforce_mappings:
 --    vendor field mapping, confirmed stage map, confirmed list-price set,
@@ -46,8 +49,10 @@
 --    not copied; they remain in the legacy table until PK-70. The app only
 --    stores and echoes them, it makes no decision on them. token_type is always
 --    'Bearer'.
--- 4. access_codes.tenant_ref: an opaque, stable tenant key that survives code
---    rotation and is never a credential. Existing rows are backfilled to their
+-- 4. access_codes.tenant_ref: a stable tenant key that survives code
+--    rotation. New codes get an opaque value; for codes that existed at migration
+--    time it equals the access code (a bearer secret) until PK-43 re-keys, so
+--    treat it as secret and never log it. Existing rows are backfilled to their
 --    CURRENT CODE, so every decision_log and connection row already keyed by a
 --    code still matches and no row in those tables is rewritten. New codes get
 --    the column default: 'tn_' plus a random v4 UUID with dashes removed,
@@ -72,21 +77,35 @@
 -- decision_log rows are keyed by the code. PK-43 must reconcile those (set
 -- tenant_ref = code for codes with used_at set that were created after this
 -- migration) before switching customerRef(), or issue no new codes in the window.
--- Stale-copy caveat for PK-42: the backfill is a point-in-time copy. Tokens
--- refreshed in the legacy table after this migration are not copied until the
--- next run; PK-42's cutover must re-run this file (safe, idempotent) before the
--- web code switches, since ON CONFLICT DO NOTHING keeps the older copy of a row
--- that already exists (so a refresh made after the first run needs a reconnect
--- or a targeted update by PK-42, not a rerun).
 --
--- Idempotent and re-runnable. Ends with guards that the legacy tables,
--- decision_log and access_codes row counts are unchanged and that every legacy
--- row has its counterpart.
+-- RERUN SAFETY (read before applying twice)
+-- Before the PK-42 cutover the file is idempotent: apply it as often as needed
+-- (the backfill is insert ... on conflict do nothing, so a second run adds
+-- nothing). AFTER the PK-42 cutover, NEVER rerun this up and NEVER run down and
+-- then up again: the backfill would resurrect, from the legacy tables, a
+-- Salesforce row that PK-42 disconnected or PK-43 revoked. Until PK-70 drops
+-- the legacy salesforce_connections and salesforce_mappings, PK-42 disconnect
+-- and PK-43 revoke must also delete the legacy rows for that tenant. The
+-- backfill is a point-in-time copy: a token refreshed in the legacy table after
+-- the first run is not copied by a rerun (on conflict do nothing keeps the older
+-- copy), so PK-42 must do its own cutover refresh or ask tenants to reconnect.
+--
+-- GUARDS
+-- The migration ends with checks that the legacy tables, decision_log and
+-- access_codes row counts are unchanged and that every legacy row has its
+-- counterpart. Locks: access_codes is taken ACCESS EXCLUSIVE up front (it is
+-- ALTERed, so there is no lock-upgrade window) and the other tables in SHARE
+-- mode; lock_timeout is 5s so a busy table fails the migration instead of
+-- queueing behind it.
 
 begin;
 
+set local lock_timeout = '5s';
+
 -- Block concurrent writes so an app insert cannot trip the row-count guards.
-lock table decision_log, access_codes, salesforce_connections, salesforce_mappings
+-- access_codes is ALTERed below, so take the strongest lock first.
+lock table access_codes in access exclusive mode;
+lock table decision_log, salesforce_connections, salesforce_mappings
   in share mode;
 
 select set_config('pk41.decision_log_before', (select count(*) from decision_log)::text, true);
@@ -103,9 +122,10 @@ create table if not exists source_connections (
   credential_kind        text not null
     check (credential_kind in ('oauth_refresh','restricted_key','api_key')),
   access_token_encrypted text
-    check (access_token_encrypted is null or access_token_encrypted ~ '^v[0-9]+\.'),
+    check (access_token_encrypted is null
+           or access_token_encrypted ~ '^v[0-9]+(\.[A-Za-z0-9_-]+){2,}$'),
   credential_encrypted   text not null
-    check (credential_encrypted ~ '^v[0-9]+\.'),
+    check (credential_encrypted ~ '^v[0-9]+(\.[A-Za-z0-9_-]+){2,}$'),
   key_id                 text not null default '',
   scope                  text not null default '',
   token_expires_at       timestamptz,
@@ -114,24 +134,31 @@ create table if not exists source_connections (
   last_error             text not null default '',
   last_sync_at           timestamptz,
   last_sync_counts       jsonb not null default '{}'::jsonb
-    check (jsonb_typeof(last_sync_counts) = 'object'),
+    check (jsonb_typeof(last_sync_counts) = 'object'
+           and last_sync_counts - array['closed','open','deals_fetched','mappings'] = '{}'::jsonb
+           and not jsonb_path_exists(last_sync_counts,
+                 'strict $.* ? (@.type() != "number" || @ < 0 || @.floor() != @)')),
   connected_at           timestamptz not null default now(),
   updated_at             timestamptz not null default now(),
   primary key (customer_ref, source_system),
   constraint source_connections_instance_url_sf_only
-    check (instance_url is null or source_system = 'salesforce')
+    check (instance_url is null or source_system = 'salesforce'),
+  constraint source_connections_sf_has_instance_url
+    check (source_system <> 'salesforce' or instance_url is not null),
+  constraint source_connections_v2_has_key_id
+    check (key_id <> '' or credential_encrypted like 'v1.%')
 );
 
 comment on table source_connections is
   'One connected source per tenant and source system. Holds ciphertext credentials, identifiers, status and sync counts only. No plaintext credential and no deal, invoice or account value is ever stored here; row data is processed in memory and discarded.';
 comment on column source_connections.access_token_encrypted is
-  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK). Never a plaintext token. Null for credentials with no access token (Stripe restricted key, Chargebee API key).';
+  'CIPHERTEXT ONLY: versioned AES-GCM output (v<n>.part.part, enforced by CHECK). Never a plaintext token. Null for credentials with no access token (Stripe restricted key, Chargebee API key).';
 comment on column source_connections.credential_encrypted is
-  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK) of the long-lived credential: OAuth refresh token, Stripe restricted key or Chargebee API key. Never plaintext.';
+  'CIPHERTEXT ONLY: versioned AES-GCM output (v<n>.part.part, enforced by CHECK) of the long-lived credential: OAuth refresh token, Stripe restricted key or Chargebee API key. Never plaintext.';
 comment on column source_connections.key_id is
   'Id of the encryption key that produced the ciphertext. Empty for v1 ciphertexts, which carry none.';
 comment on column source_connections.last_sync_counts is
-  'jsonb object of integer counts from the last sync (for example closed and open deal counts). Counts only, never records.';
+  'jsonb object of non-negative integer counts from the last sync, under an allowlisted key set (closed, open, deals_fetched, mappings), enforced by CHECK. salesforce-store.ts writes closed and open; the other two are reserved for HubSpot and later connectors. Counts only, never records or amounts.';
 comment on column source_connections.external_account_id is
   'Vendor account identifier: Salesforce org id, HubSpot portal id, Stripe account id, Chargebee site name.';
 
@@ -139,7 +166,8 @@ create table if not exists source_connection_config (
   customer_ref         text not null,
   source_system        text not null,
   mapping              jsonb not null default '{}'::jsonb
-    check (jsonb_typeof(mapping) = 'object'),
+    check (jsonb_typeof(mapping) = 'object'
+           and not jsonb_path_exists(mapping, 'strict $.* ? (@.type() != "string")')),
   stage_map            jsonb not null default '{}'::jsonb
     check (jsonb_typeof(stage_map) = 'object'
            and not jsonb_path_exists(stage_map, 'strict $.* ? (@.type() != "string")')),
@@ -160,11 +188,11 @@ create table if not exists source_connection_config (
 comment on table source_connection_config is
   'Per-connection configuration, generalising salesforce_mappings. Config only, never values: field names, stage identifiers, price identifiers, thresholds. Cascades from source_connections.';
 comment on column source_connection_config.mapping is
-  'jsonb object of canonical field to vendor field name. Names only, never row values.';
+  'jsonb object of canonical field to vendor field name, string values only (CHECK). Names only; that they are not row values is enforced by the app.';
 comment on column source_connection_config.stage_map is
   'jsonb object of vendor stage identifier to canonical outcome, string to string, confirmed by a person.';
 comment on column source_connection_config.list_price_set is
-  'jsonb array of vendor price or property identifiers confirmed as list price (strings). Identifiers only, never amounts.';
+  'jsonb array of vendor price or property identifiers confirmed as list price (strings, shape enforced by CHECK). That they are identifiers and not amounts is enforced by the app, not the database.';
 
 create index if not exists source_connections_status_updated_idx
   on source_connections (status, updated_at desc);
@@ -207,7 +235,7 @@ create unique index if not exists access_codes_tenant_ref_key
   on access_codes (tenant_ref);
 
 comment on column access_codes.tenant_ref is
-  'Opaque, stable tenant key, never a credential. Existing codes were backfilled to their code so keyed rows still match; new codes default to tn_ plus a random UUID without dashes.';
+  'Tenant key. For codes that existed at migration time it EQUALS THE ACCESS CODE, which is a bearer secret, until PK-43 re-keys: treat it as secret and never log it. New codes default to tn_ plus a random UUID without dashes, which is opaque.';
 
 do $$
 declare

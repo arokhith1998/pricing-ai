@@ -41,9 +41,9 @@ create table if not exists access_codes (
   used_at     timestamptz,                -- set on first successful use
   revoked     boolean not null default false,
   created_at  timestamptz not null default now(),
-  -- Opaque, stable tenant key, never a credential (2026-11-10-source-connections.sql,
-  -- PK-41). Rows that existed at migration time were backfilled to their code;
-  -- new codes get 'tn_' plus a random UUID without dashes from this default.
+  -- Tenant key (2026-11-10-source-connections.sql, PK-41). Rows that existed at
+  -- migration time were backfilled to their code (a bearer secret, never log
+  -- it) until PK-43 re-keys; new codes get an opaque 'tn_' plus random UUID.
   tenant_ref  text not null default 'tn_' || replace(gen_random_uuid()::text, '-', '')
 );
 
@@ -51,7 +51,7 @@ create unique index if not exists access_codes_tenant_ref_key
   on access_codes (tenant_ref);
 
 comment on column access_codes.tenant_ref is
-  'Opaque, stable tenant key, never a credential. Existing codes were backfilled to their code so keyed rows still match; new codes default to tn_ plus a random UUID without dashes.';
+  'Tenant key. For codes that existed at migration time it EQUALS THE ACCESS CODE, which is a bearer secret, until PK-43 re-keys: treat it as secret and never log it. New codes default to tn_ plus a random UUID without dashes, which is opaque.';
 
 -- Supports the leads -> access_codes lookup. Added by
 -- 2026-09-26-tenant-scoped-indexes.sql.
@@ -204,9 +204,10 @@ create table if not exists source_connections (
   credential_kind        text not null
     check (credential_kind in ('oauth_refresh','restricted_key','api_key')),
   access_token_encrypted text
-    check (access_token_encrypted is null or access_token_encrypted ~ '^v[0-9]+\.'),
+    check (access_token_encrypted is null
+           or access_token_encrypted ~ '^v[0-9]+(\.[A-Za-z0-9_-]+){2,}$'),
   credential_encrypted   text not null
-    check (credential_encrypted ~ '^v[0-9]+\.'),
+    check (credential_encrypted ~ '^v[0-9]+(\.[A-Za-z0-9_-]+){2,}$'),
   key_id                 text not null default '',
   scope                  text not null default '',
   token_expires_at       timestamptz,
@@ -215,24 +216,31 @@ create table if not exists source_connections (
   last_error             text not null default '',
   last_sync_at           timestamptz,
   last_sync_counts       jsonb not null default '{}'::jsonb
-    check (jsonb_typeof(last_sync_counts) = 'object'),
+    check (jsonb_typeof(last_sync_counts) = 'object'
+           and last_sync_counts - array['closed','open','deals_fetched','mappings'] = '{}'::jsonb
+           and not jsonb_path_exists(last_sync_counts,
+                 'strict $.* ? (@.type() != "number" || @ < 0 || @.floor() != @)')),
   connected_at           timestamptz not null default now(),
   updated_at             timestamptz not null default now(),
   primary key (customer_ref, source_system),
   constraint source_connections_instance_url_sf_only
-    check (instance_url is null or source_system = 'salesforce')
+    check (instance_url is null or source_system = 'salesforce'),
+  constraint source_connections_sf_has_instance_url
+    check (source_system <> 'salesforce' or instance_url is not null),
+  constraint source_connections_v2_has_key_id
+    check (key_id <> '' or credential_encrypted like 'v1.%')
 );
 
 comment on table source_connections is
   'One connected source per tenant and source system. Holds ciphertext credentials, identifiers, status and sync counts only. No plaintext credential and no deal, invoice or account value is ever stored here; row data is processed in memory and discarded.';
 comment on column source_connections.access_token_encrypted is
-  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK). Never a plaintext token. Null for credentials with no access token (Stripe restricted key, Chargebee API key).';
+  'CIPHERTEXT ONLY: versioned AES-GCM output (v<n>.part.part, enforced by CHECK). Never a plaintext token. Null for credentials with no access token (Stripe restricted key, Chargebee API key).';
 comment on column source_connections.credential_encrypted is
-  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK) of the long-lived credential: OAuth refresh token, Stripe restricted key or Chargebee API key. Never plaintext.';
+  'CIPHERTEXT ONLY: versioned AES-GCM output (v<n>.part.part, enforced by CHECK) of the long-lived credential: OAuth refresh token, Stripe restricted key or Chargebee API key. Never plaintext.';
 comment on column source_connections.key_id is
   'Id of the encryption key that produced the ciphertext. Empty for v1 ciphertexts, which carry none.';
 comment on column source_connections.last_sync_counts is
-  'jsonb object of integer counts from the last sync (for example closed and open deal counts). Counts only, never records.';
+  'jsonb object of non-negative integer counts from the last sync, under an allowlisted key set (closed, open, deals_fetched, mappings), enforced by CHECK. salesforce-store.ts writes closed and open; the other two are reserved for HubSpot and later connectors. Counts only, never records or amounts.';
 comment on column source_connections.external_account_id is
   'Vendor account identifier: Salesforce org id, HubSpot portal id, Stripe account id, Chargebee site name.';
 
@@ -240,7 +248,8 @@ create table if not exists source_connection_config (
   customer_ref         text not null,
   source_system        text not null,
   mapping              jsonb not null default '{}'::jsonb
-    check (jsonb_typeof(mapping) = 'object'),
+    check (jsonb_typeof(mapping) = 'object'
+           and not jsonb_path_exists(mapping, 'strict $.* ? (@.type() != "string")')),
   stage_map            jsonb not null default '{}'::jsonb
     check (jsonb_typeof(stage_map) = 'object'
            and not jsonb_path_exists(stage_map, 'strict $.* ? (@.type() != "string")')),
@@ -261,11 +270,11 @@ create table if not exists source_connection_config (
 comment on table source_connection_config is
   'Per-connection configuration, generalising salesforce_mappings. Config only, never values: field names, stage identifiers, price identifiers, thresholds. Cascades from source_connections.';
 comment on column source_connection_config.mapping is
-  'jsonb object of canonical field to vendor field name. Names only, never row values.';
+  'jsonb object of canonical field to vendor field name, string values only (CHECK). Names only; that they are not row values is enforced by the app.';
 comment on column source_connection_config.stage_map is
   'jsonb object of vendor stage identifier to canonical outcome, string to string, confirmed by a person.';
 comment on column source_connection_config.list_price_set is
-  'jsonb array of vendor price or property identifiers confirmed as list price (strings). Identifiers only, never amounts.';
+  'jsonb array of vendor price or property identifiers confirmed as list price (strings, shape enforced by CHECK). That they are identifiers and not amounts is enforced by the app, not the database.';
 
 create index if not exists source_connections_status_updated_idx
   on source_connections (status, updated_at desc);
