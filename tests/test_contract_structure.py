@@ -11,6 +11,7 @@ module itself must not import it, and a test below asserts that.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 from pathlib import Path
@@ -22,7 +23,7 @@ import pytest
 from pricing import contract_structure as cs
 from pricing.contract_structure import (
     CONTRACT_LENS_MIN_SCORED, EV_GRID_MAX_FRAC, LEVERS, METHOD,
-    contract_structure_deals, contract_structure_summary,
+    contract_structure_deals, contract_structure_readout, contract_structure_summary,
 )
 from pricing.generate import generate_contract_fixture
 from pricing.ingest import enrich, ingest_frame_verbose, ingest
@@ -67,10 +68,15 @@ FLAG_COL = {  # key flag name -> lens column
 }
 
 
-def _lens_for(seed: int = 7):
+@functools.lru_cache(maxsize=None)
+def _frame_and_key(seed: int):
     pop, key = generate_contract_fixture(n=600, seed=seed)
     ka = pd.read_csv(FIX / "known_answer_deals.csv")
-    frame = pd.concat([ka, pop], ignore_index=True)
+    return pd.concat([ka, pop], ignore_index=True), key
+
+
+def _lens_for(seed: int = 7):
+    frame, key = _frame_and_key(seed)
     enriched, report = ingest_frame_verbose(frame, source="PK-32 fixture")
     assert not report.blockers
     present = set(frame.columns)
@@ -127,7 +133,8 @@ def test_known_answers_recovered_row_by_row(lens7, keydf):
     assert matched == 115, f"{matched}/115 matched; disagreements: {diffs}"
 
 
-@pytest.mark.parametrize("seed", [7, 11, 23])
+@pytest.mark.parametrize("seed", [7, pytest.param(11, marks=pytest.mark.slow),
+                                  pytest.param(23, marks=pytest.mark.slow)])
 def test_population_flag_and_reason_sets_match_the_key(seed):
     deals, key, _ = _lens_for(seed)
     won = deals[deals["is_won"]]
@@ -193,6 +200,9 @@ def test_summary_counts_won_only_and_has_no_cross_lever_total(lens7):
         assert sum(d["reasons"].values()) == d["n_insufficient_data"] + d["n_not_provided"]
     keys = {k.lower() for d in s.values() for k in (*d, *d["dollars"], *d["n_flagged"])}
     assert not any(w in k for k in keys for w in ("total", "blend", "composite", "score_all"))
+    for d in s.values():  # dollars hold floats only; the counts sit beside them
+        assert all(isinstance(v, float) for v in d["dollars"].values())
+        assert all(isinstance(v, int) for v in d["dollars_n"].values())
     # KA-22 is closed_lost, so it never reaches the won summary reasons
     assert s["unit_rate"]["share_status"] == "scored"
 
@@ -250,7 +260,7 @@ def test_unit_rate_three_states():
 
 
 def test_commit_share_three_states():
-    assert _one(committed_acv=30000.0)["low_commit_share"] is True or bool(_one(committed_acv=30000.0)["low_commit_share"])
+    assert bool(_one(committed_acv=30000.0)["low_commit_share"])
     assert _one(committed_acv=np.nan)["commit_share_status"] == "not_provided"
     assert _one(committed_acv=90000.0)["commit_share_reason"] == "commit_exceeds_booked"
     assert _one(value_metric="seats")["commit_share_reason"] == "value_metric_seats"
@@ -297,10 +307,9 @@ def test_waterfall_three_states_and_ramp_columns_absent():
     assert _one(**base, credits_tcv=1.0, ramp_year_1_acv=70000.0)["waterfall_reason"] == "ramp_step_insufficient"
 
 
-def test_ka14_without_ramp_columns_names_the_excluded_step():
-    ka = pd.read_csv(FIX / "known_answer_deals.csv")
-    pop, _ = generate_contract_fixture(n=600, seed=7)
-    frame = pd.concat([ka, pop], ignore_index=True).drop(columns=["ramp_year_1_acv", "ramp_year_2_acv"])
+def test_ka14_without_ramp_columns_gives_a_not_provided_ramp_step():
+    frame, _ = _frame_and_key(7)
+    frame = frame.drop(columns=["ramp_year_1_acv", "ramp_year_2_acv"])
     enriched, _ = ingest_frame_verbose(frame, source="PK-32 no ramp cols")
     out = contract_structure_deals(enriched, columns_present=set(frame.columns))
     r = out.set_index("opportunity_id").loc["KA-14"]
@@ -388,7 +397,6 @@ def test_module_does_not_import_the_fixture_generator():
     assert not re.search(r"^\s*from\s+pricing\s+import\s+.*\bgenerate\b", MODULE_SRC, re.M)
     assert "_contract_expected_levers" not in MODULE_SRC
     import sys
-    assert "pricing.generate" not in sys.modules or True  # test module itself imports it
     # fresh interpreter: importing the lens alone must not pull the generator in
     import subprocess
     code = "import sys; import pricing.contract_structure; print('pricing.generate' in sys.modules)"
@@ -443,3 +451,178 @@ def test_synthetic_book_runs_clean_and_reports_not_provided_where_fields_are_mis
     seats = out[out["value_metric"] == "seats"]
     assert (seats["unit_rate_status"] == "not_provided").all()
     assert (seats["overage_fence_status"] == "not_provided").all()
+
+
+# --- review amendments (spec 7a) ----------------------------------------------------
+
+def test_cent_denominated_floor_deals_agree_between_ramp_and_waterfall():
+    rng = np.random.default_rng(31)
+    n = 600
+    list_acv = rng.uniform(20_000, 400_000, n).round(2)
+    term = rng.choice([24, 36, 48], n)
+    booked = (list_acv * 0.85).round(2)  # exactly 15 percent off, at cents
+    df = pd.DataFrame({
+        "opportunity_id": [f"C{i}" for i in range(n)], "outcome": "closed_won",
+        "value_metric": "seats", "list_acv": list_acv, "booked_acv": booked, "term_months": term,
+        "ramp_year_1_acv": booked, "ramp_year_2_acv": booked, "approved_by": "",
+    })
+    enriched = enrich(df)
+    assert (enriched["price_realization"] < 0.85).any()  # the unrounded value really is below
+    out = contract_structure_deals(enriched)
+    assert (out["waterfall_status"] == "scored").all()
+    assert (out["ramp_hidden_discount"].astype(bool) == out["off_invoice_below_floor"].astype(bool)).all()
+    assert not out["off_invoice_below_floor"].astype(bool).any()
+    # flat ramp at the floor: pocket realization equals one minus the TCV discount
+    assert (out["pocket_realization"] - (1 - out["tcv_weighted_effective_discount"])).abs().max() < 2e-6
+
+
+def test_cent_level_ramp_deals_keep_the_consistency_property():
+    rng = np.random.default_rng(32)
+    n = 600
+    list_acv = rng.uniform(20_000, 400_000, n).round(2)
+    booked = (list_acv * rng.choice([0.85, 0.9, 0.95], n)).round(2)
+    df = pd.DataFrame({
+        "opportunity_id": [f"D{i}" for i in range(n)], "outcome": "closed_won",
+        "value_metric": "seats", "list_acv": list_acv, "booked_acv": booked,
+        "term_months": rng.choice([24, 36, 48], n),
+        "ramp_year_1_acv": (booked * rng.uniform(0.5, 1, n)).round(2),
+        "ramp_year_2_acv": (booked * rng.uniform(0.5, 1, n)).round(2), "approved_by": "",
+    })
+    out = contract_structure_deals(enrich(df))
+    assert (out["ramp_hidden_discount"].astype(bool) == out["off_invoice_below_floor"].astype(bool)).all()
+
+
+def test_negative_platform_fee_on_hybrid_is_invalid_not_inflated_usage():
+    # KA-02 economics as hybrid: commit 120,000, qty 200,000, list rate 1.00, overage 0.70
+    r = _one(value_metric="hybrid", list_acv=200000.0, booked_acv=160000.0, committed_acv=120000.0,
+             quantity=200000.0, list_unit_rate=1.0, overage_rate=0.70, platform_fee_acv=-50000.0)
+    for lever in ("unit_rate", "overage_fence"):
+        assert r[f"{lever}_status"] == "insufficient_data"
+        assert r[f"{lever}_reason"] == "invalid_money_value"
+    assert np.isnan(r["effective_committed_unit_rate"]) and np.isnan(r["committed_usage_acv"])
+    assert r["commit_share_status"] == "scored"  # lever 2 does not use the fee
+
+
+def test_waterfall_bounds_and_nonfinite_list_rate():
+    seats = dict(value_metric="seats", list_acv=100000.0, booked_acv=90000.0, term_months=24)
+    big = _one(**seats, credits_tcv=500000.0)
+    assert big["waterfall_status"] == "insufficient_data"
+    assert big["waterfall_reason"] == "pocket_realization_out_of_bounds"
+    zero = _one(**{**seats, "booked_acv": 0.0}, credits_tcv=1000.0)
+    assert zero["waterfall_reason"] == "booked_missing_or_zero"
+    short = _one(**{**seats, "term_months": 1}, credits_tcv=5000.0)  # 60,000 a year on a 100,000 list
+    assert short["waterfall_status"] == "scored" and short["pocket_acv"] == 30000.0
+    short2 = _one(**{**seats, "term_months": 1, "booked_acv": 50000.0}, credits_tcv=5000.0)
+    assert short2["waterfall_reason"] == "pocket_realization_out_of_bounds"  # pocket < 0
+    inf = _one(list_unit_rate=np.inf)
+    assert inf["list_unit_rate_basis"] == "derived" and inf["list_unit_rate_used"] == 1.0
+    assert inf["unit_rate_status"] == "scored"
+
+
+def test_enriched_columns_are_required():
+    raw = pd.DataFrame({"opportunity_id": ["a"], "outcome": ["closed_won"], "list_acv": [1.0],
+                        "booked_acv": [1.0]})
+    with pytest.raises(ValueError, match="discount_pct"):
+        contract_structure_deals(raw)
+    with pytest.raises(ValueError, match="is_won or outcome"):
+        contract_structure_summary(pd.DataFrame({"unit_rate_status": ["scored"]}))
+
+
+# --- readout --------------------------------------------------------------------------
+
+def _no_em_dash(obj) -> None:
+    assert chr(0x2014) not in json.dumps(obj, default=str, ensure_ascii=False)
+
+
+def test_readout_entries_carry_method_and_text_is_clean(lens7):
+    deals, _, _ = lens7
+    ro = contract_structure_readout(deals)
+    assert ro["method"] == METHOD and ro["trade_check"]["method"] == METHOD
+    for entry in ro["flags"]:
+        assert entry["method"] == METHOD and "policy rule" in entry["label"].lower()
+        assert entry["total_flagged"] >= len(entry["deals"])
+        assert entry["truncated"] == (entry["total_flagged"] > len(entry["deals"]))
+    for cov in ro["coverage"].values():
+        assert cov["method"] == METHOD
+    for d in ro["summary"].values():
+        assert d["method"] == METHOD
+    blob = json.dumps(ro, default=str, ensure_ascii=False).lower()
+    _no_em_dash(ro)
+    assert "margin" not in blob and "cogs" not in blob
+
+
+def test_readout_lists_are_won_only_sorted_and_deterministic(lens7):
+    deals, key, _ = lens7
+    ro = contract_structure_readout(deals, n=1000)
+    decoys = set(key["lost_decoys"])
+    by_flag = {e["flag"]: e for e in ro["flags"]}
+    assert len(by_flag) == 7
+    for e in ro["flags"]:
+        ids = [d["opportunity_id"] for d in e["deals"]]
+        assert not decoys & set(ids) and len(ids) == len(set(ids)) == e["total_flagged"]
+        assert all(list(d)[:4] == ["opportunity_id", "resolved_account_name", "segment",
+                                   "value_metric"] for d in e["deals"])
+    gaps = [d["unit_rate_gap_to_floor_acv"] for d in by_flag["unit_rate_below_floor"]["deals"]]
+    assert gaps == sorted(gaps, reverse=True)
+    prem = [d["overage_premium"] for d in by_flag["overage_fence_breach"]["deals"]]
+    assert prem == sorted(prem)
+    conc = [d["ramp_concession_tcv"] for d in by_flag["ramp_hidden_discount"]["deals"]]
+    assert conc == sorted(conc, reverse=True)
+    assert contract_structure_readout(deals, n=1000) == ro
+    small = contract_structure_readout(deals, n=3)
+    assert all(len(e["deals"]) <= 3 for e in small["flags"])
+    assert any(e["truncated"] for e in small["flags"])
+
+
+def test_readout_sentences_templates_and_ev_grid_note(lens7):
+    deals, _, _ = lens7
+    ro = contract_structure_readout(deals)
+    by_flag = {e["flag"]: e for e in ro["flags"]}
+    u = by_flag["unit_rate_below_floor"]
+    assert re.match(r"^\d+ of \d+ scored won usage deals sit below the 15% unit-rate floor, "
+                    r"\$[\d,]+ below floor in total\. Method: policy rule\.$", u["sentence"])
+    assert cs.UNIT_RATE_GRID_NOTE in u["label"]  # five planted deals sit beyond 40 percent
+    assert any(cs.UNIT_RATE_GRID_NOTE in d["label"] for d in u["deals"] if d["unit_rate_outside_ev_grid"])
+    assert all(cs.UNIT_RATE_GRID_NOTE not in d["label"] for d in u["deals"] if not d["unit_rate_outside_ev_grid"])
+    assert "List unit rate supplied" in u["label"]
+    r = by_flag["ramp_hidden_discount"]
+    assert "exceed it once the ramp is counted" in r["sentence"] and "no recorded approver" in r["sentence"]
+    d0 = r["deals"][0]
+    assert re.search(r"The steady-state discount is \d+\.\d%; counting the ramp, it is \d+\.\d%\.", d0["label"])
+    assert "at or below their effective committed unit rate" in by_flag["overage_fence_breach"]["sentence"]
+    assert ro["trade_check"]["total_flagged"] >= 1  # KA-05 sits in the trade check
+    assert "KA-05" in [d["opportunity_id"] for d in ro["trade_check"]["deals"]]
+
+
+def test_readout_share_note_under_fifteen_scored_deals():
+    df = pd.DataFrame([dict(opportunity_id=f"S{i}", outcome="closed_won", value_metric="consumption",
+                            list_acv=100000.0, booked_acv=80000.0, committed_acv=30000.0,
+                            quantity=40000.0, overage_rate=1.2, term_months=12) for i in range(3)])
+    ro = contract_structure_readout(contract_structure_deals(enrich(df)))
+    low = next(e for e in ro["flags"] if e["flag"] == "low_commit_share")
+    assert low["share_note"] == cs.SHARE_INSUFFICIENT_SENTENCE and low["total_flagged"] == 3
+    assert np.isnan(ro["summary"]["commit_share"]["flagged_share"]["low_commit_share"])
+
+
+def test_readout_ka14_without_ramp_columns_names_the_excluded_step():
+    frame, _ = _frame_and_key(7)
+    frame = frame.drop(columns=["ramp_year_1_acv", "ramp_year_2_acv"])
+    enriched, _ = ingest_frame_verbose(frame, source="PK-32 no ramp cols")
+    out = contract_structure_deals(enriched, columns_present=set(frame.columns))
+    ro = contract_structure_readout(out, n=1000)
+    e = next(x for x in ro["flags"] if x["flag"] == "off_invoice_below_floor")
+    assert "Excludes ramp: not in the file." in e["label"]
+    ka14 = next(d for d in e["deals"] if d["opportunity_id"] == "KA-14")
+    assert "Excludes ramp: not in the file." in ka14["label"]
+    assert ka14["steps_contributing"] == ["credits"]
+    _no_em_dash(ro)
+
+
+def test_readout_coverage_lists_first_ids_per_insufficient_reason(lens7):
+    deals, key, _ = lens7
+    ro = contract_structure_readout(deals, n=1000)
+    cov = ro["coverage"]["unit_rate"]["insufficient_data_ids"]
+    planted = [i for i in key["reasons"]["quantity_missing_or_zero"]]
+    assert set(planted) <= set(cov["quantity_missing_or_zero"])
+    assert cov["quantity_missing_or_zero"] == sorted(cov["quantity_missing_or_zero"])
+    assert ro["coverage"]["unit_rate"]["counts"]["scored"] == ro["summary"]["unit_rate"]["n_scored"]

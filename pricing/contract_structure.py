@@ -23,7 +23,10 @@ Rules this module holds to, by construction:
   * Ratios are fractions (0 to 1), rounded to 6 dp before any threshold
     comparison; dollar outputs are rounded to 2 dp on output only.
 
-The readout lists and the decision-record concession fields belong to PK-33.
+Ratios that can be NaN in a summary (flagged_share under 15 scored deals) stay
+NaN here, as the spec says; PK-33 and PK-34 convert NaN to null at the API
+boundary. The decision-record concession fields and the wiring of the readout
+into the diagnostic and the API belong to PK-33 and PK-34.
 """
 
 from __future__ import annotations
@@ -146,6 +149,11 @@ def contract_structure_deals(df: pd.DataFrame, *,
     (columns in the file) or "not in the file" (lever 5 ramp step). Default
     None means df.columns.
     """
+    missing = [c for c in ("discount_pct", "price_realization") if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"contract_structure_deals needs the enriched columns {missing}; run the frame "
+            "through pricing.ingest (ingest_frame_verbose or enrich) first.")
     present = set(df.columns if columns_present is None else columns_present)
     out = df.copy()
     idx = df.index
@@ -170,20 +178,21 @@ def contract_structure_deals(df: pd.DataFrame, *,
     y2 = _num(df, "ramp_year_2_acv")
     approver = _text(df, "approved_by")
 
-    if "discount_pct" in df.columns:
-        disc = _num(df, "discount_pct")
-        pr = _num(df, "price_realization")
-    else:  # direct-frame callers that skipped enrich: same formula, never written back
-        pr = (booked / list_acv.replace(0, np.nan)).clip(upper=REALIZATION_SANITY_CAP)
-        disc = (1.0 - pr).clip(upper=1.0).round(6)
+    disc = _num(df, "discount_pct")
+    # round before any threshold comparison, like every other ratio here (spec 7a.1):
+    # a cent-denominated 15 percent deal sits at 0.8499999974 unrounded
+    pr = _num(df, "price_realization").round(6)
 
     # --- shared checks --------------------------------------------------------
-    def commit_checks(d: _Decide, *, with_c1_c2: bool) -> None:
+    def commit_checks(d: _Decide, *, with_c1_c2: bool, fee_check: bool = True) -> None:
         if with_c1_c2:
             d.add(is_seats, NOT_PROVIDED, "value_metric_seats")
             d.add(committed.isna(), NOT_PROVIDED, "committed_acv_blank")
         d.add(~vm_ok, INSUFFICIENT, "value_metric_unknown")
-        d.add((committed < 0) | booked.isna() | (booked <= 0), INSUFFICIENT, "invalid_money_value")
+        bad_money = (committed < 0) | booked.isna() | (booked <= 0)
+        if fee_check:  # a negative platform fee must never inflate committed usage (spec 7a.2)
+            bad_money = bad_money | (is_hybrid & (fee < 0))
+        d.add(bad_money, INSUFFICIENT, "invalid_money_value")
         d.add(committed > booked * (1 + STEADY_STATE_TOLERANCE), INSUFFICIENT, "commit_exceeds_booked")
 
     def rate_checks(d: _Decide) -> None:
@@ -204,7 +213,7 @@ def contract_structure_deals(df: pd.DataFrame, *,
     new["effective_committed_unit_rate"] = eff.astype("float64")
 
     # --- lever 1: unit rate -----------------------------------------------------
-    supplied = lur > 0
+    supplied = np.isfinite(lur) & (lur > 0)
     full_commit = (committed - booked).abs() <= FULL_COMMIT_TOLERANCE * booked
     derivable = is_cons & full_commit & (list_acv > 0) & (qty > 0) & ~supplied
     lur_used = pd.Series(np.nan, index=idx, dtype="float64")
@@ -238,7 +247,7 @@ def contract_structure_deals(df: pd.DataFrame, *,
 
     # --- lever 2: commit share --------------------------------------------------
     d2 = _Decide(idx)
-    commit_checks(d2, with_c1_c2=True)
+    commit_checks(d2, with_c1_c2=True, fee_check=False)
     s2, r2, ok2 = d2.finish()
     share = (committed / booked).round(6)
     new["commit_share_status"], new["commit_share_reason"] = s2, r2
@@ -312,11 +321,13 @@ def contract_structure_deals(df: pd.DataFrame, *,
 
     d5 = _Decide(idx)
     d5.add(list_acv.isna() | booked.isna() | (list_acv <= 0), INSUFFICIENT, "invalid_money_value")
+    d5.add(booked <= 0, INSUFFICIENT, "booked_missing_or_zero")
     d5.add(s4 == INSUFFICIENT, INSUFFICIENT, "ramp_step_insufficient")
     d5.add(credits < 0, INSUFFICIENT, "invalid_money_value")
     d5.add(credits_present & (term.isna() | (term <= 0)), INSUFFICIENT, "term_months_missing")
     d5.add((s4 == NOT_PROVIDED) & ~credits_present, NOT_PROVIDED, "no_off_invoice_steps")
-    d5.add(pocket_real > REALIZATION_SANITY_CAP, INSUFFICIENT, "pocket_realization_out_of_bounds")
+    d5.add((pocket_real > REALIZATION_SANITY_CAP) | (pocket_real < 0),
+           INSUFFICIENT, "pocket_realization_out_of_bounds")
     s5, r5, ok5 = d5.finish()
     new["waterfall_status"], new["waterfall_reason"] = s5, r5
     new["wf_list_acv"] = _f(list_acv, ok5, 2)
@@ -342,6 +353,7 @@ def contract_structure_deals(df: pd.DataFrame, *,
         "lens_version": LENS_VERSION, "method": METHOD,
         "floor_frac": floor_frac, "commit_share_floor": commit_share_floor,
         "ramp_columns_in_file": ramp_cols_in_file,
+        "credits_column_in_file": "credits_tcv" in present,
     }
     return out
 
@@ -353,7 +365,8 @@ def _won_mask(deals: pd.DataFrame) -> pd.Series:
         return deals["is_won"].fillna(False).astype(bool)
     if "outcome" in deals.columns:
         return deals["outcome"].astype(str) == "closed_won"
-    return pd.Series(True, index=deals.index)
+    raise ValueError("contract_structure needs is_won or outcome to tell won deals apart; "
+                     "run the frame through pricing.ingest first.")
 
 
 def _sum(deals: pd.DataFrame, col: str, mask: pd.Series) -> float:
@@ -369,6 +382,7 @@ def contract_structure_summary(deals: pd.DataFrame) -> dict:
     for lever in LEVERS:
         st = deals[f"{lever}_status"]
         scored = won & (st == SCORED)
+        dollars, dollars_n = _lever_dollars(deals, lever, scored)
         n_scored = int(scored.sum())
         shares_ok = n_scored >= CONTRACT_LENS_MIN_SCORED
         n_flagged = {f: int((deals[f].fillna(False).astype(bool) & scored).sum())
@@ -387,41 +401,232 @@ def contract_structure_summary(deals: pd.DataFrame) -> dict:
             "flagged_share": {f: (round(n / n_scored, 6) if shares_ok else float("nan"))
                               for f, n in n_flagged.items()},
             "share_status": SCORED if shares_ok else INSUFFICIENT,
-            "dollars": _lever_dollars(deals, lever, scored),
+            "dollars": dollars,
+            "dollars_n": dollars_n,
         }
     return result
 
 
-def _lever_dollars(deals: pd.DataFrame, lever: str, scored: pd.Series) -> dict[str, float]:
+def _lever_dollars(deals: pd.DataFrame, lever: str,
+                   scored: pd.Series) -> tuple[dict[str, float], dict[str, int]]:
+    """(dollar sums, the deal counts behind them). Dollars hold floats only."""
     def flag(col: str) -> pd.Series:
         return scored & deals[col].fillna(False).astype(bool)
 
     if lever == "unit_rate":
         m = flag("unit_rate_below_floor")
-        return {"unit_rate_gap_to_floor_acv": _sum(deals, "unit_rate_gap_to_floor_acv", m),
-                "n_deals": int(m.sum())}
+        return ({"unit_rate_gap_to_floor_acv": _sum(deals, "unit_rate_gap_to_floor_acv", m)},
+                {"unit_rate_below_floor": int(m.sum())})
     if lever == "commit_share":
         m = flag("low_commit_share")
-        return {"uncommitted_booked_acv": _sum(deals, "uncommitted_booked_acv", m),
-                "n_deals": int(m.sum())}
+        return ({"uncommitted_booked_acv": _sum(deals, "uncommitted_booked_acv", m)},
+                {"low_commit_share": int(m.sum())})
     if lever == "overage_fence":
         # committed usage exposed to the fence breach, not a loss figure
         m = flag("overage_fence_breach")
-        return {"committed_usage_acv_exposed": _sum(deals, "committed_usage_acv", m),
-                "n_deals": int(m.sum())}
+        return ({"committed_usage_acv_exposed": _sum(deals, "committed_usage_acv", m)},
+                {"overage_fence_breach": int(m.sum())})
     if lever == "ramp":
         m = flag("ramp_hidden_discount")
-        return {"ramp_concession_tcv_all_scored": _sum(deals, "ramp_concession_tcv", scored),
-                "n_scored_deals": int(scored.sum()),
-                "ramp_concession_tcv_hidden_discount": _sum(deals, "ramp_concession_tcv", m),
-                "n_hidden_discount_deals": int(m.sum())}
+        return ({"ramp_concession_tcv_all_scored": _sum(deals, "ramp_concession_tcv", scored),
+                 "ramp_concession_tcv_hidden_discount": _sum(deals, "ramp_concession_tcv", m)},
+                {"scored": int(scored.sum()), "ramp_hidden_discount": int(m.sum())})
     m = flag("off_invoice_below_floor")
     gap = (pd.to_numeric(deals.loc[m, "booked_acv"], errors="coerce")
            - pd.to_numeric(deals.loc[m, "pocket_acv"], errors="coerce")).sum()
-    return {"wf_list_acv": _sum(deals, "wf_list_acv", scored),
-            "wf_discount_acv": _sum(deals, "wf_discount_acv", scored),
-            "wf_ramp_concession_acv": _sum(deals, "wf_ramp_concession_acv", scored),
-            "wf_credits_acv": _sum(deals, "wf_credits_acv", scored),
-            "n_scored_deals": int(scored.sum()),
-            "booked_minus_pocket_acv_off_invoice_below_floor": round(float(gap), 2),
-            "n_off_invoice_below_floor_deals": int(m.sum())}
+    return ({"wf_list_acv": _sum(deals, "wf_list_acv", scored),
+             "wf_discount_acv": _sum(deals, "wf_discount_acv", scored),
+             "wf_ramp_concession_acv": _sum(deals, "wf_ramp_concession_acv", scored),
+             "wf_credits_acv": _sum(deals, "wf_credits_acv", scored),
+             "booked_minus_pocket_acv_off_invoice_below_floor": round(float(gap), 2)},
+            {"scored": int(scored.sum()), "off_invoice_below_floor": int(m.sum())})
+
+
+# --- readout ------------------------------------------------------------------------
+
+_COMMON = ("opportunity_id", "resolved_account_name", "segment", "value_metric")
+_RAMP_COLS = ("term_months", "ramp_year_1_acv", "ramp_year_2_acv", "booked_acv", "discount_pct",
+              "tcv_weighted_effective_discount", "ramp_concession_tcv", "approved_by")
+
+# flag -> (lever, columns after the common ones)
+_FLAG_SPECS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "unit_rate_below_floor": ("unit_rate", (
+        "effective_committed_unit_rate", "list_unit_rate_used", "list_unit_rate_basis",
+        "unit_rate_realization", "unit_rate_gap_to_floor_acv", "unit_rate_outside_ev_grid",
+        "discount_pct")),
+    "low_commit_share": ("commit_share", (
+        "committed_acv", "booked_acv", "commit_share_of_booked", "uncommitted_booked_acv")),
+    "overage_fence_breach": ("overage_fence", (
+        "effective_committed_unit_rate", "overage_rate", "overage_premium", "committed_usage_acv")),
+    "overage_below_list_unit_rate": ("overage_fence", (
+        "overage_rate", "list_unit_rate_used", "list_unit_rate_basis")),
+    "ramp_hidden_discount": ("ramp", _RAMP_COLS),
+    "ramp_unapproved": ("ramp", _RAMP_COLS),
+    "off_invoice_below_floor": ("waterfall", (
+        "price_realization", "pocket_realization", "wf_ramp_concession_acv", "wf_credits_acv")),
+}
+
+SHARE_INSUFFICIENT_SENTENCE = ("Fewer than 15 scored won deals on this lever, so no share is "
+                               "reported. The deals are listed below.")
+
+
+def _py(v):
+    """Plain python value; NaN and NA become None so rows serialize cleanly."""
+    if v is None or v is pd.NA:
+        return None
+    if isinstance(v, (np.bool_, bool)):
+        return bool(v)
+    if isinstance(v, np.integer):
+        return int(v)
+    if isinstance(v, (float, np.floating)):
+        return None if np.isnan(v) else float(v)
+    return v
+
+
+def _basis_clause(bases: set[str]) -> str:
+    derived = "derived from list ACV over quantity on a fully committed deal"
+    if bases == {"supplied"}:
+        return "List unit rate supplied."
+    if bases == {"derived"}:
+        return f"List unit rate {derived}."
+    return f"List unit rate supplied or {derived}."
+
+
+def _deal_label(flag: str, row: pd.Series) -> str | None:
+    """Per-deal label, built only from that deal's own lens outputs."""
+    if flag == "unit_rate_below_floor":
+        text = LEVER_LABELS["unit_rate"] + " " + _basis_clause({str(row["list_unit_rate_basis"])})
+        if bool(row["unit_rate_outside_ev_grid"]):
+            text += " " + UNIT_RATE_GRID_NOTE
+        return text
+    if flag in ("ramp_hidden_discount", "ramp_unapproved"):
+        return ("Ramp: dollars scheduled below steady-state ACV over the term, and the discount "
+                "on a total-contract basis. Method: policy rule. "
+                f"The steady-state discount is {float(row['discount_pct']):.1%}; counting the "
+                f"ramp, it is {float(row['tcv_weighted_effective_discount']):.1%}.")
+    if flag == "off_invoice_below_floor":
+        text = LEVER_LABELS["waterfall"]
+        for name, col in (("ramp", "wf_ramp_step_status"), ("credits", "wf_credits_step_status")):
+            if row[col] != SCORED:
+                text += f" Excludes {name}: not in the file."
+        return text
+    if flag == "overage_below_list_unit_rate":
+        return "Overage rate below the list unit rate. Method: policy rule."
+    return None
+
+
+def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
+                               policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
+    """Won-deal readout: per-flag lists, trade check, coverage, deterministic sentences.
+
+    Every entry carries method "policy rule". Lists are sorted as spec section 5
+    states, ties broken by opportunity_id ascending. No LLM runs here.
+    """
+    params = deals.attrs.get("contract_structure", {})
+    summary = contract_structure_summary(deals)
+    won = _won_mask(deals)
+    ramp_in_file = bool(params.get("ramp_columns_in_file", True))
+    credits_in_file = bool(params.get("credits_column_in_file", True))
+
+    def col(name: str) -> pd.Series:
+        return deals[name] if name in deals.columns else pd.Series(np.nan, index=deals.index)
+
+    def rows(mask: pd.Series, cols: tuple[str, ...], sort_key: pd.Series, ascending: bool,
+             flag: str | None) -> tuple[int, list[dict]]:
+        sub = deals.loc[mask].copy()
+        sub["_k"] = pd.to_numeric(sort_key.loc[mask], errors="coerce")
+        sub = sub.sort_values(["_k", "opportunity_id"], ascending=[ascending, True],
+                              na_position="last", kind="mergesort")
+        out = []
+        for _, r in sub.head(n).iterrows():
+            d = {c: (_py(r[c]) if c in sub.columns else None) for c in (*_COMMON, *cols)}
+            if flag is not None:
+                lab = _deal_label(flag, r)
+                if lab:
+                    d["label"] = lab
+            if flag == "off_invoice_below_floor":
+                d["steps_contributing"] = [
+                    s for s, c in (("ramp", "wf_ramp_concession_acv"), ("credits", "wf_credits_acv"))
+                    if pd.notna(r[c]) and r[c] != 0]
+            out.append(d)
+        return int(mask.sum()), out
+
+    sorts = {
+        "unit_rate_below_floor": (col("unit_rate_gap_to_floor_acv"), False),
+        "low_commit_share": (col("uncommitted_booked_acv"), False),
+        "overage_fence_breach": (col("overage_premium"), True),
+        "overage_below_list_unit_rate": (col("overage_rate") / col("list_unit_rate_used"), True),
+        "ramp_hidden_discount": (col("ramp_concession_tcv"), False),
+        "ramp_unapproved": (col("ramp_concession_tcv"), False),
+        "off_invoice_below_floor": (col("booked_acv") - col("pocket_acv"), False),
+    }
+    flags = []
+    for flag, (lever, cols) in _FLAG_SPECS.items():
+        mask = won & deals[flag].fillna(False).astype(bool)
+        key, asc = sorts[flag]
+        total, lst = rows(mask, cols, key, asc, flag)
+        label = LEVER_LABELS[lever].format(
+            commit_share_floor=params.get("commit_share_floor", COMMIT_SHARE_FLOOR_DEFAULT))
+        if flag == "unit_rate_below_floor":
+            bases = set(deals.loc[mask, "list_unit_rate_basis"]) or {"supplied", "derived"}
+            label += " " + _basis_clause(bases)
+            if (mask & deals["unit_rate_outside_ev_grid"].fillna(False).astype(bool)).any():
+                label += " " + UNIT_RATE_GRID_NOTE
+        elif flag == "overage_below_list_unit_rate":
+            label = "Overage rate below the list unit rate. Method: policy rule."
+        elif flag == "off_invoice_below_floor":
+            for step, present in (("ramp", ramp_in_file), ("credits", credits_in_file)):
+                if not present:
+                    label += f" Excludes {step}: not in the file."
+        entry = {"flag": flag, "lever": lever, "method": METHOD, "label": label,
+                 "total_flagged": total, "deals": lst, "truncated": total > len(lst)}
+        sentence = _sentence(flag, summary, deals, mask, policy_threshold, total)
+        if sentence:
+            entry["sentence"] = sentence
+        if summary[lever]["share_status"] == INSUFFICIENT:
+            entry["share_note"] = SHARE_INSUFFICIENT_SENTENCE
+        flags.append(entry)
+
+    coverage = {}
+    for lever in LEVERS:
+        st = deals[f"{lever}_status"]
+        by_reason = {}
+        insuff = won & (st == INSUFFICIENT)
+        for reason in sorted(deals.loc[insuff, f"{lever}_reason"].unique()):
+            ids = deals.loc[insuff & (deals[f"{lever}_reason"] == reason), "opportunity_id"]
+            by_reason[reason] = sorted(ids.astype(str))[:n]
+        coverage[lever] = {
+            "method": METHOD,
+            "counts": {s: int((won & (st == s)).sum()) for s in (SCORED, INSUFFICIENT, NOT_PROVIDED)},
+            "insufficient_data_ids": by_reason,
+        }
+
+    tmask = (won & (col("discount_pct") > policy_threshold)
+             & deals["low_commit_share"].fillna(False).astype(bool))
+    total, lst = rows(tmask, ("discount_pct", "discount_amount", "commit_share_of_booked",
+                              "uncommitted_booked_acv"), col("discount_amount"), False, None)
+    trade = {"flag": "trade_check", "method": METHOD,
+             "label": ("Discount given without commitment bought: won deals over the policy "
+                       "discount line with a commit share below the floor. Method: policy rule."),
+             "total_flagged": total, "deals": lst, "truncated": total > len(lst)}
+    return {"method": METHOD, "summary": summary, "flags": flags, "coverage": coverage,
+            "trade_check": trade}
+
+
+def _sentence(flag: str, summary: dict, deals: pd.DataFrame, mask: pd.Series,
+              policy_threshold: float, total: int) -> str | None:
+    if flag == "unit_rate_below_floor":
+        d = summary["unit_rate"]
+        return (f"{total} of {d['n_scored']} scored won usage deals sit below the "
+                f"{policy_threshold:.0%} unit-rate floor, "
+                f"${d['dollars']['unit_rate_gap_to_floor_acv']:,.0f} below floor in total. "
+                "Method: policy rule.")
+    if flag == "overage_fence_breach":
+        return (f"{total} won deals carry an overage rate at or below their effective committed "
+                "unit rate. Method: policy rule.")
+    if flag == "ramp_hidden_discount":
+        unapproved = int((mask & deals["ramp_unapproved"].fillna(False).astype(bool)).sum())
+        return (f"{total} won deals pass the {policy_threshold:.0%} discount line at steady state "
+                f"but exceed it once the ramp is counted; {unapproved} of them have no recorded "
+                "approver. Method: policy rule.")
+    return None
