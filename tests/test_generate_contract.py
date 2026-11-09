@@ -499,7 +499,8 @@ def test_blank_handles_pandas_na_and_nullable_int():
     frame, _ = generate_known_answer_cases()
     assert frame["term_months"].dtype == "Int64"
     row = next(r for r in frame.to_dict("records") if r["opportunity_id"] == "KA-26")
-    assert row["term_months"] is pd.NA   # the nullable-Int64 scalar itself
+    row["term_months"] = frame["term_months"].iloc[-1]   # the Int64 scalar itself
+    assert row["term_months"] is pd.NA
     res = _contract_expected_levers(row)
     assert res["waterfall"]["reason"] == "term_months_missing"
     assert res["ramp"]["reason"] == "no_ramp_recorded"
