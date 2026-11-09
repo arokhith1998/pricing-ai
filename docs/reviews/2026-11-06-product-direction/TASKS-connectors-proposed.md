@@ -467,3 +467,9 @@ response includes" the ask_user section) and PK-33 (`api/routers/diagnostic.py#r
 likely need `api/shared.py#diagnostic_payload`, which neither claims. Before either is assigned, add
 that component to the claim of whichever runs first and sequence the other behind it; do not let either
 edit outside its claim.
+
+## Lead resolutions on entry, 2026-11-09
+
+1. `api/shared.py#diagnostic_payload` is claimed by PK-39 when it is assigned; PK-33 sequences behind PK-39 and claims the component after PK-39 merges.
+2. One adapter layout: PK-46 creates the `pricing/adapters/` package and moves `CsvAdapter` from `pricing/csv_adapter.py` into `pricing/adapters/csv.py` (keeping `pricing/csv_adapter.py` as a one-line re-export for one release) and `SalesforceAdapter` into `pricing/adapters/salesforce.py` with `pricing/crm.py` importing it. PK-46's owns gain `pricing/csv_adapter.py` and `pricing/adapters` at assignment; PK-55 and PK-63 write their adapters into the same package.
+3. F2 stays a sequencing recommendation, not a declared dependency: PK-54 does not depend on PK-32.
