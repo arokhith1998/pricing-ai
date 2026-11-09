@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T19:19:42Z
+Active work: 4/4
+Updated: 2026-11-09T19:24:00Z
 
 ## IN_PROGRESS
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
@@ -16,6 +16,10 @@ Updated: 2026-11-09T19:19:42Z
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
   - owns: requirements.txt, pricing/matching.py#schema, tests/test_matching.py
+
+## REWORK_REQUIRED
+- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
+  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -32,8 +36,6 @@ Updated: 2026-11-09T19:19:42Z
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
-- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
-  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 
