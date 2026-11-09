@@ -260,3 +260,4 @@
 {"ts": "2026-11-09T20:03:02Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
 {"ts": "2026-11-09T20:03:04Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T20:24:48Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T20:25:56Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}

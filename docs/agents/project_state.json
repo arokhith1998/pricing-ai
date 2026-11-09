@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:24:48Z",
+  "updated": "2026-11-09T20:25:56Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1441,7 +1441,7 @@
       "id": "PK-74",
       "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
       "agent": "ai-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [],
       "owns": [
         "pricing/copilot.py",
@@ -1463,14 +1463,14 @@
       },
       "pr": 80,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
         "notes": "",
-        "ts": "2026-11-09T19:53:44Z"
+        "ts": "2026-11-09T20:25:56Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:45:44Z",
-      "updated": "2026-11-09T20:01:49Z",
+      "updated": "2026-11-09T20:25:56Z",
       "notes": [
         {
           "ts": "2026-11-09T19:34:38Z",
@@ -1487,6 +1487,10 @@
         {
           "ts": "2026-11-09T20:01:49Z",
           "note": "PR #80"
+        },
+        {
+          "ts": "2026-11-09T20:25:56Z",
+          "note": "review approve-with-nits"
         }
       ]
     },

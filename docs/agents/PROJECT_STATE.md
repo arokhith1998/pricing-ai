@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 5/4
-Updated: 2026-11-09T20:24:48Z
+Updated: 2026-11-09T20:25:56Z
 
 ## IN_PROGRESS
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
@@ -36,8 +36,6 @@ Updated: 2026-11-09T20:24:48Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
-- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
-  - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
@@ -48,6 +46,8 @@ Updated: 2026-11-09T20:24:48Z
   - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
+  - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
