@@ -145,12 +145,12 @@ def _new_id(kind: str) -> str:
     return f"{kind}-{uuid.uuid4().hex[:8]}"
 
 
-# Every Opportunity whose dollar figure applies an assumed recoverable share
-# (40%/50%/20% below) carries this caveat, mirroring the assist.py:141-144
-# discipline: correlational price realization, not cost-based/bookable margin.
 # Share of flagged excess discount assumed recoverable on retrospective review.
 INVESTIGATE_RECOVERABLE_SHARE = 0.20
 
+# Every Opportunity whose dollar figure applies an assumed recoverable share
+# (40%/50%/20% below) carries this caveat, mirroring the assist.py:141-144
+# discipline: correlational price realization, not cost-based/bookable margin.
 _RECOVERABLE_CAVEAT = (
     "Correlational price-realization estimate at an assumed recoverable "
     "share, not bookable margin. Validate deal by deal before treating it "

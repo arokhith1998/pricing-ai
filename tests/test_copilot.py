@@ -338,6 +338,7 @@ def test_investigate_fires_on_the_synthetic_book_with_the_real_frame():
     assert "excess_discount_dollars" in top.columns
     o = copilot._opp_investigate(a)
     assert o is not None and o.kind == "investigate"
+    assert copilot.INVESTIGATE_RECOVERABLE_SHARE == 0.20  # pin the heuristic
     expected = float(top["excess_discount_dollars"].sum())
     assert abs(o.revenue_impact_usd - expected * copilot.INVESTIGATE_RECOVERABLE_SHARE) < 0.01
     prefixes = {x.id.split("-")[0] for x in copilot.opportunities(a)}
