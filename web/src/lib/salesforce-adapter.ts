@@ -14,7 +14,19 @@ type SalesforceRecord = Record<string, unknown> & {
   OpportunityLineItems?: { records?: Array<Record<string, unknown>> };
 };
 
-export type CanonicalCrmDeal = {
+// Mirrors pricing/schema.py SourceSystem and CostBasis (PK-23, ADR-006).
+export const SOURCE_SYSTEMS = [
+  "csv",
+  "salesforce",
+  "hubspot",
+  "cpq",
+  "billing",
+  "manual",
+] as const;
+export type SourceSystem = (typeof SOURCE_SYSTEMS)[number];
+export type CostBasis = "crm_proxy" | "declared_cost" | "erp_verified";
+
+export type CanonicalDeal = {
   opportunity_id: string;
   account_id: string;
   account_name: string;
@@ -34,7 +46,21 @@ export type CanonicalCrmDeal = {
   competitor_present: boolean;
   currency_iso: string;
   salesforce_url: string;
+  // Provenance and contract-structure fields (PK-23 / PK-26). All optional,
+  // mirroring pricing/schema.py. Money fields are numbers in currency_iso.
+  source_system?: SourceSystem;
+  source_record_id?: string;
+  source_account_id?: string;
+  source_quote_id?: string;
+  source_url?: string;
+  value_metric_unit?: string;
+  cost_basis?: CostBasis;
+  list_unit_rate?: number;
+  credits_tcv?: number;
 };
+
+/** @deprecated Renamed to CanonicalDeal in PK-26. Alias kept for one release. */
+export type CanonicalCrmDeal = CanonicalDeal;
 
 export type SalesforceReadiness = {
   records_fetched: number;
@@ -144,7 +170,7 @@ function lineProduct(lines: Array<Record<string, unknown>>): string {
 function normalizeValueMetric(
   value: unknown,
   fallback: SalesforceMappingConfig["default_value_metric"],
-): CanonicalCrmDeal["value_metric"] {
+): CanonicalDeal["value_metric"] {
   const text = asText(value).toLowerCase();
   if (text.includes("seat") || text.includes("user")) return "seats";
   if (text.includes("usage") || text.includes("consum")) return "consumption";
@@ -191,7 +217,7 @@ export async function fetchSalesforceCanonicalDeals(
   customerRef: string,
   config: SalesforceMappingConfig,
 ): Promise<{
-  records: CanonicalCrmDeal[];
+  records: CanonicalDeal[];
   readiness: SalesforceReadiness;
   fields: SalesforceDescribeField[];
 }> {
@@ -229,7 +255,7 @@ export async function fetchSalesforceCanonicalDeals(
   ].join(" ");
   const raw = await querySalesforce<SalesforceRecord>(customerRef, soql);
 
-  const records = raw.map((record): CanonicalCrmDeal => {
+  const records = raw.map((record): CanonicalDeal => {
     const lines = lineItems(record);
     const isClosed = asBoolean(record.IsClosed);
     const isWon = asBoolean(record.IsWon);
@@ -240,9 +266,11 @@ export async function fetchSalesforceCanonicalDeals(
     const list = mappedList ?? lineListValue(lines);
     const booked = mappedBooked ?? asNumber(record.Amount) ?? lineBookedValue(lines);
     const opportunityId = asText(record.Id);
+    const accountId = asText(record.AccountId);
+    const recordUrl = `/lightning/r/Opportunity/${encodeURIComponent(opportunityId)}/view`;
     return {
       opportunity_id: opportunityId,
-      account_id: asText(record.AccountId),
+      account_id: accountId,
       account_name:
         relationValue(record, "Account", "Name") || asText(record.Name) || opportunityId,
       outcome: !isClosed ? "open" : isWon ? "closed_won" : "closed_lost",
@@ -271,7 +299,11 @@ export async function fetchSalesforceCanonicalDeals(
         mappedValue(record, config.mapping.competitor_field),
       ),
       currency_iso: asText(record.CurrencyIsoCode),
-      salesforce_url: `/lightning/r/Opportunity/${encodeURIComponent(opportunityId)}/view`,
+      salesforce_url: recordUrl,
+      source_system: "salesforce",
+      source_record_id: opportunityId,
+      ...(accountId ? { source_account_id: accountId } : {}),
+      source_url: recordUrl,
     };
   });
 
@@ -281,10 +313,10 @@ export async function fetchSalesforceCanonicalDeals(
 // Pure readiness assessment, split out from the network fetch so it is unit
 // testable without a Salesforce round trip.
 export function assessReadiness(
-  records: CanonicalCrmDeal[],
+  records: CanonicalDeal[],
   config: SalesforceMappingConfig,
 ): SalesforceReadiness {
-  const usable = (record: CanonicalCrmDeal) =>
+  const usable = (record: CanonicalDeal) =>
     record.list_acv !== null &&
     record.list_acv > 0 &&
     record.booked_acv !== null &&
