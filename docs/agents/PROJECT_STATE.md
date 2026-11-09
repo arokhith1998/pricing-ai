@@ -6,12 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/2
-Updated: 2026-11-09T18:33:29Z
-
-## IN_PROGRESS
-- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, deps PK-23)
-  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
+Active work: 0/2
+Updated: 2026-11-09T18:34:13Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,6 +20,8 @@ Updated: 2026-11-09T18:33:29Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
+- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
+  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 - **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
