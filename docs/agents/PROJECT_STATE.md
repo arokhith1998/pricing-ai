@@ -6,14 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/4
-Updated: 2026-11-09T19:44:27Z
+Active work: 4/4
+Updated: 2026-11-09T19:46:00Z
 
 ## IN_PROGRESS
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
-- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
-  - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
@@ -34,6 +32,8 @@ Updated: 2026-11-09T19:44:27Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
+  - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
@@ -157,6 +157,8 @@ Updated: 2026-11-09T19:44:27Z
   - owns: web/src/app/crm/page.tsx, web/src/components/SalesforceWorkspace.tsx, web/src/components/workspace, web/test/salesforce-workspace.test.ts, web/test/salesforce-workspace-route.test.ts
 - **PK-84** Audit the whole site, remove dead styles, and pin the budgets in tests  (web-engineer, deps PK-76,PK-77,PK-78,PK-79,PK-80,PK-81,PK-82)
   - owns: web/src/app/globals.css, web/scripts/lighthouse-budget.mjs, brand/PALETTE.md, web/test/site-audit.test.ts
+- **PK-87** Make the copilot raise-price opportunity fire on a real book by joining win rate into the segment table  (ai-engineer, deps PK-74)
+  - owns: pricing/copilot.py, pricing/metrics.py#realization_by_segment, tests/test_copilot.py
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)

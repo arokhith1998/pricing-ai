@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:44:27Z",
+  "updated": "2026-11-09T19:46:00Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1424,7 +1424,7 @@
       "id": "PK-74",
       "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
       "agent": "ai-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "pricing/copilot.py",
@@ -1444,15 +1444,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 80,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:45:44Z",
-      "updated": "2026-11-09T19:34:41Z",
+      "updated": "2026-11-09T19:45:54Z",
       "notes": [
         {
           "ts": "2026-11-09T19:34:38Z",
           "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:45:54Z",
+          "note": "PR #80"
         }
       ]
     },
@@ -3183,6 +3187,40 @@
           "note": "claimed 3 path(s)"
         }
       ]
+    },
+    {
+      "id": "PK-87",
+      "title": "Make the copilot raise-price opportunity fire on a real book by joining win rate into the segment table",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-74"
+      ],
+      "owns": [
+        "pricing/copilot.py",
+        "pricing/metrics.py#realization_by_segment",
+        "tests/test_copilot.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "_opp_raise_prices reads a win_rate that the real analysis carries: either realization_by_segment gains a win_rate column computed from closed outcomes per segment in metrics.py, or the extractor joins win_rate_by_segment from the analysis dict; the chosen path is stated and the fixture uses real column names",
+        "a test runs the real pipeline on a fixture book where one segment clears win rate 70 percent and realization 85 percent and asserts raise_price fires with the right segment; a second test asserts it does not fire on the synthetic book if no segment qualifies, with the thresholds printed",
+        "the PK-29 numeric-fidelity test for raise_price keeps passing; nothing labels a proxy as margin; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py",
+          "tests/test_metrics.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:46:00Z",
+      "updated": "2026-11-09T19:46:00Z",
+      "notes": []
     }
   ]
 }
