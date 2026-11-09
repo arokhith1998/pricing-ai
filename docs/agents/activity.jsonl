@@ -292,3 +292,11 @@
 {"ts": "2026-11-09T22:09:49Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T22:25:08Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 90dcbdd, human-approved by product owner"}
 {"ts": "2026-11-09T22:25:12Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:33:06Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42711841198"}
+{"ts": "2026-11-09T22:33:15Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711862393"}
+{"ts": "2026-11-09T22:33:24Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711872583"}
+{"ts": "2026-11-09T22:33:32Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711879930"}
+{"ts": "2026-11-09T22:33:34Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42711891057"}
+{"ts": "2026-11-09T22:33:39Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711903009"}
+{"ts": "2026-11-09T22:33:42Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711911539"}
+{"ts": "2026-11-09T22:33:47Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711923583"}

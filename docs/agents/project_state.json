@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T22:25:12Z",
+  "updated": "2026-11-09T22:33:47Z",
   "config": {
     "max_concurrent": 4
   },
@@ -249,7 +249,7 @@
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-5"
       ],
@@ -271,7 +271,7 @@
       ],
       "tests": {
         "required": [],
-        "ci_run": null
+        "ci_run": "42711862393"
       },
       "pr": 77,
       "review": {
@@ -282,7 +282,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-11-09T19:33:22Z",
+      "updated": "2026-11-09T22:33:15Z",
       "notes": [
         {
           "ts": "2026-11-09T18:37:54Z",
@@ -311,6 +311,10 @@
         {
           "ts": "2026-11-09T19:33:22Z",
           "note": "review approve"
+        },
+        {
+          "ts": "2026-11-09T22:33:15Z",
+          "note": "CI run 42711862393"
         }
       ]
     },
@@ -566,7 +570,7 @@
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-9"
       ],
@@ -586,7 +590,7 @@
         "required": [
           "web: npm test, npx eslint, npx tsc --noEmit, npm run build"
         ],
-        "ci_run": null
+        "ci_run": "42711911539"
       },
       "pr": 85,
       "review": {
@@ -597,7 +601,7 @@
       },
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-11-09T21:44:18Z",
+      "updated": "2026-11-09T22:33:42Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:40Z",
@@ -610,6 +614,10 @@
         {
           "ts": "2026-11-09T21:44:18Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:42Z",
+          "note": "CI run 42711911539"
         }
       ]
     },
@@ -1153,7 +1161,7 @@
       "id": "PK-24",
       "title": "Add a migration for saved mappings and a decision-log source index",
       "agent": "data-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-23"
       ],
@@ -1173,7 +1181,7 @@
         "required": [
           "tests/test_schema_provenance.py"
         ],
-        "ci_run": null
+        "ci_run": "42711872583"
       },
       "pr": 78,
       "review": {
@@ -1184,7 +1192,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-09T19:25:06Z",
+      "updated": "2026-11-09T22:33:24Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:08Z",
@@ -1197,6 +1205,10 @@
         {
           "ts": "2026-11-09T19:25:06Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:24Z",
+          "note": "CI run 42711872583"
         }
       ]
     },
@@ -1268,7 +1280,7 @@
       "id": "PK-26",
       "title": "Rename the web canonical type to CanonicalDeal",
       "agent": "web-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-25"
       ],
@@ -1286,7 +1298,7 @@
         "required": [
           "web/test"
         ],
-        "ci_run": null
+        "ci_run": "42711923583"
       },
       "pr": 86,
       "review": {
@@ -1297,7 +1309,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:04Z",
-      "updated": "2026-11-09T21:40:58Z",
+      "updated": "2026-11-09T22:33:47Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:26Z",
@@ -1310,6 +1322,10 @@
         {
           "ts": "2026-11-09T21:40:58Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:47Z",
+          "note": "CI run 42711923583"
         }
       ]
     },
@@ -1317,7 +1333,7 @@
       "id": "PK-27",
       "title": "Add source profiles and export presets to the mapper",
       "agent": "ai-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-23"
       ],
@@ -1339,7 +1355,7 @@
           "tests/test_mapping_profiles.py",
           "tests/test_mapping.py"
         ],
-        "ci_run": null
+        "ci_run": "42711841198"
       },
       "pr": 74,
       "review": {
@@ -1350,7 +1366,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T19:25:07Z",
+      "updated": "2026-11-09T22:33:06Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1379,6 +1395,10 @@
         {
           "ts": "2026-11-09T19:25:07Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:06Z",
+          "note": "CI run 42711841198"
         }
       ]
     },
@@ -1488,7 +1508,7 @@
       "id": "PK-74",
       "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
       "agent": "ai-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "pricing/copilot.py",
@@ -1506,7 +1526,7 @@
           "tests/test_copilot.py",
           "tests/test_numeric_fidelity.py"
         ],
-        "ci_run": null
+        "ci_run": "42711891057"
       },
       "pr": 80,
       "review": {
@@ -1517,7 +1537,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:45:44Z",
-      "updated": "2026-11-09T20:25:56Z",
+      "updated": "2026-11-09T22:33:34Z",
       "notes": [
         {
           "ts": "2026-11-09T19:34:38Z",
@@ -1538,6 +1558,10 @@
         {
           "ts": "2026-11-09T20:25:56Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:34Z",
+          "note": "CI run 42711891057"
         }
       ]
     },
@@ -1545,7 +1569,7 @@
       "id": "PK-31",
       "title": "Plant contract-structure answers in the generator",
       "agent": "data-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-23",
         "PK-30"
@@ -1564,7 +1588,7 @@
         "required": [
           "tests/test_generate_contract.py"
         ],
-        "ci_run": null
+        "ci_run": "42711879930"
       },
       "pr": 79,
       "review": {
@@ -1575,7 +1599,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T20:27:12Z",
+      "updated": "2026-11-09T22:33:32Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:09Z",
@@ -1596,6 +1620,10 @@
         {
           "ts": "2026-11-09T20:27:12Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:32Z",
+          "note": "CI run 42711879930"
         }
       ]
     },
@@ -2202,7 +2230,7 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-25"
       ],
@@ -2224,7 +2252,7 @@
         "required": [
           "tests/test_schema_billing.py"
         ],
-        "ci_run": null
+        "ci_run": "42711903009"
       },
       "pr": 84,
       "review": {
@@ -2235,7 +2263,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T21:32:44Z",
+      "updated": "2026-11-09T22:33:39Z",
       "notes": [
         {
           "ts": "2026-11-09T20:03:02Z",
@@ -2256,6 +2284,10 @@
         {
           "ts": "2026-11-09T21:32:44Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:39Z",
+          "note": "CI run 42711903009"
         }
       ]
     },
