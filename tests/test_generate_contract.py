@@ -42,8 +42,15 @@ def _sha(df: pd.DataFrame) -> str:
 
 # --- default output is unchanged -------------------------------------------------
 
+PINNED_COLUMN_SHA12 = {"opportunity_id": "781ac24a15f4", "account_id": "02da12607669", "account_name": "cc7e876907a4", "outcome": "d95d30d3ba4a", "created_date": "d1cd1a78ca9c", "close_date": "1632efa4c6d1", "segment": "37012db6bbea", "region": "a40fe57313d2", "industry": "9c0977ccb326", "business_unit": "5fe328c7930d", "product_line": "4c9758345c61", "product_family": "3aa5fad5ef5e", "product_tier": "1aebbc3390bb", "sku": "936c8013d6ee", "value_metric": "46baf58525e9", "list_acv": "e57cf4741fa1", "booked_acv": "e1ce25a10fb4", "platform_fee_acv": "7e287173a957", "usage_acv": "096250ede28c", "term_months": "e637202a7b84", "quantity": "98df75176b14", "rep_id": "88020e8d6b49", "approved_by": "c3a2dc7bc87a", "competitor_present": "c9238be1942c", "lost_reason": "058061c27a4b", "currency": "e89bc4d234c0", "committed_acv": "2dd66fb844a1", "overage_rate": "d80662bab12d", "ramp_year_1_acv": "7be67221ec9b", "ramp_year_2_acv": "76d30818fb9e", "is_renewal": "61ab1cdbd851", "renewal_uplift": "0db9758b9f7f", "cogs_acv": "63fd271fbb51"}
+
+
 def test_default_output_is_byte_identical():
-    assert _sha(generate(n=2000, seed=7)) == PINNED_SHA256
+    df = generate(n=2000, seed=7)
+    cols = {c: hashlib.sha256(df[[c]].to_csv(index=False).encode("utf-8")).hexdigest()[:12]
+            for c in df.columns}
+    assert cols == PINNED_COLUMN_SHA12  # names the columns that moved
+    assert _sha(df) == PINNED_SHA256
 
 
 def test_planting_does_not_perturb_the_default_stream():
