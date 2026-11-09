@@ -396,7 +396,7 @@ def _field_of(header: str) -> Optional[str]:
 # or period column, or an invoice number or amount-due column. In such a file a
 # bare Status or State header is the billing state (active, canceled, paid,
 # void), never a sales outcome. It never fires when CRM cues are present (an
-# opportunity or deal id, a stage header, a close date): a CRM report with
+# opportunity or deal id, a stage header): a CRM report with
 # "Fiscal Period", "Plan" or "Customer ID" columns is still a CRM report.
 _BILLING_PAIR_TOKENS = frozenset({"interval", "plan", "mrr", "period"})
 _ID_TAILS = frozenset({"id", "number", "no", "num"})
@@ -404,8 +404,9 @@ _ID_TAILS = frozenset({"id", "number", "no", "num"})
 
 def _billing_fingerprint(headers: list[str], roles: dict[str, str]) -> bool:
     toks = [set(_tokens(h)) for h in headers]
-    if (roles.get("opportunity_id") or roles.get("close_date")
-            or any("stage" in t for t in toks)):
+    # CRM vetoes: a deal id or a stage header. A close date alone is not one,
+    # because billing exports carry close-like dates too.
+    if roles.get("opportunity_id") or any("stage" in t for t in toks):
         return False
     has_sub_id = any("subscription" in t and (t & _ID_TAILS or len(t) == 1)
                      for t in toks)
@@ -625,22 +626,23 @@ def _is_blank(v: object) -> bool:
     return v is None or (isinstance(v, float) and v != v)
 
 
-def normalize_stage(value: object, profile: str = PROFILE_CRM) -> str:
+def normalize_stage(value: object, value_map: str = PROFILE_CRM) -> str:
     """Map one stage or status value into closed_won | closed_lost | open |
-    ask_user, with the value map of the given profile (crm_opportunity by
-    default, cpq_line for quote status). Exact lookup on the normalized string
+    ask_user, with the named value map: PROFILE_CRM (default, crm_opportunity),
+    PROFILE_CPQ (cpq_line quote status) or STATUS_MAP_BILLING (every value is
+    ask_user). Exact lookup on the normalized string
     only, never a substring test, so "Closed - Lost to Competitor" is
     ask_user, not a guess. Blank, NaN, None and unrecognised values are
     ask_user, never closed_lost."""
     if _is_blank(value):
         return OUTCOME_ASK_USER
-    if profile == STATUS_MAP_BILLING:
+    if value_map == STATUS_MAP_BILLING:
         # Invoice and subscription states (paid, open, void, uncollectible,
         # draft, active, canceled) say nothing about a sales outcome. Every
         # value is ask_user: "open" here is an unpaid invoice, not an open deal.
         return OUTCOME_ASK_USER
     s = normalize(str(value))
-    won, lost = ((_CPQ_WON, _CPQ_LOST) if profile == PROFILE_CPQ
+    won, lost = ((_CPQ_WON, _CPQ_LOST) if value_map == PROFILE_CPQ
                  else (_CRM_WON, _CRM_LOST))
     if s in won:
         return OUTCOME_WON
@@ -651,7 +653,7 @@ def normalize_stage(value: object, profile: str = PROFILE_CRM) -> str:
     return OUTCOME_ASK_USER
 
 
-def normalize_stage_series(values, profile: str = PROFILE_CRM
+def normalize_stage_series(values, value_map: str = PROFILE_CRM
                            ) -> tuple[list[str], dict[str, int]]:
     """Normalise a column. Returns (outcomes, ask_user_counts) where
     ask_user_counts maps each unrecognised raw value ("" for blank or NaN) to
@@ -660,7 +662,7 @@ def normalize_stage_series(values, profile: str = PROFILE_CRM
     out: list[str] = []
     ask: dict[str, int] = {}
     for v in values:
-        o = normalize_stage(v, profile)
+        o = normalize_stage(v, value_map)
         out.append(o)
         if o == OUTCOME_ASK_USER:
             key = "" if _is_blank(v) else str(v)

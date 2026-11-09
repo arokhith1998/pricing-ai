@@ -596,3 +596,22 @@ def test_invoice_header_set_is_refused_and_never_a_deal_outcome():
     res = map_headers(h, llm_fallback=False, use_embeddings=False)
     assert res["mapping"]["outcome"] is None
     assert res["refusal"]["blocked_headers"] == ["Status"]
+
+
+@pytest.mark.parametrize("date_col", ["Close Date", "Closed At"])
+def test_chargebee_with_a_close_date_is_still_billing(date_col):
+    h = ["Subscription Id", "Customer Id", "Plan Id", "Plan Quantity", "Status",
+         "Created At", date_col, "MRR"]
+    p = profile_source(h)
+    assert p["billing_fingerprint"] is True
+    assert "outcome" not in p["roles"]
+    res = map_headers(h, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] is None
+    assert res["refusal"]["blocked_headers"] == ["Status"]
+
+
+def test_normalize_stage_takes_a_value_map_name():
+    import inspect
+    assert "value_map" in inspect.signature(normalize_stage).parameters
+    assert normalize_stage("Accepted", value_map="cpq_line") == "closed_won"
+    assert normalize_stage("paid", value_map="billing") == "ask_user"
