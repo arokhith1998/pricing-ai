@@ -9,11 +9,17 @@ It plants a known answer key so the billing derivations (PK-54, PK-55, PK-63)
 and the end-to-end checks (PK-60, PK-67) can recover exact figures:
 
   * list versus contracted gaps (10 percent, 25 percent, none, and one EUR),
-  * a 100-percent-off coupon for three periods,
+  * a 100-percent-off coupon for three periods, and a 20-percent coupon,
   * a three-year ramp schedule billed annually,
   * a 6-billed-period metered account (usage derivable) and a 5-billed-period
     one (insufficient_data),
   * a tiered metered price (list and overage unit rates not provided).
+
+Discount semantics: discount_amount holds coupon and discount objects only.
+Custom-price overrides (the gap cases) and ramp phases leave it 0, so the gap
+is list_amount minus invoiced_amount. Free months from a 100-percent-off
+coupon are credit_amount, never also discount_amount, so the key books the
+coupon once. list_amount >= invoiced_amount + discount_amount + credit_amount.
 
 The planted accounts are fixed amounts, independent of the seed. Only the
 filler accounts draw from the RNG. Money is built in integer cents and the
@@ -26,7 +32,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import numpy as np
@@ -69,6 +75,12 @@ def _dec(cents: int) -> Decimal:
     return (Decimal(cents) / Decimal(100)).quantize(Decimal("0.01"))
 
 
+def _annualise(total_cents: int, periods: int) -> Decimal:
+    """Trailing billed total scaled to 12 monthly periods, in dollars, half-up."""
+    return (Decimal(total_cents) * 12 / Decimal(periods) / 100).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def _row(source: str, sub: str, idx: int, window: tuple[date, date], currency: str,
          *, list_c: int | None, invoiced_c: int, discount_c: int = 0,
          credit_c: int = 0, units: int | None = None, usage_c: int | None = None,
@@ -100,14 +112,14 @@ def _planted() -> tuple[list[dict], dict]:
     def licensed(sub, source, currency, list_c, invoiced_c, periods=12):
         for i in range(periods):
             rows.append(_row(source, sub, i + 1, _month_window(i), currency,
-                             list_c=list_c, invoiced_c=invoiced_c,
-                             discount_c=list_c - invoiced_c))
+                             list_c=list_c, invoiced_c=invoiced_c))
         key[sub] = {
             "source_system": source, "currency": currency,
             "billed_periods": periods,
             "list_total": _dec(list_c * periods),
             "invoiced_total": _dec(invoiced_c * periods),
-            "discount_total": _dec((list_c - invoiced_c) * periods),
+            "discount_total": Decimal("0.00"),  # custom price, not a discount object
+            "gap_total": _dec((list_c - invoiced_c) * periods),  # list minus invoiced
             "realization": (Decimal(invoiced_c) / Decimal(list_c)).quantize(Decimal("0.0001")),
         }
 
@@ -123,23 +135,37 @@ def _planted() -> tuple[list[dict], dict]:
         free = i < 3
         rows.append(_row(stripe, sub, i + 1, _month_window(i), "USD", list_c=200_000,
                          invoiced_c=0 if free else 200_000,
-                         discount_c=200_000 if free else 0))
+                         credit_c=200_000 if free else 0))
     key[sub] = {
         "source_system": stripe, "currency": "USD", "billed_periods": 12,
         "list_total": _dec(2_400_000), "invoiced_total": _dec(1_800_000),
-        "discount_total": _dec(600_000), "zero_invoice_periods": 3,
-        "credits_tcv": _dec(600_000),
+        # A 100-percent-off coupon period maps to credit_amount only, never
+        # also to discount_amount, so the coupon is booked once.
+        "discount_total": Decimal("0.00"), "credit_total": _dec(600_000),
+        "zero_invoice_periods": 3, "credits_tcv": _dec(600_000),
+    }
+
+    # A real percentage-off coupon object: 20 percent off a 5,000 monthly list.
+    sub = "SUB-COUPON-PCT"
+    for i in range(12):
+        rows.append(_row(stripe, sub, i + 1, _month_window(i), "USD", list_c=500_000,
+                         invoiced_c=400_000, discount_c=100_000))
+    key[sub] = {
+        "source_system": stripe, "currency": "USD", "billed_periods": 12,
+        "list_total": _dec(6_000_000), "invoiced_total": _dec(4_800_000),
+        "discount_total": _dec(1_200_000), "credit_total": Decimal("0.00"),
     }
 
     # Three-year ramp billed annually: 60k, 80k, 100k against 100k list.
     sub = "SUB-RAMP"
     for i, billed in enumerate((6_000_000, 8_000_000, 10_000_000)):
         rows.append(_row(stripe, sub, i + 1, _year_window(i), "USD", list_c=10_000_000,
-                         invoiced_c=billed, discount_c=10_000_000 - billed))
+                         invoiced_c=billed))
     key[sub] = {
         "source_system": stripe, "currency": "USD", "billed_periods": 3,
         "list_total": _dec(30_000_000), "invoiced_total": _dec(24_000_000),
-        "discount_total": _dec(6_000_000), "term_months": 36,
+        "discount_total": Decimal("0.00"),  # ramp phases are not discounts
+        "gap_total": _dec(6_000_000), "term_months": 36,
         "ramp_year_1_acv": _dec(6_000_000), "ramp_year_2_acv": _dec(8_000_000),
         "booked_acv": _dec(10_000_000),
     }
@@ -159,7 +185,9 @@ def _planted() -> tuple[list[dict], dict]:
         key[sub] = {
             "source_system": source, "currency": "USD", "billed_periods": periods,
             "usage_total": _dec(usage_total), "usage_units_total": units_total,
-            "usage_acv": _dec(usage_total * 12 // periods) if enough else None,
+            "usage_acv": _annualise(usage_total, periods) if enough else None,
+            "committed_amount_per_period": _dec(150_000),
+            "committed_total": _dec(150_000 * periods),
             "usage_acv_status": "scored" if enough else "insufficient_data",
             "list_unit_rate": Decimal("0.50"),
         }
@@ -179,7 +207,7 @@ def _planted() -> tuple[list[dict], dict]:
     key[sub] = {
         "source_system": cb, "currency": "USD", "billed_periods": 6,
         "usage_total": _dec(usage_total), "usage_units_total": sum(units),
-        "usage_acv": _dec(usage_total * 2), "usage_acv_status": "scored",
+        "usage_acv": _annualise(usage_total, 6), "usage_acv_status": "scored",
         "tiered": True, "list_unit_rate": None, "overage_rate": None,
     }
     return rows, key
@@ -196,7 +224,7 @@ def _filler(rng: np.random.Generator, n: int) -> list[dict]:
         sub = f"SUB-F{k:04d}"
         for i in range(periods):
             rows.append(_row(source, sub, i + 1, _month_window(i), "USD", list_c=list_c,
-                             invoiced_c=invoiced_c, discount_c=list_c - invoiced_c))
+                             invoiced_c=invoiced_c))
     return rows
 
 

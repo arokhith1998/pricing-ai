@@ -88,7 +88,10 @@ FIELDS: list[Field] = [
           "Customer account name as it appears in the CRM (may be messy / "
           "inconsistent across rows).", "Acme, Inc."),
     Field("outcome", "enum", True,
-          "Deal outcome: closed_won or closed_lost.", "closed_won"),
+          "Deal outcome: closed_won or closed_lost. A billing-sourced row "
+          "(see BILLING_SOURCES) carries the marker billing_only instead, "
+          "never closed_won or closed_lost, and never enters win rate.",
+          "closed_won"),
     Field("created_date", "date", True,
           "Date the opportunity was created (used to derive cycle length).",
           "2025-08-04"),
@@ -260,17 +263,27 @@ BILLING_SOURCES: frozenset[str] = frozenset({
 BILLING_ONLY_OUTCOME: str = "billing_only"
 
 
-def win_rate_eligible(source_system: object, outcome: object) -> bool:
-    """True only for a closed_won or closed_lost row from a non-billing source.
+def _plain(value: object) -> str:
+    """An enum member, string, None or NaN as a lowercase plain string."""
+    value = getattr(value, "value", value)
+    if value is None or (isinstance(value, float) and value != value):
+        return ""
+    return str(value).strip().lower()
 
-    A blank or unknown source_system is read as csv (the PROVENANCE_DEFAULTS
-    default), which is eligible. Billing sources are never eligible, whatever
-    their outcome says.
+
+def win_rate_eligible(source_system: object, outcome: object) -> bool:
+    """True only for a closed_won or closed_lost row from a known non-billing source.
+
+    Accepts plain strings or the SourceSystem and Outcome enum members. A
+    missing source (None, NaN or blank) is NOT read as csv here: the csv
+    default is applied by ingest, and a row whose origin is unknown is not
+    let into win rate. Billing sources are never eligible, whatever their
+    outcome says.
     """
-    source = str(source_system or "").strip().lower() or PROVENANCE_DEFAULTS["source_system"]
-    if source in BILLING_SOURCES:
+    source = _plain(source_system)
+    if not source or source in BILLING_SOURCES:
         return False
-    return str(outcome or "").strip().lower() in {m.value for m in Outcome}
+    return _plain(outcome) in {m.value for m in Outcome}
 
 
 # --- contract_period_actuals: the billing grain (PK-53) ---------------------
@@ -285,7 +298,10 @@ def win_rate_eligible(source_system: object, outcome: object) -> bool:
 # Conventions: every money field on a row is in the one `currency` of that
 # row; all money is tax excluded; amounts are per period, NOT annualised (the
 # derivations annualise by interval); discount_amount and credit_amount are
-# positive reductions. There is no outcome, no contact data and no end-customer
+# positive reductions. discount_amount is coupon and discount objects only;
+# custom-price overrides and ramp phases leave it 0 (the gap is list_amount
+# minus invoiced_amount), and free coupon months are credit_amount. So
+# list_amount >= invoiced_amount + discount_amount + credit_amount. There is no outcome, no contact data and no end-customer
 # identifier on the grain, and it carries no cost field: billing holds no
 # product cost (ADR-006).
 CONTRACT_PERIOD_FIELDS: list[Field] = [
@@ -312,12 +328,16 @@ CONTRACT_PERIOD_FIELDS: list[Field] = [
           "Amount invoiced for the period after discounts and credits, tax "
           "excluded. Money.", "9000.00"),
     Field("discount_amount", "float", False,
-          "Coupon and discount reductions applied in the period, as a "
-          "positive number. A 100-percent-off coupon equals list_amount. "
-          "Money.", "1000.00"),
+          "Coupon and discount objects only (a percentage or amount off) "
+          "applied in the period, as a positive number. A custom-price "
+          "override or a ramp phase is not a discount: the gap shows as "
+          "list_amount minus invoiced_amount. Free months from a "
+          "100-percent-off coupon are credits (credit_amount), not "
+          "discount_amount. Money.", "1000.00"),
     Field("credit_amount", "float", False,
-          "Credit notes and promotional credits applied in the period, as a "
-          "positive number. Money.", "0.00"),
+          "Credit notes, promotional credits and free periods from a "
+          "100-percent-off coupon applied in the period, as a positive "
+          "number. Money.", "0.00"),
     Field("usage_units", "float", False,
           "Metered units billed in the period (an invoice-line rollup, never "
           "event rows). Blank for licensed-only subscriptions.", "22000"),

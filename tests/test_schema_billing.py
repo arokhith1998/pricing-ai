@@ -131,7 +131,13 @@ def test_generated_billing_rows_never_carry_cost_or_erp_verified():
 
 def test_win_rate_eligibility_refuses_billing_sources():
     assert win_rate_eligible("salesforce", "closed_won")
-    assert win_rate_eligible("", "closed_lost")  # blank reads as csv
+    assert win_rate_eligible(SourceSystem.SALESFORCE, Outcome.WON)
+    assert win_rate_eligible("salesforce", Outcome.WON)
+    assert win_rate_eligible(" CSV ", "Closed_Lost")
+    assert not win_rate_eligible(SourceSystem.STRIPE, "closed_won")
+    assert not win_rate_eligible(SourceSystem.CHARGEBEE, Outcome.WON)
+    for missing in (None, float("nan"), ""):
+        assert not win_rate_eligible(missing, "closed_won")
     assert not win_rate_eligible("csv", BILLING_ONLY_OUTCOME)
     for source in ("stripe", "chargebee", "billing", "Stripe"):
         assert not win_rate_eligible(source, "closed_won")
@@ -214,9 +220,8 @@ def test_every_row_has_a_key_and_one_currency_and_identity_holds():
     assert df["currency"].isin(["USD", "EUR"]).all()
     assert set(df["source_system"]) <= {"stripe", "chargebee"}
     known = df.dropna(subset=["list_amount"])
-    gap = (known["list_amount"] - known["discount_amount"] - known["credit_amount"]
-           - known["invoiced_amount"]).abs()
-    assert (gap < 0.005).all()
+    spent = known["invoiced_amount"] + known["discount_amount"] + known["credit_amount"]
+    assert (known["list_amount"] + 0.005 >= spent).all()
     assert (pd.to_datetime(df["period_end"]) >= pd.to_datetime(df["period_start"])).all()
 
 
@@ -226,28 +231,45 @@ def test_list_versus_contracted_gaps():
     assert len(subs["SUB-GAP-10"]) == 12
     assert key["SUB-GAP-10"]["list_total"] == Decimal("120000.00")
     assert key["SUB-GAP-10"]["invoiced_total"] == Decimal("108000.00")
+    assert key["SUB-GAP-10"]["gap_total"] == Decimal("12000.00")
     assert key["SUB-GAP-10"]["realization"] == Decimal("0.9000")
     assert key["SUB-GAP-25"]["list_total"] == Decimal("96000.00")
     assert key["SUB-GAP-25"]["invoiced_total"] == Decimal("72000.00")
     assert key["SUB-GAP-25"]["realization"] == Decimal("0.7500")
     assert key["SUB-AT-LIST"]["realization"] == Decimal("1.0000")
-    assert key["SUB-AT-LIST"]["discount_total"] == Decimal("0.00")
     assert key["SUB-GAP-EUR"]["currency"] == "EUR"
     assert (subs["SUB-GAP-EUR"]["currency"] == "EUR").all()
-    assert Decimal(str(round(subs["SUB-GAP-10"]["invoiced_amount"].sum(), 2))) == \
-        key["SUB-GAP-10"]["invoiced_total"]
+    # Custom-price gaps are not discount objects: discount_amount is 0 and the
+    # gap is list minus invoiced.
+    for sub in ("SUB-GAP-10", "SUB-GAP-25", "SUB-AT-LIST", "SUB-GAP-EUR"):
+        g = subs[sub]
+        assert (g["discount_amount"] == 0).all() and (g["credit_amount"] == 0).all()
+        assert key[sub]["discount_total"] == Decimal("0.00")
+    assert round(subs["SUB-GAP-10"]["list_amount"].sum()
+                 - subs["SUB-GAP-10"]["invoiced_amount"].sum(), 2) == 12000.00
 
 
-def test_hundred_percent_off_coupon():
+def test_hundred_percent_off_coupon_maps_to_credits_only():
     df, key = generate_billing()
     g = _by_sub(df)["SUB-COUPON-100"]
     free = g.head(3)
     assert (free["invoiced_amount"] == 0).all()
-    assert (free["discount_amount"] == free["list_amount"]).all()
-    assert (g.tail(9)["discount_amount"] == 0).all()
-    assert key["SUB-COUPON-100"]["zero_invoice_periods"] == 3
-    assert key["SUB-COUPON-100"]["credits_tcv"] == Decimal("6000.00")
-    assert round(free["discount_amount"].sum(), 2) == 6000.00
+    assert (free["credit_amount"] == free["list_amount"]).all()
+    assert (g["discount_amount"] == 0).all()  # booked once, as credits
+    assert (g.tail(9)["credit_amount"] == 0).all()
+    k = key["SUB-COUPON-100"]
+    assert k["zero_invoice_periods"] == 3
+    assert k["credits_tcv"] == Decimal("6000.00") == k["credit_total"]
+    assert k["discount_total"] == Decimal("0.00")
+    assert round(g["credit_amount"].sum(), 2) == 6000.00
+
+
+def test_percentage_coupon_is_a_discount_object():
+    df, key = generate_billing()
+    g = _by_sub(df)["SUB-COUPON-PCT"]
+    assert (g["discount_amount"] == 1000.0).all() and (g["credit_amount"] == 0).all()
+    assert (g["list_amount"] == g["invoiced_amount"] + g["discount_amount"]).all()
+    assert key["SUB-COUPON-PCT"]["discount_total"] == Decimal("12000.00")
 
 
 def test_ramp_schedule():
@@ -255,7 +277,10 @@ def test_ramp_schedule():
     g = _by_sub(df)["SUB-RAMP"]
     assert list(g["invoiced_amount"]) == [60000.0, 80000.0, 100000.0]
     assert list(g["list_amount"]) == [100000.0] * 3
+    assert (g["discount_amount"] == 0).all()  # ramp phases are not discounts
     k = key["SUB-RAMP"]
+    assert k["discount_total"] == Decimal("0.00")
+    assert k["gap_total"] == Decimal("60000.00")
     assert (k["ramp_year_1_acv"], k["ramp_year_2_acv"], k["booked_acv"]) == (
         Decimal("60000.00"), Decimal("80000.00"), Decimal("100000.00"))
     assert k["term_months"] == 36
@@ -273,6 +298,9 @@ def test_six_and_five_billed_period_accounts():
     assert five["usage_acv"] is None
     assert five["usage_total"] == Decimal("56000.00")  # 112,000 units at 0.50
     assert six["list_unit_rate"] == Decimal("0.50")
+    assert six["committed_amount_per_period"] == Decimal("1500.00")
+    assert six["committed_total"] == Decimal("9000.00")
+    assert five["committed_total"] == Decimal("7500.00")
     # usage amount is a part of the invoice, never more than it.
     for g in (subs["SUB-USAGE-6"], subs["SUB-USAGE-5"]):
         assert (g["usage_amount"] <= g["invoiced_amount"]).all()
@@ -292,6 +320,17 @@ def test_tiered_price_has_no_unit_rates():
     assert k["usage_total"] == Decimal("176600.00")
     assert k["usage_acv"] == Decimal("353200.00")
     assert round(g["usage_amount"].sum(), 2) == 176600.00
+
+
+def test_annualisation_uses_decimal_division_not_a_floor():
+    from pricing.generate_billing import _annualise
+    assert _annualise(100, 7) == Decimal("1.71")   # 1.7142 dollars, to the cent
+    assert _annualise(5, 8) == Decimal("0.08")     # 0.075 rounds half up
+
+
+def test_outcome_field_documents_the_billing_marker():
+    by_name = {f.name: f for f in FIELDS}
+    assert BILLING_ONLY_OUTCOME in by_name["outcome"].description
 
 
 def test_csv_round_trip_keeps_columns(tmp_path):
