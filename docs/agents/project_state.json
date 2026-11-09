@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:34:13Z",
+  "updated": "2026-11-09T18:34:52Z",
   "config": {
     "max_concurrent": 2
   },
@@ -1236,16 +1236,17 @@
       "id": "PK-29",
       "title": "Add numeric-fidelity and cost-basis label evals",
       "agent": "ai-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-23"
       ],
       "owns": [
         "tests/test_numeric_fidelity.py",
-        "tests/test_cost_basis_label.py"
+        "tests/test_cost_basis_label.py",
+        "pricing/cost_basis.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/ai-engineer/PK-29",
+      "worktree": ".claude/worktrees/PK-29",
       "acceptance": [
         "every figure in narrated text appears in the source dict the narration was built from",
         "the word margin never appears in any payload when cost_basis is crm_proxy (ADR-006); declared_cost renders as contribution margin, customer-supplied cost basis",
@@ -1262,8 +1263,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-07T16:32:05Z",
-      "notes": []
+      "updated": "2026-11-09T18:34:52Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:34:48Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     }
   ]
 }

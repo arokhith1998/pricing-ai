@@ -6,8 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-11-09T18:34:13Z
+Active work: 1/2
+Updated: 2026-11-09T18:34:52Z
+
+## IN_PROGRESS
+- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
+  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -48,8 +52,6 @@ Updated: 2026-11-09T18:34:13Z
   - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-28** Persist the confirmed mapping per tenant, headers only  (backend-engineer, deps PK-24,PK-27)
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
-- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
-  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)
