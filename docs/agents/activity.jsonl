@@ -319,3 +319,12 @@
 {"ts": "2026-11-09T22:46:23Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-09T22:46:52Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 780d9fa, human-approved by product owner"}
 {"ts": "2026-11-09T22:46:58Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:48:38Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:41Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:46Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:56Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 10 path(s)"}
+{"ts": "2026-11-09T22:49:00Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 4 path(s)"}
+{"ts": "2026-11-09T22:49:03Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T22:49:06Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:49:09Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:49:11Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

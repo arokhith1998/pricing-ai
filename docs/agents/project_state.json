@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T22:46:58Z",
+  "updated": "2026-11-09T22:49:11Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1674,7 +1674,7 @@
       "id": "PK-32",
       "title": "Score commit, ramp, overage and unit-rate floors",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-31"
       ],
@@ -1682,8 +1682,8 @@
         "pricing/contract_structure.py",
         "tests/test_contract_structure.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/backend-engineer/PK-32",
+      "worktree": ".claude/worktrees/PK-32",
       "acceptance": [
         "Planted answers from PK-31 are recovered.",
         "Each lever returns scored | insufficient_data | not_provided, with no global fallback.",
@@ -1700,8 +1700,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T18:56:07Z",
-      "notes": []
+      "updated": "2026-11-09T22:49:11Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:49:03Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-33",
@@ -1810,7 +1815,7 @@
       "id": "PK-41",
       "title": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-24",
         "PK-25"
@@ -1821,8 +1826,8 @@
         "neon/migrations/2026-11-source-connections.down.sql",
         "neon/test_migrations.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/data-engineer/PK-41",
+      "worktree": ".claude/worktrees/PK-41",
       "acceptance": [
         "source_connections has primary key (customer_ref, source_system), a check on salesforce | hubspot | stripe | chargebee, the columns in design section 2.1, and no column that can hold a plaintext credential or a deal value.",
         "source_connection_config cascades on delete from source_connections.",
@@ -1841,8 +1846,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-09T18:56:08Z",
-      "notes": []
+      "updated": "2026-11-09T22:49:09Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:49:00Z",
+          "note": "claimed 4 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-42",
@@ -3009,7 +3019,7 @@
       "id": "PK-76",
       "title": "Redesign the landing page around the decision record and a scroll-driven walk",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-75"
       ],
@@ -3025,8 +3035,8 @@
         "web/test/landing-page.test.ts",
         "web/test/landing-walk.test.tsx"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/web-engineer/PK-76",
+      "worktree": ".claude/worktrees/PK-76",
       "acceptance": [
         "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
         "landing keeps exactly five sections in the order hero, product, roles, boundary, close; landing-page.test.ts asserts five top-level <section> elements, one h1, no em dash, no \"system of record\", and a hero number equal to SAMPLE.leakage.excess_vs_segment_reference_won ($8,946,770 now, shown as $8.9M)",
@@ -3051,8 +3061,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-09T19:06:28Z",
-      "notes": []
+      "updated": "2026-11-09T22:49:06Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:48:56Z",
+          "note": "claimed 10 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-77",

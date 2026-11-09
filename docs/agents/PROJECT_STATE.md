@@ -6,8 +6,16 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/4
-Updated: 2026-11-09T22:46:58Z
+Active work: 4/4
+Updated: 2026-11-09T22:49:11Z
+
+## IN_PROGRESS
+- **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, deps PK-31)
+  - owns: pricing/contract_structure.py, tests/test_contract_structure.py
+- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, deps PK-24,PK-25)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
+- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
+  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
@@ -46,8 +54,6 @@ Updated: 2026-11-09T22:46:58Z
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
-- **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, deps PK-31)
-  - owns: pricing/contract_structure.py, tests/test_contract_structure.py
 - **PK-33** Add the lens readout and concession fields to the decision record  (backend-engineer, deps PK-32,PK-25)
   - owns: pricing/diagnostic.py#readout, pricing/governance.py#concessions, api/routers/diagnostic.py#response
 - **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, deps PK-27)
@@ -56,8 +62,6 @@ Updated: 2026-11-09T22:46:58Z
   - owns: docs/agents/TASKS.md
 - **PK-40** Annualise multi-year quote roll-ups from term_months  (backend-engineer, deps PK-39)
   - owns: pricing/ingest.py#profiles, tests/test_ingest_annualise.py
-- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, deps PK-24,PK-25)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 - **PK-42** Move connection storage and token crypto onto source_connections, with key ids  (web-engineer, deps PK-41)
   - owns: web/src/lib/connector-store.ts, web/src/lib/connector-crypto.ts, web/src/lib/salesforce-store.ts, web/src/lib/salesforce-crypto.ts, web/test/connector-store.test.ts, web/test/connector-crypto.test.ts
 - **PK-43** Key tenants by opaque ref and revoke every credential for a tenant on request  (web-engineer, deps PK-42)
@@ -112,8 +116,6 @@ Updated: 2026-11-09T22:46:58Z
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
 - **PK-70** Drop the legacy salesforce_connections and salesforce_mappings tables  (data-engineer, deps PK-42,PK-41)
   - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
-- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
-  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-78** Redesign methodology and contact, and show the method on the sample  (web-engineer, deps PK-75)
