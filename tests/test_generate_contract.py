@@ -32,12 +32,15 @@ from pricing.schema import ALL_COLUMNS, GENERATOR_COLUMNS
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "contract_structure"
 # sha256 of generate(n=2000, seed=7).to_csv(index=False) as UTF-8 text, taken
-# on origin/main at 0976558 before PK-31.
+# on origin/main at 0976558 before PK-31. Pinned with an explicit CRLF line
+# terminator: the value was taken on Windows, and to_csv defaults to os.linesep,
+# so without this the same data hashes differently on Linux CI.
 PINNED_SHA256 = "ecfa1b6b25bd69d8258ced8d88ded57d21e31e87fc45166cdc8a2c306143ea48"
+CRLF = chr(13) + chr(10)
 
 
 def _sha(df: pd.DataFrame) -> str:
-    return hashlib.sha256(df.to_csv(index=False).encode("utf-8")).hexdigest()
+    return hashlib.sha256(df.to_csv(index=False, lineterminator=CRLF).encode("utf-8")).hexdigest()
 
 
 # --- default output is unchanged -------------------------------------------------
@@ -47,7 +50,7 @@ PINNED_COLUMN_SHA12 = {"opportunity_id": "781ac24a15f4", "account_id": "02da1260
 
 def test_default_output_is_byte_identical():
     df = generate(n=2000, seed=7)
-    cols = {c: hashlib.sha256(df[[c]].to_csv(index=False).encode("utf-8")).hexdigest()[:12]
+    cols = {c: hashlib.sha256(df[[c]].to_csv(index=False, lineterminator=CRLF).encode("utf-8")).hexdigest()[:12]
             for c in df.columns}
     assert cols == PINNED_COLUMN_SHA12  # names the columns that moved
     assert _sha(df) == PINNED_SHA256
