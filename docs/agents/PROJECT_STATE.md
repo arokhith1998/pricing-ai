@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 1/4
-Updated: 2026-11-09T22:35:52Z
+Updated: 2026-11-09T22:46:58Z
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
@@ -30,26 +30,6 @@ Updated: 2026-11-09T22:35:52Z
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
   - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
-
-## APPROVED
-- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
-  - owns: web/src/app/competitor-watch/page.tsx, docs/reviews/founder-action-checklist.md
-- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
-- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
-  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
-- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
-  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
-- **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
-  - owns: pricing/generate.py, tests/test_generate_contract.py
-- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
-  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
-- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
-  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
-- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
-  - owns: pricing/copilot.py, tests/test_copilot.py
-- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
-  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
@@ -161,10 +141,19 @@ Updated: 2026-11-09T22:35:52Z
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
 - **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
+- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
 - **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
+- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
+- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
 - **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
+- **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
+- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
+- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
+- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T22:35:52Z",
+  "updated": "2026-11-09T22:46:58Z",
   "config": {
     "max_concurrent": 4
   },
@@ -249,18 +249,11 @@
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-5"
       ],
-      "owns": [
-        "web/src/app/privacy",
-        "web/src/app/trust",
-        "web/src/app/subprocessors",
-        "web/src/app/licenses",
-        "gtm/security-one-pager.md",
-        "docs/ops/incident-response.md"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-6",
       "worktree": ".claude/worktrees/PK-6",
       "acceptance": [
@@ -282,7 +275,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-11-09T22:33:15Z",
+      "updated": "2026-11-09T22:43:36Z",
       "notes": [
         {
           "ts": "2026-11-09T18:37:54Z",
@@ -315,8 +308,18 @@
         {
           "ts": "2026-11-09T22:33:15Z",
           "note": "CI run 42711862393"
+        },
+        {
+          "ts": "2026-11-09T22:43:34Z",
+          "note": "merged as 168a7c3, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "168a7c3",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:43:34Z"
+      }
     },
     {
       "id": "PK-7",
@@ -570,14 +573,11 @@
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-9"
       ],
-      "owns": [
-        "web/src/app/competitor-watch/page.tsx",
-        "docs/reviews/founder-action-checklist.md"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-12",
       "worktree": ".claude/worktrees/PK-12",
       "acceptance": [
@@ -601,7 +601,7 @@
       },
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-11-09T22:33:42Z",
+      "updated": "2026-11-09T22:40:38Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:40Z",
@@ -618,8 +618,18 @@
         {
           "ts": "2026-11-09T22:33:42Z",
           "note": "CI run 42711911539"
+        },
+        {
+          "ts": "2026-11-09T22:40:34Z",
+          "note": "merged as bdcc7fd, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "bdcc7fd",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:40:34Z"
+      }
     },
     {
       "id": "PK-13",
@@ -1161,15 +1171,11 @@
       "id": "PK-24",
       "title": "Add a migration for saved mappings and a decision-log source index",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-23"
       ],
-      "owns": [
-        "neon/schema.sql",
-        "neon/migrations/2026-11-source-mappings.sql",
-        "neon/migrations/2026-11-source-mappings.down.sql"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-24",
       "worktree": ".claude/worktrees/PK-24",
       "acceptance": [
@@ -1192,7 +1198,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-09T22:33:24Z",
+      "updated": "2026-11-09T22:46:23Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:08Z",
@@ -1209,8 +1215,18 @@
         {
           "ts": "2026-11-09T22:33:24Z",
           "note": "CI run 42711872583"
+        },
+        {
+          "ts": "2026-11-09T22:46:22Z",
+          "note": "merged as 23b821f, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "23b821f",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:22Z"
+      }
     },
     {
       "id": "PK-25",
@@ -1280,14 +1296,11 @@
       "id": "PK-26",
       "title": "Rename the web canonical type to CanonicalDeal",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-25"
       ],
-      "owns": [
-        "web/src/lib/salesforce-adapter.ts",
-        "web/src/lib/salesforce-types.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-26",
       "worktree": ".claude/worktrees/PK-26",
       "acceptance": [
@@ -1309,7 +1322,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:04Z",
-      "updated": "2026-11-09T22:33:47Z",
+      "updated": "2026-11-09T22:42:10Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:26Z",
@@ -1326,22 +1339,28 @@
         {
           "ts": "2026-11-09T22:33:47Z",
           "note": "CI run 42711923583"
+        },
+        {
+          "ts": "2026-11-09T22:42:08Z",
+          "note": "merged as 24639a7, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "24639a7",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:42:08Z"
+      }
     },
     {
       "id": "PK-27",
       "title": "Add source profiles and export presets to the mapper",
       "agent": "ai-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-23"
       ],
-      "owns": [
-        "pricing/mapping.py",
-        "tests/test_mapping_profiles.py",
-        "tests/fixtures/mapping_profiles"
-      ],
+      "owns": [],
       "branch": "agent/ai-engineer/PK-27",
       "worktree": ".claude/worktrees/PK-27",
       "acceptance": [
@@ -1366,7 +1385,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T22:33:06Z",
+      "updated": "2026-11-09T22:45:31Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1399,8 +1418,18 @@
         {
           "ts": "2026-11-09T22:33:06Z",
           "note": "CI run 42711841198"
+        },
+        {
+          "ts": "2026-11-09T22:45:30Z",
+          "note": "merged as 774ed82, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "774ed82",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:45:30Z"
+      }
     },
     {
       "id": "PK-28",
@@ -1508,12 +1537,9 @@
       "id": "PK-74",
       "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
       "agent": "ai-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "pricing/copilot.py",
-        "tests/test_copilot.py"
-      ],
+      "owns": [],
       "branch": "agent/ai-engineer/PK-74",
       "worktree": ".claude/worktrees/PK-74",
       "acceptance": [
@@ -1537,7 +1563,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:45:44Z",
-      "updated": "2026-11-09T22:33:34Z",
+      "updated": "2026-11-09T22:40:06Z",
       "notes": [
         {
           "ts": "2026-11-09T19:34:38Z",
@@ -1562,22 +1588,29 @@
         {
           "ts": "2026-11-09T22:33:34Z",
           "note": "CI run 42711891057"
+        },
+        {
+          "ts": "2026-11-09T22:40:04Z",
+          "note": "merged as c3c0959, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "c3c0959",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:40:04Z"
+      }
     },
     {
       "id": "PK-31",
       "title": "Plant contract-structure answers in the generator",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-23",
         "PK-30"
       ],
-      "owns": [
-        "pricing/generate.py",
-        "tests/test_generate_contract.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-31",
       "worktree": ".claude/worktrees/PK-31",
       "acceptance": [
@@ -1599,7 +1632,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T22:33:32Z",
+      "updated": "2026-11-09T22:45:49Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:09Z",
@@ -1624,8 +1657,18 @@
         {
           "ts": "2026-11-09T22:33:32Z",
           "note": "CI run 42711879930"
+        },
+        {
+          "ts": "2026-11-09T22:45:46Z",
+          "note": "merged as d372411, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "d372411",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:45:46Z"
+      }
     },
     {
       "id": "PK-32",
@@ -2230,15 +2273,11 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-25"
       ],
-      "owns": [
-        "pricing/schema.py",
-        "pricing/generate_billing.py",
-        "tests/test_schema_billing.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-53",
       "worktree": ".claude/worktrees/PK-53",
       "acceptance": [
@@ -2263,7 +2302,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T22:33:39Z",
+      "updated": "2026-11-09T22:46:06Z",
       "notes": [
         {
           "ts": "2026-11-09T20:03:02Z",
@@ -2288,8 +2327,18 @@
         {
           "ts": "2026-11-09T22:33:39Z",
           "note": "CI run 42711903009"
+        },
+        {
+          "ts": "2026-11-09T22:46:04Z",
+          "note": "merged as 8e5cdd1, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "8e5cdd1",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:04Z"
+      }
     },
     {
       "id": "PK-54",
@@ -2882,26 +2931,9 @@
       "id": "PK-75",
       "title": "Build the design system, tokens, shared UI primitives and site chrome",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/app/globals.css",
-        "web/src/app/layout.tsx",
-        "web/src/components/Nav.tsx",
-        "web/src/components/Footer.tsx",
-        "web/src/components/ChromeEffects.tsx",
-        "web/src/components/AuroraBackground.tsx",
-        "web/src/components/ScrollProgress.tsx",
-        "web/src/components/Reveal.tsx",
-        "web/src/components/CountUp.tsx",
-        "web/src/components/ui",
-        "web/src/lib/site-nav.ts",
-        "web/src/lib/page-metadata.ts",
-        "brand/PALETTE.md",
-        "web/test/design-system.test.ts",
-        "web/test/chrome.test.tsx",
-        "web/test/page-metadata.test.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-75",
       "worktree": ".claude/worktrees/PK-75",
       "acceptance": [
@@ -2935,7 +2967,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-09T22:35:52Z",
+      "updated": "2026-11-09T22:46:58Z",
       "notes": [
         {
           "ts": "2026-11-09T19:18:15Z",
@@ -2960,8 +2992,18 @@
         {
           "ts": "2026-11-09T22:35:52Z",
           "note": "CI run 42711935159"
+        },
+        {
+          "ts": "2026-11-09T22:46:52Z",
+          "note": "merged as 780d9fa, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "780d9fa",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:52Z"
+      }
     },
     {
       "id": "PK-76",
