@@ -27,6 +27,29 @@ class Segment(str, Enum):
     ENTERPRISE = "Enterprise"
 
 
+class SourceSystem(str, Enum):
+    """Where a deal row came from (provenance, not a pricing input)."""
+
+    CSV = "csv"
+    SALESFORCE = "salesforce"
+    HUBSPOT = "hubspot"
+    CPQ = "cpq"
+    BILLING = "billing"
+    MANUAL = "manual"
+
+
+class CostBasis(str, Enum):
+    """Trust level behind any cost figure on the deal (ADR-006).
+
+    The label a reader sees is built in code from this enum. A crm_proxy value
+    is never labeled margin.
+    """
+
+    CRM_PROXY = "crm_proxy"
+    DECLARED_COST = "declared_cost"
+    ERP_VERIFIED = "erp_verified"
+
+
 class ValueMetric(str, Enum):
     """How the customer is primarily charged (the 'value metric')."""
 
@@ -117,7 +140,7 @@ FIELDS: list[Field] = [
     Field("currency", "str", False,
           "ISO 4217 code the money columns (list_acv, booked_acv, "
           "platform_fee_acv, usage_acv, committed_acv, overage_rate, "
-          "ramp_year_*_acv, cogs_acv) are denominated in. Blank/absent is "
+          "list_unit_rate, credits_tcv, ramp_year_*_acv, cogs_acv) are denominated in. Blank/absent is "
           "read as USD. Ingestion (pricing/ingest.py) derives this per row "
           "from the currency symbol when the column itself is absent; a file "
           "that mixes currencies is blocked by default (or normalized to USD "
@@ -148,6 +171,40 @@ FIELDS: list[Field] = [
           "ramp_year_2_acv, booked_acv). Documented here rather than adding a "
           "third field: it is the smaller change, and term_months already "
           "tells you whether year 3 exists for a given deal.", "96000.00"),
+    # --- Source, provenance and contract structure (all OPTIONAL) ---------
+    # Provenance fields say where a row came from so a connector, a CSV and a
+    # manual entry can be told apart. The contract-structure fields carry the
+    # unit price behind the discount and off-invoice concessions. Absent
+    # columns load as the defaults below (see PROVENANCE_DEFAULTS).
+    Field("source_system", "enum", False,
+          "System the row came from: csv | salesforce | hubspot | cpq | "
+          "billing | manual. Defaults to csv when absent.", "salesforce"),
+    Field("source_record_id", "str", False,
+          "Opportunity or record id in the source system.", "006Dn00000AbCdE"),
+    Field("source_account_id", "str", False,
+          "Account id in the source system (distinct from account_id, which "
+          "is the customer's stable id).", "001Dn00000XyZ12"),
+    Field("source_quote_id", "str", False,
+          "Quote or CPQ document id in the source system.", "Q-004217"),
+    Field("source_url", "str", False,
+          "Deep link to the record in the source system.",
+          "https://example.my.salesforce.com/006Dn00000AbCdE"),
+    Field("value_metric_unit", "str", False,
+          "Free text naming the unit behind value_metric (what one unit of "
+          "quantity is), for example 'audio minute' or '1K tokens'.",
+          "audio minute"),
+    Field("cost_basis", "enum", False,
+          "Trust level of any cost figure on the deal: crm_proxy | "
+          "declared_cost | erp_verified. Defaults to crm_proxy (cost that "
+          "arrived through a CRM or CSV, including cogs_acv). A crm_proxy "
+          "value is never labeled margin.", "crm_proxy"),
+    Field("list_unit_rate", "float", False,
+          "List price per usage unit, in the same unit as quantity and "
+          "overage_rate, in the deal currency. Money.", "1.10"),
+    Field("credits_tcv", "float", False,
+          "Total value over the whole term of service credits, free months "
+          "and other off-invoice concessions, in the deal currency. Money.",
+          "12000.00"),
     Field("is_renewal", "bool", False,
           "Whether this opportunity is a renewal of an existing contract "
           "(vs new business or expansion).", "false"),
@@ -157,13 +214,40 @@ FIELDS: list[Field] = [
     # --- Cost (OPTIONAL), enables the Phase 3 margin layer ----------------
     Field("cogs_acv", "float", False,
           "Annualized cost of goods sold attributable to the deal (infra / "
-          "delivery cost). Enables gross-margin analysis; the leakage "
-          "diagnostic itself is price-based and does not require it.",
+          "delivery cost). Enables cost-proxy analysis; never labeled margin "
+          "(ADR-006). The leakage diagnostic itself is price-based and does not "
+          "require it.",
           "28000.00"),
 ]
 
 REQUIRED_FIELDS: list[str] = [f.name for f in FIELDS if f.required]
-ALL_COLUMNS: list[str] = [f.name for f in FIELDS]
+
+# Optional provenance columns added by PK-23 (non-money). The two contract
+# structure money fields are named separately so ingest can treat them as money.
+PROVENANCE_FIELDS: list[str] = [
+    "source_system", "source_record_id", "source_account_id",
+    "source_quote_id", "source_url", "value_metric_unit", "cost_basis",
+]
+CONTRACT_MONEY_FIELDS: list[str] = ["list_unit_rate", "credits_tcv"]
+# Defaults applied by ingest when the column is absent from a file.
+PROVENANCE_DEFAULTS: dict[str, str] = {
+    "source_system": SourceSystem.CSV.value,
+    "cost_basis": CostBasis.CRM_PROXY.value,
+}
+# Enum-valued provenance columns and their allowed values.
+PROVENANCE_ENUMS: dict[str, frozenset[str]] = {
+    "source_system": frozenset(m.value for m in SourceSystem),
+    "cost_basis": frozenset(m.value for m in CostBasis),
+}
+# Every canonical field name.
+ALL_FIELD_NAMES: list[str] = [f.name for f in FIELDS]
+# Columns the synthetic generator emits. Explicit pre-PK-23 list: the new
+# optional columns are not generated, so data/synthetic output stays stable.
+GENERATOR_COLUMNS: list[str] = [
+    n for n in ALL_FIELD_NAMES
+    if n not in PROVENANCE_FIELDS and n not in CONTRACT_MONEY_FIELDS
+]
+ALL_COLUMNS: list[str] = ALL_FIELD_NAMES  # alias: every field
 
 # Discount bands used for win-rate-by-band analysis. Half-open bins on
 # discount_pct = 1 - booked_acv/list_acv. The first band is NEGATIVE: deals

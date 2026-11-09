@@ -137,6 +137,21 @@ SYNONYMS: dict[str, list[str]] = {
         "overage rate", "overage", "on demand rate", "on-demand rate",
         "overage price", "unit overage", "burst rate", "rate per unit",
     ],
+    "list_unit_rate": [
+        "list unit price", "unit list price", "rate card unit price",
+        "list rate per unit",
+    ],
+    "credits_tcv": [
+        "service credits value", "credits tcv", "free months value",
+        "off-invoice credits",
+    ],
+    "source_system": ["source system"],
+    "source_record_id": ["source record id"],
+    "source_account_id": ["source account id"],
+    "source_quote_id": ["source quote id"],
+    "source_url": ["source url"],
+    "value_metric_unit": ["value metric unit"],
+    "cost_basis": ["cost basis"],
     "ramp_year_1_acv": [
         "ramp year 1", "year 1 acv", "y1 acv", "ramp y1", "year one acv",
         "ramp_year_1", "yr1 acv",
@@ -185,6 +200,21 @@ def _normalized_synonyms() -> dict[str, list[str]]:
 
 _NORM_SYN = _normalized_synonyms()
 
+# Fields claimed only by an exact normalized synonym or the exact field name,
+# never by fuzzy, embedding or LLM matching. Bare words collide with real
+# columns ("Credits" is a unit count in a credit-based book; Salesforce
+# UnitPrice is the net sales price, not list). Same lesson as the Forecast
+# Category guard in fuzzy_match. PR 73 review, 2026-11-07.
+EXACT_ONLY_FIELDS = frozenset({
+    "list_unit_rate", "credits_tcv",
+    # Provenance fields: bare words like "Source" or "Account Source" are
+    # ordinary CRM columns, so these claim only an exact synonym or name.
+    "source_system", "source_record_id", "source_account_id", "source_quote_id",
+    "source_url", "value_metric_unit", "cost_basis",
+})
+for _f in EXACT_ONLY_FIELDS:
+    _NORM_SYN[_f].append(normalize(_f))
+
 
 # --- Layer 1: deterministic synonyms ----------------------------------------
 
@@ -213,6 +243,8 @@ def fuzzy_match(header: str, threshold: int = 88,
     n = normalize(header)
     best_field, best_score = None, 0
     for field, alts in _NORM_SYN.items():
+        if field in EXACT_ONLY_FIELDS:
+            continue
         for alt in alts:
             score = rapidfuzz.fuzz.token_set_ratio(n, alt)
             if score < threshold or score <= best_score:
@@ -248,6 +280,8 @@ def _field_embeds():
         m = _model()
         names, texts = [], []
         for name, f in _FIELDS_BY_NAME.items():
+            if name in EXACT_ONLY_FIELDS:
+                continue
             syn = ", ".join(SYNONYMS.get(name, []))
             texts.append(f"{name}: {f.description}. Aliases: {syn}")
             names.append(name)
@@ -360,7 +394,9 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     # Layer 4: cloud LLM (header strings only, opt-in)
     if llm_fallback:
         unmatched_headers = [h for h in headers if h not in claimed]
-        unmatched_fields = [f for f in _FIELDS_BY_NAME if f not in field_to_header]
+        unmatched_fields = [f for f in _FIELDS_BY_NAME
+                            if f not in field_to_header
+                            and f not in EXACT_ONLY_FIELDS]
         if unmatched_headers and unmatched_fields:
             try:
                 from pricing import assist

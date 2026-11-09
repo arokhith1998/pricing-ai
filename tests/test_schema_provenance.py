@@ -1,0 +1,291 @@
+"""PK-23: source, provenance and contract-structure fields on the canonical deal."""
+
+from __future__ import annotations
+
+import pandas as pd
+import pytest
+
+from pricing.generate import generate
+from pricing.ingest import (
+    _FX_MONEY_COLS, _NUMERIC, _NUMERIC_NONMONEY, SchemaError,
+    LoadReport, apply_provenance_defaults, ingest, ingest_frame_verbose,
+    validate_provenance_enums,
+)
+from pricing.mapping import SYNONYMS, map_headers, synonyms_match
+from pricing.schema import (
+    ALL_FIELD_NAMES, CONTRACT_MONEY_FIELDS, FIELDS,
+    GENERATOR_COLUMNS, PROVENANCE_DEFAULTS, PROVENANCE_FIELDS, REQUIRED_FIELDS,
+)
+
+NEW = ["source_system", "source_record_id", "source_account_id", "source_quote_id",
+       "source_url", "value_metric_unit", "cost_basis", "list_unit_rate",
+       "credits_tcv"]
+
+
+def test_nine_fields_exist_and_are_optional():
+    by_name = {f.name: f for f in FIELDS}
+    assert sorted(NEW) == sorted(PROVENANCE_FIELDS + CONTRACT_MONEY_FIELDS)
+    for n in NEW:
+        assert n in by_name
+        assert by_name[n].required is False
+    assert not (set(NEW) & set(REQUIRED_FIELDS))
+
+
+def test_types_and_defaults():
+    by_name = {f.name: f for f in FIELDS}
+    assert by_name["source_system"].dtype == "enum"
+    assert by_name["cost_basis"].dtype == "enum"
+    assert by_name["list_unit_rate"].dtype == "float"
+    assert by_name["credits_tcv"].dtype == "float"
+    assert PROVENANCE_DEFAULTS == {"source_system": "csv", "cost_basis": "crm_proxy"}
+    assert "never labeled margin" in by_name["cost_basis"].description
+    assert "list_unit_rate" in by_name["currency"].description
+    assert "credits_tcv" in by_name["currency"].description
+
+
+def test_generator_columns_are_pre_change_list():
+    assert not (set(NEW) & set(GENERATOR_COLUMNS))
+    assert set(NEW) <= set(ALL_FIELD_NAMES)
+    assert not (set(NEW) & set(generate(n=50, seed=7).columns))
+
+
+def test_money_lists_and_synonyms():
+    assert "list_unit_rate" in _NUMERIC and "credits_tcv" in _NUMERIC
+    assert "list_unit_rate" in _FX_MONEY_COLS and "credits_tcv" in _FX_MONEY_COLS
+    assert "list_unit_rate" not in _NUMERIC_NONMONEY
+    assert "credits_tcv" not in _NUMERIC_NONMONEY
+    assert SYNONYMS["list_unit_rate"] == [
+        "list unit price", "unit list price", "rate card unit price",
+        "list rate per unit"]
+    assert SYNONYMS["credits_tcv"] == [
+        "service credits value", "credits tcv", "free months value",
+        "off-invoice credits"]
+
+
+def _base(n=60) -> pd.DataFrame:
+    return generate(n=n, seed=7)[GENERATOR_COLUMNS]
+
+
+def test_csv_without_new_columns_loads_unchanged(tmp_path):
+    p = tmp_path / "deals.csv"
+    _base().to_csv(p, index=False)
+    out = ingest(p)
+    for n in ["list_unit_rate", "credits_tcv"]:
+        assert n not in out.columns
+
+
+def test_csv_with_new_columns_keeps_values(tmp_path):
+    df = _base()
+    df["list_unit_rate"] = 1.10
+    df["credits_tcv"] = 12000.0
+    df["source_record_id"] = [f"R-{i}" for i in range(len(df))]
+    df["value_metric_unit"] = "audio minute"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out = ingest(p)
+    assert (out["list_unit_rate"] == 1.10).all()
+    assert (out["credits_tcv"] == 12000.0).all()
+    assert out["source_record_id"].tolist() == df["source_record_id"].tolist()
+    assert (out["value_metric_unit"] == "audio minute").all()
+
+
+def test_money_columns_are_fx_normalized(tmp_path):
+    df = _base()
+    df["list_unit_rate"] = 1.0
+    df["credits_tcv"] = 1000.0
+    df["currency"] = ["EUR"] * 30 + ["USD"] * 30  # mixed file triggers FX
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out = ingest(p, fx_rates={"EUR": 1.5, "USD": 1.0}, fx_rates_date="2026-11-01")
+    assert out["list_unit_rate"].round(6).tolist() == [1.5] * 30 + [1.0] * 30
+    assert out["credits_tcv"].round(6).tolist() == [1500.0] * 30 + [1000.0] * 30
+
+
+def test_defaults_applied_when_columns_absent():
+    out = apply_provenance_defaults(_base(10), LoadReport())
+    assert (out["source_system"] == "csv").all()
+    assert (out["cost_basis"] == "crm_proxy").all()
+
+
+def test_defaults_fill_blank_cells_only():
+    df = _base(4)
+    df["source_system"] = ["salesforce", "", "hubspot", " "]
+    df["cost_basis"] = ["declared_cost", "", "crm_proxy", ""]
+    out = apply_provenance_defaults(df, LoadReport())
+    assert out["source_system"].tolist() == ["salesforce", "csv", "hubspot", "csv"]
+    assert out["cost_basis"].tolist() == [
+        "declared_cost", "crm_proxy", "crm_proxy", "crm_proxy"]
+
+
+@pytest.mark.parametrize("col,bad", [("cost_basis", "margin"),
+                                     ("cost_basis", "ERP")])
+def test_invalid_enum_rejected_with_named_error(col, bad):
+    df = _base(5)
+    df[col] = ["crm_proxy" if col == "cost_basis" else "csv"] * 4 + [bad]
+    for fn in (lambda d: apply_provenance_defaults(d, LoadReport()),
+               validate_provenance_enums):
+        with pytest.raises(SchemaError) as e:
+            fn(df)
+        assert col in str(e.value)
+        assert "Not coerced" in str(e.value)
+
+
+def test_no_new_field_is_required():
+    assert all(not f.required for f in FIELDS if f.name in NEW)
+
+
+def test_loader_applies_defaults_when_columns_absent(tmp_path):
+    p = tmp_path / "deals.csv"
+    _base().to_csv(p, index=False)
+    out = ingest(p)
+    assert (out["source_system"] == "csv").all()
+    assert (out["cost_basis"] == "crm_proxy").all()
+
+
+@pytest.mark.parametrize("col,bad", [("cost_basis", "true_cost")])
+def test_loader_rejects_invalid_enum_with_schema_error(tmp_path, col, bad):
+    df = _base()
+    df[col] = bad
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    with pytest.raises(SchemaError) as e:
+        ingest(p)
+    assert col in str(e.value) and bad in str(e.value)
+
+
+# --- PR 73 rework -----------------------------------------------------------
+
+@pytest.mark.parametrize("header", [
+    "Credits", "Credits Used", "Usage Credits", "Total Credits", "Free Months",
+    "Unit Price", "UnitPrice", "Rate Card"])
+def test_money_fields_not_claimed_by_loose_headers(header):
+    assert synonyms_match(header) not in ("list_unit_rate", "credits_tcv")
+    m = map_headers([header], llm_fallback=False, use_embeddings=False)["mapping"]
+    assert m["list_unit_rate"] is None and m["credits_tcv"] is None
+    m = map_headers([header], llm_fallback=False, use_embeddings=True)["mapping"]
+    assert m["list_unit_rate"] is None and m["credits_tcv"] is None
+
+
+@pytest.mark.parametrize("header,field", [
+    ("List Unit Price", "list_unit_rate"), ("Service Credits Value", "credits_tcv"),
+    ("list_unit_rate", "list_unit_rate"), ("credits_tcv", "credits_tcv")])
+def test_exact_money_headers_map(header, field):
+    m = map_headers([header], llm_fallback=False, use_embeddings=False)["mapping"]
+    assert m[field] == header
+
+
+@pytest.mark.parametrize("header,field", [
+    ("Cost Basis", "cost_basis"), ("Source System", "source_system"),
+    ("Source Record Id", "source_record_id"), ("Source Account ID", "source_account_id"),
+    ("Source Quote Id", "source_quote_id"), ("Source URL", "source_url"),
+    ("Value Metric Unit", "value_metric_unit")])
+def test_non_money_headers_map(header, field):
+    m = map_headers([header], llm_fallback=False, use_embeddings=False)["mapping"]
+    assert m[field] == header
+
+
+def test_cost_basis_loads_intact_and_is_not_reported_unmapped(tmp_path):
+    from pricing.ingest import ingest_verbose
+    df = _base()
+    df["Cost Basis"] = "declared_cost"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out, report = ingest_verbose(p)
+    assert (out["cost_basis"] == "declared_cost").all()
+    assert "Cost Basis" not in report.unmapped_columns
+    assert "cost_basis" in report.field_sources
+
+
+def test_erp_verified_rejected_on_file_and_frame_paths(tmp_path):
+    df = _base()
+    df["cost_basis"] = "erp_verified"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    with pytest.raises(SchemaError, match="Pricekeel-operated connector"):
+        ingest(p)
+    with pytest.raises(SchemaError, match="Pricekeel-operated connector"):
+        ingest_frame_verbose(df)
+    out, _ = ingest_frame_verbose(df, allow_erp_verified=True)
+    assert (out["cost_basis"] == "erp_verified").all()
+
+
+def test_enum_error_is_capped_and_truncated(tmp_path):
+    df = _base()
+    df["cost_basis"] = [f"free text note number {i} " + "x" * 60 for i in range(60)]
+    with pytest.raises(SchemaError) as e:
+        validate_provenance_enums(df)
+    msg = str(e.value)
+    assert "and 55 more" in msg
+    assert "x" * 41 not in msg
+    assert msg.count("free text note") == 5
+
+
+@pytest.mark.parametrize("header", [
+    "Source", "Account Source", "Source Account", "Source Id", "Record Source",
+    "Source Quote", "Metric Unit", "System Source"])
+def test_provenance_fields_not_claimed_by_loose_headers(header):
+    for emb in (False, True):
+        m = map_headers([header], llm_fallback=False, use_embeddings=emb)["mapping"]
+        assert not [f for f in PROVENANCE_FIELDS if m[f]], (header, emb)
+
+
+@pytest.mark.parametrize("header,field", [
+    ("Source System", "source_system"), ("Cost Basis", "cost_basis"),
+    ("Source Record Id", "source_record_id"), ("Source Url", "source_url"),
+    ("Value Metric Unit", "value_metric_unit")])
+def test_provenance_exact_headers_still_map(header, field):
+    m = map_headers([header], llm_fallback=False, use_embeddings=False)["mapping"]
+    assert m[field] == header
+
+
+def test_unknown_source_system_defaults_and_is_disclosed(tmp_path):
+    from pricing.ingest import ingest_verbose
+    df = _base()
+    df["source_system"] = ["SFDC"] * 20 + ["hubspot_crm"] * 10 + ["oracle"] * 15 + [""] * 15
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out, report = ingest_verbose(p)
+    vc = out["source_system"].value_counts().to_dict()
+    assert vc == {"salesforce": 20, "hubspot": 10, "csv": 30}
+    warn = [n for n in report.notes if n.startswith("warning:") and "source_system" in n]
+    assert len(warn) == 1 and "oracle" in warn[0] and "15 row(s)" in warn[0]
+
+
+def test_source_system_disclosure_is_capped():
+    df = _base()
+    df["source_system"] = [f"weird system {i} " + "y" * 60 for i in range(60)]
+    rep = LoadReport()
+    out = apply_provenance_defaults(df, rep)
+    assert (out["source_system"] == "csv").all()
+    assert "and 55 more" in rep.notes[0] and "y" * 41 not in rep.notes[0]
+
+
+def test_system_source_values_no_longer_fail_upload(tmp_path):
+    df = _base()
+    df["Source System"] = "SFDC"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    assert (ingest(p)["source_system"] == "salesforce").all()
+
+
+def test_missing_placeholders_count_as_blank(tmp_path):
+    from pricing.ingest import ingest_verbose
+    df = _base()
+    df["Cost Basis"] = "None"
+    df["Source System"] = "n/a"
+    p = tmp_path / "deals.csv"
+    df.to_csv(p, index=False)
+    out, report = ingest_verbose(p)
+    assert (out["cost_basis"] == "crm_proxy").all()
+    assert (out["source_system"] == "csv").all()
+    assert not [n for n in report.notes if "source_system" in n or "cost_basis" in n]
+
+
+@pytest.mark.parametrize("raw", ["Salesforce CRM", "salesforce-crm", "HubSpot CRM"])
+def test_source_system_alias_spacing_and_hyphens(raw):
+    df = _base(3)
+    df["source_system"] = raw
+    rep = LoadReport()
+    out = apply_provenance_defaults(df, rep)
+    assert (out["source_system"] == raw.lower().split()[0].split("-")[0]).all()
+    assert rep.notes == []

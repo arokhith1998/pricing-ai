@@ -14,7 +14,7 @@ import pytest
 
 from pricing.generate import generate
 from pricing.ingest import ingest
-from pricing.schema import ALL_COLUMNS, REQUIRED_FIELDS, FIELDS
+from pricing.schema import ALL_COLUMNS, GENERATOR_COLUMNS, REQUIRED_FIELDS, FIELDS
 
 UBP_COST_FIELDS = [
     "committed_acv", "overage_rate", "ramp_year_1_acv", "ramp_year_2_acv",
@@ -105,7 +105,7 @@ def test_new_columns_do_not_perturb_main_sequence():
     columns are identical whether or not we look at the new ones."""
     a = generate(n=800, seed=11)
     b = generate(n=800, seed=11)
-    core = [c for c in ALL_COLUMNS if c not in UBP_COST_FIELDS]
+    core = [c for c in GENERATOR_COLUMNS if c not in UBP_COST_FIELDS]
     pd.testing.assert_frame_equal(a[core], b[core])
     # and the core columns are byte-stable across the two draws (determinism)
     assert a["booked_acv"].sum() == b["booked_acv"].sum()

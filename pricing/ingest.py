@@ -28,6 +28,8 @@ from pricing.schema import (
     DEFAULT_POLICY_THRESHOLD,
     REQUIRED_FIELDS,
     Outcome,
+    PROVENANCE_DEFAULTS,
+    PROVENANCE_ENUMS,
     band_for,
 )
 
@@ -135,7 +137,7 @@ class LoadReport:
 
 _NUMERIC = ["list_acv", "booked_acv", "platform_fee_acv", "usage_acv", "quantity",
             "committed_acv", "overage_rate", "ramp_year_1_acv", "ramp_year_2_acv",
-            "renewal_uplift", "cogs_acv"]
+            "renewal_uplift", "cogs_acv", "list_unit_rate", "credits_tcv"]
 _LEGAL_TOKENS = {"inc", "llc", "corp", "co", "ltd", "incorporated", "llp", "plc"}
 _PUNCT = re.compile(r"[^a-z0-9\s]")
 _WS = re.compile(r"\s+")
@@ -335,6 +337,89 @@ def validate(df: pd.DataFrame) -> None:
             f"Input is missing {len(missing)} required column(s): {missing}. "
             f"See pricing/schema.py and gtm/data-request.md."
         )
+
+
+_MAX_BAD_VALUES = 5
+_MAX_BAD_VALUE_LEN = 40
+
+
+def validate_provenance_enums(df: pd.DataFrame, allow_erp_verified: bool = False) -> None:
+    """Raise SchemaError if source_system or cost_basis holds an invalid value.
+
+    The error names the column and the offending values (at most 5 distinct,
+    each truncated to 40 characters, then "and N more"). A bad value is never
+    coerced to the default. cost_basis=erp_verified is reserved for a
+    Pricekeel-operated connector (ADR-006) and is rejected unless
+    allow_erp_verified is True.
+    """
+    for col, allowed in PROVENANCE_ENUMS.items():
+        if col not in df.columns:
+            continue
+        v = df[col].fillna("").astype(str).str.strip().str.lower()
+        bad = sorted(set(v[(v != "") & ~v.isin(allowed)]))
+        if bad:
+            raise SchemaError(
+                f"Invalid {col} value(s) {_capped(bad)}; allowed: "
+                f"{sorted(allowed)}. Not coerced to the default."
+            )
+    if not allow_erp_verified and "cost_basis" in df.columns:
+        v = df["cost_basis"].fillna("").astype(str).str.strip().str.lower()
+        if (v == "erp_verified").any():
+            raise SchemaError(
+                "cost_basis=erp_verified may only be set by a Pricekeel-operated "
+                "connector, not by an uploaded file or frame. Use crm_proxy or "
+                "declared_cost."
+            )
+
+
+_SOURCE_SYSTEM_ALIASES = {"sfdc": "salesforce", "salesforce_crm": "salesforce",
+                          "hubspot_crm": "hubspot"}
+
+
+def _capped(values: list[str]) -> str:
+    shown = [b if len(b) <= _MAX_BAD_VALUE_LEN else b[:_MAX_BAD_VALUE_LEN] + "..."
+             for b in values[:_MAX_BAD_VALUES]]
+    more = f" and {len(values) - len(shown)} more" if len(values) > len(shown) else ""
+    return f"{shown}{more}"
+
+
+def apply_provenance_defaults(
+    df: pd.DataFrame,
+    report: LoadReport,
+    allow_erp_verified: bool = False,
+) -> pd.DataFrame:
+    """Return a copy of df with source_system and cost_basis defaulted.
+
+    A missing column is added with its default; blank cells in a present
+    column are filled with it. Values are stripped and lower-cased.
+    source_system is provenance, not a trust label: known aliases (sfdc,
+    salesforce_crm, hubspot_crm) are normalized, and an unknown value is
+    replaced by the default and disclosed in report.notes (never rejected). Placeholders such as
+    none, null, na, n/a count as blank. report is required so a replacement
+    can never go undisclosed.
+    cost_basis is strict (see validate_provenance_enums).
+    """
+    df = df.copy()
+    for col, default in PROVENANCE_DEFAULTS.items():
+        if col not in df.columns:
+            df[col] = default
+            continue
+        v = df[col].fillna("").astype(str).str.strip().str.lower()
+        df[col] = v.where(~v.isin(_MISSING_STRINGS | {"n/a"}), default)
+    ss = (df["source_system"].str.replace(r"[\s\-]+", "_", regex=True)
+          .replace(_SOURCE_SYSTEM_ALIASES))
+    bad_mask = ~ss.isin(PROVENANCE_ENUMS["source_system"])
+    if bad_mask.any():
+        bad = sorted(set(ss[bad_mask]))
+        report.notes.append(
+            f"warning: source_system held unrecognized value(s) "
+            f"{_capped(bad)} in {int(bad_mask.sum())} row(s); replaced with "
+            f"the default '{PROVENANCE_DEFAULTS['source_system']}'"
+        )
+        ss = ss.where(~bad_mask, PROVENANCE_DEFAULTS["source_system"])
+    df["source_system"] = ss
+    validate_provenance_enums(df, allow_erp_verified=allow_erp_verified)
+    return df
 
 
 def _dedupe(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
@@ -719,6 +804,7 @@ def _ingest_loaded(
     policy_threshold: float,
     fx_rates: dict[str, float] | None = None,
     fx_rates_date: str | None = None,
+    allow_erp_verified: bool = False,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """Run the canonical pipeline on an already-loaded frame.
 
@@ -796,6 +882,8 @@ def _ingest_loaded(
     if date_note:
         report.notes.append(date_note)
     df = _coerce_types(df)             # money / dates / outcome / booleans
+    df = apply_provenance_defaults(df, report,
+                                    allow_erp_verified=allow_erp_verified)
     if mixed:
         detail = _currency_row_counts(currency_codes)
         df = _normalize_currency(df, currency_codes, fx_rates)  # type: ignore[arg-type]
@@ -839,16 +927,21 @@ def ingest_frame_verbose(
     policy_threshold: float = DEFAULT_POLICY_THRESHOLD,
     fx_rates: dict[str, float] | None = None,
     fx_rates_date: str | None = None,
+    allow_erp_verified: bool = False,
 ) -> tuple[pd.DataFrame, LoadReport]:
     """In-memory counterpart to ingest_verbose.
 
     CRM connectors use this path so live opportunity rows never need a
     temporary file. The validation, disclosure, and enrichment behavior is
     otherwise identical to a CSV/XLSX diagnostic.
+
+    allow_erp_verified is for a Pricekeel-operated connector only: it lets
+    cost_basis=erp_verified through. Customer upload paths leave it False.
     """
     report = LoadReport(source=source)
     return _ingest_loaded(frame.copy(), report, policy_threshold,
-                          fx_rates=fx_rates, fx_rates_date=fx_rates_date)
+                          fx_rates=fx_rates, fx_rates_date=fx_rates_date,
+                          allow_erp_verified=allow_erp_verified)
 
 
 def ingest_verbose(
