@@ -138,3 +138,39 @@ create table if not exists competitor_context_sources (
 
 create index if not exists competitor_context_customer_verified_idx
   on competitor_context_sources (customer_ref, last_verified_at desc);
+
+-- Saved source mappings (2026-11-source-mappings.sql, PK-24). One confirmed
+-- column mapping per tenant, source system and header fingerprint, so the same
+-- headers skip confirmation. Header strings and canonical field names only,
+-- never row values; shape enforced by the CHECKs. No FK to
+-- salesforce_connections: CSV tenants have no connection.
+create table if not exists source_mappings (
+  id                 uuid primary key default gen_random_uuid(),
+  customer_ref       text not null,
+  source_system      text not null,
+  header_fingerprint text not null check (length(header_fingerprint) > 0),
+  headers            jsonb not null
+    check (jsonb_typeof(headers) = 'array'
+           and not jsonb_path_exists(headers, 'strict $[*] ? (@.type() != "string")')),
+  mapping            jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(mapping) = 'object'
+           and not jsonb_path_exists(mapping, 'strict $.* ? (@.type() != "string")')),
+  confirmed_by       text not null default '',
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (customer_ref, source_system, header_fingerprint)
+);
+
+comment on table source_mappings is
+  'Confirmed column mappings per tenant and source system. Holds header strings and canonical field names only, never row values. Shape enforced by CHECK constraints.';
+comment on column source_mappings.headers is
+  'jsonb array of header strings only, as they appeared in the export. Never row values.';
+comment on column source_mappings.mapping is
+  'jsonb object of header string to canonical field name (string to string only). Never row values.';
+comment on column source_mappings.header_fingerprint is
+  'Stable fingerprint of the normalised header list; same headers, same fingerprint, so confirmation is skipped.';
+
+-- Tenant-scoped source filter on decision_log, matching governance's
+-- lower(trim(payload->>'source')) predicate. Added by 2026-11-source-mappings.sql.
+create index if not exists decision_log_tenant_source_idx
+  on decision_log (customer_ref, (lower(trim(payload->>'source'))), created_at desc);
