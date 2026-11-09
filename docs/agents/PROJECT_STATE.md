@@ -6,14 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/4
-Updated: 2026-11-09T23:37:53Z
+Active work: 4/4
+Updated: 2026-11-09T23:40:47Z
 
 ## IN_PROGRESS
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
-- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
-  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer)
   - owns: web/src/lib/salesforce-adapter.ts
 
@@ -38,6 +36,8 @@ Updated: 2026-11-09T23:37:53Z
   - owns: pricing/contract_structure.py, tests/test_contract_structure.py
 - **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, PR #90, deps PK-27)
   - owns: pricing/ingest.py#profiles, api/routers/diagnostic.py#load_report, api/routers/diagnostic.py#map_columns, api/shared.py#diagnostic_payload, tests/test_ingest_profiles.py
+- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
+  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 
 ## QA
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:37:53Z",
+  "updated": "2026-11-09T23:40:47Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3117,7 +3117,7 @@
       "id": "PK-77",
       "title": "Redesign the pricing page and clear its claims that exceed the evidence",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-75"
       ],
@@ -3142,15 +3142,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 91,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:06:29Z",
-      "updated": "2026-11-09T23:03:50Z",
+      "updated": "2026-11-09T23:40:47Z",
       "notes": [
         {
           "ts": "2026-11-09T23:03:46Z",
           "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:40:47Z",
+          "note": "PR #91"
         }
       ]
     },
