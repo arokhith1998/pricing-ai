@@ -11,6 +11,7 @@ review to notice.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
@@ -93,4 +94,139 @@ def test_leads_email_index_is_not_unique_in_the_migration():
 def test_leads_email_index_is_not_unique_in_schema_sql():
     schema = (Path(__file__).resolve().parent / "schema.sql").read_text(encoding="utf-8").lower()
     assert "leads_lower_email_idx" in schema
-    assert "create unique index" not in schema
+    assert "create unique index" not in schema.replace(
+        "create unique index if not exists access_codes_tenant_ref_key", ""
+    )
+
+
+# --- PK-41: source_connections, Salesforce backfill, opaque tenant ref ------
+# Structural checks only (no database in CI). The scratch-cluster run in the
+# PR body is the behavioural proof: up, up, down, down, up, backfill counts,
+# down refusal, schema dump identity.
+
+SCHEMA_SQL = Path(__file__).resolve().parent / "schema.sql"
+PK41_UP = MIGRATIONS_DIR / "2026-11-10-source-connections.sql"
+PK41_DOWN = MIGRATIONS_DIR / "2026-11-10-source-connections.down.sql"
+
+
+def _table_body(sql: str, table: str) -> str:
+    """Text between 'create table if not exists <table> (' and the matching
+    close paren at line start, with -- comments removed."""
+    start = sql.index(f"create table if not exists {table} (")
+    end = sql.index("\n);", start)
+    body = sql[start:end]
+    return "\n".join(line.split("--")[0] for line in body.splitlines())
+
+
+def _column_names(body: str) -> list[str]:
+    names = []
+    for line in body.splitlines()[1:]:
+        m = re.match(r"^  ([a-z_]+)\s+(text|jsonb|timestamptz|double|integer|boolean|uuid)", line)
+        if m:
+            names.append(m.group(1))
+    return names
+
+
+def test_pk41_pair_exists_and_sorts_after_source_mappings():
+    assert PK41_UP.exists() and PK41_DOWN.exists()
+    names = [p.name for p in _up_files()]
+    assert names == sorted(names)
+    assert names.index(PK41_UP.name) > names.index("2026-11-09-source-mappings.sql")
+
+
+def test_pk41_source_connections_key_and_system_check():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    body = _table_body(up, "source_connections")
+    assert "primary key (customer_ref, source_system)" in body
+    assert "source_system in ('salesforce','hubspot','stripe','chargebee')" in body
+    assert "'revoked'" in body
+    for col in (
+        "external_account_id", "instance_url", "credential_kind",
+        "access_token_encrypted", "credential_encrypted", "key_id", "scope",
+        "token_expires_at", "status", "last_error", "last_sync_at",
+        "last_sync_counts", "connected_at", "updated_at",
+    ):
+        assert col in _column_names(body), f"source_connections missing {col}"
+
+
+def test_pk41_no_column_can_hold_a_plaintext_credential_or_deal_value():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    for table in ("source_connections", "source_connection_config"):
+        for col in _column_names(_table_body(up, table)):
+            secretish = re.search(r"token|secret|key|credential|password", col)
+            if secretish and col not in ("key_id", "token_expires_at", "credential_kind"):
+                assert col.endswith("_encrypted"), f"{table}.{col} could hold plaintext"
+            assert not re.search(r"amount|price_value|revenue|acv|arr|deal_value|booked|list_value", col), (
+                f"{table}.{col} could hold a deal value"
+            )
+    body = _table_body(up, "source_connections")
+    # Ciphertext format is enforced, so a bare token or an rk_ key cannot be stored.
+    assert "credential_encrypted ~ '^v[0-9]+\\.'" in body
+    assert "access_token_encrypted ~ '^v[0-9]+\\.'" in body
+    assert "ciphertext only" in up
+
+
+def test_pk41_config_cascades_from_connections():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    body = _table_body(up, "source_connection_config")
+    assert "references source_connections (customer_ref, source_system)" in body
+    assert "on delete cascade" in body
+
+
+def test_pk41_up_leaves_legacy_tables_untouched_and_backfills_idempotently():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    for table in ("salesforce_connections", "salesforce_mappings"):
+        for verb in ("alter table", "drop table", "delete from", "truncate", "update"):
+            assert f"{verb} {table}" not in up, f"up must not {verb} {table}"
+    assert up.count("on conflict (customer_ref, source_system) do nothing") == 2
+    assert "from salesforce_connections" in up and "from salesforce_mappings" in up
+    assert "lock table" in up and "share mode" in up
+    code_only = "\n".join(line.split("--")[0] for line in up.splitlines())
+    assert "drop table" not in code_only and "truncate" not in code_only
+
+
+def test_pk41_tenant_ref_backfills_to_code_then_defaults_to_random():
+    up = PK41_UP.read_text(encoding="utf-8").lower()
+    add = up.index("add column if not exists tenant_ref text;")
+    backfill = up.index("update access_codes set tenant_ref = code where tenant_ref is null;")
+    default = up.index("set default 'tn_' || replace(gen_random_uuid()::text, '-', '')")
+    not_null = up.index("alter column tenant_ref set not null")
+    assert add < backfill < default < not_null  # default must come after the backfill
+    assert "create unique index if not exists access_codes_tenant_ref_key" in up
+
+
+def test_pk41_down_refuses_non_salesforce_rows_and_drops_exactly_the_up():
+    down = PK41_DOWN.read_text(encoding="utf-8").lower()
+    assert "do $$" in down
+    assert "source_system <> ''salesforce''" in down
+    assert "down migration refused" in down
+    refuse = down.index("down migration refused")
+    first_drop = down.index("drop table if exists source_connection_config")
+    assert refuse < first_drop  # the guard runs before anything is dropped
+    code_only = "\n".join(line.split("--")[0] for line in down.splitlines())
+    dropped = set(re.findall(r"drop (?:table|index) if exists (\w+)", code_only))
+    assert dropped == {"source_connection_config", "source_connections", "access_codes_tenant_ref_key"}
+    assert "alter table access_codes drop column if exists tenant_ref" in code_only
+    for legacy in ("salesforce_connections", "salesforce_mappings", "decision_log"):
+        assert f"drop table if exists {legacy}" not in code_only
+        assert f"delete from {legacy}" not in code_only
+
+
+def test_pk41_header_states_deploy_order():
+    for p in (PK41_UP, PK41_DOWN):
+        assert "DEPLOY ORDER" in p.read_text(encoding="utf-8")
+
+
+def test_pk41_schema_sql_matches_migration_ddl():
+    schema = SCHEMA_SQL.read_text(encoding="utf-8")
+    up = PK41_UP.read_text(encoding="utf-8")
+    for table in ("source_connections", "source_connection_config"):
+        assert _table_body(schema, table) == _table_body(up, table), (
+            f"schema.sql {table} drifted from the migration"
+        )
+    low = schema.lower()
+    assert "tenant_ref  text not null default 'tn_' || replace(gen_random_uuid()::text, '-', '')" in low
+    assert "create unique index if not exists access_codes_tenant_ref_key" in low
+    assert "create index if not exists source_connections_status_updated_idx" in low
+    # Legacy tables stay in schema.sql until PK-70 drops them.
+    assert "create table if not exists salesforce_connections" in low

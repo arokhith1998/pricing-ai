@@ -40,8 +40,18 @@ create table if not exists access_codes (
   expires_at  timestamptz,                -- null = no expiry
   used_at     timestamptz,                -- set on first successful use
   revoked     boolean not null default false,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  -- Opaque, stable tenant key, never a credential (2026-11-10-source-connections.sql,
+  -- PK-41). Rows that existed at migration time were backfilled to their code;
+  -- new codes get 'tn_' plus a random UUID without dashes from this default.
+  tenant_ref  text not null default 'tn_' || replace(gen_random_uuid()::text, '-', '')
 );
+
+create unique index if not exists access_codes_tenant_ref_key
+  on access_codes (tenant_ref);
+
+comment on column access_codes.tenant_ref is
+  'Opaque, stable tenant key, never a credential. Existing codes were backfilled to their code so keyed rows still match; new codes default to tn_ plus a random UUID without dashes.';
 
 -- Supports the leads -> access_codes lookup. Added by
 -- 2026-09-26-tenant-scoped-indexes.sql.
@@ -179,3 +189,83 @@ comment on column source_mappings.header_fingerprint is
 -- condition, not an ORDER BY (= any(...) plans sort regardless). Added by 2026-11-09-source-mappings.sql.
 create index if not exists decision_log_tenant_source_idx
   on decision_log (customer_ref, (lower(trim(payload->>'source'))), created_at desc);
+
+-- Source-keyed connections (2026-11-10-source-connections.sql, PK-41). One row
+-- per tenant and source system. Ciphertext credentials only (CHECKed to the
+-- versioned format), never plaintext, never a deal value. The legacy
+-- salesforce_connections and salesforce_mappings above stay until PK-70 drops
+-- them; the migration backfills Salesforce rows into these tables.
+create table if not exists source_connections (
+  customer_ref           text not null check (length(customer_ref) > 0),
+  source_system          text not null
+    check (source_system in ('salesforce','hubspot','stripe','chargebee')),
+  external_account_id    text not null default '',
+  instance_url           text,
+  credential_kind        text not null
+    check (credential_kind in ('oauth_refresh','restricted_key','api_key')),
+  access_token_encrypted text
+    check (access_token_encrypted is null or access_token_encrypted ~ '^v[0-9]+\.'),
+  credential_encrypted   text not null
+    check (credential_encrypted ~ '^v[0-9]+\.'),
+  key_id                 text not null default '',
+  scope                  text not null default '',
+  token_expires_at       timestamptz,
+  status                 text not null default 'connected'
+    check (status in ('connected','reauth_required','error','revoked')),
+  last_error             text not null default '',
+  last_sync_at           timestamptz,
+  last_sync_counts       jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(last_sync_counts) = 'object'),
+  connected_at           timestamptz not null default now(),
+  updated_at             timestamptz not null default now(),
+  primary key (customer_ref, source_system),
+  constraint source_connections_instance_url_sf_only
+    check (instance_url is null or source_system = 'salesforce')
+);
+
+comment on table source_connections is
+  'One connected source per tenant and source system. Holds ciphertext credentials, identifiers, status and sync counts only. No plaintext credential and no deal, invoice or account value is ever stored here; row data is processed in memory and discarded.';
+comment on column source_connections.access_token_encrypted is
+  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK). Never a plaintext token. Null for credentials with no access token (Stripe restricted key, Chargebee API key).';
+comment on column source_connections.credential_encrypted is
+  'CIPHERTEXT ONLY: versioned AES-GCM output ("v<n>." prefix, enforced by CHECK) of the long-lived credential: OAuth refresh token, Stripe restricted key or Chargebee API key. Never plaintext.';
+comment on column source_connections.key_id is
+  'Id of the encryption key that produced the ciphertext. Empty for v1 ciphertexts, which carry none.';
+comment on column source_connections.last_sync_counts is
+  'jsonb object of integer counts from the last sync (for example closed and open deal counts). Counts only, never records.';
+comment on column source_connections.external_account_id is
+  'Vendor account identifier: Salesforce org id, HubSpot portal id, Stripe account id, Chargebee site name.';
+
+create table if not exists source_connection_config (
+  customer_ref         text not null,
+  source_system        text not null,
+  mapping              jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(mapping) = 'object'),
+  stage_map            jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(stage_map) = 'object'
+           and not jsonb_path_exists(stage_map, 'strict $.* ? (@.type() != "string")')),
+  list_price_set       jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(list_price_set) = 'array'
+           and not jsonb_path_exists(list_price_set, 'strict $[*] ? (@.type() != "string")')),
+  policy_threshold_pct double precision not null default 15.0,
+  default_value_metric text not null default 'hybrid',
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  primary key (customer_ref, source_system),
+  constraint source_connection_config_connection_fkey
+    foreign key (customer_ref, source_system)
+    references source_connections (customer_ref, source_system)
+    on delete cascade
+);
+
+comment on table source_connection_config is
+  'Per-connection configuration, generalising salesforce_mappings. Config only, never values: field names, stage identifiers, price identifiers, thresholds. Cascades from source_connections.';
+comment on column source_connection_config.mapping is
+  'jsonb object of canonical field to vendor field name. Names only, never row values.';
+comment on column source_connection_config.stage_map is
+  'jsonb object of vendor stage identifier to canonical outcome, string to string, confirmed by a person.';
+comment on column source_connection_config.list_price_set is
+  'jsonb array of vendor price or property identifiers confirmed as list price (strings). Identifiers only, never amounts.';
+
+create index if not exists source_connections_status_updated_idx
+  on source_connections (status, updated_at desc);
