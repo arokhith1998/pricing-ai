@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:41:55Z",
+  "updated": "2026-11-09T18:44:49Z",
   "config": {
     "max_concurrent": 2
   },
@@ -1085,7 +1085,7 @@
       "id": "PK-25",
       "title": "Make Salesforce the first adapter behind a neutral guardrail",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [
         "PK-23"
       ],
@@ -1113,10 +1113,15 @@
         "ci_run": null
       },
       "pr": 75,
-      "review": null,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T18:44:49Z"
+      },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-09T18:34:13Z",
+      "updated": "2026-11-09T18:44:49Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1125,6 +1130,10 @@
         {
           "ts": "2026-11-09T18:34:13Z",
           "note": "PR #75"
+        },
+        {
+          "ts": "2026-11-09T18:44:49Z",
+          "note": "review approve-with-nits"
         }
       ]
     },
