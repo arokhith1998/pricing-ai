@@ -37,6 +37,13 @@ from api.shared import analysis_payload
 
 logger = logging.getLogger("pricekeel.api.crm")
 
+# The decision-log source for everything this router records: the adapter's
+# SourceSystem value ("salesforce"). Rows written before 2026-11 carry the
+# legacy strings "salesforce_crm" and "salesforce_crm_writeback"; the governance
+# source filter resolves those to the same system, and write-back receipts are
+# told apart by event (governance.is_writeback_receipt), not by source.
+_SOURCE = crm_mod.ADAPTER.system
+
 router = APIRouter()
 
 
@@ -227,8 +234,8 @@ class CRMWorkflowReq(CRMAnalyzeReq):
 
 def _crm_deal_history(customer: str, deal_id: str) -> list[dict]:
     rows = governance_mod.STORE.list(
-        kind="exception", deal_id=deal_id, source="salesforce_crm",
-        limit=500, customer_ref=customer,
+        kind="exception", deal_id=deal_id, source=_SOURCE,
+        limit=500, customer_ref=customer, exclude_receipts=True,
     )
     return rows
 
@@ -373,7 +380,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
         or str(previous_payload.get("justification") or "")
     )
     payload = {
-        "source": "salesforce_crm",
+        "source": _SOURCE,
         "event": event,
         "deal_id": req.deal_id,
         "account": guidance["account"],
@@ -464,8 +471,9 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
     latest_by_deal = governance_mod.STORE.latest_by_deal(
         kind="exception",
         deal_ids=[item.deal_id for item in outcomes],
-        source="salesforce_crm",
+        source=_SOURCE,
         customer_ref=customer,
+        exclude_receipts=True,
     )
     for item in outcomes:
         latest = latest_by_deal.get(item.deal_id)
@@ -480,7 +488,7 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
         }:
             continue
         payload = {
-            "source": "salesforce_crm",
+            "source": _SOURCE,
             "event": "outcome_recorded",
             "deal_id": item.deal_id,
             "account": item.account,
@@ -537,7 +545,7 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
         )
     event = "salesforce_writeback_succeeded" if req.success else "salesforce_writeback_failed"
     payload = {
-        "source": "salesforce_crm_writeback",
+        "source": _SOURCE,
         "event": event,
         "deal_id": req.deal_id,
         "account": str(decision_payload.get("account") or ""),
@@ -574,14 +582,13 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
     from api import main  # deferred: see module docstring
     rows = governance_mod.STORE.list(
         kind="exception",
+        source=_SOURCE,
         limit=max(1, min(int(limit), 200)),
         customer_ref=main._customer_ref(request),
     )
     items = []
     for row in rows:
         payload = row.get("payload") or {}
-        if payload.get("source") not in {"salesforce_crm", "salesforce_crm_writeback"}:
-            continue
         items.append({
             "id": str(row.get("id", "")),
             "deal_id": str(row.get("deal_id", "")),
@@ -594,4 +601,4 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
             "writeback": payload.get("writeback") or {},
             "created_at": str(row.get("created_at", "")),
         })
-    return {"items": items[:limit]}
+    return {"items": items}
