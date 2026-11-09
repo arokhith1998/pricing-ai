@@ -1,122 +1,126 @@
-import Link from "next/link";
-import Reveal from "@/components/Reveal";
+import type { Metadata } from "next";
+import { Button, Eyebrow, Section } from "@/components/ui";
 import HeroHeadline from "@/components/HeroHeadline";
-import CountUp from "@/components/CountUp";
 import DiagnosticPreview, { type DiagnosticPreviewData } from "@/components/DiagnosticPreview";
 import WhatYouGet from "@/components/WhatYouGet";
 import TrustBoundaryStrip from "@/components/TrustBoundaryStrip";
-import sampleFallback from "@/data/sample-fallback.json";
-import type { Diagnostic } from "@/lib/api";
+import DecisionRecord from "@/components/landing/DecisionRecord";
+import DecisionWalk from "@/components/landing/DecisionWalk";
+import { pageMetadata } from "@/lib/page-metadata";
+import { OVERVIEW, PROBE_BANDS, RECORD, peakBandLabel } from "@/lib/landing-sample";
 
 // Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
 
-// The bundled synthetic 2,000-deal snapshot is the single source for every
-// number on this page (hero stat and the diagnostic-preview KPIs/chart).
-// Nothing here is hand-typed: regenerate the JSON (see src/lib/api.ts) and
-// these figures move on their own.
-const SAMPLE = sampleFallback as unknown as Diagnostic;
+export const metadata: Metadata = pageMetadata({
+  title: "Salesforce deal guidance for B2B SaaS",
+  description:
+    "Pricekeel prices every discount exception in Salesforce before approval and records the decision with evidence Finance can audit, for usage and hybrid B2B SaaS.",
+  path: "/",
+});
 
-// Segment-aware excess is the headline lens (see pricing-strategist review,
-// 2026-09-27): each deal measured against its own segment's reference
-// point, not one global threshold. Falls back to the global figure only if
-// an older cached payload lacks the segment-aware field.
-const HERO_EXCESS =
-  SAMPLE.leakage.excess_vs_segment_reference_won ?? SAMPLE.leakage.excess_vs_reference_won;
-
-const DIAGNOSTIC_DATA: DiagnosticPreviewData = {
-  opportunities: SAMPLE.overview.opportunities,
-  bookedAcvWon: SAMPLE.overview.booked_acv_won,
-  priceRealizationWon: SAMPLE.overview.price_realization_won,
-  avgDiscountWon: SAMPLE.overview.avg_discount_won,
-  excessSegment: HERO_EXCESS,
-  excessSegmentPct:
-    SAMPLE.leakage.excess_segment_pct_of_booked ?? SAMPLE.leakage.excess_pct_of_booked,
-  winRate: SAMPLE.overview.win_rate,
-  bands: SAMPLE.win_rate_by_band.map((b) => ({
-    label: b.discount_band,
-    winRate: b.win_rate,
-    isReference: b.discount_band === SAMPLE.reference_discount.reference_band,
-  })),
+// Every number on this page comes from the bundled synthetic 2,000-deal
+// snapshot through src/lib/landing-sample.ts. Nothing is hand-typed.
+const PREVIEW_DATA: DiagnosticPreviewData = {
+  opportunities: OVERVIEW.opportunities,
+  bookedAcvWon: OVERVIEW.booked_acv_won,
+  priceRealizationWon: OVERVIEW.price_realization_won,
+  avgDiscountWon: OVERVIEW.avg_discount_won,
+  winRate: OVERVIEW.win_rate,
+  bands: PROBE_BANDS,
+  peakBand: peakBandLabel(PROBE_BANDS),
+  initialBand: RECORD.requestedBand.label,
 };
 
 export default function Landing() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      {/* 1. Hero: one sentence, one real number, one action. */}
-      <Reveal>
-        <section className="flex min-h-[100svh] flex-col items-center justify-center py-10 text-center">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal">
-            Salesforce deal guidance for B2B SaaS
-          </p>
-          <HeroHeadline />
-          <div className="mt-10">
-            <div className="text-5xl font-extrabold tabular-nums text-coral sm:text-6xl">
-              <CountUp to={HERO_EXCESS} format="moneyShort" />
+    <main id="main" tabIndex={-1} className="outline-none">
+      {/* 1. Hero: one claim, one action, the decision record above the fold. */}
+      <Section band="canvas" labelledBy="hero-h" className="py-8! md:py-10! lg:py-12!">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-12">
+          <div>
+            <Eyebrow>Salesforce deal guidance for B2B SaaS</Eyebrow>
+            <div className="mt-3">
+              <HeroHeadline />
             </div>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              sits below the segment&rsquo;s win point on the sample book
+            <p className="pk-lead m-0 mt-4 max-w-[52ch]">
+              Every discount exception is priced against the book before approval. The request
+              stays as asked, the evidence is shown, and a person decides.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <Button href="/contact" size="lg">
+                Walk through one discount exception
+              </Button>
+              <Button href="/sample" variant="quiet">
+                See the sample &rarr;
+              </Button>
+            </div>
+            <p className="pk-small m-0 mt-4 text-muted">
+              Salesforce orgs with 500+ closed opportunities a year.
             </p>
           </div>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/contact"
-              className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg transition hover:-translate-y-0.5 hover:bg-teal/90"
-            >
-              Walk through one discount exception
-            </Link>
-            <Link
-              href="/sample"
-              className="text-sm font-medium text-muted underline-offset-4 transition hover:text-teal hover:underline"
-            >
-              See the live sample &rarr;
-            </Link>
+          <DecisionRecord />
+        </div>
+      </Section>
+
+      {/* 2. Product: the walk through one exception, then the band probe. */}
+      <Section band="band" id="workflow" labelledBy="product-h">
+        <Eyebrow>How one exception moves</Eyebrow>
+        <h2 id="product-h" className="pk-h2 m-0 mt-2">
+          One discount exception, from request to outcome.
+        </h2>
+        <p className="pk-lead m-0 mt-3 max-w-[68ch]">
+          The same synthetic deal as above, in four steps. Each step is what the record holds.
+        </p>
+        <div className="mt-10">
+          <DecisionWalk record={RECORD} />
+        </div>
+        <div className="mt-16">
+          <h3 className="pk-h3 m-0">The readout behind it</h3>
+          <div className="mt-4">
+            <DiagnosticPreview data={PREVIEW_DATA} />
           </div>
-          <p className="mt-8 text-xs text-muted">
-            Salesforce orgs with 500+ closed opportunities a year.
-          </p>
-        </section>
-      </Reveal>
+        </div>
+      </Section>
 
-      {/* 2. The one immersive product mockup, revealed on scroll. */}
-      <Reveal inView>
-        <section id="workflow" className="mt-8 scroll-mt-24">
-          <DiagnosticPreview data={DIAGNOSTIC_DATA} />
-        </section>
-      </Reveal>
-
-      {/* 3. What you get, one line per role. */}
-      <Reveal inView>
-        <section className="mt-20">
+      {/* 3. Roles: one record, three views. */}
+      <Section band="canvas" labelledBy="roles-h">
+        <Eyebrow>Who reads it</Eyebrow>
+        <h2 id="roles-h" className="pk-h2 m-0 mt-2">
+          One decision record, three views.
+        </h2>
+        <div className="mt-8">
           <WhatYouGet />
-        </section>
-      </Reveal>
+        </div>
+      </Section>
 
-      {/* 4. Trust and boundary, stated once. */}
-      <Reveal inView>
-        <section className="mt-16">
+      {/* 4. Boundary: stated once. */}
+      <Section band="band" labelledBy="boundary-h">
+        <Eyebrow>Where the engine draws the line</Eyebrow>
+        <h2 id="boundary-h" className="pk-h2 m-0 mt-2">
+          What it will and will not do.
+        </h2>
+        <div className="mt-8">
           <TrustBoundaryStrip />
-        </section>
-      </Reveal>
+        </div>
+      </Section>
 
-      {/* 5. Closing CTA. */}
-      <Reveal inView>
-        <section className="mt-16 rounded-2xl border border-teal/40 bg-surface px-6 py-10 text-center sm:px-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">
-            Design-partner cohort
-          </p>
-          <h2 className="mt-2 text-2xl font-bold text-fg">A 20-minute conversation, not a demo.</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Tell us how discount exceptions get approved today. No data or
-            Salesforce access needed to talk.
-          </p>
-          <div className="mt-6 flex justify-center">
-            <Link href="/contact" className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg hover:bg-teal/90">
-              Talk to us
-            </Link>
-          </div>
-        </section>
-      </Reveal>
+      {/* 5. Close. */}
+      <Section band="spotlight" labelledBy="close-h" width="prose" className="text-center">
+        <Eyebrow>Start a conversation</Eyebrow>
+        <h2 id="close-h" className="pk-h2 m-0 mt-2">
+          A 20-minute conversation, not a demo.
+        </h2>
+        <p className="pk-body m-0 mx-auto mt-3 max-w-[56ch]">
+          Tell us how discount exceptions get approved today. No data or Salesforce access needed
+          to talk.
+        </p>
+        <div className="mt-6 flex justify-center">
+          <Button href="/contact" size="lg">
+            Talk to us
+          </Button>
+        </div>
+      </Section>
     </main>
   );
 }

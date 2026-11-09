@@ -1,38 +1,44 @@
-import { Stagger, StaggerItem } from "@/components/Reveal";
+import { Card, Eyebrow } from "@/components/ui";
+import { RECORD } from "@/lib/landing-sample";
+import { ciText, pct } from "@/components/landing/parts";
 
-const ROLES: { role: string; line: string }[] = [
+// One record, three views: the same synthetic deal rendered for the three
+// readers. The role lines are unchanged from the earlier landing page; the
+// excerpt under each is read from the same record the hero shows.
+const r = RECORD;
+
+const ROLES: { role: string; line: string; excerpt: string }[] = [
   {
     role: "Deal Desk",
     line: "See the guardrail and the closest comparable deals. Accept, trade, or override.",
+    excerpt: `${r.opportunityId}: ${pct(r.requestedDiscount)} requested against a ${r.referenceBandLabel} reference band.`,
   },
   {
     role: "Pricing",
     line: "See realization and win rate by segment and band, with cited competitor context.",
+    excerpt: `${r.requestedBand.label} band wins ${pct(r.requestedBand.winRate)} (interval ${ciText(r.requestedBand)}).`,
   },
   {
     role: "Finance",
     line: "See who approved what, and where CRM discount data stops and true margin needs billing or ERP.",
+    excerpt: `Evidence ${r.evidenceVersion} is stored with the decision.`,
   },
 ];
 
 export default function WhatYouGet() {
   return (
-    <section aria-label="One decision record, three views">
-      <h2 className="text-center text-xl font-bold text-fg sm:text-2xl">
-        One decision record, three views.
-      </h2>
-      <Stagger className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {ROLES.map((item) => (
-          <StaggerItem key={item.role}>
-            <div className="h-full rounded-xl border border-mist bg-surface p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">
-                {item.role}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted">{item.line}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </Stagger>
-    </section>
+    <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-3">
+      {ROLES.map((item) => (
+        <li key={item.role} className="flex">
+          <Card className="flex w-full flex-col">
+            <Eyebrow>{item.role}</Eyebrow>
+            <p className="pk-body m-0 mt-3">{item.line}</p>
+            <p className="pk-small pk-mono m-0 mt-auto border-t border-border pt-3 text-muted">
+              {item.excerpt}
+            </p>
+          </Card>
+        </li>
+      ))}
+    </ul>
   );
 }
