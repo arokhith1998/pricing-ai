@@ -230,3 +230,5 @@
 {"ts": "2026-11-09T19:25:06Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T19:25:07Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T19:28:23Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #79"}
+{"ts": "2026-11-09T19:29:19Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:29:27Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #77"}
