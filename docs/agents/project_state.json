@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:27:12Z",
+  "updated": "2026-11-09T20:29:30Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3209,7 +3209,7 @@
       "id": "PK-86",
       "title": "Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7",
       "agent": "ai-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "requirements.txt",
@@ -3229,15 +3229,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 82,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:17:37Z",
-      "updated": "2026-11-09T19:17:43Z",
+      "updated": "2026-11-09T20:29:30Z",
       "notes": [
         {
           "ts": "2026-11-09T19:17:42Z",
           "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T20:29:30Z",
+          "note": "PR #82"
         }
       ]
     },
