@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:50:45Z",
+  "updated": "2026-11-09T20:54:54Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2163,7 +2163,7 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-25"
       ],
@@ -2188,10 +2188,15 @@
         "ci_run": null
       },
       "pr": 84,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T20:54:54Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T20:41:25Z",
+      "updated": "2026-11-09T20:54:54Z",
       "notes": [
         {
           "ts": "2026-11-09T20:03:02Z",
@@ -2200,6 +2205,10 @@
         {
           "ts": "2026-11-09T20:41:25Z",
           "note": "PR #84"
+        },
+        {
+          "ts": "2026-11-09T20:54:54Z",
+          "note": "review rejected: "
         }
       ]
     },
