@@ -507,3 +507,12 @@ PK-53 found that `pricing/guardrail.py` has no source awareness: a billing-sourc
 ## Lead note from the PR 86 review, 2026-11-09
 
 PK-48 (HubSpot sync in the web tier) must loosen the web `CanonicalDeal` so `opportunity_id` and `salesforce_url` are optional or move into a Salesforce subtype, with `deal_id` and `source_url` as the neutral pair; PK-26 keeps them required to stay byte-identical for `/crm`. The web `SourceSystem` union is pinned to `pricing/schema.py` by a test (PK-26 nit), so adding stripe and chargebee on the web side is forced when PK-53 merges.
+
+## Lead notes from PK-41 (PR 89), 2026-11-09
+
+- Migration pair is `2026-11-10-source-connections.sql` and `.down.sql` (board claim said `2026-11-`; naming follows the dated convention and sorts after PK-24).
+- PK-43 hazard: a code issued after the PK-41 migration gets an opaque `tenant_ref` that differs from its code; if used before PK-43 deploys, its decision_log rows are keyed by the code. PK-43 sets `tenant_ref = code` for codes with `used_at` set and created after the migration, or no codes are issued in that window. Acceptance line added to PK-43.
+- PK-42 hazard: the backfill is a point-in-time copy with `ON CONFLICT DO NOTHING`; tokens refreshed in the legacy table after the first run are not copied by a rerun, so the cutover needs a targeted refresh or a reconnect. Acceptance line added to PK-42. Legacy `user_id`, `token_type` and `issued_at` are not copied; PK-42 adds a column if it needs them.
+- PK-44 (register) lists `source_connections` and `source_connection_config`; PK-43 delete-by-tenant covers the config through the cascade.
+- `neon/MIGRATIONS.md` deploy-order table lacks rows for the PK-24 and PK-41 pairs; whichever task next holds `neon/**` adds them (or PK-70).
+- Deploy order: PK-24's migration, then PK-41's, before any PK-42 or PK-43 code deploys. Both must be applied to production Neon by the founder or with explicit authorization.

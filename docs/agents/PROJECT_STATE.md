@@ -6,12 +6,10 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 4/4
-Updated: 2026-11-09T23:03:50Z
+Active work: 3/4
+Updated: 2026-11-09T23:05:20Z
 
 ## IN_PROGRESS
-- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, deps PK-24,PK-25)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
@@ -34,6 +32,8 @@ Updated: 2026-11-09T23:03:50Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, PR #88, deps PK-31)
   - owns: pricing/contract_structure.py, tests/test_contract_structure.py
+- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, PR #89, deps PK-24,PK-25)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 
 ## QA
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
