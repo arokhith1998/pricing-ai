@@ -6,10 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/4
-Updated: 2026-11-09T20:41:25Z
+Active work: 3/4
+Updated: 2026-11-09T20:42:46Z
 
 ## IN_PROGRESS
+- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
+  - owns: web/src/app/competitor-watch/page.tsx, docs/reviews/founder-action-checklist.md
+- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, deps PK-25)
+  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
@@ -48,7 +52,6 @@ Updated: 2026-11-09T20:41:25Z
   - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## READY
-- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 
@@ -59,8 +62,6 @@ Updated: 2026-11-09T20:41:25Z
   - owns: tools/agentctl.py
 - **PK-21** Amend incident response for credentials and new data classes  (customer-success, deps PK-20,PK-6)
   - owns: docs/ops/incident-response.md
-- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, deps PK-25)
-  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-28** Persist the confirmed mapping per tenant, headers only  (backend-engineer, deps PK-24,PK-27)
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)

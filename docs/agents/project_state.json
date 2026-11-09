@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:41:25Z",
+  "updated": "2026-11-09T20:42:46Z",
   "config": {
     "max_concurrent": 4
   },
@@ -566,13 +566,16 @@
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-9"
       ],
-      "owns": [],
-      "branch": null,
-      "worktree": null,
+      "owns": [
+        "web/src/app/competitor-watch/page.tsx",
+        "docs/reviews/founder-action-checklist.md"
+      ],
+      "branch": "agent/web-engineer/PK-12",
+      "worktree": ".claude/worktrees/PK-12",
       "acceptance": [
         "competitor-watch/page.tsx:181 no longer reads as if the operator's terms are Pricekeel's",
         "docs/reviews/founder-action-checklist.md:97 no longer claims FounderCta.tsx exists",
@@ -589,8 +592,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-09-11T23:40:37Z",
-      "notes": []
+      "updated": "2026-11-09T20:42:46Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:42:40Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-13",
@@ -1243,7 +1251,7 @@
       "id": "PK-26",
       "title": "Rename the web canonical type to CanonicalDeal",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-25"
       ],
@@ -1251,8 +1259,8 @@
         "web/src/lib/salesforce-adapter.ts",
         "web/src/lib/salesforce-types.ts"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/web-engineer/PK-26",
+      "worktree": ".claude/worktrees/PK-26",
       "acceptance": [
         "CanonicalCrmDeal is renamed CanonicalDeal everywhere under web/src/lib, with source fields mirroring PK-23",
         "tsc, web tests and the production build pass; /crm behavior unchanged"
@@ -1267,8 +1275,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:04Z",
-      "updated": "2026-11-07T16:32:04Z",
-      "notes": []
+      "updated": "2026-11-09T20:42:32Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:42:26Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-27",
