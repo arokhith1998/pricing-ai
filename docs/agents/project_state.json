@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:33:45Z",
+  "updated": "2026-11-09T23:37:53Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1764,7 +1764,7 @@
       "id": "PK-39",
       "title": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals",
       "agent": "backend-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-27"
       ],
@@ -1792,15 +1792,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 90,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-09T23:06:42Z",
+      "updated": "2026-11-09T23:37:53Z",
       "notes": [
         {
           "ts": "2026-11-09T23:06:37Z",
           "note": "claimed 5 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:37:53Z",
+          "note": "PR #90"
         }
       ]
     },
