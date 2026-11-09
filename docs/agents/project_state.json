@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:02:05Z",
+  "updated": "2026-11-09T19:04:43Z",
   "config": {
     "max_concurrent": 2
   },
@@ -249,7 +249,7 @@
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-5"
       ],
@@ -274,10 +274,15 @@
         "ci_run": null
       },
       "pr": 77,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:04:43Z"
+      },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-11-09T18:47:56Z",
+      "updated": "2026-11-09T19:04:43Z",
       "notes": [
         {
           "ts": "2026-11-09T18:37:54Z",
@@ -286,6 +291,10 @@
         {
           "ts": "2026-11-09T18:47:56Z",
           "note": "PR #77"
+        },
+        {
+          "ts": "2026-11-09T19:04:43Z",
+          "note": "review rejected: "
         }
       ]
     },

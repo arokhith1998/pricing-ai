@@ -199,3 +199,4 @@
 {"ts": "2026-11-09T19:00:34Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:04:43Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
