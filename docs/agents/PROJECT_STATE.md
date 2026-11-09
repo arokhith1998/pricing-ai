@@ -6,14 +6,20 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 2/2
-Updated: 2026-11-09T19:00:34Z
+Active work: 4/2
+Updated: 2026-11-09T19:02:05Z
 
 ## IN_PROGRESS
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
+
+## REWORK_REQUIRED
+- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
+  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
+- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
+  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -26,10 +32,6 @@ Updated: 2026-11-09T19:00:34Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
-  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
-- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
-  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 

@@ -197,3 +197,5 @@
 {"ts": "2026-11-09T19:00:32Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "QA -> APPROVED: CI run 42673927453"}
 {"ts": "2026-11-09T19:00:33Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "APPROVED -> MERGED: merged as 4c0dda8, human-approved by product owner"}
 {"ts": "2026-11-09T19:00:34Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}

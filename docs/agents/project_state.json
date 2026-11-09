@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:00:34Z",
+  "updated": "2026-11-09T19:02:05Z",
   "config": {
     "max_concurrent": 2
   },
@@ -1202,7 +1202,7 @@
       "id": "PK-27",
       "title": "Add source profiles and export presets to the mapper",
       "agent": "ai-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-23"
       ],
@@ -1231,11 +1231,11 @@
         "verdict": "reject",
         "by": "code-reviewer",
         "notes": "",
-        "ts": "2026-11-09T18:41:55Z"
+        "ts": "2026-11-09T19:02:05Z"
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T18:51:00Z",
+      "updated": "2026-11-09T19:02:05Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1252,6 +1252,10 @@
         {
           "ts": "2026-11-09T18:51:00Z",
           "note": "PR #74"
+        },
+        {
+          "ts": "2026-11-09T19:02:05Z",
+          "note": "review rejected: "
         }
       ]
     },
@@ -1293,7 +1297,7 @@
       "id": "PK-29",
       "title": "Add numeric-fidelity and cost-basis label evals",
       "agent": "ai-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-23"
       ],
@@ -1317,10 +1321,15 @@
         "ci_run": null
       },
       "pr": 76,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:02:05Z"
+      },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T18:52:05Z",
+      "updated": "2026-11-09T19:02:05Z",
       "notes": [
         {
           "ts": "2026-11-09T18:34:48Z",
@@ -1329,6 +1338,10 @@
         {
           "ts": "2026-11-09T18:52:05Z",
           "note": "PR #76"
+        },
+        {
+          "ts": "2026-11-09T19:02:05Z",
+          "note": "review rejected: "
         }
       ]
     },
