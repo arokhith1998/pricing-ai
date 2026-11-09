@@ -12,25 +12,51 @@ this page is how that promise is met by one person under stress. Companion:
   or the known corruption agent touches `C:\pricekeel-customer-data\`.
 - Unexpected access: Neon logs show reads/writes you did not make; Render or Vercel
   shows deploys, env-var changes, or traffic you did not initiate.
+- Customer credential exposure: any customer integration credential (a Salesforce token
+  today; HubSpot, Stripe and Chargebee credentials are planned, none is held yet) or the
+  token encryption key found outside its secret store.
 - Credential exposure: any key, password, or access code found in a public repo, paste,
   email thread, or screenshot.
-- Provider notice: breach notification from Neon, Render, Vercel, OpenAI, Microsoft,
-  or GoDaddy affecting our tenancy.
+- Provider notice: breach notification from Neon, Render, Vercel, Anthropic, Resend,
+  Microsoft, or GoDaddy affecting our tenancy.
 - Customer report: "we received something odd" or "someone has our numbers."
 - Register mismatch: the data register and reality disagree about what we hold or where.
 
 ## 2. Scope (first hour)
 
 Open `docs/ops/data-register.md` and answer in writing: which customers' data could be
-affected, what categories (deal rows, contact details, access codes), the time window, and
-whether exposure is confirmed or only possible. The register is why scoping takes minutes
+affected, what categories, the time window, and whether exposure is confirmed or only
+possible. Name the categories using the data classes the register lists in Part A: customer
+deal rows, Salesforce access and refresh tokens, the Salesforce token encryption key
+(`SALESFORCE_TOKEN_ENCRYPTION_KEY`), the decision log, confirmed mapping headers, and the
+per-tenant derived snapshot. Also name lead contact details and access codes. The snapshot
+is approved but not built; until the register shows it as built, it holds nothing and is
+out of scope for any current incident. The register also lists categories reserved for
+future intake (billing credentials, usage event streams, and customer-supplied cost data);
+none is held today, so say so explicitly in the scope note rather than omitting them, and
+re-check the register for a new row before each scoping. The register is why scoping takes minutes
 instead of days; if it cannot answer these questions, that gap is a finding for the
 post-incident review.
 
 ## 3. Containment (in parallel with scoping)
 
 - Rotate all keys: Neon database connection string (reset the role password in the Neon
-  console), OpenAI and Perplexity keys, PRICEKEEL_SECRET, Vercel and Render tokens.
+  console), Anthropic, Perplexity, Tavily and Resend keys, PRICEKEEL_SECRET, Vercel and
+  Render tokens.
+- Revoke customer integration credentials at the vendor side, then delete the stored
+  encrypted tokens. Salesforce today: revoke the connected-app grant in the customer's
+  Salesforce org (or ask the customer's admin to), then use Disconnect Salesforce and verify
+  the `salesforce_connections` row and its cascading `salesforce_mappings` row are gone
+  (`docs/ops/salesforce-integration-runbook.md`, Rotation and offboarding). HubSpot, Stripe
+  and Chargebee are planned connectors: when each ships, add its vendor-side revoke step
+  here in the same change.
+- Rotate `SALESFORCE_TOKEN_ENCRYPTION_KEY` on any suspected exposure of the key or of the
+  token table. Runbook step: generate a new high-entropy secret, re-encrypt the stored
+  tokens under it per the written migration plan (changing the key without re-encrypting
+  breaks every connection), update the Vercel and Render environment variables, redeploy,
+  and confirm a test connection still reads. If the tokens were also exposed, revoking them
+  at the vendor side (previous step) matters more than the re-encryption, because the old
+  ciphertext is then worthless; in that case customers reconnect after the rotation.
 - Revoke or rotate customer access codes and invalidate outstanding magic links.
 - Pause the API (Render service suspend) if it is a plausible vector; the static site can
   stay up.
@@ -51,11 +77,15 @@ post-incident review.
 > What happened: [one factual paragraph, no speculation].
 > What was affected: [specific files/categories from the data register; state plainly what
 > is confirmed versus possible].
+> Subprocessors involved: [if a provider was the source, name it from pricekeel.com/subprocessors,
+> for example Neon, Render, Vercel, Resend, or Anthropic (our LLM provider, which receives
+> aggregate figures and column header names only, never deal rows); otherwise write "none"].
 > When: [detection date/time; window of exposure as best known].
 > What I have done: [containment actions taken, with timestamps].
 > What I am still doing: [open investigation items and when you will hear next; commit to a
 > specific date].
-> What you may want to do: [any customer-side actions, e.g. rotating an access code].
+> What you may want to do: [any customer-side actions, e.g. rotating an access code, or
+> revoking and re-authorizing the Salesforce connection].
 >
 > I will send an update by [date] even if there is nothing new. Direct line for questions:
 > adhithya@pricekeel.com.

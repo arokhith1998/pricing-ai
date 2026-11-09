@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Trust & Security · Pricekeel" };
 // NOTE TO FOUNDER: this page describes Pricekeel's security posture as of
 // today. Update when SOC 2 readiness moves, when a new control lands, when
 // you change a vendor, or when an incident happens. Honesty beats marketing
-// here — pricing teams' IT reviewers will read this carefully.
+// here: pricing teams' IT reviewers will read this carefully.
 
 const EFFECTIVE = "9 November 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "[security@pricekeel.com]";
