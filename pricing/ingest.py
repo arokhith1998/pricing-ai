@@ -720,14 +720,6 @@ def _finish_cpq_report(report: "LoadReport", info: dict) -> None:
                                if h not in info["consumed"]]
 
 
-# DEPENDENCY (pricing/mapping.py is PK-27's): the single stage table lacks this
-# open-pipeline label, which the data/synthetic/adversarial-fixtures open
-# pipeline file carries and which the pre-PK-39 ingest excluded as open. Until
-# mapping._STAGE_OPEN has it, it is placed as open here so crm_opportunity
-# files load exactly as before. Delete this set when mapping.py gains the word.
-_OPEN_STAGE_GAPS = frozenset({"proposal sent"})
-
-
 def _canonical_outcome(series: pd.Series) -> pd.Series:
     """Every stage value through the single stage table in pricing.mapping:
     closed_won, closed_lost, open or ask_user. billing_only (a billing-sourced
@@ -738,10 +730,7 @@ def _canonical_outcome(series: pd.Series) -> pd.Series:
         s = str(v).strip()
         if s.lower() == BILLING_ONLY_OUTCOME:
             return BILLING_ONLY_OUTCOME
-        out = mapping.normalize_stage(s, mapping.PROFILE_CRM)
-        if out == mapping.OUTCOME_ASK_USER and mapping.normalize(s) in _OPEN_STAGE_GAPS:
-            return mapping.OUTCOME_OPEN
-        return out
+        return mapping.normalize_stage(s, mapping.PROFILE_CRM)
     return series.map(one)
 
 

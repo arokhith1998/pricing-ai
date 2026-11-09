@@ -347,3 +347,13 @@ def test_diagnostic_route_returns_ask_user_and_all_ask_user_is_422(client, tmp_p
                     files={"file": ("q.csv", io.BytesIO(bad.to_csv(index=False).encode()), "text/csv")},
                     data={"policy": "0.15"})
     assert r.status_code == 422 and "Declined" in r.json()["detail"]
+
+
+def test_open_pipeline_fixture_excludes_all_40_open_deals_through_the_single_table():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    _df, rep = ingest_verbose(str(root / "data" / "synthetic" / "adversarial-fixtures"
+                                  / "open_pipeline.csv"))
+    assert sum(rep.excluded_open.values()) == 40 and not rep.ask_user
+    assert not hasattr(ingest, "_OPEN_STAGE_GAPS")
+    assert mapping.normalize_stage("Proposal Sent") == "open"
