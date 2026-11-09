@@ -1,15 +1,18 @@
-"""Cost-basis label evals (PK-29, ADR-006).
+"""Cost-basis label evals (PK-29, ADR-006 as amended 2026-11-09).
 
 Part 1: the response builder in pricing/cost_basis.py (table tests).
 Part 2: the eval against existing narration: with the book's cost_basis at its
 default (crm_proxy), the word "margin" may appear in generated text only inside
-the negated phrases "not bookable margin", "not cost-based margin" and
-"not cost-based/bookable margin". Every occurrence is inventoried and
-classified; an affirmative use is a finding, not an edit (this task does not
-own the narration modules).
+the four whole-phrase negations in cost_basis.allowed_phrases(): "not margin",
+"never labeled margin", "not bookable margin", "not cost-based margin". That
+tuple is the only allowlist; this file keeps none and classifies every
+occurrence through cost_basis.margin_violations.
 
-No live provider call: the provider is patched at anthropic.Anthropic and the
-patch is asserted to have been hit; socket connects are blocked.
+IMPORTANT: no real model output is evaluated here. The "synthetic reply" texts
+are hand-written mimics of what the system prompts ask for, returned through a
+patched provider (anthropic.Anthropic, hit asserted, sockets blocked). They
+prove the plumbing and the guard, not what a model actually says. Capturing one
+real provider response (model id and date) is a follow-up.
 """
 from __future__ import annotations
 
@@ -17,16 +20,16 @@ import re
 import socket
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from pricing import assist, copilot, cost_basis, diagnostic, governance
 from pricing.cost_basis import (
-    MarginLabelError, MarginRefusedError, assert_no_margin_for_proxy,
-    label_for, refuse_margin_for_proxy,
+    MarginLabelError, MarginRefusedError, allowed_phrases,
+    assert_no_margin_for_proxy, label_for, margin_violations,
+    refuse_margin_for_proxy, weakest_basis,
 )
 from pricing.schema import CostBasis
-from tests.test_numeric_fidelity import _install_provider, opp_texts
+from tests.test_numeric_fidelity import install_synthetic_provider, opp_texts
 
 ROOT = Path(__file__).resolve().parent.parent
 BOOK = ROOT / "data" / "synthetic" / "deals.csv"
@@ -80,17 +83,52 @@ def test_builder_values_match_the_schema_enum():
 def test_no_label_says_net_margin_and_only_proxy_forbids_margin():
     for text in cost_basis.LABELS.values():
         assert "net margin" not in text.lower()
-    assert "margin" in PROXY and PROXY.count("margin") == 1  # only "not margin"
     for basis in ("declared_cost", "erp_verified"):
         assert "margin" in label_for(basis).label
+    # The proxy label passes its own guard.
+    assert margin_violations(PROXY, "crm_proxy") == []
 
 
-def test_guard_passes_the_proxy_label_and_fails_an_affirmative_margin():
+def test_allowlist_is_pinned_to_the_four_adr_006_phrases():
+    assert allowed_phrases() == (
+        "not margin",
+        "never labeled margin",
+        "not bookable margin",
+        "not cost-based margin",
+    )
+
+
+def test_guard_passes_the_four_allowed_phrases_and_the_proxy_label():
+    for phrase in allowed_phrases():
+        for text in (phrase, f"The figure is {phrase}.", f"{phrase}, and more",
+                     f"It is {phrase.upper()}", f"so  {phrase.replace(' ', '  ')} ;"):
+            assert_no_margin_for_proxy(text, "crm_proxy")
     assert_no_margin_for_proxy(PROXY, "crm_proxy")
-    assert_no_margin_for_proxy("Realization is never labeled margin.", "crm_proxy")
     assert_no_margin_for_proxy("no figure here", "crm_proxy")
-    for bad in ("gross margin 40 percent", "Margin", "MARGIN is 12%",
-                "net margin", "contribution margin"):
+
+
+@pytest.mark.parametrize("bad", [
+    "gross margin 40 percent", "Margin", "MARGIN is 12%", "net margin",
+    "contribution margin", "This is bookable margin.", "cost-based margin of 12%",
+    # Near-misses of an allowed phrase: the phrase must be whole.
+    "not margin compression",
+    "not margin-dilutive",
+    "not margins of 40%",
+    "we cannot margin this",
+    "not marginal",
+    # Whitespace and unicode folding cannot smuggle one through.
+    "not margin compression",
+    "ＭＡＲＧＩＮ is 40%",   # fullwidth MARGIN
+    "mar​gin is 40%",                            # zero width space
+])
+def test_guard_fails_affirmative_or_near_miss_margin(bad):
+    with pytest.raises(MarginLabelError):
+        assert_no_margin_for_proxy(bad, "crm_proxy")
+    assert margin_violations(bad, "crm_proxy")
+
+
+def test_bookable_margin_without_not_still_fails_the_guard():
+    for bad in ("This is bookable margin.", "cost-based margin of 12%"):
         with pytest.raises(MarginLabelError):
             assert_no_margin_for_proxy(bad, "crm_proxy")
 
@@ -105,6 +143,13 @@ def test_guard_passes_for_declared_and_erp():
     for basis in ("declared_cost", "erp_verified"):
         assert_no_margin_for_proxy("gross margin 40 percent", basis)
         assert_no_margin_for_proxy(label_for(basis, "40%").labeled, basis)
+        assert margin_violations("gross margin 40 percent", basis) == []
+
+
+def test_homoglyph_limit_is_real_and_documented():
+    """Cross-script lookalikes are NOT folded (see _normalize_text docstring)."""
+    assert margin_violations("mаrgin is 40%", "crm_proxy") == []
+    assert "homoglyph" in cost_basis._normalize_text.__doc__
 
 
 def test_refuse_helper_raises_for_proxy_and_not_for_others():
@@ -115,24 +160,33 @@ def test_refuse_helper_raises_for_proxy_and_not_for_others():
     assert refuse_margin_for_proxy(CostBasis.ERP_VERIFIED) is None
 
 
+@pytest.mark.parametrize("bases, want", [
+    (["erp_verified", "erp_verified"], "erp_verified"),
+    (["erp_verified", "declared_cost"], "declared_cost"),
+    (["erp_verified", "declared_cost", "crm_proxy"], "crm_proxy"),
+    (["declared_cost", "declared_cost"], "declared_cost"),
+    (["crm_proxy"], "crm_proxy"),
+    (["erp_verified", None], "crm_proxy"),
+    (["erp_verified", "garbage"], "crm_proxy"),
+    ([], "crm_proxy"),
+    ((b for b in ["erp_verified"]), "erp_verified"),   # any iterable
+    ([CostBasis.ERP_VERIFIED, CostBasis.DECLARED_COST], "declared_cost"),
+])
+def test_weakest_basis(bases, want):
+    assert weakest_basis(bases) == want
+
+
 # --- Part 2: the eval against existing narration -----------------------------
 
-# Negated phrasings the existing caveats use; the guard's allowlist in
-# pricing/cost_basis.py (ADR-006 amendment) is the authority for output text.
-_ALLOWED_NEGATED = re.compile(
-    r"\bnot (?:cost-based/bookable|bookable|cost-based) margin\b", re.I)
+def count_margin(text: str) -> int:
+    return len(re.findall("margin", text, flags=re.I))
 
 
-def margin_occurrences(text: str) -> list[tuple[str, bool]]:
-    """(context snippet, allowed) for every 'margin' substring in text."""
-    out = []
-    for m in re.finditer("margin", text, flags=re.I):
-        lo = max(0, m.start() - 30)
-        window = text[lo:m.end() + 5]
-        allowed = any(a.start() + lo <= m.start() < a.end() + lo
-                      for a in _ALLOWED_NEGATED.finditer(window))
-        out.append((text[lo:m.end() + 5].replace("\n", " "), allowed))
-    return out
+def classify(text: str) -> tuple[int, list[str]]:
+    """(allowed occurrences, violation snippets) for crm_proxy output, with
+    classification done only by cost_basis.margin_violations."""
+    bad = margin_violations(text, "crm_proxy")
+    return count_margin(text) - len(bad), bad
 
 
 @pytest.fixture(scope="module")
@@ -142,6 +196,7 @@ def analysis():
 
 def test_book_cost_basis_defaults_to_crm_proxy(analysis):
     assert set(analysis["data"]["cost_basis"].unique()) == {"crm_proxy"}
+    assert weakest_basis(analysis["data"]["cost_basis"]) == "crm_proxy"
 
 
 def _collect_outputs(monkeypatch, analysis) -> dict[str, str]:
@@ -168,18 +223,19 @@ def _collect_outputs(monkeypatch, analysis) -> dict[str, str]:
         out["copilot.answer_canonical[no provider]"] = (
             copilot.answer_canonical("opportunities_over", analysis).text)
 
-    # Recorded provider narrations, shaped the way the system prompts ask.
-    narrations = {
-        "copilot.answer_canonical[recorded]": (
+    # Synthetic replies (hand-written mimics, NOT model output) through the
+    # patched provider seam.
+    replies = {
+        "copilot.answer_canonical[synthetic_reply]": (
             "Where are the opportunities? The engine found several. Impacts "
             "are correlational estimates at an assumed recoverable share, "
             "not bookable margin, and are not additive [A]."),
-        "assist.executive_summary[recorded]": (
+        "assist.executive_summary[synthetic_reply]": (
             "Upside to pursue deal by deal. The figure is correlational and "
             "based on price realization, not cost-based margin [A]."),
     }
-    for name, recorded in narrations.items():
-        calls = _install_provider(monkeypatch, recorded)
+    for name, reply in replies.items():
+        calls = install_synthetic_provider(monkeypatch, reply)
         if "copilot" in name:
             text = copilot.answer_canonical("opportunities_over", analysis).text
         else:
@@ -189,50 +245,58 @@ def _collect_outputs(monkeypatch, analysis) -> dict[str, str]:
     return out
 
 
-def test_margin_appears_only_in_negated_phrases_for_proxy_data(
+def test_margin_appears_only_in_allowed_negations_for_proxy_data(
         monkeypatch, analysis):
     outputs = _collect_outputs(monkeypatch, analysis)
-    findings, allowed = [], []
+    findings, allowed_by_source = [], {}
     for source, text in outputs.items():
-        for snippet, ok in margin_occurrences(text):
-            (allowed if ok else findings).append((source, snippet))
-    # The inventory is asserted, so a new occurrence is a visible change.
+        ok, bad = classify(text)
+        findings += [(source, b) for b in bad]
+        if ok:
+            allowed_by_source[source] = ok
     assert findings == [], f"affirmative 'margin' for crm_proxy data: {findings}"
-    sources = {s for s, _ in allowed}
+    sources = set(allowed_by_source)
+    # Inventory: these surfaces carry an allowed negation today.
     assert "prompt:copilot._COPILOT_SYSTEM" in sources
     assert "prompt:assist._SUMMARY_SYSTEM" in sources
-    assert "copilot._NON_ADDITIVE_CAVEAT" not in sources
     assert any(s.startswith("opportunity[") for s in sources)
+    # And these must stay free of the word entirely.
+    for clean in ("assist.summary_facts", "governance.build_digest",
+                  "copilot.answer_canonical[no provider]",
+                  "copilot._NON_ADDITIVE_CAVEAT"):
+        assert count_margin(outputs[clean]) == 0, clean
 
 
-def test_strict_adr_006_reading_no_affirmative_margin_in_any_output(monkeypatch, analysis):
+def test_strict_adr_006_reading_no_affirmative_margin_in_any_output(
+        monkeypatch, analysis):
     for source, text in _collect_outputs(monkeypatch, analysis).items():
-        if source.startswith("prompt:"):
-            continue  # prompts instruct the model; the strict read is outputs
         assert_no_margin_for_proxy(text, "crm_proxy")
 
 
-def test_bookable_margin_without_not_still_fails_the_guard():
-    for ok in ("not bookable margin", "Not Cost-Based Margin"):
-        assert_no_margin_for_proxy(ok, "crm_proxy")
-    for bad in ("This is bookable margin.", "cost-based margin of 12%"):
-        with pytest.raises(MarginLabelError):
-            assert_no_margin_for_proxy(bad, "crm_proxy")
+def _code_without_comments(path: Path) -> str:
+    """Source text with comment-only lines dropped (first non-space char is #)
+    and adjacent string literals joined, so "not " / "bookable margin" split
+    across lines reads as one phrase."""
+    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines()
+             if not ln.lstrip().startswith("#")]
+    return re.sub(r"""(["'])\s*\n\s*\1""", "", "\n".join(lines))
 
 
-def test_source_scan_every_margin_in_pricing_is_negated_or_reviewed():
-    """Static scan so a new affirmative use in any module trips CI, including
-    surfaces that cannot run offline."""
-    skip = {"cost_basis.py", "schema.py", "model.py"}  # builder, enum docs,
-    # and 'marginal win gain' in model.py (not the word margin as a label).
+def test_source_scan_every_margin_word_in_code_is_an_allowed_negation():
+    """Static scan so a new affirmative use anywhere in the Python tier trips
+    CI, including surfaces that cannot run offline. Comment lines are exempt,
+    files are not, except pricing/cost_basis.py itself, which defines the
+    label strings and so must contain the word (and has its own tests)."""
+    paths = (sorted((ROOT / "pricing").glob("*.py"))
+             + sorted((ROOT / "api").glob("*.py"))
+             + sorted((ROOT / "api" / "routers").glob("*.py")))
+    assert paths, "scan found no files"
+    owner = ROOT / "pricing" / "cost_basis.py"
     bad = []
-    for path in sorted((ROOT / "pricing").glob("*.py")):
-        if path.name in skip:
+    for path in paths:
+        if path == owner:
             continue
-        # Join adjacent string-literal fragments so a phrase split across
-        # lines ("not " / "bookable margin") is read whole.
-        src = re.sub(r'"\s*\n\s*"', "", path.read_text(encoding="utf-8"))
-        for snippet, ok in margin_occurrences(src):
-            if not ok and "not cost-based/bookable margin" not in snippet:
-                bad.append((path.name, snippet))
+        for snippet in margin_violations(_code_without_comments(path),
+                                         "crm_proxy", whole_word=True):
+            bad.append((path.relative_to(ROOT).as_posix(), snippet))
     assert bad == [], bad

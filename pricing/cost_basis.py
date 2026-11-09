@@ -9,8 +9,11 @@ code, never written freehand in copy or prompts:
     erp_verified   -> "gross margin, ERP-verified cost"
 
 Rules enforced here:
-  * The word "margin" is never emitted for a crm_proxy basis, and any unknown,
-    missing or malformed basis is treated as crm_proxy (fail toward honesty).
+  * The word "margin" is never used affirmatively for a crm_proxy basis, and
+    any unknown, missing or malformed basis is treated as crm_proxy (fail
+    toward honesty). Per the ADR-006 amendment of 2026-11-09 the ban is on
+    affirmative use: the four negations in `allowed_phrases()` are the only
+    permitted occurrences, and that tuple is the only allowlist in the repo.
   * Net margin is not a label for any basis; none exists below.
   * A function that computes a margin figure must refuse crm_proxy input
     rather than compute and caveat: call `refuse_margin_for_proxy` first.
@@ -21,8 +24,9 @@ string values mirror pricing.schema.CostBasis; a test pins the parity).
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 CRM_PROXY = "crm_proxy"
 DECLARED_COST = "declared_cost"
@@ -35,16 +39,24 @@ LABELS: dict[str, str] = {
     ERP_VERIFIED: "gross margin, ERP-verified cost",
 }
 
-# The only phrases that may carry the word "margin" next to a crm_proxy basis.
-# ADR-006 amendment (lead decision 2026-11-09): the ban is on affirmative use of
-# "margin" for crm_proxy; negations telling the reader the figure is not margin
-# are allowed. This tuple is the only allowlist; no test or caller keeps its own.
-_ALLOWED_PROXY_PHRASES = (
+# ADR-006 amendment (lead decision 2026-11-09): the only phrases that may carry
+# the word "margin" next to a crm_proxy basis. Exactly four; adding a fifth
+# needs a superseding decision.
+_ALLOWED_PROXY_PHRASES: tuple[str, ...] = (
     "not margin",
     "never labeled margin",
     "not bookable margin",
     "not cost-based margin",
 )
+
+# An allowed phrase counts only as a whole phrase: not glued to a preceding
+# word character or hyphen ("cannot margin"), and followed by end of string or
+# punctuation, optionally after whitespace. "not margin compression",
+# "not margin-dilutive", "not margins of 40%" and "not marginal" all fail.
+_ALLOWED_RE = re.compile(
+    r"(?<![\w-])(?:%s)(?=\s*$|\s*[^\w\s-])" % "|".join(
+        re.escape(p) for p in _ALLOWED_PROXY_PHRASES),
+    flags=re.IGNORECASE)
 
 
 class MarginLabelError(ValueError):
@@ -63,12 +75,23 @@ class CostBasisLabel:
     labeled: str          # `figure` followed by the label, or the label alone
 
 
+def allowed_phrases() -> tuple[str, ...]:
+    """The four negated phrases allowed next to a crm_proxy basis (ADR-006
+    amendment). The single source of truth: callers and tests read it here."""
+    return _ALLOWED_PROXY_PHRASES
+
+
 def normalize_basis(cost_basis: Any) -> str:
     """Map an enum member, string, None or garbage to one of the three values.
 
     Anything that is not exactly declared_cost or erp_verified (after trim and
     lowercase) is crm_proxy, so a missing or corrupt value can never earn a
     stronger label.
+
+    Trust boundary: this function trusts callers to pass values that were
+    already validated upstream. It cannot tell a connector-set erp_verified from
+    a typed one. Ingest reserves erp_verified for connector paths Pricekeel
+    operates and rejects it from CSV and frame uploads (ADR-006, SchemaError).
     """
     raw = getattr(cost_basis, "value", cost_basis)
     if isinstance(raw, str):
@@ -76,6 +99,21 @@ def normalize_basis(cost_basis: Any) -> str:
         if v in (DECLARED_COST, ERP_VERIFIED):
             return v
     return CRM_PROXY
+
+
+def weakest_basis(bases: Iterable[Any]) -> str:
+    """The basis a mixed set of rows may be labeled with: the weakest one.
+
+    crm_proxy wins if any row is a proxy (or the set is empty, or a value is
+    unknown), then declared_cost, and erp_verified only when every row is
+    erp_verified. A book is never labeled stronger than its weakest row.
+    """
+    normalized = {normalize_basis(b) for b in bases}
+    if not normalized or CRM_PROXY in normalized:
+        return CRM_PROXY
+    if DECLARED_COST in normalized:
+        return DECLARED_COST
+    return ERP_VERIFIED
 
 
 def label_for(cost_basis: Any, figure: Any = None) -> CostBasisLabel:
@@ -91,24 +129,57 @@ def label_for(cost_basis: Any, figure: Any = None) -> CostBasisLabel:
                           may_say_margin=basis != CRM_PROXY, labeled=labeled)
 
 
-def assert_no_margin_for_proxy(text: str, basis: Any) -> None:
-    """Raise MarginLabelError if `text` says margin about a crm_proxy basis.
+def _normalize_text(text: str) -> str:
+    """NFKC-fold, drop invisible format characters, collapse whitespace.
 
-    Case-insensitive substring check for "margin". Only the negated phrases in
-    _ALLOWED_PROXY_PHRASES ("not margin", "never labeled margin", "not bookable
-    margin", "not cost-based margin", per the ADR-006 amendment of 2026-11-09)
-    are removed before the check, so "bookable margin" without "not" fails. Other
-    bases pass untouched. Unknown or missing bases count as crm_proxy.
+    Limit: NFKC folds compatibility forms (fullwidth letters, ligatures) and
+    format characters (zero width space, soft hyphen) are removed, but it does
+    NOT map cross-script homoglyphs, so Cyrillic "mаrgin" (U+0430) is not seen
+    as margin. The guard checks text our own code and prompts produce; it is not
+    an adversarial-input filter.
+    """
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    return re.sub(r"\s+", " ", text)
+
+
+def margin_violations(text: str, basis: Any, *,
+                      whole_word: bool = False) -> list[str]:
+    """Non-raising check: context snippets of every affirmative "margin".
+
+    Returns [] for declared_cost and erp_verified. For crm_proxy (and unknown or
+    missing bases) each case-insensitive "margin" substring not covered by a
+    whole-phrase match of `allowed_phrases()` is returned with a little
+    surrounding context. `whole_word=True` counts only the standalone word
+    (used by the source scan so "marginal" in a docstring is not a hit); the
+    guard itself leaves it False so "not marginal" fails.
     """
     if normalize_basis(basis) != CRM_PROXY:
-        return
-    remainder = text
-    for phrase in _ALLOWED_PROXY_PHRASES:
-        remainder = re.sub(re.escape(phrase), " ", remainder, flags=re.IGNORECASE)
-    if re.search("margin", remainder, flags=re.IGNORECASE):
+        return []
+    norm = _normalize_text(text)
+    covered = [m.span() for m in _ALLOWED_RE.finditer(norm)]
+    pattern = r"\bmargin\b" if whole_word else "margin"
+    out = []
+    for m in re.finditer(pattern, norm, flags=re.IGNORECASE):
+        if any(a <= m.start() < b for a, b in covered):
+            continue
+        out.append(norm[max(0, m.start() - 30):m.end() + 15])
+    return out
+
+
+def assert_no_margin_for_proxy(text: str, basis: Any) -> None:
+    """Raise MarginLabelError if `text` uses "margin" affirmatively for crm_proxy.
+
+    ADR-006 as amended 2026-11-09: only the whole-phrase negations in
+    `allowed_phrases()` may carry the word. Other bases pass untouched. Unknown
+    or missing bases count as crm_proxy. See `_normalize_text` for the
+    homoglyph limit.
+    """
+    bad = margin_violations(text, basis)
+    if bad:
         raise MarginLabelError(
-            "the word 'margin' may not appear for a crm_proxy cost basis "
-            f"(ADR-006): {text!r}")
+            "the word 'margin' may not be used affirmatively for a crm_proxy "
+            f"cost basis (ADR-006): {bad[0]!r}")
 
 
 def refuse_margin_for_proxy(basis: Any) -> None:
