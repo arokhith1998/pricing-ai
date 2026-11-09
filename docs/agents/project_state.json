@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:04:43Z",
+  "updated": "2026-11-09T19:06:31Z",
   "config": {
     "max_concurrent": 2
   },
@@ -2622,6 +2622,441 @@
       "blocked_by": null,
       "created": "2026-11-09T18:56:18Z",
       "updated": "2026-11-09T18:56:18Z",
+      "notes": []
+    },
+    {
+      "id": "PK-75",
+      "title": "Build the design system, tokens, shared UI primitives and site chrome",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "web/src/app/globals.css",
+        "web/src/app/layout.tsx",
+        "web/src/components/Nav.tsx",
+        "web/src/components/Footer.tsx",
+        "web/src/components/ChromeEffects.tsx",
+        "web/src/components/AuroraBackground.tsx",
+        "web/src/components/ScrollProgress.tsx",
+        "web/src/components/Reveal.tsx",
+        "web/src/components/CountUp.tsx",
+        "web/src/components/ui",
+        "web/src/lib/site-nav.ts",
+        "web/src/lib/page-metadata.ts",
+        "brand/PALETTE.md",
+        "web/test/design-system.test.ts",
+        "web/test/chrome.test.tsx",
+        "web/test/page-metadata.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1, G3, G4, G6, G9, G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "a baseline is in the PR description before any change: Lighthouse mobile and desktop for /, /pricing, /calculator, /sample, /trust, /login, and a 375px screenshot of every public route",
+        "globals.css defines the type scale (design doc 6.2), spacing steps (6.3) and surfaces (6.4) as @theme tokens or component classes; no hex value in @theme changes",
+        "web/src/components/ui exports Section, PageHeader, Card, Artifact, Button, Stat, StatusPill, Eyebrow, DataTable, SyntheticTag, each with a render test; Button primary is bg-teal with text-bg (10.29:1 computed in a test); StatusPill cannot render without a label and an icon (type-enforced and tested); Stat requires SyntheticTag when source=\"sample\"",
+        "form controls use the Slate #5B6B7B border on inset; its contrast against #0D1422 and #111A2B is computed in design-system.test.ts and is at least 3:1, or the PR says it is not and proposes a derived tint, not a new hue",
+        "chrome no longer applies the .pk-card-3d tilt, the .pk-upside-glow and .pk-headline-accent infinite animations, or the AuroraBackground scroll parallax (classes may stay defined until PK-84); the aurora is one static spotlight; ScrollProgress renders only on /blog/*, /methodology, /trust",
+        "Nav.tsx links Product, Sample, Calculator, Pricing, Trust, a quiet Customer login and a primary Talk to us to /contact; Blog is not in the header (D-R4 lead default, founder may override); Live sample is renamed Sample; mobile keeps the <details> menu with 48px rows and works with JavaScript disabled; aria-current is correct on every route",
+        "Footer.tsx has four labelled columns (Product, Company, Trust and legal, Customers) built from site-nav.ts, every existing link still present including Blog, the one global disclosure line \"Every figure on this site comes from a synthetic 2,000-deal sample, not customer data.\", and footer links at least 44px tall on mobile",
+        "pageMetadata({ title, description, path, noindex? }) exists and is unit-tested: it never appends the suffix and sets alternates.canonical, openGraph.url, openGraph.title and twitter",
+        "layout.tsx keeps title.template, title.default and the Vercel Analytics gate unchanged, and adds a skip-to-content link and a documented <main id> target contract for page tasks",
+        "brand/PALETTE.md gains exactly two clarifications (the control-border rule; white on #0D9488 is 3.74:1, large-text AA only, so action fills use dark text) and no hex changes",
+        "chrome adds no more than 15 KB gzipped first-load JS over the recorded baseline"
+      ],
+      "tests": {
+        "required": [
+          "web/test/design-system.test.ts",
+          "web/test/chrome.test.tsx",
+          "web/test/page-metadata.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:28Z",
+      "updated": "2026-11-09T19:06:28Z",
+      "notes": []
+    },
+    {
+      "id": "PK-76",
+      "title": "Redesign the landing page around the decision record and a scroll-driven walk",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/page.tsx",
+        "web/src/app/opengraph-image.tsx",
+        "web/src/components/HeroHeadline.tsx",
+        "web/src/components/DiagnosticPreview.tsx",
+        "web/src/components/WhatYouGet.tsx",
+        "web/src/components/TrustBoundaryStrip.tsx",
+        "web/src/components/landing",
+        "web/src/lib/landing-sample.ts",
+        "web/test/landing-page.test.ts",
+        "web/test/landing-walk.test.tsx"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "landing keeps exactly five sections in the order hero, product, roles, boundary, close; landing-page.test.ts asserts five top-level <section> elements, one h1, no em dash, no \"system of record\", and a hero number equal to SAMPLE.leakage.excess_vs_segment_reference_won ($8,946,770 now, shown as $8.9M)",
+        "the hero number is no larger than the H1 or Display size, carries the label \"Gap to segment win point\" with a status icon, and its caption contains \"synthetic\"; \"nothing.\" is no longer coral and has no glow; no coral or amber on chrome or dots; no faux browser traffic-light dots remain",
+        "at 1280x720 the decision record Artifact is visible above the fold and the hero is no longer min-h-[100svh]",
+        "the decision record Artifact renders one deal chosen deterministically from sample-fallback.json (rule in landing-sample.ts, tested), shows opportunity id and segment and no account name, requested discount, segment reference band, band win rate with its confidence interval, method label and evidence_version, tagged \"Synthetic sample deal. Real engine output.\"",
+        "the walk has four steps (Request, Evidence, Decision, Outcome); Decision shows a human choosing and a log row and no copy says or implies the product sets or approves a price; Outcome says it is what the synthetic book recorded; below lg, with JavaScript off or under reduced motion the steps render stacked and fully visible (tested without the arming effect)",
+        "the band probe reads win_rate_by_band and reference_discount.band_win_rate_ci only, calls no API, and the route stays force-static",
+        "D-R5 (lead default, founder may override): the hero line \"Stop giving away price that wins you nothing.\" is softened to a claim the synthetic data supports (the 25%+ band still wins 42% against a 68% peak, so \"nothing\" overstates it); the task picks the exact copy, and the PR quotes the snapshot figures that support it and checks it against the evidence boundary in design doc section 3",
+        "D-R5 (lead default, founder may override): \"Design-partner cohort\" (page.tsx:106) is replaced by wording that implies no existing or forming cohort and no customers, pilots or partners; the PR quotes the before and after text and checks it against the evidence boundary",
+        "DiagnosticPreview.tsx:149 describes the synthetic book (\"In this synthetic book, win rate stops improving past the win point\") rather than asserting causation; opengraph-image.tsx text matches the chosen headline and adds no claim",
+        "Lighthouse mobile on the preview: performance at least 90, accessibility at least 95, LCP at most 2.5s, CLS at most 0.05"
+      ],
+      "tests": {
+        "required": [
+          "web/test/landing-page.test.ts",
+          "web/test/landing-walk.test.tsx"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:28Z",
+      "updated": "2026-11-09T19:06:28Z",
+      "notes": []
+    },
+    {
+      "id": "PK-77",
+      "title": "Redesign the pricing page and clear its claims that exceed the evidence",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/pricing/page.tsx",
+        "web/test/pricing-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "two tiers (Diagnostic, Operate) render side by side in a roomy layout; Data expansion is a roadmap line with no CTA button and no tier card styling; body copy is 16px",
+        "removed: \"Most subscribers will clear all three\" and \"Worth the subscription at the $50M ARR tier on its own\"; the Monday scenarios read figures from the snapshot with a SyntheticTag or carry an \"Illustrative, not customer data\" label; the three ROI thresholds are framed as the reader's own assumptions, labelled as such",
+        "D-R6a (lead default, founder may override): both instances of \"Engagements typically start in the low five figures\" (page.tsx:187 and :395) use \"We expect\" wording and no copy implies an engagement has happened; pricing-page.test.ts asserts \"typically start\" is absent",
+        "D-R6b (lead default, founder may override): the \"open code\" claim (page.tsx:301) is removed and no copy says or implies the diagnostic code is public or available to customers, because on 2026-11-09 the product repo arokhith1998/pricing-ai is private and no public repo holds the engine (adhi-pricing-ai is a portfolio site); the copy may point to /methodology instead; pricing-page.test.ts asserts \"open code\" is absent",
+        "D-R6c (lead default, founder may override): the one-business-day reply promise is kept verbatim",
+        "the title renders \"Pricing · Pricekeel\" exactly once and plain <a href=\"/contact\"> elements are Link"
+      ],
+      "tests": {
+        "required": [
+          "web/test/pricing-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-78",
+      "title": "Redesign methodology and contact, and show the method on the sample",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/methodology/page.tsx",
+        "web/src/app/contact/page.tsx",
+        "web/src/components/methodology",
+        "web/test/methodology-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "methodology leads with how the engine finds the win point, what the confidence band means and when it returns \"insufficient data\", rendered from reference_discount in the snapshot with a SyntheticTag; the bibliography follows",
+        "\"grounded in a published framework, not invented math\" is reworded to \"informed by\"; no source is added or removed and every link still resolves (link test or a manual list in the PR)",
+        "contact has one primary email action, the template inside a <details>, and \"what happens next\" as a three-step row; founder email and LinkedIn fallbacks unchanged; reply-time claims unchanged"
+      ],
+      "tests": {
+        "required": [
+          "web/test/methodology-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-79",
+      "title": "Restyle the calculator, blog, 404 and error pages and promote the calculator",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/calculator/page.tsx",
+        "web/src/components/LeakageCalculator.tsx",
+        "web/src/components/LeakageBars.tsx",
+        "web/src/app/blog",
+        "web/src/app/not-found.tsx",
+        "web/src/app/error.tsx",
+        "web/src/app/brand/page.tsx",
+        "web/test/calculator-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "the calculator stays force-static, its numbers and formulas are unchanged (existing leakage tests, if any, and a new known-answer test for three inputs pass), and the result card uses the Artifact surface",
+        "\"No data leaves your browser\" stays true: no network call added, verified in the PR",
+        "blog index and post use the shared prose and measure rules; the blog is linked from the footer only, not the header (D-R4 lead default, founder may override)",
+        "not-found.tsx and error.tsx use Button; error.tsx still resets"
+      ],
+      "tests": {
+        "required": [
+          "web/test/calculator-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-80",
+      "title": "Redesign the sample page, the lead gate and the login page",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/sample/page.tsx",
+        "web/src/app/login/page.tsx",
+        "web/src/app/login/layout.tsx",
+        "web/src/components/LeadForm.tsx",
+        "web/src/components/MagicLinkForm.tsx",
+        "web/src/components/Summary.tsx",
+        "web/test/lead-form.test.ts",
+        "web/test/login-page.test.tsx"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "/sample has its own title and description; the win-rate-by-band chart leads; the lead gate shows a real, blurred preview of the locked sections beside the form; the \"Cached sample\" disclosure is preserved verbatim",
+        "/login has a sibling layout.tsx exporting metadata with robots: { index: false }, exactly one h1, a two-panel layout at lg and one column below, and a short factual line on what the code unlocks (workspace, competitor context, upload) with no new claim",
+        "primary buttons in LeadForm, MagicLinkForm and login are bg-teal text-bg; no bg-navy text-white remains in owned files; input borders meet 3:1",
+        "lead-form.test.ts stays green; form behavior, field names, endpoints and error copy are unchanged (diffed in the PR)"
+      ],
+      "tests": {
+        "required": [
+          "web/test/lead-form.test.ts",
+          "web/test/login-page.test.tsx"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-81",
+      "title": "Restyle diagnostic, guidance, upload and competitor-watch onto the shared system",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-80"
+      ],
+      "owns": [
+        "web/src/app/diagnostic/page.tsx",
+        "web/src/app/guidance/page.tsx",
+        "web/src/app/upload/page.tsx",
+        "web/src/app/competitor-watch/page.tsx",
+        "web/src/components/charts",
+        "web/src/components/GuidanceClient.tsx",
+        "web/src/components/DecisionLog.tsx",
+        "web/src/components/DecisionControl.tsx",
+        "web/src/components/UploadClient.tsx",
+        "web/src/components/UploadPrivacyCallout.tsx",
+        "web/src/components/PageGuide.tsx",
+        "web/src/components/NextStep.tsx",
+        "web/src/components/NextActionsBlock.tsx",
+        "web/src/components/ApiError.tsx",
+        "web/src/components/CompetitorContextPanel.tsx",
+        "web/src/components/app",
+        "web/test/diagnostic-mobile-overflow.test.ts",
+        "web/test/guidance-client.test.ts",
+        "web/test/decision-control.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true; G8 means noindex and a distinct title on all four routes; in scope under D-R1 (lead default, founder may override)",
+        "ChatPanel.tsx is not edited",
+        "every table uses DataTable with right-aligned numerics, a sticky first column and a scroll-edge fade inside the existing overflow-x-auto wrapper; diagnostic-mobile-overflow.test.ts (390px) stays green and a 375px assertion is added",
+        "one Recharts theme module reads colors from the tokens; no hex literal in a chart file",
+        "/diagnostic gets a section rail (sticky at lg, a select on mobile); /guidance shows the decision log above model quality; the builder-facing \"lead with this\" arrow text is removed from the user view; the optional-columns string on /upload becomes a list",
+        "guidance copy \"The model learns from your closed deals\" gains the limit that thin segments return \"insufficient data\"; no other copy changes; no bg-navy text-white remains in owned files",
+        "no behavior change in DecisionControl, GuidanceClient or UploadClient: existing tests unchanged and green"
+      ],
+      "tests": {
+        "required": [
+          "web/test/diagnostic-mobile-overflow.test.ts",
+          "web/test/guidance-client.test.ts",
+          "web/test/decision-control.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-82",
+      "title": "Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-6"
+      ],
+      "owns": [
+        "web/src/app/trust/page.tsx",
+        "web/src/app/privacy/page.tsx",
+        "web/src/app/terms/page.tsx",
+        "web/src/app/subprocessors/page.tsx",
+        "web/src/app/licenses/page.tsx",
+        "web/src/components/legal",
+        "web/test/legal-text-frozen.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 and G3 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "legal-text-frozen.test.ts extracts the visible text of the five pages from the latest merged commit that touched them (the PK-6 merge commit unless a later task changed them first) and fails on any wording difference; headings may only gain ids; the layout may add a table of contents and the at-a-glance table",
+        "a shared LegalLayout gives a sticky table of contents at lg, max-w-3xl measure, 16px body and no motion chrome; the legal routes stay free of framer-motion (bundle check)",
+        "trust gets an at-a-glance table whose status pills (live, in progress, not yet) derive only from statements already on the page; no new status is invented",
+        "the placeholder [security@pricekeel.com] can no longer render: the fallback is the founder address used by /contact, or the production build fails when the env var is missing; the PR states which; trust/page.tsx fact text is untouched",
+        "the Updated date is whatever PK-6 left; titles render once with the suffix and each of the five pages has a description"
+      ],
+      "tests": {
+        "required": [
+          "web/test/legal-text-frozen.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-83",
+      "title": "Split and restyle the Salesforce workspace into readable components",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-49"
+      ],
+      "owns": [
+        "web/src/app/crm/page.tsx",
+        "web/src/components/SalesforceWorkspace.tsx",
+        "web/src/components/workspace",
+        "web/test/salesforce-workspace.test.ts",
+        "web/test/salesforce-workspace-route.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true; crm is noindex; in scope after PK-49 under D-R1 and D-R2 (lead defaults, founder may override)",
+        "every render function in SalesforceWorkspace.tsx is split so no source line exceeds 140 characters; the file is under 250 lines and the pieces live in web/src/components/workspace",
+        "behavior unchanged: salesforce-workspace.test.ts and salesforce-workspace-route.test.ts pass untouched; accept, override, approve, reject, writeback and disconnect call the same endpoints with the same bodies (diffed); the insufficient-data branch still shows no recommended discount",
+        "raw amber-* classes become text-amber or border-amber tokens with a label or icon; the h1 uses PageHeader",
+        "the task starts from PK-49's merged version of crm/page.tsx and SalesforceWorkspace.tsx and keeps its source switcher"
+      ],
+      "tests": {
+        "required": [
+          "web/test/salesforce-workspace.test.ts",
+          "web/test/salesforce-workspace-route.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-84",
+      "title": "Audit the whole site, remove dead styles, and pin the budgets in tests",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-76",
+        "PK-77",
+        "PK-78",
+        "PK-79",
+        "PK-80",
+        "PK-81",
+        "PK-82"
+      ],
+      "owns": [
+        "web/src/app/globals.css",
+        "web/scripts/lighthouse-budget.mjs",
+        "brand/PALETTE.md",
+        "web/test/site-audit.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "site-audit.test.ts renders every static route and asserts: no doubled \" · Pricekeel\" suffix, unique titles and 70 to 160 character descriptions on public routes, noindex on gated routes, one h1, no skipped heading level, no em dash, no text-[10px] or text-[11px], no bg-navy, no raw Tailwind palette colors",
+        ".pk-card-3d, .pk-upside-glow, .pk-headline-accent, .pk-aurora-layer and the --color-navy alias are deleted from globals.css only after a grep shows zero uses; any remaining use is listed with its owner",
+        "the brand/PALETTE.md correction from PK-75 is complete and its dark-theme table matches globals.css (tested by comparing hex values)",
+        "web/scripts/lighthouse-budget.mjs runs Lighthouse via npx (not a dependency) against a URL and fails when a design doc 6.9 budget is missed; final numbers for all routes are pasted in the PR",
+        "a 375px screenshot of every route, public and gated (dev unlock), is attached; residual issues are listed as follow-ups with an owner; the PR records a line-by-line cross-check against vault/Competitive/2026-08-01-salesforce-market-need-assessment.md and design doc section 4"
+      ],
+      "tests": {
+        "required": [
+          "web/test/site-audit.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:31Z",
+      "updated": "2026-11-09T19:06:31Z",
       "notes": []
     }
   ]

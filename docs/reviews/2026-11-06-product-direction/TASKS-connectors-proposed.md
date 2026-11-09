@@ -473,3 +473,7 @@ edit outside its claim.
 1. `api/shared.py#diagnostic_payload` is claimed by PK-39 when it is assigned; PK-33 sequences behind PK-39 and claims the component after PK-39 merges.
 2. One adapter layout: PK-46 creates the `pricing/adapters/` package and moves `CsvAdapter` from `pricing/csv_adapter.py` into `pricing/adapters/csv.py` (keeping `pricing/csv_adapter.py` as a one-line re-export for one release) and `SalesforceAdapter` into `pricing/adapters/salesforce.py` with `pricing/crm.py` importing it. PK-46's owns gain `pricing/csv_adapter.py` and `pricing/adapters` at assignment; PK-55 and PK-63 write their adapters into the same package.
 3. F2 stays a sequencing recommendation, not a declared dependency: PK-54 does not depend on PK-32.
+
+## Sequencing note, 2026-11-09: site redesign overlap
+
+The site redesign (PK-75 to PK-84, `TASKS-redesign-proposed.md`) was entered on 2026-11-09. PK-77 owns `web/src/app/pricing/page.tsx` and PK-82 owns the trust and privacy pages, which PK-52, PK-62 and PK-69 also claim. `agentctl` cannot add dependencies to tasks already on the board, so the order is a lead rule: **PK-52 is not moved to READY or assigned until PK-77 and PK-82 are MERGED**; PK-62 and PK-69 inherit the order through their existing dependency on PK-52. `assign` refuses the overlap while either side holds a live claim. PK-83 (the `/crm` workspace restyle) depends on PK-49 on the board and starts from PK-49's merged version. No redesign task claims a `web/src/lib` connector or Salesforce path or anything under `web/src/app/api`.

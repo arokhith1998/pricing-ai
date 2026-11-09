@@ -3,11 +3,13 @@ title: Site and app redesign audit and plan
 created: 2026-11-09
 updated: 2026-11-09
 tags: [design, web, redesign, audit]
-status: draft
+status: approved-for-entry
 source: founder review of the live site 2026-11-09; lead notes at an 800px viewport; code read of web/src
 ---
 
 # Site and app redesign: audit and plan
+
+**Status 2026-11-09: approved-for-entry.** PK-75 to PK-84 are on the board in BACKLOG; PK-85 is not entered. D-R1 to D-R6 carry lead defaults, founder may override; see the status line and "Changes on entry" in `docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md`.
 
 The founder asked for every page of the marketing site and the app to be rechecked and redesigned where needed so it reads as "more professional and immersive". This document is the audit and the plan. Nothing under `web/` was changed. Tasks are in `docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md` (PK-75 to PK-85).
 

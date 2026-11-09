@@ -200,3 +200,13 @@
 {"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T19:04:43Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:06:28Z", "event": "add", "task": "PK-75", "agent": "web-engineer", "detail": "Build the design system, tokens, shared UI primitives and site chrome"}
+{"ts": "2026-11-09T19:06:28Z", "event": "add", "task": "PK-76", "agent": "web-engineer", "detail": "Redesign the landing page around the decision record and a scroll-driven walk"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-77", "agent": "web-engineer", "detail": "Redesign the pricing page and clear its claims that exceed the evidence"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-78", "agent": "web-engineer", "detail": "Redesign methodology and contact, and show the method on the sample"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-79", "agent": "web-engineer", "detail": "Restyle the calculator, blog, 404 and error pages and promote the calculator"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-80", "agent": "web-engineer", "detail": "Redesign the sample page, the lead gate and the login page"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-81", "agent": "web-engineer", "detail": "Restyle diagnostic, guidance, upload and competitor-watch onto the shared system"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-82", "agent": "web-engineer", "detail": "Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-83", "agent": "web-engineer", "detail": "Split and restyle the Salesforce workspace into readable components"}
+{"ts": "2026-11-09T19:06:31Z", "event": "add", "task": "PK-84", "agent": "web-engineer", "detail": "Audit the whole site, remove dead styles, and pin the budgets in tests"}

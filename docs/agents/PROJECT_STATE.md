@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 5/2
-Updated: 2026-11-09T19:04:43Z
+Updated: 2026-11-09T19:06:31Z
 
 ## IN_PROGRESS
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
@@ -130,8 +130,28 @@ Updated: 2026-11-09T19:04:43Z
   - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
   - owns: pricing/copilot.py, tests/test_copilot.py
+- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
+  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
+- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
+  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
+- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
+  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
+- **PK-78** Redesign methodology and contact, and show the method on the sample  (web-engineer, deps PK-75)
+  - owns: web/src/app/methodology/page.tsx, web/src/app/contact/page.tsx, web/src/components/methodology, web/test/methodology-page.test.ts
+- **PK-79** Restyle the calculator, blog, 404 and error pages and promote the calculator  (web-engineer, deps PK-75)
+  - owns: web/src/app/calculator/page.tsx, web/src/components/LeakageCalculator.tsx, web/src/components/LeakageBars.tsx, web/src/app/blog, web/src/app/not-found.tsx, web/src/app/error.tsx, web/src/app/brand/page.tsx, web/test/calculator-page.test.ts
 - **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
   - owns: docs/agents/WORKFLOW.md
+- **PK-80** Redesign the sample page, the lead gate and the login page  (web-engineer, deps PK-75)
+  - owns: web/src/app/sample/page.tsx, web/src/app/login/page.tsx, web/src/app/login/layout.tsx, web/src/components/LeadForm.tsx, web/src/components/MagicLinkForm.tsx, web/src/components/Summary.tsx, web/test/lead-form.test.ts, web/test/login-page.test.tsx
+- **PK-81** Restyle diagnostic, guidance, upload and competitor-watch onto the shared system  (web-engineer, deps PK-75,PK-80)
+  - owns: web/src/app/diagnostic/page.tsx, web/src/app/guidance/page.tsx, web/src/app/upload/page.tsx, web/src/app/competitor-watch/page.tsx, web/src/components/charts, web/src/components/GuidanceClient.tsx, web/src/components/DecisionLog.tsx, web/src/components/DecisionControl.tsx, web/src/components/UploadClient.tsx, web/src/components/UploadPrivacyCallout.tsx, web/src/components/PageGuide.tsx, web/src/components/NextStep.tsx, web/src/components/NextActionsBlock.tsx, web/src/components/ApiError.tsx, web/src/components/CompetitorContextPanel.tsx, web/src/components/app, web/test/diagnostic-mobile-overflow.test.ts, web/test/guidance-client.test.ts, web/test/decision-control.test.ts
+- **PK-82** Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged  (web-engineer, deps PK-75,PK-6)
+  - owns: web/src/app/trust/page.tsx, web/src/app/privacy/page.tsx, web/src/app/terms/page.tsx, web/src/app/subprocessors/page.tsx, web/src/app/licenses/page.tsx, web/src/components/legal, web/test/legal-text-frozen.test.ts
+- **PK-83** Split and restyle the Salesforce workspace into readable components  (web-engineer, deps PK-75,PK-49)
+  - owns: web/src/app/crm/page.tsx, web/src/components/SalesforceWorkspace.tsx, web/src/components/workspace, web/test/salesforce-workspace.test.ts, web/test/salesforce-workspace-route.test.ts
+- **PK-84** Audit the whole site, remove dead styles, and pin the budgets in tests  (web-engineer, deps PK-76,PK-77,PK-78,PK-79,PK-80,PK-81,PK-82)
+  - owns: web/src/app/globals.css, web/scripts/lighthouse-budget.mjs, brand/PALETTE.md, web/test/site-audit.test.ts
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)

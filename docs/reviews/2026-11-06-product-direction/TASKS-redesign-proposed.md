@@ -3,13 +3,15 @@ title: Proposed tasks, site and app redesign
 created: 2026-11-09
 updated: 2026-11-09
 tags: [tasks, proposal, web, redesign]
-status: draft
+status: approved-for-entry
 source: docs/design/2026-11-09-site-redesign.md
 ---
 
 # Proposed tasks: site and app redesign
 
-Nothing here enters `project_state.json` until the founder approves. Ids continue the board after PK-74. Owner is web-engineer on every task; a qa-engineer or code-reviewer marks the acceptance lines. "Gate" names a founder decision (design doc section 9, restated at the end of this file).
+**Status 2026-11-09: approved-for-entry.** PK-75 to PK-84 are on the board in BACKLOG, owner web-engineer, none assigned. PK-85 is not entered. Founder questions carry lead defaults, founder may override: **D-R1** yes, `/diagnostic`, `/guidance`, `/upload`, `/competitor-watch` in scope (PK-81), `/crm` deferred; **D-R2** `/crm` restyle after PK-49 (PK-83 depends on PK-49); **D-R3** no light theme, PK-85 not entered; **D-R4** blog in the footer only; **D-R5** soften the hero to a claim the synthetic data supports and replace "Design-partner cohort" with wording that implies no cohort, exact copy chosen by PK-76 and checked against the evidence boundary; **D-R6** "We expect" wording, no "open code" claim (no public repository holds the engine, checked 2026-11-09, see "Changes on entry"), keep the one-business-day reply promise. A founder override changes acceptance lines on PK-75, PK-76, PK-77, PK-79, PK-81 or PK-83 before they are assigned. Changes made on entry are listed under "Changes on entry" at the end.
+
+Original note: nothing here entered `project_state.json` until approval. Ids continue the board after PK-74. Owner is web-engineer on every task; a qa-engineer or code-reviewer marks the acceptance lines. "Gate" names a founder decision (design doc section 9, restated at the end of this file).
 
 **Total: 10 tasks, 25 days, plus one conditional task (PK-85, 3 days, only if D-R3 is yes).**
 
@@ -203,3 +205,34 @@ The cap is two concurrent engineering tasks across the whole board. The connecto
 - **D-R4. Does the blog stay in the header?** Three posts. Default: keep the blog in the footer only and take it out of the primary nav; if the founder plans to publish weekly, put it back. Changes PK-75 nav items and PK-79 scope.
 - **D-R5. Landing headline wording.** "Stop giving away price that wins you nothing." In the synthetic sample the 25%+ band still wins 42% of deals against a 68% peak, so "nothing" is stronger than the data. Options: keep, or "Stop giving away price that wins you no more deals." Keep is a founder choice; the design is the same either way. Also confirm replacing "Design-partner cohort" in the closing section.
 - **D-R6. Pricing statements.** (a) Keep or remove "Engagements typically start in the low five figures" (no engagements exist yet; recommend "We expect"). (b) Is the diagnostic code actually open or available to customers? The pricing page says "open code". (c) Keep the one-business-day reply promise.
+
+## Changes on entry, 2026-11-09
+
+Entered by pk-lead with one `agentctl add` per task through a subprocess, one `--acceptance` per criterion, test files in owns also passed as `--test`. 10 tasks, PK-75 to PK-84, all BACKLOG, owner web-engineer, dependencies as in the tables above (PK-82 on PK-6 and PK-83 on PK-49 were already in the tables and are on the board).
+
+Claims changed:
+- **Glob claims converted to directory claims**, because `agentctl` refuses glob patterns: `web/src/components/ui/**`, `landing/**`, `methodology/**`, `charts/**`, `app/**`, `legal/**`, `workspace/**` and `web/src/app/blog/**` are the directory without `/**`. Same coverage.
+- No claim was changed to resolve a collision. A dry run of every new claim against live and backlog claims found only overlaps that dependencies or the sequencing rule below already order: PK-82 against PK-6 (live, `REWORK_REQUIRED` on PR 77; PK-82 depends on PK-6); PK-83 against PK-49 (PK-83 depends on PK-49); PK-75 against PK-84 on `globals.css` and `brand/PALETTE.md` (PK-84 depends on PK-75 through every page task); PK-77 and PK-82 against PK-52, PK-62, PK-69 (sequencing rule below). No overlap with PK-26, PK-42, PK-43, PK-47, PK-48, PK-57, PK-58, PK-64, PK-65 (`web/src/lib` connector and Salesforce files, `web/src/app/api/*`, `web/scripts/revoke-tenant-connections.ts`), nor with PK-24, PK-27, PK-29, PK-31 (non-web paths).
+
+Acceptance changes on the board:
+- Common gates are referenced by one line per task ("common gates G1 to G10 in this file are true"), not copied, so the board stays readable; this file is the definition.
+- **PK-76** gains two D-R5 lines (hero softened with the snapshot figures quoted in the PR; "Design-partner cohort" replaced with no-cohort wording) and loses the "changed only if the founder chose so" clause.
+- **PK-77** gains three D-R6 lines: both "typically start in the low five figures" instances (`pricing/page.tsx:187` and `:395`) become "We expect" wording; the "open code" claim (`:301`) is removed; the one-business-day promise is kept verbatim. Its line "PK-52 is updated to list PK-77 as a dependency" is dropped: an agent cannot edit another task's dependencies, so the lead records it as the sequencing rule below.
+- **PK-75** and **PK-79** state the D-R4 default (blog in the footer only). **PK-81** and **PK-83** name D-R1 and D-R2 as lead defaults.
+- **PK-82**'s frozen-text fixture is taken from the latest merged commit that touched the legal pages (PK-6's merge commit unless a later task changed them first), so the test is not wrong if the order slips.
+- **PK-83** adds `web/test/salesforce-workspace-route.test.ts` as a required regression suite (named in its acceptance, not owned).
+
+D-R6 repository fact (2026-11-09, `gh repo list arokhith1998 --visibility public`): the product repository `arokhith1998/pricing-ai` is private. Public repositories exist under the account, none holds the Pricekeel engine; `adhi-pricing-ai` is a public Next.js portfolio site ("Portfolio variant"), not the diagnostic code. So "open code" is not supportable and is removed.
+
+### Sequencing rule: redesign before connector copy on shared pages
+
+`agentctl add` cannot edit dependencies of tasks already on the board, so this is a lead rule, not a tool gate:
+
+- **PK-52 is not moved to READY or assigned until PK-77 and PK-82 are MERGED.** PK-62 and PK-69 already follow PK-52 by dependency, so they inherit the order. The connector copy edits on `pricing/page.tsx`, `privacy` and `trust` then land on the redesigned files, not the reverse.
+- The tool still referees the overlap if the rule is missed: PK-52 claims `web/src/app/privacy`, `web/src/app/trust` and `web/src/app/pricing/page.tsx`, so its assignment is refused while PK-77 or PK-82 holds a live claim, and the reverse.
+- If the founder wants PK-52 first, PK-77 and PK-82 start from PK-52's merged version and PK-82's frozen-text fixture comes from that merge.
+- PK-12 (competitor-watch copy) and PK-14 (GuidanceClient and diagnostic copy) are READY and touch files PK-81 owns. Run them before PK-81; `assign` refuses whichever comes second while the other is live.
+
+### Board check after entry
+
+`python tools/agentctl.py check`: `FAIL`, `5 tasks in active work, cap is 2`. Known and not caused by this entry: PK-24 and PK-31 in progress, PK-27, PK-29 and PK-6 in `REWORK_REQUIRED`, each in its own worktree (see the board commits of 2026-11-09). No collision and no unmet dependency on live work was reported. PK-75 is READY-eligible (no dependencies) but cannot be assigned until active work is back under the cap.
