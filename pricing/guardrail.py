@@ -24,7 +24,6 @@ from pricing.ingest import ingest_frame_verbose
 from pricing.schema import (
     DEFAULT_POLICY_THRESHOLD,
     FIELDS,
-    SourceSystem,
     band_for,
 )
 
@@ -73,20 +72,6 @@ class DealSourceAdapter(Protocol):
     labels: SourceLabels
 
     def to_canonical(self, record: dict) -> dict: ...
-
-
-class CsvAdapter:
-    """Pass-through for rows that already arrive in canonical shape (a file
-    or a pasted frame). Stamps source_system=csv when the row does not say."""
-
-    system = SourceSystem.CSV.value
-    labels = SourceLabels(system="CSV", records="deals", record="deal")
-
-    def to_canonical(self, record: dict) -> dict:
-        row = dict(record)
-        if not str(row.get("source_system") or "").strip():
-            row["source_system"] = self.system
-        return row
 
 
 def canonical_records(adapter: DealSourceAdapter, records: Iterable[dict]) -> list[dict]:
@@ -350,7 +335,7 @@ def analyze_deals(records: list[dict], policy_threshold_pct: float = 15.0,
     if not records:
         raise DealDataError(f"No {labels.system} {labels.records} were supplied.")
     if len(records) > max_records:
-        raise DealDataError(f"CRM payload exceeds the {max_records} record limit.")
+        raise DealDataError(f"Payload exceeds the {max_records} {labels.system} record limit.")
     if not (0.0 <= float(policy_threshold_pct) <= 40.0):
         raise DealDataError("Policy threshold must be between 0 and 40 percent.")
     currencies = _currency_guard(records, labels)

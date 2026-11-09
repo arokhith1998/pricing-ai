@@ -27,7 +27,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable, Optional
+from typing import Any, Optional, Sequence
 
 import psycopg
 from psycopg.rows import dict_row
@@ -58,8 +58,9 @@ DECISION_KINDS = ("copilot", "exception")
 # strings below; they must keep resolving, both when a row is read and when the
 # log is filtered, because the decision log is append-only and is never
 # rewritten. A Salesforce writeback receipt is no longer a separate source: it
-# is a "salesforce" row whose event is one of _WRITEBACK_EVENTS (legacy rows
-# carry source "salesforce_crm_writeback" instead).
+# is a "salesforce" row recognized structurally (see is_writeback_receipt), so a
+# future "<system>_writeback_succeeded" receipt needs no change here. Legacy
+# rows carry source "salesforce_crm_writeback" instead.
 _LEGACY_SOURCE_ALIASES = {
     "salesforce_crm": "salesforce",
     "salesforce_crm_writeback": "salesforce",
@@ -67,14 +68,19 @@ _LEGACY_SOURCE_ALIASES = {
     "hubspot_crm": "hubspot",
 }
 _LEGACY_WRITEBACK_SOURCE = "salesforce_crm_writeback"
-_WRITEBACK_EVENTS = ("salesforce_writeback_succeeded", "salesforce_writeback_failed")
+_RECEIPT_EVENT_SUFFIXES = ("_writeback_succeeded", "_writeback_failed")
 _SOURCE_SYSTEMS = frozenset(m.value for m in SourceSystem)
 # SQL twin of is_writeback_receipt, for the filter pushed into the query.
 _NOT_RECEIPT_SQL = (
-    "(coalesce(payload->>'source', '') <> %s "
-    "and coalesce(payload->>'event', '') <> all(%s))"
+    "(lower(btrim(coalesce(payload->>'source', ''))) <> %s "
+    "and coalesce(payload->>'event', '') not like %s "
+    "and coalesce(payload->>'event', '') not like %s "
+    "and payload->'writeback' is null)"
 )
-_NOT_RECEIPT_VALS: tuple = (_LEGACY_WRITEBACK_SOURCE, list(_WRITEBACK_EVENTS))
+_NOT_RECEIPT_VALS: tuple = (
+    _LEGACY_WRITEBACK_SOURCE,
+    *("%" + suffix.replace("_", "\\_") for suffix in _RECEIPT_EVENT_SUFFIXES),
+)
 
 
 def resolve_source(value: Any) -> str:
@@ -85,21 +91,27 @@ def resolve_source(value: Any) -> str:
     return _LEGACY_SOURCE_ALIASES.get(text, text)
 
 
-def _requested_systems(source: "str | Iterable[str]") -> set[str]:
+def requested_systems(source: "str | Sequence[str] | None") -> frozenset[str] | None:
+    """Normalise a source filter once, to a frozenset of resolved systems.
+
+    None means no filter. A str is one system. An empty sequence is a filter
+    that matches nothing (never "no filter"). Call this once at the top of a
+    read: it consumes the argument, so a generator cannot be re-read per row.
+    """
+    if source is None:
+        return None
     wanted = [source] if isinstance(source, str) else list(source)
-    return {resolve_source(v) for v in wanted}
+    return frozenset(resolve_source(v) for v in wanted)
 
 
-def source_spellings(source: "str | Iterable[str] | None") -> list[str]:
-    """Every stored spelling that resolves to the requested source(s).
+def source_spellings(systems: "frozenset[str]") -> list[str]:
+    """Every stored spelling that resolves to one of the (already resolved)
+    systems, as the SQL filter needs them.
 
     Filtering the decision log by "salesforce" must also find rows stored as
     "salesforce_crm", so the filter matches the resolved system, not the raw
-    string. An empty list means no source filter.
+    string. An empty set yields an empty list, which matches nothing.
     """
-    if source is None:
-        return []
-    systems = _requested_systems(source)
     spellings = set(systems)
     spellings.update(a for a, target in _LEGACY_SOURCE_ALIASES.items()
                      if target in systems)
@@ -113,10 +125,15 @@ def exception_source(payload: dict) -> str:
 
 
 def is_writeback_receipt(payload: dict) -> bool:
-    """True for the append-only record of a write-back attempt, not a decision."""
+    """True for the append-only record of a write-back attempt, not a decision.
+
+    Structural, not tied to one source: a legacy writeback source, an event
+    ending in _writeback_succeeded or _writeback_failed, or a payload carrying
+    a "writeback" key."""
     payload = payload or {}
     return (str(payload.get("source") or "").strip().lower() == _LEGACY_WRITEBACK_SOURCE
-            or payload.get("event") in _WRITEBACK_EVENTS)
+            or str(payload.get("event") or "").endswith(_RECEIPT_EVENT_SUFFIXES)
+            or "writeback" in payload)
 
 
 
@@ -231,7 +248,7 @@ class DecisionStore:
     # -- read ----------------------------------------------------------------
     def list(self, *, kind: str | None = None, session_id: str | None = None,
               deal_id: str | None = None,
-              source: "str | Iterable[str] | None" = None,
+              source: "str | Sequence[str] | None" = None,
               since: datetime | None = None, limit: int = 200,
               newest_first: bool = True,
               customer_ref: str = "default",
@@ -241,11 +258,12 @@ class DecisionStore:
         Tenant-scoped: only rows for `customer_ref` are returned (Finding 3).
         One customer's decision log is invisible to another.
 
-        `source` is a SourceSystem value or an iterable of them; legacy
+        `source` is a SourceSystem value or a sequence of them; legacy
         spellings of the same system match too (see source_spellings).
         `exclude_receipts` drops write-back receipts (see is_writeback_receipt).
         """
         rows: list[dict] = []
+        systems = requested_systems(source)
         url = _db_url()
         if url is not None:
             clauses = ["customer_ref = %s"]
@@ -260,9 +278,9 @@ class DecisionStore:
             if deal_id is not None:
                 clauses.append("deal_id = %s")
                 vals.append(deal_id)
-            if source is not None:
-                clauses.append("payload->>'source' = any(%s)")
-                vals.append(source_spellings(source))
+            if systems is not None:
+                clauses.append("lower(btrim(payload->>'source')) = any(%s)")
+                vals.append(source_spellings(systems))
             if exclude_receipts:
                 clauses.append(_NOT_RECEIPT_SQL)
                 vals.extend(_NOT_RECEIPT_VALS)
@@ -285,7 +303,7 @@ class DecisionStore:
         # Memory rows: everything written with no DB configured or during an outage.
         with self._lock:
             mem = [r for r in self._memory
-                   if self._matches(r, kind, session_id, deal_id, source,
+                   if self._matches(r, kind, session_id, deal_id, systems,
                                     since, customer_ref, exclude_receipts)]
         seen = {r.get("id") for r in rows}
         rows.extend(r for r in mem if r.get("id") not in seen)
@@ -295,10 +313,11 @@ class DecisionStore:
         return rows[:limit]
 
     def latest_by_deal(self, *, kind: str, deal_ids: list[str],
-                       source: "str | Iterable[str] | None" = None,
+                       source: "str | Sequence[str] | None" = None,
                        customer_ref: str = "default",
                        exclude_receipts: bool = False) -> dict[str, dict]:
         """Newest matching row for each requested deal in one database query."""
+        systems = requested_systems(source)
         unique = list(dict.fromkeys(str(value) for value in deal_ids if value))[:5000]
         if not unique:
             return {}
@@ -307,9 +326,9 @@ class DecisionStore:
         if url is not None:
             clauses = ["customer_ref = %s", "kind = %s", "deal_id = any(%s)"]
             vals: list[Any] = [customer_ref, kind, unique]
-            if source is not None:
-                clauses.append("payload->>'source' = any(%s)")
-                vals.append(source_spellings(source))
+            if systems is not None:
+                clauses.append("lower(btrim(payload->>'source')) = any(%s)")
+                vals.append(source_spellings(systems))
             if exclude_receipts:
                 clauses.append(_NOT_RECEIPT_SQL)
                 vals.extend(_NOT_RECEIPT_VALS)
@@ -331,7 +350,7 @@ class DecisionStore:
                 row for row in self._memory
                 if row.get("deal_id") in unique
                 and self._matches(
-                    row, kind, None, None, source, None, customer_ref,
+                    row, kind, None, None, systems, None, customer_ref,
                     exclude_receipts,
                 )
             ]
@@ -383,7 +402,7 @@ class DecisionStore:
 
     @staticmethod
     def _matches(row: dict, kind: str | None, session_id: str | None,
-                  deal_id: str | None, source: str | None,
+                  deal_id: str | None, systems: "frozenset[str] | None",
                   since: datetime | None, customer_ref: str = "default",
                   exclude_receipts: bool = False) -> bool:
         if row.get("customer_ref", "default") != customer_ref:
@@ -395,8 +414,8 @@ class DecisionStore:
                 return False
         if deal_id is not None and row.get("deal_id") != deal_id:
             return False
-        if source is not None and exception_source(
-                row.get("payload") or {}) not in _requested_systems(source):
+        if systems is not None and exception_source(
+                row.get("payload") or {}) not in systems:
             return False
         if exclude_receipts and is_writeback_receipt(row.get("payload") or {}):
             return False
@@ -553,7 +572,6 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
 # writeback receipt rendered as "3 exception requests" instead of 1
 # (code-reviewer finding, reproduced).
 _CRM_REQUEST_EVENTS = {"override_requested"}
-_CRM_WRITEBACK_SOURCE = _LEGACY_WRITEBACK_SOURCE
 
 
 def _is_exception_request(payload: dict) -> bool:

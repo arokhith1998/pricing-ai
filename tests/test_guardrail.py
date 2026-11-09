@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import main
-from pricing import crm, governance, guardrail
+from pricing import crm, csv_adapter, governance, guardrail
 from pricing.ingest import ingest_frame_verbose
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,7 +72,7 @@ def test_deal_id_field_is_the_required_identifier():
 
 def test_both_adapters_satisfy_the_protocol():
     assert isinstance(crm.SalesforceAdapter(), guardrail.DealSourceAdapter)
-    assert isinstance(guardrail.CsvAdapter(), guardrail.DealSourceAdapter)
+    assert isinstance(csv_adapter.CsvAdapter(), guardrail.DealSourceAdapter)
 
 
 def test_salesforce_adapter_stamps_provenance_and_does_not_mutate():
@@ -90,7 +90,7 @@ def test_salesforce_adapter_stamps_provenance_and_does_not_mutate():
 
 
 def test_csv_adapter_stamps_only_when_absent():
-    adapter = guardrail.CsvAdapter()
+    adapter = csv_adapter.CsvAdapter()
     assert adapter.to_canonical({"opportunity_id": "A"})["source_system"] == "csv"
     assert adapter.to_canonical(
         {"opportunity_id": "A", "source_system": " "})["source_system"] == "csv"
@@ -100,7 +100,7 @@ def test_csv_adapter_stamps_only_when_absent():
 
 @pytest.mark.parametrize("adapter,expected", [
     (crm.SalesforceAdapter(), "salesforce"),
-    (guardrail.CsvAdapter(), "csv"),
+    (csv_adapter.CsvAdapter(), "csv"),
 ])
 def test_adapter_output_loads_through_ingest_with_the_right_source_system(
         adapter, expected):
@@ -114,8 +114,13 @@ def test_adapter_output_loads_through_ingest_with_the_right_source_system(
 # --- behavior preserved across the split ---------------------------------------
 # Expected values captured from pricing.crm on main at 0976558, before the split.
 
-_BASELINE_COMPARABLE_IDS = ["OPP-00058", "OPP-00222", "OPP-00103", "OPP-00104",
-                            "OPP-00236"]
+_BASELINE_COMPARABLES = [
+    {'booked_acv': 76740.33, 'discount_pct': 0.124145, 'industry': 'MarTech', 'is_won': False, 'list_acv': 87617.61, 'deal_id': 'OPP-00058', 'resolved_account_name': 'Monarch Digital, Inc.', 'segment': 'MidMarket'},
+    {'booked_acv': 100312.72, 'discount_pct': 0.125787, 'industry': 'MarTech', 'is_won': True, 'list_acv': 114746.27, 'deal_id': 'OPP-00222', 'resolved_account_name': 'Monarch Software', 'segment': 'MidMarket'},
+    {'booked_acv': 67960.06, 'discount_pct': 0.216356, 'industry': 'MarTech', 'is_won': True, 'list_acv': 86723.09, 'deal_id': 'OPP-00103', 'resolved_account_name': 'Tessera Systems Corp.', 'segment': 'MidMarket'},
+    {'booked_acv': 56403.44, 'discount_pct': 0.184781, 'industry': 'MarTech', 'is_won': False, 'list_acv': 69188.05, 'deal_id': 'OPP-00104', 'resolved_account_name': 'Juniper Systems, Inc.', 'segment': 'MidMarket'},
+    {'booked_acv': 52007.09, 'discount_pct': 0.202431, 'industry': 'MarTech', 'is_won': True, 'list_acv': 65206.97, 'deal_id': 'OPP-00236', 'resolved_account_name': 'Aurora Cloud, Inc.', 'segment': 'MidMarket'},
+]
 _BASELINE = {
     "opportunity_id": "SF-OPEN-001",
     "account": "Northstar Labs",
@@ -163,7 +168,16 @@ def _assert_matches_baseline(row: dict, *, id_key: str, url_key: str):
         else:
             assert row[mapped] == expected, key
     assert row["caveat"].startswith("Historical discount-band outcomes are correlational")
-    assert [c[id_key] for c in row["comparables"]] == _BASELINE_COMPARABLE_IDS
+    expected = [{(id_key if k == "deal_id" else k): v for k, v in c.items()}
+                for c in _BASELINE_COMPARABLES]
+    assert len(row["comparables"]) == len(expected)
+    for got, want in zip(row["comparables"], expected):
+        assert set(got) == set(want)
+        for key, value in want.items():
+            if isinstance(value, float):
+                assert got[key] == pytest.approx(value), key
+            else:
+                assert got[key] == value, key
 
 
 def test_crm_wrapper_output_equals_the_pre_split_output():
@@ -190,7 +204,7 @@ def test_guardrail_runs_on_csv_adapter_rows_and_names_its_method():
     rows = [dict(r) for r in _records()]
     for row in rows:
         row["source_url"] = row.pop("salesforce_url")
-    canonical = guardrail.canonical_records(guardrail.CsvAdapter(), rows)
+    canonical = guardrail.canonical_records(csv_adapter.CsvAdapter(), rows)
     result = guardrail.analyze_deals(canonical, 15.0)
     row = result["guidance"][0]
     assert row["evidence_source"] == "band_guardrail"
@@ -199,7 +213,7 @@ def test_guardrail_runs_on_csv_adapter_rows_and_names_its_method():
 
 
 def test_thin_data_is_insufficient_not_a_number():
-    canonical = guardrail.canonical_records(guardrail.CsvAdapter(), _records()[:20])
+    canonical = guardrail.canonical_records(csv_adapter.CsvAdapter(), _records()[:20])
     with pytest.raises(guardrail.DealDataError, match="at least 30"):
         guardrail.analyze_deals(canonical, 15.0)
     # Same class the CRM wrapper raises, so API handlers keep catching it.
@@ -210,9 +224,22 @@ def test_thin_data_is_insufficient_not_a_number():
 
 def test_error_wording_follows_the_adapter_labels():
     with pytest.raises(guardrail.DealDataError, match="No CSV deals were supplied"):
-        guardrail.analyze_deals([], 15.0, labels=guardrail.CsvAdapter.labels)
+        guardrail.analyze_deals([], 15.0, labels=csv_adapter.CsvAdapter.labels)
     with pytest.raises(crm.CRMDataError, match="No Salesforce opportunities were supplied"):
         crm.analyze_records([])
+
+
+def test_engine_imports_no_adapter():
+    text = Path(guardrail.__file__).read_text(encoding="utf-8")
+    assert "csv_adapter" not in text
+    assert "from pricing import crm" not in text
+
+
+def test_oversized_payload_message_uses_the_adapter_label():
+    canonical = guardrail.canonical_records(csv_adapter.CsvAdapter(), _records()[:5])
+    with pytest.raises(guardrail.DealDataError, match="Payload exceeds the 3 CSV record limit"):
+        guardrail.analyze_deals(canonical, 15.0, labels=csv_adapter.CsvAdapter.labels,
+                                max_records=3)
 
 
 def test_no_guidance_output_calls_a_proxy_a_margin():
@@ -342,3 +369,131 @@ def test_writeback_receipt_is_logged_as_salesforce_and_listed(client):
     assert receipts[0]["payload"]["source"] == "salesforce"
     log = client.get("/crm/workflow").json()["items"]
     assert {i["event"] for i in log} == {"accepted", "salesforce_writeback_succeeded"}
+
+
+# --- receipts are detected structurally -----------------------------------------
+
+def test_a_future_receipt_from_another_system_is_excluded_without_a_code_change():
+    store = governance.STORE
+    rows = {
+        "H-DECISION": {"source": "hubspot", "event": "override_requested"},
+        "H-RECEIPT-EVENT": {"source": "hubspot", "event": "hubspot_writeback_succeeded"},
+        "H-RECEIPT-FAILED": {"source": "hubspot", "event": "hubspot_writeback_failed"},
+        "H-RECEIPT-KEY": {"source": "hubspot", "event": "synced",
+                          "writeback": {"success": True}},
+    }
+    for deal, payload in rows.items():
+        store.insert(kind="exception", deal_id=deal, payload=payload,
+                     decision=payload["event"])
+    kept = {r["deal_id"] for r in store.list(kind="exception", source="hubspot",
+                                             exclude_receipts=True)}
+    assert kept == {"H-DECISION"}
+    assert {r["deal_id"] for r in store.list(kind="exception", source="hubspot")} == set(rows)
+    assert not governance._is_exception_request(rows["H-RECEIPT-EVENT"])
+    assert not governance._is_exception_request(rows["H-RECEIPT-KEY"])
+
+
+# --- source filter normalisation -------------------------------------------------
+
+def _seed_two_sources():
+    for deal, source in (("A", "salesforce_crm"), ("B", "csv")):
+        governance.STORE.insert(kind="exception", deal_id=deal,
+                                payload={"source": source, "event": "accepted"},
+                                decision="accepted")
+
+
+def test_generator_source_filter_is_read_once_not_per_row():
+    _seed_two_sources()
+    as_list = {r["deal_id"] for r in governance.STORE.list(
+        kind="exception", source=["salesforce", "csv"])}
+    as_gen = {r["deal_id"] for r in governance.STORE.list(
+        kind="exception", source=(s for s in ["salesforce", "csv"]))}
+    assert as_list == as_gen == {"A", "B"}
+    latest = governance.STORE.latest_by_deal(
+        kind="exception", deal_ids=["A", "B"],
+        source=(s for s in ["salesforce", "csv"]))
+    assert set(latest) == {"A", "B"}
+
+
+def test_empty_source_sequence_matches_nothing_and_none_matches_everything():
+    _seed_two_sources()
+    assert governance.STORE.list(kind="exception", source=[]) == []
+    assert governance.STORE.latest_by_deal(
+        kind="exception", deal_ids=["A", "B"], source=[]) == {}
+    assert len(governance.STORE.list(kind="exception", source=None)) == 2
+
+
+def test_source_match_ignores_case_and_whitespace_like_the_sql_does():
+    governance.STORE.insert(kind="exception", deal_id="C",
+                            payload={"source": "  Salesforce_CRM ", "event": "accepted"},
+                            decision="accepted")
+    assert [r["deal_id"] for r in governance.STORE.list(
+        kind="exception", source="salesforce")] == ["C"]
+
+
+# --- the SQL the database path sends -----------------------------------------------
+
+class _RecordingCursor:
+    def __init__(self, log):
+        self._log = log
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def execute(self, query, vals=None):
+        self._log.append((query, list(vals or [])))
+
+    def fetchall(self):
+        return []
+
+
+class _RecordingConn:
+    def __init__(self, log):
+        self._log = log
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+    def cursor(self, *_a, **_k):
+        return _RecordingCursor(self._log)
+
+
+def test_database_path_sends_the_alias_and_receipt_clauses(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example/db")
+    log: list = []
+    monkeypatch.setattr(governance.psycopg, "connect",
+                        lambda *_a, **_k: _RecordingConn(log))
+    governance.STORE.list(kind="exception", source="salesforce_crm",
+                          exclude_receipts=True)
+    governance.STORE.latest_by_deal(kind="exception", deal_ids=["D1"],
+                                    source=["salesforce", "csv"],
+                                    exclude_receipts=True)
+    assert len(log) == 2
+    for query, vals in log:
+        assert "lower(btrim(payload->>'source')) = any(%s)" in query
+        assert "payload->'writeback' is null" in query
+        assert query.count("not like %s") == 2
+        assert "salesforce_crm_writeback" in vals
+        assert any(isinstance(v, str) and v.startswith("%") and v.endswith("writeback\\_succeeded") for v in vals)
+        assert any(isinstance(v, str) and v.startswith("%") and v.endswith("writeback\\_failed") for v in vals)
+    list_vals = log[0][1]
+    assert ["salesforce", "salesforce_crm", "salesforce_crm_writeback",
+            "sfdc"] in list_vals
+    assert ["csv", "salesforce", "salesforce_crm", "salesforce_crm_writeback",
+            "sfdc"] in log[1][1]
+
+
+def test_database_path_omits_the_clauses_when_not_asked(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example/db")
+    log: list = []
+    monkeypatch.setattr(governance.psycopg, "connect",
+                        lambda *_a, **_k: _RecordingConn(log))
+    governance.STORE.list(kind="exception")
+    query = log[0][0]
+    assert "any(%s)" not in query and "writeback" not in query

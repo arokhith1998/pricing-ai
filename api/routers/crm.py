@@ -601,4 +601,4 @@ def crm_workflow_log(request: Request, limit: int = 100) -> dict:
             "writeback": payload.get("writeback") or {},
             "created_at": str(row.get("created_at", "")),
         })
-    return {"items": items[:limit]}
+    return {"items": items}
