@@ -422,9 +422,15 @@ def _assert_nullable_confidence_enum(prop: dict) -> None:
     """confidence must be constrained to high/medium/low (nullable), not a
     free string — the code silently rewrites anything else to "medium",
     and the schema should make that rewrite unreachable rather than routine."""
+    # The SDK strictifier's shape differs by version: anthropic 2.6 keeps
+    # {"type": "string", "enum": [...]}, 2.7 renders {"enum": [...]} with no
+    # type key (PK-86). Assert the invariant, not the rendering: one branch
+    # carries exactly the three values, the other is null.
     assert {"type": "null"} in prop["anyOf"]
-    string_branch = next(b for b in prop["anyOf"] if b.get("type") == "string")
-    assert string_branch.get("enum") == ["high", "medium", "low"]
+    enum_branch = next(b for b in prop["anyOf"] if "enum" in b)
+    assert enum_branch["enum"] == ["high", "medium", "low"]
+    assert enum_branch.get("type", "string") == "string"
+    assert len(prop["anyOf"]) == 2
 
 
 def test_context_schema_survives_the_real_sdk_strictifier():
@@ -440,6 +446,33 @@ def test_context_schema_survives_the_real_sdk_strictifier():
     assert claim_item["properties"]["claim"] == {"type": "string"}
     _assert_nullable_confidence_enum(claim_item["properties"]["confidence"])
     assert {"type": "null"} in claim_item["properties"]["evidence_excerpt"]["anyOf"]
+
+
+def test_strictified_context_schema_still_validates_good_and_rejects_bad():
+    """PK-86: whatever rendering the installed SDK picks, the strictified
+    schema must still accept a known-good payload (enum value or null) and
+    reject a known-bad one (off-enum confidence, extra key, missing key)."""
+    import copy
+    import jsonschema  # transitive via the pinned stack; fail loudly, never skip
+    from anthropic.lib._parse._transform import transform_schema
+
+    schema = transform_schema(matching._CONTEXT_SCHEMA)
+    good = {
+        "summary": "Usage-based with a platform fee.",
+        "confidence": "high",
+        "claims": [{"claim": "Overage billed per unit", "confidence": None,
+                    "evidence_excerpt": None}],
+    }
+    jsonschema.validate(good, schema)
+    jsonschema.validate({**good, "confidence": None, "summary": None}, schema)
+    for bad in (
+        {**good, "confidence": "certain"},
+        {**good, "extra": 1},
+        {k: v for k, v in good.items() if k != "claims"},
+        {**good, "claims": [{**good["claims"][0], "confidence": "certain"}]},
+    ):
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(copy.deepcopy(bad), schema)
 
 
 def test_plan_extraction_schema_survives_the_real_sdk_strictifier():

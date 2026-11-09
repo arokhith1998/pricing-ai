@@ -11,7 +11,9 @@ scikit-learn>=1.4
 # moved off OpenAI). 0.77.0 (2026-01-29 changelog: "use output_config for
 # structured outputs") is the verified floor for output_config on
 # messages.create; below it, that parameter does not exist.
-anthropic>=0.77.0
+# PK-86: <3 caps at the majors CI has proven (2.6, 2.7); 2.7 changed the
+# transform_schema rendering, so re-prove before crossing a major.
+anthropic>=0.77.0,<3
 # API (FastAPI wrapper consumed by the Next.js front end)
 fastapi>=0.110
 uvicorn[standard]>=0.29
