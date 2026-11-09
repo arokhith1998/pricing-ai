@@ -25,7 +25,9 @@ import pandas as pd
 
 from pricing import mapping
 from pricing.schema import (
+    BILLING_ONLY_OUTCOME,
     DEFAULT_POLICY_THRESHOLD,
+    FIELDS,
     REQUIRED_FIELDS,
     Outcome,
     PROVENANCE_DEFAULTS,
@@ -76,6 +78,16 @@ class LoadReport:
     blockers: list[str] = field(default_factory=list)
     fx_normalized: bool = False       # mixed currencies were converted to USD
     fx_rate_date: str = ""            # as-of date disclosed for that conversion
+    # Source profile (layer 0, header set only) and what the cpq_line roll-up did.
+    profile: str = ""                 # crm_opportunity | cpq_line | unknown
+    profile_grain: str = ""
+    quote_lines_read: int = 0         # raw quote lines before the roll-up
+    quarantined_lines: int = 0        # lines with a blank / missing quote id
+    quarantined_reason: str = ""
+    quote_resolution: dict = field(default_factory=dict)  # rule + counts + ids
+    # Deals whose stage no value map could place: raw stage -> {deals, id_kind,
+    # ids, ids_omitted}. Never counted as lost or open, never in win rate.
+    ask_user: dict[str, dict] = field(default_factory=dict)
 
     def summary(self) -> str:
         """A short, human-readable 'what we read' block for the dashboard."""
@@ -88,6 +100,24 @@ class LoadReport:
             total = sum(self.excluded_open.values())
             detail = ", ".join(f"{k}: {v}" for k, v in self.excluded_open.items())
             out.append(f"  excluded {total} open / non-closed rows ({detail})")
+        if self.profile == "cpq_line":
+            out.append(f"  quote-line export: {self.quote_lines_read} lines "
+                       "rolled up to one deal per quote")
+        if self.quarantined_lines:
+            out.append(f"  set aside {self.quarantined_lines} line(s) with a "
+                       "blank or missing quote id (not counted in any deal)")
+        qr = self.quote_resolution
+        if qr and qr.get("quotes_superseded"):
+            out.append(
+                f"  {qr['quotes_superseded']} quote(s) superseded across "
+                f"{qr['opportunities_with_multiple_quotes']} opportunity(ies) "
+                "with several quotes; one deal each. " + qr["rule"])
+        if self.ask_user:
+            total = sum(v["deals"] for v in self.ask_user.values())
+            detail = ", ".join(f"{k or '(blank)'}: {v['deals']}"
+                               for k, v in self.ask_user.items())
+            out.append(f"  set aside {total} deal(s) with an unrecognised stage "
+                       f"({detail}); not counted as won, lost or open")
         if self.exact_duplicates_dropped:
             out.append(f"  dropped {self.exact_duplicates_dropped} exact duplicate rows")
         if self.conflicting_ids:
@@ -444,23 +474,333 @@ def _dedupe(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
     return df
 
 
-def _exclude_open(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
-    """Drop rows whose stage is not a closed outcome (open pipeline deals).
+# --- Source profiles (PK-39) -------------------------------------------------
+# A file whose headers profile as cpq_line has one row per quote LINE. It is
+# rolled up to one deal per quote (pricing.mapping.rollup_quote_lines) before
+# anything counts a deal, and several quotes for one opportunity are resolved
+# to one deal. Everything here is deterministic arithmetic on the file, no LLM.
 
-    A CRM export full of Negotiation / Proposal Sent rows would otherwise be
-    counted as losses and silently tank the win rate. Excluded counts go to the
-    report by stage, so the exclusion is visible, never silent.
+QUOTE_RESOLUTION_RULE = (
+    "One deal per opportunity. When several quotes share an opportunity id, "
+    "the latest quote by sent date (else created date, when every quote of "
+    "that opportunity carries one and one is strictly latest) is kept; "
+    "otherwise the single quote marked primary; otherwise the highest quote "
+    "id. Superseded quotes are listed here and never counted."
+)
+_PRIMARY_HEADERS = {"primary", "is primary", "isprimary", "primary quote",
+                    "is primary quote", "primary flag", "sbqq primary"}
+_SENT_HEADERS = {"sent date", "quote sent date", "date sent", "sent at",
+                 "sent on", "quote sent", "sent"}
+_MAX_IDS = 200                      # ids listed per disclosure, counts stay exact
+_NON_CARRIED = {"outcome", "source_system", "cost_basis", "source_record_id",
+                "source_quote_id"}
+
+
+def _cap_ids(ids: list[str]) -> tuple[list[str], int]:
+    return ids[:_MAX_IDS], max(0, len(ids) - _MAX_IDS)
+
+
+def _natural_key(s: str) -> tuple:
+    return tuple((0, int(p), "") if p.isdigit() else (1, 0, p)
+                 for p in re.split(r"(\d+)", str(s)) if p != "")
+
+
+def _blank_cell(v: object) -> bool:
+    return v is None or (isinstance(v, float) and v != v) or \
+        str(v).strip().lower() in _MISSING_STRINGS
+
+
+def _first_by_quote(lines: pd.DataFrame, qid: pd.Series, col: str | None,
+                    as_flag: bool = False) -> dict[str, object]:
+    """First non-blank value of one raw column per quote id (any truthy cell
+    when as_flag)."""
+    out: dict[str, object] = {}
+    if not col or col not in lines.columns:
+        return out
+    for q, v in zip(qid, lines[col]):
+        if not q:
+            continue
+        if as_flag:
+            out[q] = out.get(q, False) or (
+                not _blank_cell(v) and str(v).strip().lower() in _BOOL_TRUE)
+        elif q not in out and not _blank_cell(v):
+            out[q] = v
+    return out
+
+
+def _guard_cpq_currency(lines: pd.DataFrame, roles: dict[str, str],
+                        report: "LoadReport") -> str:
+    """Refuse to sum lines in different currencies into one quote.
+
+    The roll-up parses money and so drops the symbols the CRM path reads
+    afterwards; mixed symbols, or one quote with two ISO codes, are checked
+    here on the raw lines. Returns the single ISO code implied by a lone
+    symbol ('' when none)."""
+    seen: set[str] = set()
+    for role in ("line_booked", "line_list", "unit_net", "unit_list"):
+        col = roles.get(role)
+        if col and col in lines.columns:
+            s = lines[col].astype(str)
+            for sym in _CURRENCY_SYMBOLS:
+                if s.str.contains(sym, regex=False).any():
+                    seen.add(sym)
+    report.currencies = sorted(seen)
+    blocker = ""
+    if len(seen) > 1:
+        blocker = (f"Quote lines mix currency symbols ({', '.join(sorted(seen))}). "
+                   "Rolling lines up would sum different currencies into one "
+                   "quote total. Split the file by currency and ingest each "
+                   "separately.")
+    ccol = next((c for c in lines.columns
+                 if mapping._field_of(c) == "currency"), None)
+    key = roles.get("quote_id")
+    if not blocker and ccol and key in lines.columns:
+        codes = lines[ccol].fillna("").astype(str).str.strip().str.upper()
+        per_quote = (pd.DataFrame({"q": lines[key].astype(str).str.strip(),
+                                   "c": codes})
+                     .query("c != ''").groupby("q")["c"].nunique())
+        n_bad = int((per_quote > 1).sum())
+        if n_bad:
+            blocker = (f"{n_bad} quote(s) carry lines in more than one "
+                       "currency. Rolling lines up would sum different "
+                       "currencies into one quote total.")
+    if blocker:
+        report.blockers.append(blocker)
+        raise CurrencyBlockedError(blocker, report)
+    return _CURRENCY_SYMBOLS[next(iter(seen))] if len(seen) == 1 else ""
+
+
+def _pick_quote(sub: pd.DataFrame) -> tuple[object, str]:
+    """Index label of the quote kept for one opportunity, and the rule used."""
+    for rule, col in (("latest_sent_date", "_sent_dt"),
+                      ("latest_created_date", "_created_dt")):
+        d = sub[col]
+        if d.notna().all():
+            hit = d == d.max()
+            if int(hit.sum()) == 1:
+                return sub.index[hit][0], rule
+    primary = sub[sub["_primary"]]
+    if len(primary) == 1:
+        return primary.index[0], "primary_quote"
+    best = max(sub.index, key=lambda i: _natural_key(sub.at[i, "source_quote_id"]))
+    return best, "highest_quote_id"
+
+
+def _route_profile(df: pd.DataFrame, report: "LoadReport"
+                   ) -> tuple[pd.DataFrame, dict | None]:
+    """Layer-0 profile of the raw headers. A cpq_line file is rolled up to one
+    deal per quote here, before the CRM pipeline (and _exclude_open) sees it.
+    Returns (frame, cpq_info); cpq_info is None for every other profile, whose
+    frame is returned untouched."""
+    headers = [str(c).strip() for c in df.columns]
+    prof = mapping.profile_source(headers)
+    report.profile, report.profile_grain = prof["profile"], prof["grain"]
+    if prof["profile"] != mapping.PROFILE_CPQ:
+        return df, None
+
+    lines = df.copy()
+    lines.columns = headers
+    roles = prof["roles"]
+    iso = _guard_cpq_currency(lines, roles, report)
+    try:
+        deals = mapping.rollup_quote_lines(lines, roles)
+    except ValueError as exc:
+        raise SchemaError(f"Quote-line export cannot be rolled up: {exc}") from exc
+    key = deals.attrs["join_key"]
+    report.quote_lines_read = len(lines)
+    quarantined = deals.attrs.get("quarantined_lines")
+    report.quarantined_lines = 0 if quarantined is None else len(quarantined)
+    report.quarantined_reason = deals.attrs.get("quarantined_reason", "")
+
+    qid = lines[key].map(lambda v: "" if _blank_cell(v) else str(v).strip())
+    status_col = roles.get("quote_status")
+    raw_status: dict[str, str] = {}
+    if status_col and status_col in lines.columns:
+        seen_raw: dict[str, set[str]] = {}
+        for q, v in zip(qid, lines[status_col]):
+            if q:
+                seen_raw.setdefault(q, set()).add("" if _blank_cell(v)
+                                                  else str(v).strip())
+        raw_status = {q: " | ".join(sorted(s)) for q, s in seen_raw.items()}
+    deals["_stage_raw"] = deals["source_quote_id"].map(raw_status).fillna("")
+
+    # Carry the deal-level descriptive columns the roll-up does not (product
+    # tier, value metric, ...): first non-blank value per quote. Amounts and
+    # outcome are never carried; the roll-up owns them.
+    result = mapping.map_headers(headers, llm_fallback=False, use_embeddings=False)
+    deal_fields = {f.name for f in FIELDS
+                   if f.dtype in ("str", "enum", "date", "bool")} - _NON_CARRIED
+    carried: list[str] = []
+    for fname, header in result["mapping"].items():
+        if (not header or fname not in deal_fields or fname in deals.columns
+                or header in (key, status_col)):
+            continue
+        if fname not in REQUIRED_FIELDS and result["confidence"].get(fname) != "high":
+            continue
+        first = _first_by_quote(lines, qid, header)
+        deals[fname] = deals["source_quote_id"].map(first)
+        carried.append(fname)
+    if carried:
+        report.notes.append(
+            "quote lines rolled up to one deal per quote; first non-blank "
+            f"value per quote used for: {', '.join(sorted(carried))}")
+
+    # Several quotes for one opportunity: one deal, by a stated rule.
+    sent_hdr = next((h for h in headers if mapping.normalize(h) in _SENT_HEADERS), None)
+    prim_hdr = next((h for h in headers if mapping.normalize(h) in _PRIMARY_HEADERS), None)
+    sent_raw = deals["source_quote_id"].map(_first_by_quote(lines, qid, sent_hdr))
+    deals["_sent_dt"] = parse_dates(sent_raw.astype(object).fillna(""))
+    deals["_created_dt"] = (
+        parse_dates(deals["created_date"].astype(object).fillna(""))
+        if "created_date" in deals.columns
+        else pd.Series(pd.NaT, index=deals.index))
+    deals["_primary"] = deals["source_quote_id"].map(
+        _first_by_quote(lines, qid, prim_hdr, as_flag=True)).fillna(False).astype(bool)
+    opp = deals["opportunity_id"].map(
+        lambda v: "" if _blank_cell(v) else str(v).strip())
+    by_rule: dict[str, int] = {}
+    superseded: list[str] = []
+    n_multi = 0
+    for _oid, sub in deals[opp != ""].groupby(opp[opp != ""], sort=False):
+        if len(sub) < 2:
+            continue
+        n_multi += 1
+        keep, rule = _pick_quote(sub)
+        by_rule[rule] = by_rule.get(rule, 0) + 1
+        superseded += [str(q) for i, q in sub["source_quote_id"].items() if i != keep]
+    deals = deals[~deals["source_quote_id"].isin(superseded)].reset_index(drop=True)
+    shown, omitted = _cap_ids(sorted(superseded, key=_natural_key))
+    report.quote_resolution = {
+        "rule": QUOTE_RESOLUTION_RULE,
+        "opportunities_with_multiple_quotes": n_multi,
+        "quotes_superseded": len(superseded),
+        "by_rule": by_rule,
+        "superseded_quote_ids": shown,
+        "superseded_ids_omitted": omitted,
+    }
+    deals = deals.drop(columns=["_sent_dt", "_created_dt", "_primary"])
+
+    # The deal key is the opportunity id; with none in the file, the quote id.
+    blank_opp = deals["opportunity_id"].map(_blank_cell)
+    if blank_opp.any():
+        deals.loc[blank_opp, "opportunity_id"] = deals.loc[blank_opp, "source_quote_id"]
+        report.notes.append(
+            f"no opportunity id on {int(blank_opp.sum())} quote(s); the quote "
+            "id is used as the deal key")
+    n_unpriced = int(deals["unpriced_lines"].gt(0).sum())
+    if n_unpriced:
+        report.notes.append(
+            f"{n_unpriced} quote(s) have lines with no computable booked "
+            "amount; those lines add nothing to the sum")
+    if "currency" not in deals.columns and iso:
+        deals["currency"] = iso
+    deals = deals.drop(columns=["unpriced_lines", "line_count"])
+
+    consumed = set(roles.values()) | {h for h in (sent_hdr, prim_hdr) if h}
+    consumed |= {h for h in headers if mapping._field_of(h) in
+                 mapping.CPQ_ROLLUP_SPEC["first_non_blank"]}
+    consumed |= {h for f, h in result["mapping"].items() if h and f in carried}
+    return deals, {"headers": headers, "roles": roles, "consumed": consumed}
+
+
+def _finish_cpq_report(report: "LoadReport", info: dict) -> None:
+    """Provenance for a rolled-up file: what each deal field came from."""
+    r = info["roles"]
+    booked = r.get("line_booked") or (
+        f"{r['unit_net']} x {r['quantity']}"
+        if r.get("unit_net") and r.get("quantity") else "")
+    listed = r.get("line_list") or (
+        f"{r['unit_list']} x {r['quantity']}"
+        if r.get("unit_list") and r.get("quantity") else "")
+    src = {"source_quote_id": r.get("quote_id"), "booked_acv": booked,
+           "list_acv": listed, "outcome": r.get("quote_status") or r.get("outcome")}
+    report.field_sources = {f: f"{h} (quote-line roll-up)"
+                            for f, h in src.items() if h}
+    report.unmapped_columns = [h for h in info["headers"]
+                               if h not in info["consumed"]]
+
+
+# DEPENDENCY (pricing/mapping.py is PK-27's): the single stage table lacks this
+# open-pipeline label, which the data/synthetic/adversarial-fixtures open
+# pipeline file carries and which the pre-PK-39 ingest excluded as open. Until
+# mapping._STAGE_OPEN has it, it is placed as open here so crm_opportunity
+# files load exactly as before. Delete this set when mapping.py gains the word.
+_OPEN_STAGE_GAPS = frozenset({"proposal sent"})
+
+
+def _canonical_outcome(series: pd.Series) -> pd.Series:
+    """Every stage value through the single stage table in pricing.mapping:
+    closed_won, closed_lost, open or ask_user. billing_only (a billing-sourced
+    row) passes through; it is excluded with the open rows, as before."""
+    def one(v: object) -> str:
+        if _blank_cell(v):
+            return mapping.OUTCOME_ASK_USER
+        s = str(v).strip()
+        if s.lower() == BILLING_ONLY_OUTCOME:
+            return BILLING_ONLY_OUTCOME
+        out = mapping.normalize_stage(s, mapping.PROFILE_CRM)
+        if out == mapping.OUTCOME_ASK_USER and mapping.normalize(s) in _OPEN_STAGE_GAPS:
+            return mapping.OUTCOME_OPEN
+        return out
+    return series.map(one)
+
+
+def _exclude_open(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
+    """Set aside every row that is not a closed outcome.
+
+    Open pipeline (Negotiation, Sent, billing_only) is counted in
+    report.excluded_open by raw stage: a CRM export full of Proposal Sent rows
+    would otherwise be counted as losses and tank the win rate. A stage the
+    single stage table (pricing.mapping.normalize_stage) cannot place is
+    ask_user: it is never guessed into closed_lost, never counted as open, and
+    never enters win rate. It is listed in report.ask_user with each raw stage
+    value, its deal count and its ids. Nothing is dropped silently.
     """
     if "outcome" not in df.columns:
         return df
+    raw = (df["_stage_raw"] if "_stage_raw" in df.columns
+           else df["outcome"].map(lambda v: "" if _blank_cell(v) else str(v).strip()))
     is_closed = df["outcome"].isin(_CLOSED)
-    if not is_closed.all():
+    is_ask = df["outcome"].eq(mapping.OUTCOME_ASK_USER)
+    is_open = ~is_closed & ~is_ask
+    if is_open.any():
         report.excluded_open = {
             str(k): int(v)
-            for k, v in df.loc[~is_closed, "outcome"].value_counts().items()
+            for k, v in raw[is_open].str.lower().value_counts().items()
         }
+    if is_ask.any():
+        kind = "quote_id" if "source_quote_id" in df.columns else "opportunity_id"
+        idc = "source_quote_id" if kind == "quote_id" else "opportunity_id"
+        section: dict[str, dict] = {}
+        for stage, sub in df[is_ask].groupby(raw[is_ask], sort=False):
+            ids, omitted = _cap_ids([str(i) for i in sub[idc]])
+            section[str(stage)] = {"deals": int(len(sub)), "id_kind": kind,
+                                   "ids": ids, "ids_omitted": omitted}
+        report.ask_user = section
+    if not is_closed.all():
         df = df[is_closed].reset_index(drop=True)
-    return df
+    return df.drop(columns=["_stage_raw"], errors="ignore")
+
+
+def _require_closed(df: pd.DataFrame, report: LoadReport) -> None:
+    """_require_enough, but a file whose deals are ALL ask_user names the
+    unresolved stage values instead of saying there is no closed data."""
+    unresolved = _capped(sorted(report.ask_user)) if report.ask_user else ""
+    n_ask = sum(v["deals"] for v in report.ask_user.values())
+    if len(df) == 0 and n_ask and not report.excluded_open:
+        raise SchemaError(
+            f"No deal could be placed as won or lost: {n_ask} deal(s) carry "
+            f"stage value(s) we do not recognise: {unresolved}. Nothing was "
+            "guessed as lost. Map each stage to won or lost, or re-export "
+            "with explicit Closed Won / Closed Lost stages.")
+    try:
+        _require_enough(df)
+    except SchemaError as exc:
+        if not n_ask:
+            raise
+        raise SchemaError(
+            f"{exc} {n_ask} further deal(s) were set aside as ask_user "
+            f"(unrecognised stage value(s): {unresolved}).") from exc
 
 
 def _require_enough(df: pd.DataFrame) -> None:
@@ -484,13 +824,8 @@ def _require_enough(df: pd.DataFrame) -> None:
 # total is identical whatever the source. Silent money corruption (a comma
 # misread) is the worst failure class, so the money parser is deliberate.
 
-OUTCOME_ALIASES = {
-    "closed won": "closed_won", "closedwon": "closed_won", "won": "closed_won",
-    "w": "closed_won", "closed-won": "closed_won", "closed_won": "closed_won",
-    "closed lost": "closed_lost", "closedlost": "closed_lost",
-    "lost": "closed_lost", "l": "closed_lost", "closed-lost": "closed_lost",
-    "closed_lost": "closed_lost",
-}
+# Stage values are normalised by pricing.mapping.normalize_stage (the one
+# stage table); see _canonical_outcome.
 
 _BOOL_TRUE = {"true", "1", "yes", "y", "ja", "t", "wahr"}
 _BOOL_FALSE = {"false", "0", "no", "n", "f", "nein", "falsch"}
@@ -688,8 +1023,10 @@ def _coerce_types(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = parse_dates(df[col])
     if "outcome" in df.columns:
-        low = df["outcome"].astype(str).str.strip().str.lower()
-        df["outcome"] = low.map(OUTCOME_ALIASES).fillna(low)
+        if "_stage_raw" not in df.columns:
+            df["_stage_raw"] = df["outcome"].map(
+                lambda v: "" if _blank_cell(v) else str(v).strip())
+        df["outcome"] = _canonical_outcome(df["outcome"])
     if "competitor_present" in df.columns:
         df["competitor_present"] = (
             df["competitor_present"].astype(str).str.strip().str.lower().isin(_BOOL_TRUE)
@@ -818,7 +1155,11 @@ def _ingest_loaded(
         fx_rates, env_date = _env_fx_rates()
         fx_rates_date = fx_rates_date or env_date
 
-    df = apply_header_mapping(df, report)
+    df, cpq = _route_profile(df, report)       # cpq_line: roll lines up to deals
+    if cpq is None:
+        df = apply_header_mapping(df, report)
+    else:
+        _finish_cpq_report(report, cpq)
 
     # Drop blank / summary rows that carry no opportunity id.
     if "opportunity_id" in df.columns:
@@ -912,7 +1253,7 @@ def _ingest_loaded(
         list_acv = pd.to_numeric(df["list_acv"], errors="coerce")
         report.blank_list_acv = int((list_acv.isna() | (list_acv == 0)).sum())
     df = _exclude_open(df, report)     # non-closed pipeline rows
-    _require_enough(df)                # ≥1 row, ≥ MIN_CLOSED_DEALS closed
+    _require_closed(df, report)        # ≥1 row, ≥ MIN_CLOSED_DEALS closed
 
     df = resolve_identity(df)
     df = enrich(df, policy_threshold=policy_threshold)
