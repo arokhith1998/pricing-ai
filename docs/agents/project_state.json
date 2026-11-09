@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:29:30Z",
+  "updated": "2026-11-09T20:39:08Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1873,7 +1873,7 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-25"
       ],
@@ -1904,15 +1904,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 83,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-09T19:59:44Z",
+      "updated": "2026-11-09T20:39:08Z",
       "notes": [
         {
           "ts": "2026-11-09T19:59:40Z",
           "note": "claimed 7 path(s)"
+        },
+        {
+          "ts": "2026-11-09T20:39:08Z",
+          "note": "PR #83"
         }
       ]
     },

@@ -6,12 +6,10 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 4/4
-Updated: 2026-11-09T20:29:30Z
+Active work: 3/4
+Updated: 2026-11-09T20:39:08Z
 
 ## IN_PROGRESS
-- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
-  - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 - **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
   - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
@@ -32,6 +30,8 @@ Updated: 2026-11-09T20:29:30Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
+- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
+  - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
   - owns: requirements.txt, pricing/matching.py#schema, tests/test_matching.py
 
