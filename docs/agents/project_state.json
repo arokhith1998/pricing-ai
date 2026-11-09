@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:55:44Z",
+  "updated": "2026-11-09T21:22:36Z",
   "config": {
     "max_concurrent": 4
   },
@@ -566,7 +566,7 @@
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-9"
       ],
@@ -588,15 +588,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 85,
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-11-09T20:42:46Z",
+      "updated": "2026-11-09T21:22:28Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:40Z",
           "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:28Z",
+          "note": "PR #85"
         }
       ]
     },
@@ -1255,7 +1259,7 @@
       "id": "PK-26",
       "title": "Rename the web canonical type to CanonicalDeal",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-25"
       ],
@@ -1275,15 +1279,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 86,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:04Z",
-      "updated": "2026-11-09T20:42:32Z",
+      "updated": "2026-11-09T21:22:32Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:26Z",
           "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:32Z",
+          "note": "PR #86"
         }
       ]
     },
@@ -1894,7 +1902,7 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-25"
       ],
@@ -1926,10 +1934,15 @@
         "ci_run": null
       },
       "pr": 83,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:22:14Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-09T20:39:08Z",
+      "updated": "2026-11-09T21:22:14Z",
       "notes": [
         {
           "ts": "2026-11-09T19:59:40Z",
@@ -1938,6 +1951,10 @@
         {
           "ts": "2026-11-09T20:39:08Z",
           "note": "PR #83"
+        },
+        {
+          "ts": "2026-11-09T21:22:14Z",
+          "note": "review rejected: "
         }
       ]
     },
@@ -2167,7 +2184,7 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-25"
       ],
@@ -2200,7 +2217,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T20:54:54Z",
+      "updated": "2026-11-09T21:22:22Z",
       "notes": [
         {
           "ts": "2026-11-09T20:03:02Z",
@@ -2213,6 +2230,10 @@
         {
           "ts": "2026-11-09T20:54:54Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T21:22:22Z",
+          "note": "PR #84"
         }
       ]
     },
@@ -2807,7 +2828,7 @@
       "id": "PK-75",
       "title": "Build the design system, tokens, shared UI primitives and site chrome",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "web/src/app/globals.css",
@@ -2851,15 +2872,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 87,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-09T19:18:15Z",
+      "updated": "2026-11-09T21:22:36Z",
       "notes": [
         {
           "ts": "2026-11-09T19:18:15Z",
           "note": "claimed 16 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:36Z",
+          "note": "PR #87"
         }
       ]
     },

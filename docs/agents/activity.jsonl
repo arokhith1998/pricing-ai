@@ -275,3 +275,9 @@
 {"ts": "2026-11-09T20:50:45Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T20:54:55Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T20:55:44Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T21:22:14Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T21:22:17Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T21:22:22Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #84"}
+{"ts": "2026-11-09T21:22:28Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #85"}
+{"ts": "2026-11-09T21:22:32Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #86"}
+{"ts": "2026-11-09T21:22:37Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #87"}

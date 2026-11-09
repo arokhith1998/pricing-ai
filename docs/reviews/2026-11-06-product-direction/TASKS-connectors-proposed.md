@@ -495,3 +495,11 @@ PK-53 found that `pricing/guardrail.py` has no source awareness: a billing-sourc
 - `discount_amount` on the contract-period grain holds coupon and discount objects only (percentage or amount off). Custom-price overrides and ramp-phase gaps are not discounts: they appear as `list_amount` minus `invoiced_amount` with `discount_amount` 0, so the identity is `list_amount >= invoiced_amount + discount_amount + credit_amount`. Free months (a 100 percent coupon for N periods) map to credits, never also to `discount_amount`, matching lens spec section 2.2.
 - PK-54 gains two acceptance lines: readiness discloses billing-sourced rows by count (today they are counted nowhere on the guardrail path); the refusal by `source_system` does not rely on `win_rate_eligible` alone until PK-72 lands alias handling (unknown aliases such as `stripe_billing` currently read as csv).
 - The answer key carries the committed figure for metered accounts so PK-54 and PK-55 have a commit value to recover.
+
+## Lead decisions from the PR 83 review, 2026-11-09
+
+- In PK-46 only `POST /crm/analyze` is HubSpot-enabled. Workflow, reconcile and write-back return 422 for any source other than Salesforce until the task that owns that route for HubSpot lands (PK-48 for sync and reconcile semantics; F3 keeps write-back read-only). Reconcile for a non-Salesforce source never accepts an outcome from the request body; outcomes come only from `adapter.to_canonical` over the confirmed stage map.
+- Response contract: additive neutral keys. Every source, Salesforce included, returns `deal_id` and `source_url`; Salesforce keeps `opportunity_id` and `salesforce_url` beside them for one release. PK-26 and PK-49 read the neutral keys.
+- Adapter money safety: `_money` rejects magnitudes above 1e15 and returns None; `_whole` caps term_months to 0 to 600; list and booked share one basis or the list is dropped with a reason; `amount_mismatch` is computed on one basis.
+- Readiness for non-Salesforce sources surfaces `booked_source_counts`, an `amount_mismatch` count and the `ask_user` by-stage counts; the thin-data 422 on that path includes the ask_user and list_source counts (counts only).
+- Follow-up for a guardrail task: `_currency_guard` runs over closed and open rows only, so unconfirmed-stage deals in another currency do not block a book.
