@@ -509,16 +509,9 @@ def test_synthetic_book_covers_five_of_seven_opportunity_types(analysis):
     assert {"defended", "excess", "offpolicy", "qe", "od"} <= prefixes
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="PK-74, pricing/copilot.py:530: _opp_investigate sums the "
-           "'discount_amount' column but the real top_leak_deals frame "
-           "(metrics.top_leak_deals, via diagnostic.analyze) carries "
-           "'excess_discount_dollars', so the investigate opportunity never "
-           "fires on a real book. Existing unit tests pass only because their "
-           "fixture invents a discount_amount column. This tripwire flips to a "
-           "failure when PK-74 lands: remove the marker then.")
 def test_synthetic_book_fires_the_investigate_opportunity(analysis):
+    """Retired tripwire: PK-74 (copilot.py now reads excess_discount_dollars)
+    made the investigate opportunity fire on a real book."""
     prefixes = {o.id.split("-")[0] for o in copilot.opportunities(analysis)}
     assert "invest" in prefixes
 
