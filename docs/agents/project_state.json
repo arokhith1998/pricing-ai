@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:17:43Z",
+  "updated": "2026-11-09T19:18:15Z",
   "config": {
     "max_concurrent": 4
   },
@@ -249,7 +249,7 @@
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-5"
       ],
@@ -282,7 +282,7 @@
       },
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-11-09T19:04:43Z",
+      "updated": "2026-11-09T19:18:11Z",
       "notes": [
         {
           "ts": "2026-11-09T18:37:54Z",
@@ -295,6 +295,10 @@
         {
           "ts": "2026-11-09T19:04:43Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:18:11Z",
+          "note": "PR #77"
         }
       ]
     },
@@ -2636,7 +2640,7 @@
       "id": "PK-75",
       "title": "Build the design system, tokens, shared UI primitives and site chrome",
       "agent": "web-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [],
       "owns": [
         "web/src/app/globals.css",
@@ -2656,8 +2660,8 @@
         "web/test/chrome.test.tsx",
         "web/test/page-metadata.test.ts"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/web-engineer/PK-75",
+      "worktree": ".claude/worktrees/PK-75",
       "acceptance": [
         "common gates G1, G3, G4, G6, G9, G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
         "a baseline is in the PR description before any change: Lighthouse mobile and desktop for /, /pricing, /calculator, /sample, /trust, /login, and a 375px screenshot of every public route",
@@ -2684,8 +2688,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-09T19:08:27Z",
-      "notes": []
+      "updated": "2026-11-09T19:18:15Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:18:15Z",
+          "note": "claimed 16 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-76",

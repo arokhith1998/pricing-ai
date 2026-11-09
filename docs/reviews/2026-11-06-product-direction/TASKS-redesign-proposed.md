@@ -236,3 +236,7 @@ D-R6 repository fact (2026-11-09, `gh repo list arokhith1998 --visibility public
 ### Board check after entry
 
 `python tools/agentctl.py check`: `FAIL`, `5 tasks in active work, cap is 2`. Known and not caused by this entry: PK-24 and PK-31 in progress, PK-27, PK-29 and PK-6 in `REWORK_REQUIRED`, each in its own worktree (see the board commits of 2026-11-09). No collision and no unmet dependency on live work was reported. PK-75 is READY-eligible (no dependencies) but cannot be assigned until active work is back under the cap.
+
+## Lead note, 2026-11-09: upload callout
+
+PK-6 could not reach `web/src/components/UploadPrivacyCallout.tsx` (outside its claim). PK-81 (app screens, which includes /upload) adds the sentence "Deal rows from CSV uploads are never sent to the LLM; documents uploaded for Q&A are sent in chunks, so do not upload deal exports as documents" to that callout, word for word as on the privacy page.
