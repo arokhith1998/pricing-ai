@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:34:52Z",
+  "updated": "2026-11-09T18:37:54Z",
   "config": {
     "max_concurrent": 2
   },
@@ -249,7 +249,7 @@
       "id": "PK-6",
       "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
       "agent": "web-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-5"
       ],
@@ -261,8 +261,8 @@
         "gtm/security-one-pager.md",
         "docs/ops/incident-response.md"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/web-engineer/PK-6",
+      "worktree": ".claude/worktrees/PK-6",
       "acceptance": [
         "no customer-facing page names OpenAI as the LLM subprocessor",
         "subprocessor entry carries Anthropic's real DPA URL and is dated",
@@ -277,8 +277,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-08-29T20:02:03Z",
-      "updated": "2026-09-11T23:40:35Z",
-      "notes": []
+      "updated": "2026-11-09T18:37:54Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:37:54Z",
+          "note": "claimed 6 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-7",

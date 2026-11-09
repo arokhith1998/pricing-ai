@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/2
-Updated: 2026-11-09T18:34:52Z
+Active work: 2/2
+Updated: 2026-11-09T18:37:54Z
 
 ## IN_PROGRESS
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
   - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
+- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -34,8 +36,6 @@ Updated: 2026-11-09T18:34:52Z
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
-- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, deps PK-5)
-  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 
