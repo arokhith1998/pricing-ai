@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:47:56Z",
+  "updated": "2026-11-09T18:51:00Z",
   "config": {
     "max_concurrent": 2
   },
@@ -1176,7 +1176,7 @@
       "id": "PK-27",
       "title": "Add source profiles and export presets to the mapper",
       "agent": "ai-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-23"
       ],
@@ -1209,7 +1209,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T18:41:55Z",
+      "updated": "2026-11-09T18:51:00Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1222,6 +1222,10 @@
         {
           "ts": "2026-11-09T18:41:55Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T18:51:00Z",
+          "note": "PR #74"
         }
       ]
     },
