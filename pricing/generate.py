@@ -443,8 +443,8 @@ def _blank(x) -> bool:
     if isinstance(x, str):
         return x.strip().lower() in ("", "nan", "none", "null", "na")
     try:
-        return bool(math.isnan(x))
-    except TypeError:
+        return bool(pd.isna(x))   # NaN, None, pd.NA, NaT
+    except (TypeError, ValueError):
         return False
 
 
@@ -456,15 +456,17 @@ def _r6(x: float) -> float:
     return round(x, 6)
 
 
-def contract_expected_levers(
+def _contract_expected_levers(
     row: dict, *, floor_frac: float = CONTRACT_FLOOR_FRAC,
     commit_share_floor: float = CONTRACT_COMMIT_SHARE_FLOOR,
     ramp_columns_present: bool = True,
 ) -> dict[str, dict]:
     """The reference answer for one deal: spec section 3, written out directly.
 
-    This is the oracle behind the known-answer key. It is NOT the lens (that is
-    PK-32, pricing/contract_structure.py); it is an independent, scalar
+    FIXTURE ORACLE ONLY. This is the oracle behind the known-answer key. It is
+    NOT the lens (that is PK-32, pricing/contract_structure.py) and the lens
+    must never import it or pricing.generate: a lens that borrowed its own
+    answer key would test nothing. It is an independent, scalar
     transcription of the spec formulas so the key is derived from the planted
     inputs rather than from design intent. Returns, per lever, a dict with
     `status`, `reason` and the lever's output fields (None where the spec says
@@ -540,10 +542,12 @@ def contract_expected_levers(
     out: dict[str, dict] = {}
 
     # --- lever 1: unit rate ---------------------------------------------------
-    if cc is not None:
-        out["unit_rate"] = fail("unit_rate", *cc)
-    elif rc is not None:
-        out["unit_rate"] = fail("unit_rate", *rc)
+    # list_unit_rate_used and its basis are populated whenever the rate is
+    # supplied or derivable, regardless of status; basis is never blank.
+    if cc is not None or rc is not None:
+        d = fail("unit_rate", *(cc or rc))
+        d.update(list_unit_rate_used=list_used, list_unit_rate_basis=basis)
+        out["unit_rate"] = d
     else:
         d = blank_out("unit_rate")
         d.update(committed_usage_acv=cu, effective_committed_unit_rate=eff,
@@ -704,7 +708,7 @@ def known_answer_key(deals: pd.DataFrame, case_ids: dict[str, str] | None = None
     case_ids = case_ids or {}
     rows = []
     for rec in deals.to_dict("records"):
-        res = contract_expected_levers(rec, ramp_columns_present=ramp_columns_present)
+        res = _contract_expected_levers(rec, ramp_columns_present=ramp_columns_present)
         won = str(rec["outcome"]) == Outcome.WON.value
         for lever in LEVERS:
             r = res[lever]
@@ -947,7 +951,7 @@ def generate_contract_fixture(n: int = 600, seed: int = 7) -> tuple[pd.DataFrame
         {"flags":   {flag name: sorted won opportunity_id list},
          "reasons": {reason code: sorted won opportunity_id list},
          "lost_decoys": sorted opportunity_id list}
-    and is derived by running every deal through contract_expected_levers. The
+    and is derived by running every deal through _contract_expected_levers. The
     flag sets are then checked against the designed sets, so a deal that drifts
     onto a boundary fails loudly here instead of landing as noise in the key.
     """
@@ -998,7 +1002,7 @@ def generate_contract_fixture(n: int = 600, seed: int = 7) -> tuple[pd.DataFrame
     for rec in deals.to_dict("records"):
         if rec["outcome"] != Outcome.WON.value:
             continue
-        res = contract_expected_levers(rec)
+        res = _contract_expected_levers(rec)
         for f, (lever, field) in CONTRACT_FLAGS.items():
             if res[lever][field] is True:
                 flags[f].append(rec["opportunity_id"])
@@ -1032,6 +1036,10 @@ def generate_contract_fixture(n: int = 600, seed: int = 7) -> tuple[pd.DataFrame
 
 def write_contract_fixtures(out_dir: Path) -> tuple[Path, Path]:
     """Write the known-answer key and the case inputs to `out_dir`.
+
+    The 23 KA inputs alone are below pricing.ingest.MIN_CLOSED_DEALS (30), so
+    ingest raises SchemaError on them; concatenate them with the planted
+    population (generate_contract_fixture) before ingesting.
 
     known_answers.csv is the long-form key (KEY_COLUMNS); known_answer_deals.csv
     is the matching hand-built input rows, loadable through pricing.ingest.

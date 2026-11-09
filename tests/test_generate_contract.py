@@ -17,12 +17,13 @@ import hashlib
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from pricing import generate as gen
 from pricing.generate import (
-    CONTRACT_COLUMNS, KEY_COLUMNS, KNOWN_ANSWER_CASES, contract_expected_levers,
+    CONTRACT_COLUMNS, KEY_COLUMNS, KNOWN_ANSWER_CASES, _contract_expected_levers,
     generate, generate_contract_fixture, generate_known_answer_cases,
     write_contract_fixtures,
 )
@@ -76,9 +77,19 @@ def _git(*args: str) -> subprocess.CompletedProcess:
 def test_synthetic_deals_csv_matches_origin_main():
     rev = _git("rev-parse", "--verify", "-q", "origin/main")
     if rev.returncode != 0:
-        pytest.skip("origin/main is not available in this checkout")
+        pytest.skip("origin/main is not resolvable (shallow CI checkout); "
+                    "test_synthetic_deals_csv_hash_is_pinned covers CI")
     diff = _git("diff", "--quiet", "origin/main", "--", "data/synthetic/deals.csv")
     assert diff.returncode == 0, "data/synthetic/deals.csv differs from origin/main"
+
+
+DEALS_CSV_SHA256 = "6f2307438f8a29c96b4624c98d181bdaba8b88cdbcda317aef26abb0c98533f7"
+
+
+def test_synthetic_deals_csv_hash_is_pinned():
+    """Never skips: the committed dataset's bytes (LF, per .gitattributes)."""
+    raw = (ROOT / "data" / "synthetic" / "deals.csv").read_bytes()
+    assert hashlib.sha256(raw.replace(CRLF.encode(), bytes([10]))).hexdigest() == DEALS_CSV_SHA256
 
 
 # --- the hand-built KA cases ------------------------------------------------------
@@ -178,19 +189,27 @@ SPEC_OUTPUTS = [
     ("KA-05", "commit_share", "scored", "", dict(commit_share_of_booked="0.375000", low_commit_share="true", uncommitted_booked_acv="50000.00")),
     ("KA-05", "overage_fence", "scored", "", dict(overage_premium="0.600000", overage_fence_breach="false")),
     # zero quantity: levers 1 and 3 insufficient, lever 2 still scored
-    ("KA-06", "unit_rate", "insufficient_data", "quantity_missing_or_zero", dict(effective_committed_unit_rate="")),
+    ("KA-06", "unit_rate", "insufficient_data", "quantity_missing_or_zero", dict(effective_committed_unit_rate="", list_unit_rate_basis="unavailable", list_unit_rate_used="")),
     ("KA-06", "commit_share", "scored", "", dict(commit_share_of_booked="1.000000", low_commit_share="false")),
     ("KA-06", "overage_fence", "insufficient_data", "quantity_missing_or_zero", {}),
     # hybrid: committed_acv includes the platform fee
     ("KA-07", "unit_rate", "scored", "", dict(committed_usage_acv="50000.00", effective_committed_unit_rate="0.500000", unit_rate_realization="0.625000", unit_rate_below_floor="true", unit_rate_floor="0.680000", unit_rate_gap_to_floor_acv="18000.00")),
     ("KA-07", "commit_share", "scored", "", dict(commit_share_of_booked="0.833333", low_commit_share="false")),
     ("KA-07", "overage_fence", "scored", "", dict(overage_premium="-0.200000", overage_fence_breach="true", overage_below_list_unit_rate="true")),
-    ("KA-08", "unit_rate", "insufficient_data", "platform_fee_missing_for_hybrid", {}),
+    ("KA-08", "unit_rate", "insufficient_data", "platform_fee_missing_for_hybrid", dict(list_unit_rate_basis="supplied", list_unit_rate_used="0.800000", effective_committed_unit_rate="")),
     ("KA-08", "commit_share", "scored", "", dict(commit_share_of_booked="0.833333")),
     ("KA-08", "overage_fence", "insufficient_data", "platform_fee_missing_for_hybrid", {}),
-    ("KA-09", "unit_rate", "not_provided", "value_metric_seats", {}),
+    ("KA-09", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
     ("KA-09", "commit_share", "not_provided", "value_metric_seats", {}),
     ("KA-09", "overage_fence", "not_provided", "value_metric_seats", {}),
+    ("KA-10", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-11", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-12", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-13", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-14", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-24", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-25", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
+    ("KA-26", "unit_rate", "not_provided", "value_metric_seats", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
     ("KA-10", "ramp", "scored", "", dict(ramp_depth_year_1="0.333333", ramp_depth_year_2="0.111111", ramp_concession_tcv="40000.00", contracted_tcv="230000.00", list_tcv="300000.00", tcv_weighted_effective_discount="0.233333", ramp_discount_increment="0.133333", ramp_concession_pct_of_booked_tcv="0.148148", ramp_hidden_discount="true", ramp_unapproved="true")),
     ("KA-10", "waterfall", "scored", "", dict(wf_ramp_concession_acv="13333.33", wf_credits_step_status="not_provided", pocket_acv="76666.67", pocket_realization="0.766667", off_invoice_below_floor="true")),
     # flat ramp must equal the flat discount
@@ -208,10 +227,10 @@ SPEC_OUTPUTS = [
     ("KA-18", "overage_fence", "scored", "", dict(overage_premium="0.181818", overage_fence_breach="false")),
     ("KA-19", "unit_rate", "scored", "", dict(list_unit_rate_basis="derived", unit_rate_realization="1.000000")),
     ("KA-19", "overage_fence", "scored", "", dict(overage_premium="-1.000000", overage_fence_breach="true")),
-    ("KA-20", "unit_rate", "not_provided", "committed_acv_blank", {}),
+    ("KA-20", "unit_rate", "not_provided", "committed_acv_blank", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
     ("KA-20", "commit_share", "not_provided", "committed_acv_blank", {}),
     ("KA-20", "overage_fence", "not_provided", "no_commitment", {}),
-    ("KA-21", "unit_rate", "insufficient_data", "commit_exceeds_booked", {}),
+    ("KA-21", "unit_rate", "insufficient_data", "commit_exceeds_booked", dict(list_unit_rate_basis="unavailable", list_unit_rate_used="")),
     ("KA-21", "commit_share", "insufficient_data", "commit_exceeds_booked", {}),
     ("KA-21", "overage_fence", "insufficient_data", "commit_exceeds_booked", {}),
     ("KA-22", "overage_fence", "scored", "", dict(overage_premium="-0.166667", overage_fence_breach="true")),
@@ -322,7 +341,7 @@ def test_lost_decoys_appear_in_no_won_list(pop):
     # they are built like fence-breach rows: per deal the fence is breached
     by_id = deals.set_index("opportunity_id")
     for i in key["lost_decoys"]:
-        res = contract_expected_levers(by_id.loc[i].to_dict() | {"opportunity_id": i})
+        res = _contract_expected_levers(by_id.loc[i].to_dict() | {"opportunity_id": i})
         assert res["overage_fence"]["overage_fence_breach"] is True
 
 
@@ -338,7 +357,7 @@ def test_planted_deals_sit_two_points_clear_of_every_other_threshold(pop):
         ("pocket_realization", "waterfall"): [(0.83, 0.87)],
     }
     for rec in deals.to_dict("records"):
-        res = contract_expected_levers(rec)
+        res = _contract_expected_levers(rec)
         for (field, lever), spans in bands.items():
             v = res[lever][field]
             if v is None:
@@ -354,7 +373,7 @@ def test_waterfall_consistency_on_ramp_only_deals(pop):
     deals, _ = pop
     n = 0
     for rec in deals.to_dict("records"):
-        res = contract_expected_levers(rec)
+        res = _contract_expected_levers(rec)
         if res["ramp"]["status"] == "scored" and pd.isna(rec["credits_tcv"]):
             n += 1
             wf = res["waterfall"]
@@ -461,3 +480,27 @@ def test_no_margin_label_and_no_cost_input_in_the_planted_stream():
     assert "margin" not in " ".join(KEY_COLUMNS).lower()
     assert not any("cogs" in c or "cost" in c for c in KEY_COLUMNS)
 
+
+
+def test_ka_alone_is_below_the_closed_deal_minimum(ka):
+    from pricing.ingest import MIN_CLOSED_DEALS, SchemaError
+    deals, _ = ka
+    assert len(deals) < MIN_CLOSED_DEALS
+    with pytest.raises(SchemaError):
+        ingest_frame_verbose(deals, source="KA alone")
+
+
+def test_blank_handles_pandas_na_and_nullable_int():
+    for v in (None, np.nan, pd.NA, pd.NaT, "", " NaN "):
+        assert gen._blank(v), repr(v)
+    for v in (0, 0.0, "x", 12):
+        assert not gen._blank(v), repr(v)
+    # the Int64 probe: a nullable term_months NA must read as blank end to end
+    frame, _ = generate_known_answer_cases()
+    assert frame["term_months"].dtype == "Int64"
+    row = frame.set_index("opportunity_id").loc["KA-26"].to_dict()
+    assert pd.isna(frame.set_index("opportunity_id").loc["KA-26", "term_months"])
+    row["term_months"] = pd.NA   # the nullable-Int64 scalar itself
+    res = _contract_expected_levers(row | {"opportunity_id": "KA-26"})
+    assert res["waterfall"]["reason"] == "term_months_missing"
+    assert res["ramp"]["reason"] == "no_ramp_recorded"
