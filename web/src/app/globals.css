@@ -149,10 +149,6 @@ body {
 .pk-card-3d {
   transition: border-color 120ms ease-out;
 }
-.pk-card-3d:hover {
-  transform: none;
-  box-shadow: none;
-}
 
 /* Static coral emphasis for the 'pricing upside' KPI (formerly a 3.6s pulse). */
 .pk-upside-glow,
@@ -331,7 +327,8 @@ body {
   }
 
   /* Horizontal scroll with edge fades, for DataTable. The cover color is the
-     surface the table sits on (default card). Fades are pure CSS. */
+     surface the table sits on (default card) and is also the final background
+     layer, so the wrapper keeps its own fill. Fades are pure CSS. */
   .pk-scroll-x {
     --pk-scroll-cover: var(--color-surface);
     overflow-x: auto;
@@ -339,7 +336,8 @@ body {
       linear-gradient(to right, var(--pk-scroll-cover) 30%, transparent) left center / 2.5rem 100% no-repeat local,
       linear-gradient(to left, var(--pk-scroll-cover) 30%, transparent) right center / 2.5rem 100% no-repeat local,
       radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.45), transparent) left center / 0.875rem 100% no-repeat scroll,
-      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.45), transparent) right center / 0.875rem 100% no-repeat scroll;
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.45), transparent) right center / 0.875rem 100% no-repeat scroll,
+      var(--pk-scroll-cover);
   }
 
   /* One static spotlight behind the page top (AuroraBackground). No motion,

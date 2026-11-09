@@ -17,6 +17,7 @@ import {
   GLOBAL_DISCLOSURE,
   PRIMARY_NAV,
   isCurrent,
+  isCustomerLoginCurrent,
   showsScrollProgress,
 } from "@/lib/site-nav";
 
@@ -54,7 +55,8 @@ describe("Nav", () => {
     expect(cta.className).toContain("bg-teal");
     expect(cta.className).toContain("text-bg");
     const login = [...c.querySelectorAll("a")].find((a) => a.textContent === "Customer login")!;
-    expect(login.getAttribute("href")).toBe("/login");
+    // Points at /crm: the proxy sends visitors without a session to /login?next=/crm.
+    expect(login.getAttribute("href")).toBe("/crm");
     expect(login.className).not.toContain("bg-teal");
   });
 
@@ -79,17 +81,25 @@ describe("Nav", () => {
     ["/calculator", ["/calculator"]],
     ["/pricing", ["/pricing"]],
     ["/trust", ["/trust"]],
-    ["/login", ["/login"]],
+    ["/login", ["/crm"]],
+    ["/crm", ["/crm"]],
     ["/contact", ["/contact"]],
     ["/blog", []],
     ["/blog/some-post", []],
     ["/methodology", []],
-    ["/crm", []],
   ])("aria-current on %s", (path, expected) => {
     const c = nav(path);
     // Each link renders in both the desktop bar and the mobile sheet.
     const found = new Set(currents(c));
     expect([...found].sort()).toEqual([...expected].sort());
+  });
+
+  it("Customer login is current on both /crm and /login, and not on look-alikes", () => {
+    expect(isCustomerLoginCurrent("/crm")).toBe(true);
+    expect(isCustomerLoginCurrent("/login")).toBe(true);
+    expect(isCustomerLoginCurrent("/crmx")).toBe(false);
+    expect(isCustomerLoginCurrent("/loginx")).toBe(false);
+    expect(isCustomerLoginCurrent("/pricing")).toBe(false);
   });
 
   it("never marks the Product hash link as the current page", () => {
@@ -132,19 +142,30 @@ describe("Footer", () => {
   it("shows the one global disclosure on public routes", () => {
     mockPath = "/pricing";
     const { container } = render(<Footer />);
-    expect(container.textContent).toContain(
-      "Every figure on this site comes from a synthetic 2,000-deal sample, not customer data.",
-    );
-    expect(GLOBAL_DISCLOSURE).toBe(
-      "Every figure on this site comes from a synthetic 2,000-deal sample, not customer data.",
-    );
+    const LINE =
+      "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data.";
+    expect(container.textContent).toContain(LINE);
+    expect(GLOBAL_DISCLOSURE).toBe(LINE);
     expect((container.textContent!.match(/synthetic 2,000-deal sample/g) ?? []).length).toBe(1);
   });
+
+  it("the hide list is exactly /crm, /upload and /competitor-watch", () => {
+    expect([...APP_ROUTES].sort()).toEqual(["/competitor-watch", "/crm", "/upload"]);
+  });
+
+  it.each(["/diagnostic", "/guidance", "/", "/calculator", "/blog", "/login"])(
+    "shows the disclosure on %s",
+    (route) => {
+      mockPath = route;
+      const { container } = render(<Footer />);
+      expect(container.textContent).toContain("None is customer data.");
+    },
+  );
 
   it.each(APP_ROUTES)("hides the disclosure on app route %s", (route) => {
     mockPath = route;
     const { container } = render(<Footer />);
-    expect(container.textContent).not.toContain("not customer data");
+    expect(container.textContent).not.toContain("None is customer data");
   });
 });
 

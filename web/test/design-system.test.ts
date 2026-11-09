@@ -213,6 +213,22 @@ describe("ui primitives render", () => {
     expect(out).toContain("text-right");
     expect(out).toContain("68%");
     expect(out).toContain("pk-scroll-x");
+    expect(out).toContain("[--pk-scroll-cover:var(--color-surface)]");
+  });
+
+  it("DataTable sets the scroll cover to the surface it sits on", () => {
+    const base = { caption: "c", columns: [{ key: "a", header: "A" }], rows: [{ a: "1" }] };
+    expect(html(DataTable<{ a: string }>, { ...base, surface: "inset" })).toContain(
+      "[--pk-scroll-cover:var(--color-surface-2)]",
+    );
+    expect(html(DataTable<{ a: string }>, { ...base, surface: "canvas" })).toContain(
+      "[--pk-scroll-cover:var(--color-bg)]",
+    );
+  });
+
+  it(".pk-scroll-x keeps its own fill: the cover is the last background layer", () => {
+    const rule = css.match(/\.pk-scroll-x\s*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/,\s*var\(--pk-scroll-cover\);/);
   });
 });
 
@@ -224,7 +240,7 @@ describe("design-system hygiene", () => {
     for (const f of [...files, css]) expect(f).not.toContain("—");
   });
   it("no longer applies the tilt or the infinite glow animations", () => {
-    expect(css).not.toMatch(/\.pk-card-3d:hover\s*\{[^}]*rotate/);
+    expect(css).not.toMatch(/\.pk-card-3d:hover/);
     expect(css).not.toMatch(/pkUpsideGlow|pkHeadlineGlow|pkAurora\b/);
     expect(css).not.toMatch(/animation:[^;]*infinite/);
   });

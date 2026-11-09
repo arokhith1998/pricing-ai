@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { pageMetadata } from "@/lib/page-metadata";
+import { readFileSync } from "node:fs";
+import { pageMetadata, SOCIAL_IMAGE } from "@/lib/page-metadata";
 
 const input = {
   title: "Pricing",
@@ -47,5 +48,24 @@ describe("pageMetadata", () => {
 
   it("supports the root path", () => {
     expect(pageMetadata({ ...input, path: "/" }).alternates?.canonical).toBe("/");
+  });
+
+  it("sets openGraph.images and twitter.images to the root /opengraph-image (1200x630)", () => {
+    const m = pageMetadata(input);
+    expect(m.openGraph?.images).toEqual([SOCIAL_IMAGE]);
+    expect(m.twitter?.images).toEqual([SOCIAL_IMAGE.url]);
+    expect(SOCIAL_IMAGE).toMatchObject({ url: "/opengraph-image", width: 1200, height: 630 });
+    expect(SOCIAL_IMAGE.alt.length).toBeGreaterThan(10);
+  });
+
+  it("keeps the image alt equal to the alt exported by opengraph-image.tsx", () => {
+    const src = readFileSync("src/app/opengraph-image.tsx", "utf8");
+    const alt = src.match(/export const alt =\s*"([^"]+)"/)?.[1];
+    expect(alt).toBe(SOCIAL_IMAGE.alt);
+    expect(src).toMatch(/size = \{ width: 1200, height: 630 \}/);
+  });
+
+  it("keeps the image on noindex pages too", () => {
+    expect(pageMetadata({ ...input, noindex: true }).openGraph?.images).toEqual([SOCIAL_IMAGE]);
   });
 });

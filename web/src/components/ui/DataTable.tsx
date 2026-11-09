@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 import { cx } from "./cx";
 
+// The wrapper's own fill is the scroll cover (last background layer in
+// .pk-scroll-x), so set it to the surface the table sits on.
+const COVER = {
+  card: "[--pk-scroll-cover:var(--color-surface)]",
+  inset: "[--pk-scroll-cover:var(--color-surface-2)]",
+  canvas: "[--pk-scroll-cover:var(--color-bg)]",
+} as const;
+
 export type Column<Row> = {
   key: string;
   header: string;
@@ -18,11 +26,14 @@ export default function DataTable<Row extends Record<string, unknown>>({
   caption,
   columns,
   rows,
+  surface = "card",
   className,
 }: {
   caption: string;
   columns: ReadonlyArray<Column<Row>>;
   rows: ReadonlyArray<Row>;
+  /** The surface the table sits on: sets the scroll-fade cover and the fill. */
+  surface?: "card" | "inset" | "canvas";
   className?: string;
 }) {
   return (
@@ -30,7 +41,7 @@ export default function DataTable<Row extends Record<string, unknown>>({
       role="region"
       aria-label={caption}
       tabIndex={0}
-      className={cx("pk-scroll-x pk-surface-card", className)}
+      className={cx("pk-scroll-x pk-surface-card", COVER[surface], className)}
     >
       <table className="w-full min-w-max border-collapse text-left text-small">
         <caption className="sr-only">{caption}</caption>
@@ -61,7 +72,7 @@ export default function DataTable<Row extends Record<string, unknown>>({
                     <th
                       key={c.key}
                       scope="row"
-                      className={cx(base, "sticky left-0 bg-surface text-left font-medium text-fg")}
+                      className={cx(base, "sticky left-0 bg-[var(--pk-scroll-cover)] text-left font-medium text-fg")}
                     >
                       {content}
                     </th>

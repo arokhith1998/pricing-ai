@@ -11,7 +11,11 @@ export const PRIMARY_NAV: readonly NavLink[] = [
   { href: "/trust", label: "Trust" },
 ];
 
-export const CUSTOMER_LOGIN: NavLink = { href: "/login", label: "Customer login" };
+// Links to /crm on purpose: the proxy sends an unauthenticated visitor to
+// /login?next=/crm, and a signed-in customer lands in the workspace. The
+// /login route itself is matched for aria-current separately (CUSTOMER_LOGIN_ALSO).
+export const CUSTOMER_LOGIN: NavLink = { href: "/crm", label: "Customer login" };
+export const CUSTOMER_LOGIN_ALSO = "/login";
 export const PRIMARY_CTA: NavLink = { href: "/contact", label: "Talk to us" };
 
 export type FooterColumn = { title: string; links: readonly NavLink[] };
@@ -47,7 +51,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Customers",
     links: [
-      { href: "/login", label: "Login" },
+      { href: "/crm", label: "Login" },
       { href: "/crm", label: "Salesforce workspace" },
       { href: "/upload", label: "Run it on your data" },
     ],
@@ -55,20 +59,15 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
 ];
 
 export const GLOBAL_DISCLOSURE =
-  "Every figure on this site comes from a synthetic 2,000-deal sample, not customer data.";
+  "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data.";
 
 /**
- * Routes where the global disclosure is hidden. These screens can show a
- * customer's own data (uploads, the Salesforce workspace), so the sentence
- * "not customer data" would be false there.
+ * Routes where the global disclosure is hidden: they can show a customer's own
+ * data (uploads, the Salesforce workspace) or public competitor pages, so
+ * "None is customer data" would not hold. /diagnostic and /guidance show the
+ * synthetic sample and carry the line. (Lead decision, PR 87 review.)
  */
-export const APP_ROUTES: readonly string[] = [
-  "/crm",
-  "/upload",
-  "/diagnostic",
-  "/guidance",
-  "/competitor-watch",
-];
+export const APP_ROUTES: readonly string[] = ["/crm", "/upload", "/competitor-watch"];
 
 /** Routes with no decorative chrome at all (static legal pages). */
 export const NO_CHROME_ROUTES: readonly string[] = ["/privacy", "/terms", "/licenses", "/subprocessors"];
@@ -91,4 +90,9 @@ export function isCurrent(pathname: string, href: string): boolean {
   if (href.includes("#")) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** aria-current for the Customer login link: it points at /crm but /login counts too. */
+export function isCustomerLoginCurrent(pathname: string): boolean {
+  return isCurrent(pathname, CUSTOMER_LOGIN.href) || isCurrent(pathname, CUSTOMER_LOGIN_ALSO);
 }

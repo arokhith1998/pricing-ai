@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement } from "react";
 import { cx } from "./cx";
 
 export type StatusTone = "leak" | "ok" | "flag" | "info";
@@ -59,7 +59,7 @@ export default function StatusPill({
 }: {
   tone: StatusTone;
   label: string;
-  icon: ReactNode;
+  icon: ReactElement;
   className?: string;
 }) {
   // Types already require both. This guards untyped callers: a pill that

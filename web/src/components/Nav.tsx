@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { buttonClasses } from "@/components/ui/Button";
-import { CUSTOMER_LOGIN, PRIMARY_CTA, PRIMARY_NAV, isCurrent } from "@/lib/site-nav";
+import { CUSTOMER_LOGIN, PRIMARY_CTA, PRIMARY_NAV, isCurrent, isCustomerLoginCurrent } from "@/lib/site-nav";
 
 function KeelMark() {
   return (
@@ -41,7 +41,7 @@ function PrimaryLinks({ pathname, onNavigate, mobile }: LinkProps) {
 }
 
 function AccountLinks({ pathname, onNavigate, mobile }: LinkProps) {
-  const login = isCurrent(pathname, CUSTOMER_LOGIN.href);
+  const login = isCustomerLoginCurrent(pathname);
   const cta = isCurrent(pathname, PRIMARY_CTA.href);
   return (
     <>
