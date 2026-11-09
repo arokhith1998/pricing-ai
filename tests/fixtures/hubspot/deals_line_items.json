@@ -1,0 +1,148 @@
+[
+  {
+    "id": "501",
+    "properties": {
+      "dealname": "Halcyon Freight renewal and expansion",
+      "amount": "98000",
+      "dealstage": "9100002",
+      "pipeline": "p_ent",
+      "closedate": "2026-03-31T00:00:00Z",
+      "createdate": "2025-11-04T15:22:10.000Z",
+      "hubspot_owner_id": "77001",
+      "deal_currency_code": "USD",
+      "contract_term_months": "12",
+      "competitor_in_play": "true"
+    },
+    "associations": {"companies": {"results": [{"id": "9001", "type": "deal_to_company"}]}},
+    "company": {"id": "9001", "properties": {"name": "Halcyon Freight Systems", "segment": "Enterprise", "industry": "Logistics"}},
+    "line_items": [
+      {"id": "li-5011", "properties": {"price": "1000", "quantity": "100", "amount": "80000", "hs_discount_percentage": "20"}},
+      {"id": "li-5012", "properties": {"price": "20000", "quantity": "1", "amount": "18000", "discount": "2000"}}
+    ]
+  },
+  {
+    "id": "502",
+    "properties": {
+      "dealname": "Brightwater platform",
+      "amount": "85000",
+      "dealstage": "9100003",
+      "pipeline": "p_ent",
+      "closedate": "2026-02-12T00:00:00Z",
+      "createdate": "2025-10-01T09:00:00.000Z",
+      "hubspot_owner_id": "77002",
+      "deal_currency_code": "EUR",
+      "contract_term_months": "24"
+    },
+    "associations": {"companies": {"results": [{"id": "9002", "type": "deal_to_company"}]}},
+    "company": {"id": "9002", "properties": {"name": "Brightwater Analytics", "segment": "MidMarket", "industry": "Data services"}},
+    "line_items": [
+      {"id": "li-5021", "properties": {"price": "500", "quantity": "200", "amount": "85000"}}
+    ]
+  },
+  {
+    "id": "503",
+    "properties": {
+      "dealname": "Orchard Lane expansion",
+      "amount": "18000",
+      "dealstage": "9100001",
+      "pipeline": "p_ent",
+      "closedate": "2025-01-15T00:00:00Z",
+      "createdate": "2024-11-20T09:00:00.000Z",
+      "hubspot_owner_id": "77001",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9003", "type": "deal_to_company"}]}},
+    "company": {"id": "9003", "properties": {"name": "Orchard Lane Logistics", "segment": "SMB", "industry": "Logistics"}},
+    "line_items": [
+      {"id": "li-5031", "properties": {"price": "250", "quantity": "80", "amount": "18000"}}
+    ]
+  },
+  {
+    "id": "504",
+    "properties": {
+      "dealname": "Tidewell Robotics",
+      "amount": "16000",
+      "dealstage": "9100004",
+      "pipeline": "p_ent",
+      "closedate": "2026-01-09T00:00:00Z",
+      "createdate": "2025-09-09T09:00:00.000Z",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9004", "type": "deal_to_company"}]}},
+    "company": {"id": "9004", "properties": {"name": "Tidewell Robotics", "segment": "MidMarket", "industry": "Manufacturing"}},
+    "line_items": [
+      {"id": "li-5041", "properties": {"price": "400", "quantity": "50", "amount": "16000"}}
+    ]
+  },
+  {
+    "id": "505",
+    "properties": {
+      "dealname": "Fernhill Dental Group",
+      "amount": "30000",
+      "dealstage": "9100099",
+      "pipeline": "p_ent",
+      "closedate": "2026-04-30T00:00:00Z",
+      "createdate": "2026-01-05T09:00:00.000Z",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9005", "type": "deal_to_company"}]}},
+    "company": {"id": "9005", "properties": {"name": "Fernhill Dental Group", "segment": "SMB", "industry": "Healthcare"}}
+  },
+  {
+    "id": "601",
+    "properties": {
+      "dealname": "Quillon Telecom usage commit",
+      "amount": "45099.99",
+      "dealstage": "7000002",
+      "pipeline": "p_plat",
+      "closedate": "2026-05-29T00:00:00Z",
+      "createdate": "2026-02-02T09:00:00.000Z",
+      "hubspot_owner_id": "77003",
+      "deal_currency_code": "CAD",
+      "contract_term_months": "12"
+    },
+    "associations": {"companies": {"results": [{"id": "9101", "type": "deal_to_company"}]}},
+    "company": {"id": "9101", "properties": {"name": "Quillon Telecom", "segment": "Enterprise", "industry": "Telecom"}},
+    "line_items": [
+      {"id": "li-6011", "properties": {"price": "0.12", "quantity": "500000", "amount": "45000.00"}},
+      {"id": "li-6012", "properties": {"price": "33.33", "quantity": "3", "amount": "99.99"}}
+    ]
+  },
+  {
+    "id": "602",
+    "properties": {
+      "dealname": "Marrow and Vane pilot",
+      "amount": "9000",
+      "dealstage": "7000003",
+      "pipeline": "p_plat",
+      "closedate": "2026-06-10T00:00:00Z",
+      "createdate": "2026-03-01T09:00:00.000Z",
+      "hubspot_owner_id": "77003",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9102", "type": "deal_to_company"}]}},
+    "company": {"id": "9102", "properties": {"name": "Marrow and Vane Studios", "segment": "SMB", "industry": "Media"}},
+    "line_items": [
+      {"id": "li-6021", "properties": {"price": "1200", "quantity": "10", "amount": "9000"}}
+    ]
+  },
+  {
+    "id": "603",
+    "properties": {
+      "dealname": "Sablewood Energy platform",
+      "amount": "66000",
+      "dealstage": "7000001",
+      "pipeline": "p_plat",
+      "closedate": "2026-12-15T00:00:00Z",
+      "createdate": "2026-08-01T09:00:00.000Z",
+      "hubspot_owner_id": "77002",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9103", "type": "deal_to_company"}]}},
+    "company": {"id": "9103", "properties": {"name": "Sablewood Energy", "segment": "Enterprise", "industry": "Energy"}},
+    "line_items": [
+      {"id": "li-6031", "properties": {"price": "1000", "quantity": "70", "amount": "63000"}},
+      {"id": "li-6032", "properties": {"price": "100", "quantity": "10"}}
+    ]
+  }
+]

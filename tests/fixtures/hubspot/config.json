@@ -1,0 +1,27 @@
+{
+  "portal_id": "4412345",
+  "stage_map": [
+    {"pipeline_id": "p_ent", "stage_id": "9100001", "label": "Security review", "outcome": "open", "confirmed": true},
+    {"pipeline_id": "p_ent", "stage_id": "9100002", "label": "Signed, kickoff booked", "outcome": "won", "confirmed": true},
+    {"pipeline_id": "p_ent", "stage_id": "9100003", "label": "Walked away", "outcome": "lost", "confirmed": true},
+    {"pipeline_id": "p_ent", "stage_id": "9100004", "label": "Legal redlines", "outcome": "lost", "confirmed": false},
+    {"pipeline_id": "p_plat", "stage_id": "7000001", "label": "Pilot running", "outcome": "open", "confirmed": true},
+    {"pipeline_id": "p_plat", "stage_id": "7000002", "label": "Live in production", "outcome": "won", "confirmed": true},
+    {"pipeline_id": "p_plat", "stage_id": "7000003", "label": "Churned before launch", "outcome": "lost", "confirmed": true},
+    {"pipeline_id": "p_self", "stage_id": "8000001", "label": "Trial", "outcome": "open", "confirmed": true},
+    {"pipeline_id": "p_self", "stage_id": "8000002", "label": "Paid annual", "outcome": "won", "confirmed": true},
+    {"pipeline_id": "p_self", "stage_id": "8000003", "label": "Trial lapsed", "outcome": "lost", "confirmed": true}
+  ],
+  "property_mapping": {
+    "segment": "company.segment",
+    "industry": "company.industry",
+    "term_months": "contract_term_months",
+    "competitor_present": "competitor_in_play"
+  },
+  "pipeline_labels": {
+    "p_ent": "Enterprise Direct",
+    "p_plat": "Platform Usage",
+    "p_self": "Self Serve Annual"
+  },
+  "default_value_metric": "hybrid"
+}
