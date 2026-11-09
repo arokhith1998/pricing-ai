@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:54:54Z",
+  "updated": "2026-11-09T20:55:44Z",
   "config": {
     "max_concurrent": 4
   },
@@ -630,7 +630,7 @@
       "id": "PK-14",
       "title": "Close the asserted-not-computed claims found by the PK-11 audit",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [
         "PK-11"
       ],
@@ -656,14 +656,14 @@
       },
       "pr": 81,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
         "notes": "",
-        "ts": "2026-11-09T20:24:48Z"
+        "ts": "2026-11-09T20:55:44Z"
       },
       "blocked_by": null,
       "created": "2026-09-11T23:25:00Z",
-      "updated": "2026-11-09T20:40:28Z",
+      "updated": "2026-11-09T20:55:44Z",
       "notes": [
         {
           "ts": "2026-11-09T19:35:52Z",
@@ -680,6 +680,10 @@
         {
           "ts": "2026-11-09T20:40:28Z",
           "note": "PR #81"
+        },
+        {
+          "ts": "2026-11-09T20:55:44Z",
+          "note": "review approve-with-nits"
         }
       ]
     },

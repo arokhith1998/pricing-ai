@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-09T20:54:54Z
+Updated: 2026-11-09T20:55:44Z
 
 ## IN_PROGRESS
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -22,8 +22,6 @@ Updated: 2026-11-09T20:54:54Z
   - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 
 ## REVIEW
-- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
-  - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
@@ -38,6 +36,8 @@ Updated: 2026-11-09T20:54:54Z
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 
 ## QA
+- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
+  - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
