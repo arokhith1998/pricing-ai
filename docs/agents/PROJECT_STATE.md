@@ -6,10 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 2/4
-Updated: 2026-11-09T19:34:01Z
+Active work: 3/4
+Updated: 2026-11-09T19:34:41Z
 
 ## IN_PROGRESS
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
+  - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
@@ -130,8 +132,6 @@ Updated: 2026-11-09T19:34:01Z
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
 - **PK-70** Drop the legacy salesforce_connections and salesforce_mappings tables  (data-engineer, deps PK-42,PK-41)
   - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
-- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
-  - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)

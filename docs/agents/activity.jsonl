@@ -235,3 +235,6 @@
 {"ts": "2026-11-09T19:33:22Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
 {"ts": "2026-11-09T19:33:56Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-09T19:34:01Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T19:34:28Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:34:38Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T19:34:41Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
