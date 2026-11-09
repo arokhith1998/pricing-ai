@@ -290,3 +290,5 @@
 {"ts": "2026-11-09T22:03:17Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-09T22:03:18Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #87"}
 {"ts": "2026-11-09T22:09:49Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T22:25:08Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 90dcbdd, human-approved by product owner"}
+{"ts": "2026-11-09T22:25:12Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
