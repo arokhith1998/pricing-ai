@@ -213,3 +213,9 @@
 {"ts": "2026-11-09T19:08:27Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-09T19:14:18Z", "event": "config", "task": "-", "agent": "founder", "detail": "max_concurrent 2 -> 4 (ADR-003 amendment 2026-11-09)"}
 {"ts": "2026-11-09T19:16:17Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #78"}
+{"ts": "2026-11-09T19:17:35Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:17:36Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T19:17:37Z", "event": "add", "task": "PK-86", "agent": "ai-engineer", "detail": "Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7"}
+{"ts": "2026-11-09T19:17:38Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:17:42Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T19:17:43Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

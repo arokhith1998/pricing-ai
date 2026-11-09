@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:16:17Z",
+  "updated": "2026-11-09T19:17:43Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1310,7 +1310,7 @@
       "id": "PK-29",
       "title": "Add numeric-fidelity and cost-basis label evals",
       "agent": "ai-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-23"
       ],
@@ -1342,7 +1342,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T19:02:05Z",
+      "updated": "2026-11-09T19:17:36Z",
       "notes": [
         {
           "ts": "2026-11-09T18:34:48Z",
@@ -1355,6 +1355,10 @@
         {
           "ts": "2026-11-09T19:02:05Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:17:36Z",
+          "note": "PR #76"
         }
       ]
     },
@@ -3062,6 +3066,42 @@
       "created": "2026-11-09T19:06:31Z",
       "updated": "2026-11-09T19:06:31Z",
       "notes": []
+    },
+    {
+      "id": "PK-86",
+      "title": "Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7",
+      "agent": "ai-engineer",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "requirements.txt",
+        "pricing/matching.py#schema",
+        "tests/test_matching.py"
+      ],
+      "branch": "agent/ai-engineer/PK-86",
+      "worktree": ".claude/worktrees/PK-86",
+      "acceptance": [
+        "requirements.txt pins anthropic to the range CI has proven green (>=0.77,<2.7, since run 42677339918 passed on 2.6.0 and run 42680793344 failed on 2.7.0) with a comment naming this task; CI resolves a pinned SDK and tests/test_matching.py passes",
+        "the schema handling in pricing/matching.py (or the test's expectation) is made robust to the 2.7 transform_schema output, a nullable enum rendered as anyOf enum plus null with no string branch, so the test passes with anthropic 2.7 installed locally as well; if that is not achievable in a day, the PR body states exactly what 2.7 changed and files the adaptation as a follow-up",
+        "no other test or behavior changes; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_matching.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:17:37Z",
+      "updated": "2026-11-09T19:17:43Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:17:42Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     }
   ]
 }
