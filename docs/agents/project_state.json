@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:46:00Z",
+  "updated": "2026-11-09T19:51:20Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1162,17 +1162,11 @@
       "id": "PK-25",
       "title": "Make Salesforce the first adapter behind a neutral guardrail",
       "agent": "backend-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-23"
       ],
-      "owns": [
-        "pricing/crm.py",
-        "pricing/guardrail.py",
-        "api/routers/crm.py",
-        "pricing/governance.py#exception_source",
-        "tests/test_guardrail.py"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-25",
       "worktree": ".claude/worktrees/PK-25",
       "acceptance": [
@@ -1198,7 +1192,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-09T19:38:42Z",
+      "updated": "2026-11-09T19:51:20Z",
       "notes": [
         {
           "ts": "2026-11-09T18:18:45Z",
@@ -1215,8 +1209,18 @@
         {
           "ts": "2026-11-09T19:38:42Z",
           "note": "CI run 42677170978"
+        },
+        {
+          "ts": "2026-11-09T19:51:10Z",
+          "note": "merged as 2cd5358, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "2cd5358",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T19:51:10Z"
+      }
     },
     {
       "id": "PK-26",
