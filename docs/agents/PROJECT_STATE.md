@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 4/4
-Updated: 2026-11-09T20:03:04Z
+Active work: 5/4
+Updated: 2026-11-09T20:24:48Z
 
 ## IN_PROGRESS
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
@@ -19,9 +19,11 @@ Updated: 2026-11-09T20:03:04Z
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
   - owns: requirements.txt, pricing/matching.py#schema, tests/test_matching.py
 
-## REVIEW
+## REWORK_REQUIRED
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
+
+## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
