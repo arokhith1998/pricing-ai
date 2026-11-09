@@ -465,3 +465,134 @@ def test_unpriced_lines_counted_and_opportunity_id_never_filled():
     with_opp = rollup_quote_lines(_lines(**{"Opportunity ID": ["O1", "O1", "O2"]}))
     assert with_opp.attrs["opportunity_id_present"] is True
     assert set(with_opp["opportunity_id"]) == {"O1", "O2"}
+
+
+# --- second rework: billing fingerprint false positives, items 1 to 6 --------
+
+_CRM_BASE = ["Opportunity ID", "Account Name", "Stage", "Amount", "Close Date",
+             "Segment", "Value Metric"]
+
+
+@pytest.mark.parametrize("extra", [
+    ["Customer ID", "Fiscal Period"],
+    ["Subscription Term", "Fiscal Period"],
+    ["Subscription Value", "Plan"],
+    ["Customer Number", "Billing Interval"],
+    ["Subscription ID", "Plan", "Billing Interval", "Fiscal Period"],
+])
+def test_crm_headers_with_billing_looking_columns_keep_stage(extra):
+    headers = _CRM_BASE + extra
+    res = map_headers(headers, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] == "Stage"
+    assert res["refusal"] is None
+    assert res["profile"]["profile"] == "crm_opportunity"
+    assert res["profile"]["billing_fingerprint"] is False
+
+
+def test_hubspot_style_deals_export_keeps_deal_stage():
+    h = ["Record ID", "Deal Name", "Deal Stage", "Plan", "Customer ID",
+         "Amount", "Close Date"]
+    res = map_headers(h, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] == "Deal Stage"
+    assert res["refusal"] is None
+
+
+def test_stage_or_outcome_header_is_never_blocked():
+    from pricing.mapping import _blocked_outcome_headers
+    assert _blocked_outcome_headers(["Subscription Stage", "Renewal Outcome"],
+                                    True) == []
+    assert _blocked_outcome_headers(["Subscription Status", "Status"],
+                                    True) == ["Subscription Status", "Status"]
+
+
+def test_crm_csv_with_fiscal_period_plan_customer_id_loads_every_row(tmp_path):
+    from pricing.ingest import ingest_verbose
+    n = 60
+    df = pd.DataFrame({
+        "Opportunity ID": [f"O{i}" for i in range(n)],
+        "Account Name": [f"Acct {i % 20}" for i in range(n)],
+        "Stage": ["Closed Won" if i % 3 else "Closed Lost" for i in range(n)],
+        "Created Date": ["2025-01-05"] * n,
+        "Close Date": ["2025-03-10"] * n,
+        "Segment": ["SMB", "MidMarket", "Enterprise"] * 20,
+        "Plan": ["Pro", "Team", "Enterprise"] * 20,
+        "Value Metric": ["seats"] * n,
+        "List ACV": [100000] * n,
+        "Amount": [80000 + i * 100 for i in range(n)],
+        "Fiscal Period": ["FY25 Q1"] * n,
+        "Customer ID": [f"C{i % 20}" for i in range(n)],
+    })
+    f = tmp_path / "crm.csv"
+    df.to_csv(f, index=False)
+    out, report = ingest_verbose(str(f))
+    assert len(out) == n
+    assert report.rows_kept == n
+
+
+def test_quote_export_with_only_approval_status_is_refused():
+    h = ["Quote ID", "Line ID", "Quantity", "Unit Price", "Quote Approval Status"]
+    p = profile_source(h)
+    assert p["profile"] == "cpq_line"
+    assert "quote_status" not in p["roles"] and "outcome" not in p["roles"]
+    r = outcome_refusal(h)
+    assert r is not None and "Quote Approval Status" in r["blocked_headers"]
+    res = map_headers(h, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] is None and res["refusal"] is not None
+
+
+@pytest.mark.parametrize("h", ["Payment Status", "Delivery Status", "Sync Status",
+                               "Review Status", "Quote Review Status"])
+def test_non_outcome_qualified_status_never_gets_the_outcome_role(h):
+    p = profile_source(["Quote ID", "Line ID", "Quantity", "Unit Price", h])
+    assert "outcome" not in p["roles"] and "quote_status" not in p["roles"]
+
+
+def test_all_quote_ids_quarantined_returns_full_column_set_zero_rows():
+    df = _lines(**{"Quote ID": [None, "", float("nan")]})
+    d = rollup_quote_lines(df)
+    ok = rollup_quote_lines(_lines())
+    assert len(d) == 0
+    assert list(d.columns) == list(ok.columns)
+    assert len(d.attrs["quarantined_lines"]) == 3
+    assert d.attrs["quarantined_reason"]
+
+
+def test_quantity_accepts_thousands_separators():
+    df = pd.DataFrame({"Quote ID": ["A", "A"], "Line ID": ["1", "2"],
+                       "Quantity": ["1,000", "2"], "Unit Price": ["2", "3"],
+                       "Quote Status": ["Accepted", "Accepted"]})
+    d = rollup_quote_lines(df)
+    assert d.loc[0, "booked_acv"] == 1000 * 2 + 2 * 3
+    assert d.loc[0, "unpriced_lines"] == 0
+
+
+def test_outcome_is_not_offered_to_the_llm_and_a_reply_naming_it_is_rejected(
+        monkeypatch):
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+    seen = {}
+
+    def fake(h):
+        seen["h"] = h
+        return {"outcome": "Mystery Col", "segment": "Other Col"}
+
+    monkeypatch.setattr(assist, "map_columns", fake)
+    res = map_headers(["Account Name", "Mystery Col", "Other Col"],
+                      llm_fallback=True, use_embeddings=False)
+    assert res["mapping"]["outcome"] is None
+    assert {"field": "outcome", "header": "Mystery Col"} in res["llm_rejected"]
+    assert res["mapping"]["segment"] == "Other Col"
+
+
+@pytest.mark.parametrize("value", ["paid", "open", "void", "uncollectible",
+                                   "draft", "active", "canceled", "past_due"])
+def test_billing_status_values_all_map_to_ask_user(value):
+    assert normalize_stage(value, "billing") == "ask_user"
+
+
+def test_invoice_header_set_is_refused_and_never_a_deal_outcome():
+    h = ["Invoice Number", "Customer", "Amount Due", "Status"]
+    p = profile_source(h)
+    assert p["billing_fingerprint"] is True and p["profile"] == "unknown"
+    res = map_headers(h, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] is None
+    assert res["refusal"]["blocked_headers"] == ["Status"]

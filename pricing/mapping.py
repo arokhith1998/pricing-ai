@@ -356,8 +356,12 @@ OUTCOME_VALUES = (OUTCOME_WON, OUTCOME_LOST, OUTCOME_OPEN, OUTCOME_ASK_USER)
 _NON_OUTCOME_QUALIFIERS = frozenset({
     "subscription", "invoice", "payment", "billing", "renewal", "account",
     "customer", "contract", "license", "order", "shipping", "approval",
+    "review", "delivery", "sync",
 })
 _STATUS_TOKENS = frozenset({"status", "stage", "state", "outcome"})
+# Only a bare status or state header is ambiguous. A header naming a stage or
+# an outcome is never blocked, whatever else the file contains.
+_AMBIGUOUS_STATUS_TOKENS = frozenset({"status", "state"})
 _QUOTE_ID_TAILS = frozenset({"id", "number", "no", "num", "ref", "key", "code"})
 _QUOTE_WORDS = frozenset({"quote", "proposal"})
 
@@ -388,28 +392,40 @@ def _field_of(header: str) -> Optional[str]:
     return r[0] if r else None
 
 
-# Billing fingerprint: a subscription or customer id beside an interval, plan,
-# MRR or period column. In such a file a bare Status or State header is the
-# billing state (active, canceled, paid, past_due), never a sales outcome.
+# Billing fingerprint: a subscription id column beside an interval, plan, MRR
+# or period column, or an invoice number or amount-due column. In such a file a
+# bare Status or State header is the billing state (active, canceled, paid,
+# void), never a sales outcome. It never fires when CRM cues are present (an
+# opportunity or deal id, a stage header, a close date): a CRM report with
+# "Fiscal Period", "Plan" or "Customer ID" columns is still a CRM report.
 _BILLING_PAIR_TOKENS = frozenset({"interval", "plan", "mrr", "period"})
+_ID_TAILS = frozenset({"id", "number", "no", "num"})
 
 
-def _billing_fingerprint(headers: list[str]) -> bool:
+def _billing_fingerprint(headers: list[str], roles: dict[str, str]) -> bool:
     toks = [set(_tokens(h)) for h in headers]
-    has_id = any("subscription" in t or ("customer" in t and t & {"id", "number"})
-                 for t in toks)
+    if (roles.get("opportunity_id") or roles.get("close_date")
+            or any("stage" in t for t in toks)):
+        return False
+    has_sub_id = any("subscription" in t and (t & _ID_TAILS or len(t) == 1)
+                     for t in toks)
     has_pair = any(t & _BILLING_PAIR_TOKENS for t in toks)
-    return has_id and has_pair
+    invoice = any(("invoice" in t and t & _ID_TAILS) or t == {"amount", "due"}
+                  for t in toks)
+    return (has_sub_id and has_pair) or invoice
 
 
 def _blocked_outcome_headers(headers: list[str], billing: bool) -> list[str]:
-    """Status-like headers that must never be read as an outcome: qualified
-    billing or lifecycle states ("Subscription Status") and, in a billing
-    fingerprint, any status or state header."""
+    """Bare status or state headers that must never be read as an outcome:
+    qualified billing or lifecycle states ("Subscription Status", "Quote
+    Approval Status") and, in a billing fingerprint, any bare status or state
+    header. A header naming a stage or an outcome is never blocked."""
     out = []
     for h in headers:
         t = set(_tokens(h))
-        if t & _STATUS_TOKENS and (t & _NON_OUTCOME_QUALIFIERS or billing):
+        if t & {"stage", "outcome"} or not t & _AMBIGUOUS_STATUS_TOKENS:
+            continue
+        if t & _NON_OUTCOME_QUALIFIERS or billing:
             out.append(str(h))
     return out
 
@@ -453,7 +469,8 @@ def _classify_roles(headers: list[str]) -> dict[str, str]:
         if not toks or h in used:
             continue
         n = " ".join(toks)
-        if tset & _QUOTE_WORDS and tset & {"status", "stage", "state"}:
+        if (tset & _QUOTE_WORDS and tset & {"status", "stage", "state"}
+                and not tset & _NON_OUTCOME_QUALIFIERS):
             put("quote_status", h)
         elif "unit" in tset and tset & {"price", "rate", "amount"}:
             put("unit_list" if "list" in tset else "unit_net", h)
@@ -501,13 +518,12 @@ def profile_source(headers: list[str]) -> dict:
     """
     headers = [str(h).strip() for h in headers]
     roles = _classify_roles(headers)
-    billing = _billing_fingerprint(headers)
-    if billing:
-        # Billing state is not a sales outcome, whatever the header is called.
-        blocked = set(_blocked_outcome_headers(headers, True))
-        for r in ("outcome", "quote_status"):
-            if roles.get(r) in blocked:
-                roles.pop(r)
+    billing = _billing_fingerprint(headers, roles)
+    # A blocked header never serves as quote status or outcome.
+    blocked = set(_blocked_outcome_headers(headers, billing))
+    for r in ("outcome", "quote_status"):
+        if roles.get(r) in blocked:
+            roles.pop(r)
     cpq_cues = ["quote_id", "line", "unit_net", "quantity", "quote_status"]
     unit_hdrs = {roles.get("unit_net"), roles.get("unit_list")}
     crm_amount = next((h for h in headers if h not in unit_hdrs
@@ -553,13 +569,14 @@ def outcome_refusal(headers: list[str],
     guessing one would fabricate win rates.
     """
     p = profile or profile_source(headers)
-    if p["roles"].get("outcome"):
-        return None
     # Status-like headers we deliberately did not accept as an outcome
     # ("Subscription Status"): named so the caller can see why, and so the LLM
     # layer is not asked to promote one of them.
     blocked = _blocked_outcome_headers([str(h) for h in headers],
                                        bool(p.get("billing_fingerprint")))
+    role = p["roles"].get("outcome")
+    if role and role not in blocked:
+        return None
     return {
         "refused": True,
         "blocked_headers": blocked,
@@ -601,6 +618,9 @@ _CPQ_WON = {"accepted", "signed", "won", "closed won", "closedwon", "booked"}
 _CPQ_LOST = {"closed lost", "closedlost", "lost"}
 
 
+STATUS_MAP_BILLING = "billing"
+
+
 def _is_blank(v: object) -> bool:
     return v is None or (isinstance(v, float) and v != v)
 
@@ -613,6 +633,11 @@ def normalize_stage(value: object, profile: str = PROFILE_CRM) -> str:
     ask_user, not a guess. Blank, NaN, None and unrecognised values are
     ask_user, never closed_lost."""
     if _is_blank(value):
+        return OUTCOME_ASK_USER
+    if profile == STATUS_MAP_BILLING:
+        # Invoice and subscription states (paid, open, void, uncollectible,
+        # draft, active, canceled) say nothing about a sales outcome. Every
+        # value is ask_user: "open" here is an unpaid invoice, not an open deal.
         return OUTCOME_ASK_USER
     s = normalize(str(value))
     won, lost = ((_CPQ_WON, _CPQ_LOST) if profile == PROFILE_CPQ
@@ -691,9 +716,10 @@ def rollup_quote_lines(lines, roles: Optional[dict[str, str]] = None):
         return parse_money(lines[col])
 
     def _qty(col: Optional[str]):
+        # Thousands separators ("1,000") parse like money; never silently NaN.
         if not col or col not in lines.columns:
             return None
-        return pd.to_numeric(lines[col], errors="coerce")
+        return parse_money(lines[col])
 
     qty = _qty(r.get("quantity"))
     booked = _money(r.get("line_booked"))
@@ -757,9 +783,13 @@ def rollup_quote_lines(lines, roles: Optional[dict[str, str]] = None):
         d["line_count"] = len(g)
         d["source_system"] = SourceSystem.CPQ.value
         rows.append(d)
-    deals = pd.DataFrame(rows)
-    if "opportunity_id" not in deals:
-        deals["opportunity_id"] = None
+    cols = ["source_quote_id", "booked_acv"]
+    if listed is not None:
+        cols.append("list_acv")
+    cols += ["unpriced_lines", "outcome", *firsts]
+    cols += [c for c in ("opportunity_id", "line_count", "source_system")
+             if c not in cols]
+    deals = pd.DataFrame(rows, columns=cols)
     deals.attrs["join_key"] = key
     deals.attrs["ask_user"] = ask_user
     deals.attrs["unpriced_lines"] = unpriced
@@ -880,9 +910,11 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     llm_blocked = bool(refusal and refusal["blocked_headers"])
     if llm_fallback and not llm_blocked:
         unmatched_headers = [h for h in headers if h not in claimed]
+        # outcome is never offered to the LLM; the rejection below stays as
+        # the backstop for a reply that names it anyway.
         unmatched_fields = [f for f in _FIELDS_BY_NAME
                             if f not in field_to_header
-                            and f not in EXACT_ONLY_FIELDS]
+                            and f not in EXACT_ONLY_FIELDS and f != "outcome"]
         if unmatched_headers and unmatched_fields:
             try:
                 from pricing import assist
@@ -904,7 +936,7 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
                         # When layer 0 refused, a status-like header is not
                         # offered to any other field either.
                         if (refusal is not None
-                                and set(_tokens(h)) & _STATUS_TOKENS):
+                                and set(_tokens(h)) & _AMBIGUOUS_STATUS_TOKENS):
                             llm_rejected.append({"field": f, "header": h})
                             continue
                         _claim(f, h, "llm", "low")
