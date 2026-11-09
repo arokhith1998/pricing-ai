@@ -7,8 +7,8 @@ export const metadata: Metadata = { title: "Subprocessors · Pricekeel" };
 // provider, or email host. Counsel should confirm the DPA links and the
 // transfer mechanism descriptions.
 
-const EFFECTIVE = "30 May 2026";
-const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "[privacy@pricekeel.com]";
+const EFFECTIVE = "9 November 2026";
+const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
 
 type Sub = {
   name: string;
@@ -16,6 +16,7 @@ type Sub = {
   region: string;
   dataCategory: string;
   dpa: string;
+  dpaLabel?: string;
 };
 
 // Each row is what an IT-review reviewer is going to want to see in the
@@ -33,30 +34,49 @@ const SUBPROCESSORS: Sub[] = [
     purpose: "API hosting (api.pricekeel.com)",
     region: "United States (Virginia)",
     dataCategory: "API requests, uploaded CSV (processed in memory only)",
-    dpa: "https://render.com/legal/dpa",
+    dpa: "https://render.com/dpa",
   },
   {
     name: "Neon",
     purpose: "Postgres database (leads, access codes, encrypted CRM tokens, mappings, decision log)",
     region: "United States (AWS us-east)",
     dataCategory: "Lead contact details, access codes, encrypted Salesforce tokens, connection metadata, logged pricing decisions",
-    dpa: "https://neon.com/legal/dpa",
+    dpa: "https://neon.com/dpa",
+    dpaLabel: "DPA (Neon schedule to the Databricks DPA)",
   },
   {
     name: "Anthropic",
     purpose:
-      "LLM provider for narrative summaries, column-mapper fallback, copilot answers, plan extraction",
-    region: "United States",
+      "LLM provider. Narrates analysis results that Pricekeel has already computed (it never computes a figure), suggests column-header mappings, answers copilot questions, and extracts plan structure from public pricing-page text",
+    region:
+      "United States. Pricekeel does not pin a processing region; see the Anthropic DPA for its processing locations and subprocessors",
     dataCategory:
-      "Aggregate analysis figures, column header names, uploaded document chunks, user questions, public pricing-page text",
-    dpa: "https://www.anthropic.com/legal",
+      "Aggregate figures, column header names, uploaded document chunks, question text, public pricing-page text. Never deal rows from CSV uploads or live Salesforce rows.",
+    dpa: "https://www.anthropic.com/legal/data-processing-addendum",
   },
   {
     name: "Perplexity",
     purpose: "Web search (only when explicitly enabled by user in copilot)",
     region: "United States",
     dataCategory: "User question text only",
-    dpa: "https://www.perplexity.ai/hub/legal/data-processing-addendum",
+    dpa: "https://www.perplexity.ai/hub/legal/privacy-policy",
+    dpaLabel: "Privacy notice (no DPA link found)",
+  },
+  {
+    name: "Tavily",
+    purpose: "Fallback web search (only when explicitly enabled by user in copilot and Perplexity is not configured)",
+    region: "United States",
+    dataCategory:
+      "User question text only. No DPA found: Tavily's privacy policy says it may use query data to improve its service and refers to training its models, so avoid sensitive wording in web-search questions",
+    dpa: "https://www.tavily.com/privacy",
+    dpaLabel: "Privacy policy (no DPA link found)",
+  },
+  {
+    name: "Resend",
+    purpose: "Transactional email (sign-in links, internal lead notifications, digests)",
+    region: "Depends on account configuration",
+    dataCategory: "Recipient email address and message content",
+    dpa: "https://resend.com/legal/dpa",
   },
   {
     name: "Microsoft 365 (via GoDaddy)",
@@ -70,7 +90,8 @@ const SUBPROCESSORS: Sub[] = [
     purpose: "Domain registration + DNS for pricekeel.com",
     region: "United States",
     dataCategory: "DNS resolution requests (no personal data)",
-    dpa: "https://www.godaddy.com/legal/agreements/data-processing-addendum",
+    dpa: "https://www.godaddy.com/legal",
+    dpaLabel: "Legal agreements (no DPA link found)",
   },
 ];
 
@@ -81,11 +102,17 @@ export default function SubprocessorsPage() {
       <p className="mt-2 text-sm text-muted">Updated {EFFECTIVE}</p>
 
       <p className="mt-6 text-sm leading-relaxed text-muted">
-        Pricekeel uses a small set of third-party services to operate. Each
-        is bound by a written data-processing addendum (DPA) and processes
-        data only on Pricekeel&rsquo;s instructions. We do not allow any
-        subprocessor to use Pricekeel data for its own purposes (including
-        training models on it).
+        Pricekeel uses a small set of third-party services to operate. Where
+        we found a vendor&rsquo;s data-processing addendum (DPA), the link
+        below goes to it; otherwise the link goes to the vendor&rsquo;s
+        published privacy or legal page and the label says no DPA link was
+        found. Each subprocessor is
+        instructed to process data only on Pricekeel&rsquo;s behalf, and we
+        do not authorize any of them to train models on Pricekeel data.
+        Anthropic is the only LLM provider that narrates or maps your
+        analysis. The optional web-search services (Perplexity Sonar and
+        Tavily) receive question text only, and only when you turn web
+        search on.
       </p>
 
       <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -122,7 +149,7 @@ export default function SubprocessorsPage() {
                     target="_blank"
                     rel="noreferrer noopener"
                   >
-                    DPA
+                    {s.dpaLabel ?? "DPA"}
                   </a>
                 </td>
               </tr>

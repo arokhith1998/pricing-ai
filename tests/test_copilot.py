@@ -63,9 +63,9 @@ def _base_analysis() -> dict:
             ]),
         },
         "top_leak_deals": pd.DataFrame([
-            {"opp_id": "OPP-1", "discount_amount": 220_000.0},
-            {"opp_id": "OPP-2", "discount_amount": 180_000.0},
-            {"opp_id": "OPP-3", "discount_amount": 150_000.0},
+            {"opp_id": "OPP-1", "excess_discount_dollars": 220_000.0},
+            {"opp_id": "OPP-2", "excess_discount_dollars": 180_000.0},
+            {"opp_id": "OPP-3", "excess_discount_dollars": 150_000.0},
         ]),
     }
 
@@ -321,3 +321,41 @@ def test_no_llm_answer_is_flagged_not_narrated(monkeypatch):
     ans = copilot.answer_canonical("q1", {"leakage": {}, "defended_vs_investigate": {}})
     assert ans.narrated is False
     assert "opportunityies" not in ans.text
+
+
+# --- PK-74: investigate must fire on a real book -----------------------------
+
+def test_investigate_fires_on_the_synthetic_book_with_the_real_frame():
+    """Eval on the real pipeline (no invented columns): the investigate card
+    must fire, and its dollar figure must equal the sum of the real
+    excess_discount_dollars column, so no number is made up."""
+    from pathlib import Path
+    from pricing import diagnostic
+    book = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "deals.csv"
+    a = diagnostic.run(book)
+    top = a["top_leak_deals"]
+    assert "discount_amount" not in top.columns
+    assert "excess_discount_dollars" in top.columns
+    o = copilot._opp_investigate(a)
+    assert o is not None and o.kind == "investigate"
+    assert copilot.INVESTIGATE_RECOVERABLE_SHARE == 0.20  # pin the heuristic
+    expected = float(top["excess_discount_dollars"].sum())
+    assert abs(o.revenue_impact_usd - expected * copilot.INVESTIGATE_RECOVERABLE_SHARE) < 0.01
+    prefixes = {x.id.split("-")[0] for x in copilot.opportunities(a)}
+    assert "invest" in prefixes
+    assert "margin" not in (o.current + o.recommended).lower()
+    phrase = "excess discount above the reference threshold"
+    assert phrase in o.current
+    assert any(phrase in e.value for e in o.evidence)
+    assert o.caveat
+
+    # The API sends records (api/shared.py), not a frame: same card, same impact.
+    api_shaped = {**a, "top_leak_deals": top.to_dict("records")}
+    o2 = copilot._opp_investigate(api_shaped)
+    assert o2 is not None
+    assert abs(o2.revenue_impact_usd - o.revenue_impact_usd) < 0.01
+
+
+def test_investigate_empty_top_leak_frame_produces_no_card():
+    a = {"top_leak_deals": pd.DataFrame(columns=["opportunity_id", "excess_discount_dollars"])}
+    assert copilot._opp_investigate(a) is None

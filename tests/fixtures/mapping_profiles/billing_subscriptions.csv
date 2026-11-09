@@ -1,0 +1,16 @@
+Subscription ID,Customer ID,Customer Name,Plan,Product ID,Billing Interval,Unit Amount,Quantity,Subscription Status,Subscription Start Date,Currency,Invoiced Amount
+sub_3000,cus_500,Northwind Test Co,Growth,price_0,monthly,45,10,active,2025-01-01,USD,450
+sub_3001,cus_501,Alder Labs,Starter,price_1,annual,30,50,active,2025-02-01,USD,1500
+sub_3002,cus_502,Birchwood Metrics,Scale,price_2,monthly,18,50,canceled,2025-03-01,USD,900
+sub_3003,cus_503,Cobalt Harbor,Scale,price_3,monthly,30,50,active,2025-04-01,USD,1500
+sub_3004,cus_504,Delta Fern Systems,Scale,price_0,monthly,30,10,active,2025-05-01,USD,300
+sub_3005,cus_505,Ember Grid,Growth,price_1,monthly,30,25,active,2025-06-01,USD,750
+sub_3006,cus_506,Fjord Analytics,Starter,price_2,annual,30,10,active,2025-07-01,USD,300
+sub_3007,cus_507,Granite Loop,Scale,price_3,monthly,45,10,active,2025-08-01,USD,450
+sub_3008,cus_508,Hollow Pine Data,Scale,price_0,annual,18,25,canceled,2025-09-01,USD,450
+sub_3009,cus_509,Indigo Mesa,Growth,price_1,monthly,18,10,active,2025-01-01,USD,180
+sub_3010,cus_510,Juniper Relay,Scale,price_2,annual,45,50,active,2025-02-01,USD,2250
+sub_3011,cus_511,Kestrel Works,Scale,price_3,monthly,45,25,active,2025-03-01,USD,1125
+sub_3012,cus_500,Northwind Test Co,Starter,price_0,monthly,18,50,active,2025-04-01,USD,900
+sub_3013,cus_501,Alder Labs,Starter,price_1,annual,45,10,active,2025-05-01,USD,450
+sub_3014,cus_502,Birchwood Metrics,Starter,price_2,monthly,30,25,canceled,2025-06-01,USD,750

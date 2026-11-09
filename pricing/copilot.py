@@ -145,6 +145,9 @@ def _new_id(kind: str) -> str:
     return f"{kind}-{uuid.uuid4().hex[:8]}"
 
 
+# Share of flagged excess discount assumed recoverable on retrospective review.
+INVESTIGATE_RECOVERABLE_SHARE = 0.20
+
 # Every Opportunity whose dollar figure applies an assumed recoverable share
 # (40%/50%/20% below) carries this caveat, mirroring the assist.py:141-144
 # discipline: correlational price realization, not cost-based/bookable margin.
@@ -526,22 +529,23 @@ def _opp_investigate(analysis: dict,
         return None
     if not rows:
         return None
-    # Sum of the discount-amount column on the surfaced deals
-    total = sum(float(r.get("discount_amount") or 0) for r in rows)
+    # Sum of the excess-discount dollars column that metrics.top_leak_deals emits
+    # (the real frame carries no "discount_amount"; PK-74).
+    total = sum(float(r.get("excess_discount_dollars") or 0) for r in rows)
     if total <= 0:
         return None
     return Opportunity(
         id=_new_id("invest"),
         kind="investigate",
         scope=f"Top {len(rows)} deals flagged in the diagnostic",
-        current=f"{_money(total)} of discount across the flagged deals",
+        current=f"{_money(total)} of excess discount above the reference threshold across the flagged deals",
         recommended="Review approvers and concession patterns; document what to do differently",
-        revenue_impact_usd=total * 0.20,  # 20% recoverable on retrospective review
+        revenue_impact_usd=total * INVESTIGATE_RECOVERABLE_SHARE,
         confidence=0.55,
         evidence=[
             Evidence("deal", f"{len(rows)} deals on the surface",
                      "top_leak_deals"),
-            Evidence("deal", f"{_money(total)} in flagged discount",
+            Evidence("deal", f"{_money(total)} of excess discount above the reference threshold",
                      "top_leak_deals"),
         ],
         methodology="Retrospective deal review (Simon-Kucher)",

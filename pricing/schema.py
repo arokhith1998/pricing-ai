@@ -34,7 +34,9 @@ class SourceSystem(str, Enum):
     SALESFORCE = "salesforce"
     HUBSPOT = "hubspot"
     CPQ = "cpq"
-    BILLING = "billing"
+    BILLING = "billing"  # vendor-unknown billing export (CSV)
+    STRIPE = "stripe"  # vendor-level, read by the Stripe connector (PK-53)
+    CHARGEBEE = "chargebee"  # vendor-level, read by the Chargebee connector
     MANUAL = "manual"
 
 
@@ -86,7 +88,10 @@ FIELDS: list[Field] = [
           "Customer account name as it appears in the CRM (may be messy / "
           "inconsistent across rows).", "Acme, Inc."),
     Field("outcome", "enum", True,
-          "Deal outcome: closed_won or closed_lost.", "closed_won"),
+          "Deal outcome: closed_won or closed_lost. A billing-sourced row "
+          "(see BILLING_SOURCES) carries the marker billing_only instead, "
+          "never closed_won or closed_lost, and never enters win rate.",
+          "closed_won"),
     Field("created_date", "date", True,
           "Date the opportunity was created (used to derive cycle length).",
           "2025-08-04"),
@@ -178,7 +183,9 @@ FIELDS: list[Field] = [
     # columns load as the defaults below (see PROVENANCE_DEFAULTS).
     Field("source_system", "enum", False,
           "System the row came from: csv | salesforce | hubspot | cpq | "
-          "billing | manual. Defaults to csv when absent.", "salesforce"),
+          "billing | stripe | chargebee | manual. Defaults to csv when "
+          "absent. A billing-sourced row (billing | stripe | chargebee) "
+          "never enters win rate: billing holds paying customers only.", "salesforce"),
     Field("source_record_id", "str", False,
           "Opportunity or record id in the source system.", "006Dn00000AbCdE"),
     Field("source_account_id", "str", False,
@@ -239,6 +246,128 @@ PROVENANCE_ENUMS: dict[str, frozenset[str]] = {
     "source_system": frozenset(m.value for m in SourceSystem),
     "cost_basis": frozenset(m.value for m in CostBasis),
 }
+# --- Billing sources and the closed-lost gap (PK-53) -----------------------
+# Billing systems hold paying customers only: there is no closed-lost row to
+# find. A billing-sourced row must therefore never enter win rate or
+# win-rate-by-band. Outcome stays a two-value enum (closed_won | closed_lost),
+# so a billing-derived deal row carries this documented marker instead. Every
+# consumer that builds closed history (ingest._exclude_open, the guardrail)
+# already drops any outcome that is not closed_won or closed_lost, so the
+# marker keeps the row out of win rate without a new code path. Billing rows
+# never carry closed_lost.
+BILLING_SOURCES: frozenset[str] = frozenset({
+    SourceSystem.BILLING.value,
+    SourceSystem.STRIPE.value,
+    SourceSystem.CHARGEBEE.value,
+})
+BILLING_ONLY_OUTCOME: str = "billing_only"
+
+
+def _plain(value: object) -> str:
+    """An enum member or string as lowercase text; a missing value as "".
+
+    Missing is None, float NaN, pandas NA and NaT. pandas is not imported
+    here, so NA and NaT are recognised by type name.
+    """
+    value = getattr(value, "value", value)
+    if value is None or type(value).__name__ in {"NAType", "NaTType"}:
+        return ""
+    if isinstance(value, float) and value != value:
+        return ""
+    return str(value).strip().lower()
+
+
+def win_rate_eligible(source_system: object, outcome: object) -> bool:
+    """True only for a closed_won or closed_lost row from a known non-billing source.
+
+    Accepts plain strings or the SourceSystem and Outcome enum members. A
+    missing source (None, NaN or blank) is NOT read as csv here: the csv
+    default is applied by ingest, and a row whose origin is unknown is not
+    let into win rate. The normalised source must be a SourceSystem value,
+    so an unknown alias such as "stripe_billing" is ineligible. Billing
+    sources are never eligible, whatever their outcome says.
+    """
+    source = _plain(source_system)
+    if source not in PROVENANCE_ENUMS["source_system"] or source in BILLING_SOURCES:
+        return False
+    return _plain(outcome) in {m.value for m in Outcome}
+
+
+# --- contract_period_actuals: the billing grain (PK-53) ---------------------
+# One row per subscription (contract) per billed period, built from invoice
+# lines, which are already period rollups (NDA Class 2: rollups only, no
+# row-level usage events). It is a SEPARATE grain from the deal: it is not in
+# FIELDS, ALL_COLUMNS or GENERATOR_COLUMNS, so deal files, ingest, the mapper
+# and gtm/data-request.md are unchanged. In memory only; see the connector
+# design doc, section 4 (docs/design/2026-11-09-native-connectors-hubspot-
+# stripe-chargebee.md).
+#
+# Conventions: every money field on a row is in the one `currency` of that
+# row; all money is tax excluded; amounts are per period, NOT annualised (the
+# derivations annualise by interval); discount_amount and credit_amount are
+# positive reductions. discount_amount is coupon and discount objects only;
+# custom-price overrides and ramp phases leave it 0 (the gap is list_amount
+# minus invoiced_amount), and free coupon months are credit_amount. So
+# list_amount >= invoiced_amount + discount_amount + credit_amount. There is
+# no outcome, no contact data and no end-customer identifier on the grain,
+# and it carries no cost field: billing holds no product cost (ADR-006).
+CONTRACT_PERIOD_FIELDS: list[Field] = [
+    Field("source_system", "enum", False,
+          "Billing source: stripe | chargebee | billing.", "stripe"),
+    Field("source_record_id", "str", False,
+          "Opaque subscription or contract id in the billing system, the same "
+          "value the derived deal row carries as source_record_id. Joins the "
+          "period to its deal; it is not a customer id.", "sub_1Nxyz"),
+    Field("period_index", "int", False,
+          "1-based ordinal of the billed period within the subscription.", "1"),
+    Field("period_start", "date", False,
+          "First day of the billed period.", "2025-01-01"),
+    Field("period_end", "date", False,
+          "Last day of the billed period (inclusive).", "2025-01-31"),
+    Field("currency", "str", False,
+          "ISO 4217 code every money field on this row is denominated in. "
+          "One currency per row.", "USD"),
+    Field("list_amount", "float", False,
+          "Amount for the period at confirmed list price, before discounts "
+          "and credits, tax excluded. Blank when list is not confirmed or "
+          "not derivable (for example a tiered price). Money.", "10000.00"),
+    Field("invoiced_amount", "float", False,
+          "Amount invoiced for the period after discounts and credits, tax "
+          "excluded. Money.", "9000.00"),
+    Field("discount_amount", "float", False,
+          "Coupon and discount objects only (a percentage or amount off) "
+          "applied in the period, as a positive number. A custom-price "
+          "override or a ramp phase is not a discount: the gap shows as "
+          "list_amount minus invoiced_amount. Free months from a "
+          "100-percent-off coupon are credits (credit_amount), not "
+          "discount_amount. Money.", "1000.00"),
+    Field("credit_amount", "float", False,
+          "Credit notes, promotional credits and free periods from a "
+          "100-percent-off coupon applied in the period, as a positive "
+          "number. Money.", "0.00"),
+    Field("usage_units", "float", False,
+          "Metered units billed in the period (an invoice-line rollup, never "
+          "event rows). Blank for licensed-only subscriptions.", "22000"),
+    Field("usage_amount", "float", False,
+          "Portion of invoiced_amount that is metered usage. Money.",
+          "11000.00"),
+    Field("committed_amount", "float", False,
+          "Committed spend for the period when the source supplies it "
+          "(a metadata key or commit product the user marked). Blank "
+          "otherwise. Money.", "1500.00"),
+]
+CONTRACT_PERIOD_COLUMNS: list[str] = [f.name for f in CONTRACT_PERIOD_FIELDS]
+CONTRACT_PERIOD_MONEY_FIELDS: list[str] = [
+    "list_amount", "invoiced_amount", "discount_amount", "credit_amount",
+    "usage_amount", "committed_amount",
+]
+# The minimum a row needs to be usable. Every field is optional in the schema
+# sense (nothing here is in REQUIRED_FIELDS); a row missing a key field is
+# skipped by consumers rather than guessed.
+CONTRACT_PERIOD_KEY_FIELDS: list[str] = [
+    "source_record_id", "period_start", "period_end", "currency",
+    "invoiced_amount",
+]
 # Every canonical field name.
 ALL_FIELD_NAMES: list[str] = [f.name for f in FIELDS]
 # Columns the synthetic generator emits. Explicit pre-PK-23 list: the new
