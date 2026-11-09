@@ -195,8 +195,8 @@ Why the derivation is restricted. `list_acv` prices the booked scope, and `quant
 | `unit_rate_reason` | str |
 | `committed_usage_acv` (new, derived) | float, NaN when not computable |
 | `effective_committed_unit_rate` (new, derived) | float, NaN when not computable |
-| `list_unit_rate_used` | float, NaN when unavailable |
-| `list_unit_rate_basis` | str: `supplied`, `derived`, `unavailable` |
+| `list_unit_rate_used` | float, NaN when unavailable. Populated whenever the rate is supplied or derivable (derivation requires `quantity` > 0), regardless of the lever status, so a deal that fails a commit or rate check still shows the list rate it was judged against (clarified 2026-11-09 after the PR 79 review, KA-08 is the case) |
+| `list_unit_rate_basis` | str: `supplied`, `derived`, `unavailable`. Never blank; `unavailable` when the rate is neither supplied nor derivable |
 | `unit_rate_realization` | float, NaN unless scored |
 | `unit_rate_discount` | float, NaN unless scored |
 | `unit_rate_floor` | float, NaN unless scored |
@@ -601,7 +601,7 @@ Planted won deals, each set disjoint from the others unless stated:
 |---|---|---|
 | `overage_fence_breach`, equal | 20 | `overage_rate` set exactly to `effective_committed_unit_rate`, rounded to 6 dp |
 | `overage_fence_breach`, below | 20 | `overage_rate` = effective rate times U(0.60, 0.95) |
-| `unit_rate_below_floor` | 25 | realization U(0.55, 0.83) |
+| `unit_rate_below_floor` | 25 | realization: 20 deals U(0.62, 0.83) and 5 deals U(0.55, 0.58), so exactly 5 sit past the 0.60 EV-grid edge (`unit_rate_outside_ev_grid`) and none inside the (0.58, 0.62) noise band; amended 2026-11-09 because a single U(0.55, 0.83) draw contradicted the 2-point clearance rule below |
 | `low_commit_share` | 20 | share U(0.20, 0.48) |
 | `ramp_hidden_discount` | 30 | `discount_pct` U(0.00, 0.13), term 36, ramp chosen so TCV discount U(0.17, 0.30); 10 of the 30 with blank `approved_by` (the `ramp_unapproved` set) |
 | `off_invoice_below_floor`, credits only | 15 | no ramp, `discount_pct` U(0.00, 0.13), `credits_tcv` sized so pocket realization U(0.70, 0.83) |

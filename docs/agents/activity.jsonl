@@ -241,3 +241,4 @@
 {"ts": "2026-11-09T19:35:52Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
 {"ts": "2026-11-09T19:35:58Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T19:38:42Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42677170978"}
+{"ts": "2026-11-09T19:42:44Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
