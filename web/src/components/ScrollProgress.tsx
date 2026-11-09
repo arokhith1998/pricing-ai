@@ -1,20 +1,8 @@
-"use client";
-
-import { motion, useScroll, useSpring } from "framer-motion";
-
-// Thin teal bar that tracks page scroll progress. Tasteful, premium.
+// Thin teal bar that tracks page scroll, for long-form routes only (blog posts,
+// /methodology, /trust; see showsScrollProgress in lib/site-nav.ts). Pure CSS
+// via animation-timeline: no JavaScript and no framer-motion, so the trust
+// page stays free of motion libraries. Browsers without animation-timeline and
+// prefers-reduced-motion visitors do not see it (rules in globals.css).
 export default function ScrollProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 220,
-    damping: 30,
-    mass: 0.3,
-  });
-  return (
-    <motion.div
-      aria-hidden
-      className="fixed left-0 right-0 top-0 z-50 h-0.5 origin-left bg-teal"
-      style={{ scaleX }}
-    />
-  );
+  return <div aria-hidden className="pk-scroll-progress" />;
 }

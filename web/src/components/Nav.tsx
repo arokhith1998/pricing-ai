@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
+import { buttonClasses } from "@/components/ui/Button";
+import { CUSTOMER_LOGIN, PRIMARY_CTA, PRIMARY_NAV, isCurrent } from "@/lib/site-nav";
 
 function KeelMark() {
   return (
@@ -13,43 +15,53 @@ function KeelMark() {
   );
 }
 
-const LINKS = [
-  { href: "/#workflow", label: "Product" },
-  { href: "/sample", label: "Live sample" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/trust", label: "Trust" },
-] as const;
+type LinkProps = { pathname: string; onNavigate?: () => void; mobile?: boolean };
 
-function isActive(pathname: string, href: string) {
-  if (href.startsWith("/#")) return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function MarketingLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function PrimaryLinks({ pathname, onNavigate, mobile }: LinkProps) {
   return (
     <>
-      {LINKS.map((link) => {
-        const active = isActive(pathname, link.href);
+      {PRIMARY_NAV.map((link) => {
+        const current = isCurrent(pathname, link.href);
         return (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-              active ? "bg-mist text-fg" : "text-slate hover:bg-mist hover:text-fg"
-            }`}
+            aria-current={current ? "page" : undefined}
+            className={`rounded-control text-small font-medium transition ${
+              mobile ? "flex min-h-12 items-center px-3" : "px-3 py-2"
+            } ${current ? "bg-border text-fg" : "text-muted hover:bg-border hover:text-fg"}`}
           >
             {link.label}
           </Link>
         );
       })}
+    </>
+  );
+}
+
+function AccountLinks({ pathname, onNavigate, mobile }: LinkProps) {
+  const login = isCurrent(pathname, CUSTOMER_LOGIN.href);
+  const cta = isCurrent(pathname, PRIMARY_CTA.href);
+  return (
+    <>
       <Link
-        href="/crm"
+        href={CUSTOMER_LOGIN.href}
         onClick={onNavigate}
-        className="rounded-lg px-3 py-2 text-sm font-medium text-slate transition hover:text-fg"
+        aria-current={login ? "page" : undefined}
+        className={`rounded-control text-small font-medium transition ${
+          mobile ? "flex min-h-12 items-center px-3" : "px-3 py-2"
+        } ${login ? "text-fg" : "text-muted hover:text-fg"}`}
       >
-        Customer login
+        {CUSTOMER_LOGIN.label}
+      </Link>
+      <Link
+        href={PRIMARY_CTA.href}
+        onClick={onNavigate}
+        aria-current={cta ? "page" : undefined}
+        className={buttonClasses("primary", "md", mobile ? "min-h-12 w-full" : undefined)}
+      >
+        {PRIMARY_CTA.label}
       </Link>
     </>
   );
@@ -58,43 +70,68 @@ function MarketingLinks({ pathname, onNavigate }: { pathname: string; onNavigate
 export default function Nav() {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
+  const home = isCurrent(pathname, "/");
 
   return (
-    <header className="sticky top-0 z-30 border-b border-mist bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Pricekeel home">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
+      <div className="mx-auto flex max-w-page items-center justify-between gap-4 px-gutter py-3 sm:px-gutter-lg">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2.5"
+          aria-label="Pricekeel home"
+          aria-current={home ? "page" : undefined}
+        >
           <KeelMark />
           <div>
             <div className="text-xl font-extrabold leading-none tracking-tight">
-              <span className="text-fg">Price</span><span className="text-teal">keel</span>
+              <span className="text-fg">Price</span>
+              <span className="text-teal">keel</span>
             </div>
-            <div className="mt-0.5 hidden text-[11px] text-slate lg:block">
+            <div className="pk-micro mt-0.5 hidden text-muted xl:block">
               Pricing decisions, kept on course.
             </div>
           </div>
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-          <MarketingLinks pathname={pathname} />
+        <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
+          <PrimaryLinks pathname={pathname} />
         </nav>
+        <div className="hidden items-center gap-2 lg:flex">
+          <AccountLinks pathname={pathname} />
+        </div>
 
-        <details ref={mobileMenu} className="group relative md:hidden">
-          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-mist bg-surface-2 px-3 py-2 text-sm font-medium text-fg marker:hidden">
+        {/* Mobile and tablet: a native <details> sheet, so it opens and closes
+            with JavaScript disabled. Rows are 48px tall. */}
+        <details ref={mobileMenu} className="group lg:hidden">
+          <summary className="pk-control flex cursor-pointer list-none items-center gap-2 text-small font-medium marker:hidden">
             Menu
             <svg aria-hidden className="transition group-open:rotate-180" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m6 9 6 6 6-6" />
             </svg>
           </summary>
-          <nav aria-label="Mobile primary" className="absolute right-0 top-[calc(100%+0.6rem)] z-40 flex w-64 flex-col gap-1 rounded-xl border border-mist bg-surface p-2 shadow-2xl shadow-black/40">
-            <MarketingLinks
+          <nav
+            aria-label="Mobile primary"
+            className="absolute inset-x-0 top-full z-40 flex max-h-[calc(100dvh-4.5rem)] flex-col gap-1 overflow-y-auto border-b border-border bg-surface p-3 shadow-2xl shadow-black/40"
+          >
+            <PrimaryLinks
+              mobile
               pathname={pathname}
               onNavigate={() => {
                 // Let the link complete its native navigation before hiding
-                // the <details> subtree. Closing it synchronously can remove
-                // the clicked anchor from hit-testing before navigation.
+                // the <details> subtree; closing synchronously can remove the
+                // clicked anchor from hit-testing before navigation.
                 window.setTimeout(() => mobileMenu.current?.removeAttribute("open"), 0);
               }}
             />
+            <div className="mt-2 flex flex-col gap-1 border-t border-border pt-3">
+              <AccountLinks
+                mobile
+                pathname={pathname}
+                onNavigate={() => {
+                  window.setTimeout(() => mobileMenu.current?.removeAttribute("open"), 0);
+                }}
+              />
+            </div>
           </nav>
         </details>
       </div>
