@@ -63,9 +63,9 @@ def _base_analysis() -> dict:
             ]),
         },
         "top_leak_deals": pd.DataFrame([
-            {"opp_id": "OPP-1", "discount_amount": 220_000.0},
-            {"opp_id": "OPP-2", "discount_amount": 180_000.0},
-            {"opp_id": "OPP-3", "discount_amount": 150_000.0},
+            {"opp_id": "OPP-1", "excess_discount_dollars": 220_000.0},
+            {"opp_id": "OPP-2", "excess_discount_dollars": 180_000.0},
+            {"opp_id": "OPP-3", "excess_discount_dollars": 150_000.0},
         ]),
     }
 
@@ -321,3 +321,26 @@ def test_no_llm_answer_is_flagged_not_narrated(monkeypatch):
     ans = copilot.answer_canonical("q1", {"leakage": {}, "defended_vs_investigate": {}})
     assert ans.narrated is False
     assert "opportunityies" not in ans.text
+
+
+# --- PK-74: investigate must fire on a real book -----------------------------
+
+def test_investigate_fires_on_the_synthetic_book_with_the_real_frame():
+    """Eval on the real pipeline (no invented columns): the investigate card
+    must fire, and its dollar figure must equal the sum of the real
+    excess_discount_dollars column, so no number is made up."""
+    from pathlib import Path
+    from pricing import diagnostic
+    book = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "deals.csv"
+    a = diagnostic.run(book)
+    top = a["top_leak_deals"]
+    assert "discount_amount" not in top.columns
+    assert "excess_discount_dollars" in top.columns
+    o = copilot._opp_investigate(a)
+    assert o is not None and o.kind == "investigate"
+    expected = float(top["excess_discount_dollars"].sum())
+    assert abs(o.revenue_impact_usd - expected * 0.20) < 0.01
+    prefixes = {x.id.split("-")[0] for x in copilot.opportunities(a)}
+    assert "invest" in prefixes
+    assert "margin" not in (o.current + o.recommended).lower()
+    assert o.caveat

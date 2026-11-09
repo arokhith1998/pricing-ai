@@ -526,8 +526,9 @@ def _opp_investigate(analysis: dict,
         return None
     if not rows:
         return None
-    # Sum of the discount-amount column on the surfaced deals
-    total = sum(float(r.get("discount_amount") or 0) for r in rows)
+    # Sum of the excess-discount dollars column that metrics.top_leak_deals emits
+    # (the real frame carries no "discount_amount"; PK-74).
+    total = sum(float(r.get("excess_discount_dollars") or 0) for r in rows)
     if total <= 0:
         return None
     return Opportunity(
