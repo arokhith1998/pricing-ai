@@ -30,7 +30,7 @@ merged.
 
 | Id | Title | Owner | Deps | Owns | Days | Gate |
 |---|---|---|---|---|---|---|
-| PK-39 | Route cpq_line exports through the quote-line roll-up and surface ask_user deals | backend-engineer | PK-27 | `pricing/ingest.py#profiles`, `api/routers/diagnostic.py#load_report`, `tests/test_ingest_profiles.py` | 1.5 | none |
+| PK-39 | Route cpq_line exports through the quote-line roll-up and surface ask_user deals | backend-engineer | PK-27 | `pricing/ingest.py#profiles`, `api/routers/diagnostic.py#load_report`, `api/routers/diagnostic.py#map_columns`, `tests/test_ingest_profiles.py` | 2.5 | none |
 | PK-40 | Annualise multi-year quote roll-ups from term_months | backend-engineer | PK-39 | `pricing/ingest.py#profiles`, `tests/test_ingest_annualise.py` | 1 | none |
 
 Acceptance:
@@ -47,6 +47,12 @@ Acceptance:
     the generic "no closed deals" message.
   - `crm_opportunity` and plain CSV files load exactly as before; existing ingest and mapping suites
     pass unchanged and the pinned dataset is byte-identical.
+  - Added 2026-11-09 from the PR 74 review: one stage table, with ingest's `OUTCOME_ALIASES` replaced by
+    `mapping.normalize_stage` so "Accepted" and "Declined" are not reported as open; quarantined lines
+    (blank or missing quote id) surface in `LoadReport` with their count, never dropped silently; several
+    quotes for one opportunity are resolved to one deal by a stated rule (primary or latest, disclosed),
+    never double-counted; the `/map-columns` route either goes through layer 0 or is documented as
+    header-suggestion only, and bounds the header count.
 - **PK-40:**
   - Annualisation runs only when the caller states the amount basis: `total_contract` divides
     `list_acv` and `booked_acv` by `term_months / 12`; `annual` leaves them unchanged.
