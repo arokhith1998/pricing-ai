@@ -3,13 +3,22 @@ title: Proposed tasks, native connectors (HubSpot, Stripe, Chargebee) and two Ph
 created: 2026-11-09
 updated: 2026-11-09
 tags: [tasks, proposal, connectors, hubspot, stripe, chargebee]
-status: proposed
+status: approved
 source: docs/design/2026-11-09-native-connectors-hubspot-stripe-chargebee.md
 ---
 
 # Proposed tasks: native connectors
 
-Nothing here enters `project_state.json` until the founder approves the list. Ids PK-39 to PK-73;
+**Status 2026-11-09: approved.** The founder approved this list on 2026-11-09 with pk-lead's seven
+recommendations: F1 restricted Stripe key; F2 Phase C lens PK-31 to PK-33 in the second slot during
+HubSpot; F3 no HubSpot writeback, read-only scopes; F4 no billing-to-CRM join in v1, side-by-side
+readouts; F5 billing-only tenant allowed, with the no-win-rate first line; F6 tenant-declared list price
+deferred to interview data; F7 no billing aggregates in the per-tenant snapshot for v1. PK-39 to PK-70,
+plus PK-31, PK-32 and PK-33 from `TASKS-proposed.md`, are on the board in BACKLOG
+(`docs/agents/PROJECT_STATE.md`); none is assigned. PK-71 is not approved (F4). PK-72 and PK-73 are not
+entered (see Optional). Changes made on entry are listed under "Changes on entry" at the end.
+
+Original note: nothing here entered `project_state.json` until the founder approved the list. Ids PK-39 to PK-73;
 PK-30 to PK-38 stay reserved for Phases C and D. Format follows `TASKS-proposed.md`. "Gate" names a
 founder decision from the design doc section 9 (F1 to F7) or an external prerequisite.
 
@@ -163,8 +172,8 @@ Acceptance:
 - **PK-47:**
   - Before code depends on them, the PR records the verified scope names (including what pipelines
     need), token lifetimes and rate limits from HubSpot's current docs, with links.
-  - Requested scopes are read-only and include no contact scope (unless F3 is yes, and then only the
-    one write scope F3 names).
+  - Requested scopes are read-only and include no contact scope and no write scope (F3 answered 2026-11-09: no
+    writeback in v1).
   - Signed state plus a tenant-bound signed httpOnly cookie; mismatch, expiry or a replayed state fail
     closed and clear the cookie.
   - Tokens are stored only through PK-42's store; refresh runs ahead of expiry; a failed refresh sets
@@ -191,7 +200,7 @@ Acceptance:
     show their deals as excluded with the reason.
   - The decision loop (flag, accept or override, approve or reject) works on a HubSpot deal through the
     shared `ConnectorWorkspace`; the deal link opens the HubSpot record.
-  - No writeback control appears for HubSpot unless F3 is yes.
+  - No writeback control appears for HubSpot (F3 answered 2026-11-09: no writeback in v1).
   - Brand rules: status colours carry a text label; no em dashes; eslint, tsc, build pass.
 - **PK-50:**
   - The seed spec plants at least 40 closed and 10 open deals across 2 pipelines with known list,
@@ -283,7 +292,9 @@ Acceptance:
   - Contracted versus billed, realization, concessions and usage actuals each show method, status and
     n; `insufficient_data` and `not_provided` render as labelled states, never blanks or zeros.
   - With a CRM source connected, both readouts appear side by side; no figure is joined across them
-    unless PK-71 has merged.
+    (F4 answered 2026-11-09: no join in v1).
+  - A billing-only tenant, with no CRM source connected, sees the full billing readout with the
+    no-win-rate first line (F5 answered 2026-11-09: allowed). Added on entry.
   - No "margin" wording anywhere; no em dashes; eslint, tsc, build pass.
 - **PK-60:**
   - The seed spec reproduces PK-53's planted cases in test mode; the run recovers each planted figure.
@@ -339,14 +350,19 @@ Acceptance:
 
 ## Optional, gated
 
+Status 2026-11-09: none of these is on the board. PK-71 is **not approved** (F4: no billing-to-CRM join in
+v1). PK-72 is not entered: its gate (a credential-free billing path) was not part of the F answers and
+stays open. PK-73 is not entered: it depends on PK-38, which is Phase D and not on the board; it is
+consistent with F7, since billing rows never enter the snapshot.
+
 | Id | Title | Owner | Deps | Owns | Days | Gate |
 |---|---|---|---|---|---|---|
-| PK-71 | Link billing accounts to CRM deals with a disclosed link method | backend-engineer | PK-56, PK-46 | `pricing/billing_join.py`, `api/routers/billing.py#join`, `tests/test_billing_join.py` | 2.5 | F4 |
+| PK-71 | **Not approved (F4).** Link billing accounts to CRM deals with a disclosed link method | backend-engineer | PK-56, PK-46 | `pricing/billing_join.py`, `api/routers/billing.py#join`, `tests/test_billing_join.py` | 2.5 | F4 |
 | PK-72 | Add Stripe and Chargebee export profiles to the mapper | ai-engineer | PK-27, PK-53 | `pricing/mapping.py`, `tests/test_mapping_billing_profile.py`, `tests/fixtures/mapping_profiles/billing/**` | 1.5 | founder wants a credential-free billing path |
 | PK-73 | Refresh the per-tenant snapshot after each CRM connector sync | backend-engineer | PK-38, PK-48 | `pricing/snapshot.py#refresh`, `api/routers/crm.py#snapshot_refresh`, `tests/test_snapshot_refresh.py` | 1 | D1(a), PK-38 |
 
 Acceptance:
-- **PK-71:** link order is user-mapped metadata key, then exact `source_account_id` crosswalk, then
+- **PK-71 (not approved, F4):** link order is user-mapped metadata key, then exact `source_account_id` crosswalk, then
   normalised name; every link carries `link_method` and confidence; no silent merge; coverage below the
   stated floor returns `insufficient_data`.
 - **PK-72:** billing exports detect as a `billing` profile; subscription status never maps to
@@ -406,3 +422,48 @@ python tools/agentctl.py assign PK-39 --worktree .claude/worktrees/PK-39 `
 
 `agentctl assign` referees every claim above; a refusal means the sequence in this file is wrong, and
 the fix is to re-plan, not to force.
+
+## Changes on entry, 2026-11-09
+
+Entered by pk-lead with `agentctl add`, 35 tasks, all in BACKLOG, owners and dependencies exactly as in
+the tables above. `python tools/agentctl.py check` after entry: `OK: 66 task(s), 0/2 active, no
+collisions, no unmet dependencies on live work.`
+
+Claims changed:
+- **PK-46: `api/routers/crm.py#adapters` replaced by `api/routers/crm.py#analyze` and
+  `api/routers/crm.py#source`.** Checked against the PK-25 worktree (PR #75 head `c2c2fbf`, read-only):
+  there is no adapter resolution and no `pricing/adapters/` package. `SalesforceAdapter` lives in
+  `pricing/crm.py` as a module singleton `ADAPTER`, `CsvAdapter` in `pricing/csv_adapter.py`, the
+  protocol in `pricing/guardrail.py`, and `api/routers/crm.py` binds `_SOURCE = crm_mod.ADAPTER.system`
+  at module scope and uses it for the decision log in workflow, reconcile, writeback and the log read.
+  PK-46 therefore claims the analyze route plus the source binding, and gains one acceptance line: the
+  registry in `pricing/adapters/__init__.py` imports the two existing adapters without moving or editing
+  them (so PK-46 does not touch `pricing/crm.py` or `pricing/csv_adapter.py`), the router resolves the
+  adapter and the log source per request, and a request with no `source_system` resolves to salesforce.
+  Without the `#source` claim, PK-48's "workflow events log with source.system = hubspot" had no owner
+  on the API side.
+- **Glob claims converted to directory claims**, because `agentctl` refuses glob patterns: `tests/fixtures/hubspot/**`,
+  `tests/fixtures/stripe/**`, `tests/fixtures/chargebee/**`, and every `web/src/app/api/<vendor>/<route>/**`
+  in PK-47, PK-48, PK-57, PK-58, PK-64 and PK-65 are now the directory without `/**`. A directory claim
+  conflicts with everything beneath it, so the coverage is the same.
+
+No claim was changed to resolve a collision: `check` reported none, and a dry-run of every new claim
+against live and backlog claims found only overlaps that the dependency chains already sequence
+(PK-44 after PK-6 and PK-20 via PK-21; PK-45 after PK-19 and PK-22; PK-46 after PK-25; PK-52, PK-62,
+PK-69 after PK-6 and each other; PK-39 then PK-40; PK-24 then PK-41 then PK-70; PK-49 then PK-59 then
+PK-66; PK-56 then PK-63).
+
+Acceptance changes on the board: F3, F4 and F5 lines are written into PK-47, PK-49, PK-56, PK-57, PK-59 and PK-64; F6
+is noted on PK-46 and PK-55. Founder-only prerequisites appear on the board as acceptance lines that
+begin "Founder setup:" (PK-47, PK-48, PK-50 for HubSpot; PK-57, PK-58, PK-60 for Stripe; PK-64, PK-65,
+PK-67 for Chargebee) or "Founder gate:" (PK-44 founder approval, PK-45 counsel, PK-70 seven days on prod).
+Required tests are the test files in each task's owns, plus regression suites named in acceptance:
+`tests/test_ingest.py` on PK-39, `tests/test_crm.py` and `tests/test_guardrail.py` on PK-46,
+`neon/test_migrations.py` on PK-70.
+
+Open, for the lead of record: on `origin/main` the `/diagnostic` response is built by
+`diagnostic_payload` in `api/shared.py`, not in `api/routers/diagnostic.py`. PK-39 ("the diagnostic
+response includes" the ask_user section) and PK-33 (`api/routers/diagnostic.py#response`) will both
+likely need `api/shared.py#diagnostic_payload`, which neither claims. Before either is assigned, add
+that component to the claim of whichever runs first and sequence the other behind it; do not let either
+edit outside its claim.

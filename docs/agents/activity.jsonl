@@ -152,3 +152,38 @@
 {"ts": "2026-11-09T18:50:59Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-09T18:51:00Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #74"}
 {"ts": "2026-11-09T18:52:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-31", "agent": "data-engineer", "detail": "Plant contract-structure answers in the generator"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-32", "agent": "backend-engineer", "detail": "Score commit, ramp, overage and unit-rate floors"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-33", "agent": "backend-engineer", "detail": "Add the lens readout and concession fields to the decision record"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-39", "agent": "backend-engineer", "detail": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-40", "agent": "backend-engineer", "detail": "Annualise multi-year quote roll-ups from term_months"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-41", "agent": "data-engineer", "detail": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-42", "agent": "web-engineer", "detail": "Move connection storage and token crypto onto source_connections, with key ids"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-43", "agent": "web-engineer", "detail": "Key tenants by opaque ref and revoke every credential for a tenant on request"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-44", "agent": "customer-success", "detail": "Register the connector credential classes and their revoke paths in incident response"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-45", "agent": "customer-success", "detail": "Draft the per-customer credentials amendment and update the readiness access-method lines"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-46", "agent": "backend-engineer", "detail": "Map HubSpot deals, confirmed stage maps and properties to canonical deals"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-47", "agent": "web-engineer", "detail": "Connect, refresh and disconnect a HubSpot portal by OAuth"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-48", "agent": "web-engineer", "detail": "Discover pipelines and properties and sync a bounded HubSpot book"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-49", "agent": "web-engineer", "detail": "Give /crm a source switcher and a HubSpot stage-map confirmation screen"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-50", "agent": "qa-engineer", "detail": "Verify HubSpot end to end against a planted test portal"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-51", "agent": "customer-success", "detail": "Write the HubSpot runbook and customer guide"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-52", "agent": "web-engineer", "detail": "Name HubSpot on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-53", "agent": "data-engineer", "detail": "Add the contract_period_actuals grain and stripe and chargebee source values"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-54", "agent": "backend-engineer", "detail": "Compute realization, contracted versus billed and usage actuals from billing"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-55", "agent": "backend-engineer", "detail": "Map Stripe subscriptions and invoices to canonical deals and period actuals"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-56", "agent": "backend-engineer", "detail": "Serve the billing readout from POST /billing/analyze"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-57", "agent": "web-engineer", "detail": "Connect Stripe with a customer-created restricted key"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-58", "agent": "web-engineer", "detail": "Sync a bounded Stripe book and confirm which prices are list"}
+{"ts": "2026-11-09T18:56:14Z", "event": "add", "task": "PK-59", "agent": "web-engineer", "detail": "Show the billing readout and the no-win-rate line in the workspace"}
+{"ts": "2026-11-09T18:56:14Z", "event": "add", "task": "PK-60", "agent": "qa-engineer", "detail": "Verify Stripe end to end against a planted test-mode account"}
+{"ts": "2026-11-09T18:56:15Z", "event": "add", "task": "PK-61", "agent": "customer-success", "detail": "Write the Stripe runbook and key-creation guide"}
+{"ts": "2026-11-09T18:56:15Z", "event": "add", "task": "PK-62", "agent": "web-engineer", "detail": "Name Stripe on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-63", "agent": "backend-engineer", "detail": "Map Chargebee subscriptions and invoices to canonical deals and period actuals"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-64", "agent": "web-engineer", "detail": "Connect Chargebee with a site name and read-only key"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-65", "agent": "web-engineer", "detail": "Sync a bounded Chargebee book"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-66", "agent": "web-engineer", "detail": "Add the Chargebee setup panel to the workspace"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-67", "agent": "qa-engineer", "detail": "Verify Chargebee end to end against a planted test site"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-68", "agent": "customer-success", "detail": "Write the Chargebee runbook and key-creation guide"}
+{"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-69", "agent": "web-engineer", "detail": "Name Chargebee on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-70", "agent": "data-engineer", "detail": "Drop the legacy salesforce_connections and salesforce_mappings tables"}

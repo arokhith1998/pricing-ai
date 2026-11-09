@@ -3,13 +3,14 @@ title: Native connectors, HubSpot then Stripe then Chargebee
 created: 2026-11-09
 updated: 2026-11-09
 tags: [design, connectors, hubspot, stripe, chargebee, data-governance]
-status: draft
+status: active
 source: vault/Decisions/2026-11-09-named-connectors-hubspot-stripe-chargebee.md
 ---
 
 # Native connectors: HubSpot, then Stripe, then Chargebee
 
-Status: proposed by pk-lead, 2026-11-09. Not approved to build. Task list:
+Status: approved by the founder 2026-11-09, task list and all seven section 9 answers (F1 to F7).
+Proposed by pk-lead, 2026-11-09. Task list:
 `docs/reviews/2026-11-06-product-direction/TASKS-connectors-proposed.md` (PK-39 to PK-73).
 Modelled on `docs/design/salesforce-crm-workflow-v1.md`. The decision this plans against is
 settled; this document records how, not whether.
@@ -310,22 +311,29 @@ here so the dates are not a surprise.
 
 - **F1. Stripe credential mode.** Restricted key (recommended, section 2.2) or Stripe App OAuth (about
   3 more days plus Stripe app review, shorter-lived tokens). Needed before PK-57.
+  **Answered 2026-11-09: restricted key.**
 - **F2. Billing connectors before or after the Phase C lens.** Recommended: run PK-31 to PK-33 in the
   second slot during HubSpot, so Stripe data feeds scored commit, ramp and overage levers. Otherwise
   Stripe ships descriptive only, and Phase C slips about two weeks. Needed by early December.
+  **Answered 2026-11-09: PK-31 to PK-33 run in the second slot during HubSpot; entered on the board.**
 - **F3. HubSpot writeback.** Recommended: none in v1, read-only scopes; Pricekeel's log is the record
   and the readout deep-links to the deal. If yes (a note or task on the deal, like the Salesforce Task),
   add about 1.5 days and a write scope, decided before any install because a scope change forces
   reauthorisation.
+  **Answered 2026-11-09: no writeback in v1, read-only scopes.**
 - **F4. Join billing to CRM deals in v1 (PK-71, 2.5 days)?** Recommended: no; side-by-side readouts
   first, the join after a partner shows a shared deal id.
+  **Answered 2026-11-09: no join in v1; PK-71 not approved.**
 - **F5. Allow a billing-only tenant?** (Part of open D6.) Recommended: yes, with the no-win-rate line.
   If no, the Stripe and Chargebee connect screens require a CRM source first.
+  **Answered 2026-11-09: yes, billing-only tenant allowed, with the no-win-rate first line.**
 - **F6. Tenant-declared list price book** as the list fallback for HubSpot portals without line items
   and Stripe custom prices, labelled "declared list". About 2 days, no tasks written. Recommended:
   decide after the interview module shows how many HubSpot prospects use line items.
+  **Answered 2026-11-09: deferred to interview data; no tasks written.**
 - **F7. Persist billing aggregates** (extends D1). Recommended: no for v1. Only needed if billing
   realization should appear on `/quote`.
+  **Answered 2026-11-09: no for v1.**
 
 Prerequisites, not decisions: PR #62 (PK-20, PK-22, PK-19 in REVIEW) must merge; the founder creates a
 HubSpot developer account, app and test portal, a Stripe test-mode account and a Chargebee test site.

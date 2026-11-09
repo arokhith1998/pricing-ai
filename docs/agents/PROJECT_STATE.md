@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/2
-Updated: 2026-11-09T18:52:05Z
+Updated: 2026-11-09T18:56:18Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -54,8 +54,78 @@ Updated: 2026-11-09T18:52:05Z
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
+- **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
+  - owns: pricing/generate.py, tests/test_generate_contract.py
+- **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, deps PK-31)
+  - owns: pricing/contract_structure.py, tests/test_contract_structure.py
+- **PK-33** Add the lens readout and concession fields to the decision record  (backend-engineer, deps PK-32,PK-25)
+  - owns: pricing/diagnostic.py#readout, pricing/governance.py#concessions, api/routers/diagnostic.py#response
+- **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, deps PK-27)
+  - owns: pricing/ingest.py#profiles, api/routers/diagnostic.py#load_report, api/routers/diagnostic.py#map_columns, tests/test_ingest_profiles.py
 - **PK-4** Triage the six open PRs  (pk-lead)
   - owns: docs/agents/TASKS.md
+- **PK-40** Annualise multi-year quote roll-ups from term_months  (backend-engineer, deps PK-39)
+  - owns: pricing/ingest.py#profiles, tests/test_ingest_annualise.py
+- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, deps PK-24,PK-25)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
+- **PK-42** Move connection storage and token crypto onto source_connections, with key ids  (web-engineer, deps PK-41)
+  - owns: web/src/lib/connector-store.ts, web/src/lib/connector-crypto.ts, web/src/lib/salesforce-store.ts, web/src/lib/salesforce-crypto.ts, web/test/connector-store.test.ts, web/test/connector-crypto.test.ts
+- **PK-43** Key tenants by opaque ref and revoke every credential for a tenant on request  (web-engineer, deps PK-42)
+  - owns: web/src/lib/gate.ts#customerRef, web/src/lib/store.ts#access_codes, web/scripts/revoke-tenant-connections.ts, web/test/tenant-key.test.ts, web/test/revoke-tenant.test.ts
+- **PK-44** Register the connector credential classes and their revoke paths in incident response  (customer-success, deps PK-21)
+  - owns: docs/ops/data-register.md, docs/ops/incident-response.md, docs/ops/salesforce-integration-runbook.md
+- **PK-45** Draft the per-customer credentials amendment and update the readiness access-method lines  (customer-success, deps PK-22,PK-19)
+  - owns: docs/legal/one-page-mutual-nda-data-addendum.md, gtm/data-readiness-checklists.md
+- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
+  - owns: pricing/adapters/__init__.py, pricing/adapters/hubspot.py, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
+- **PK-47** Connect, refresh and disconnect a HubSpot portal by OAuth  (web-engineer, deps PK-43,PK-44)
+  - owns: web/src/lib/hubspot-oauth.ts, web/src/lib/hubspot-client.ts, web/src/app/api/hubspot/oauth, web/src/app/api/hubspot/connection, web/test/hubspot-oauth.test.ts, web/test/hubspot-client.test.ts
+- **PK-48** Discover pipelines and properties and sync a bounded HubSpot book  (web-engineer, deps PK-47,PK-46,PK-26)
+  - owns: web/src/lib/hubspot-sync.ts, web/src/lib/connector-workspace.ts, web/src/lib/salesforce-workspace.ts, web/src/app/api/hubspot/metadata, web/src/app/api/hubspot/mapping, web/src/app/api/hubspot/workspace, web/src/app/api/hubspot/workflow, web/test/hubspot-sync.test.ts
+- **PK-49** Give /crm a source switcher and a HubSpot stage-map confirmation screen  (web-engineer, deps PK-48)
+  - owns: web/src/app/crm/page.tsx, web/src/components/SalesforceWorkspace.tsx, web/src/components/ConnectorWorkspace.tsx, web/src/components/HubspotSetup.tsx, web/test/hubspot-workspace.test.ts
+- **PK-50** Verify HubSpot end to end against a planted test portal  (qa-engineer, deps PK-49)
+  - owns: tests/connectors/test_hubspot_known_answer.py, tests/fixtures/connectors/hubspot_portal_seed.json
+- **PK-51** Write the HubSpot runbook and customer guide  (customer-success, deps PK-48,PK-44)
+  - owns: docs/ops/hubspot-integration-runbook.md, docs/guides/customer-hubspot-workspace.md
+- **PK-52** Name HubSpot on the privacy, trust and pricing pages  (web-engineer, deps PK-50,PK-6)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
+- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
+  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
+- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
+  - owns: pricing/billing.py, tests/test_billing.py
+- **PK-55** Map Stripe subscriptions and invoices to canonical deals and period actuals  (backend-engineer, deps PK-53,PK-46)
+  - owns: pricing/adapters/stripe.py, pricing/adapters/billing_common.py, tests/test_adapter_stripe.py, tests/fixtures/stripe
+- **PK-56** Serve the billing readout from POST /billing/analyze  (backend-engineer, deps PK-54,PK-55)
+  - owns: api/routers/billing.py, api/main.py#routers, tests/test_billing_api.py
+- **PK-57** Connect Stripe with a customer-created restricted key  (web-engineer, deps PK-43,PK-44)
+  - owns: web/src/lib/stripe-client.ts, web/src/lib/stripe-credentials.ts, web/src/app/api/stripe/connection, web/test/stripe-connection.test.ts
+- **PK-58** Sync a bounded Stripe book and confirm which prices are list  (web-engineer, deps PK-57,PK-55,PK-56)
+  - owns: web/src/lib/stripe-sync.ts, web/src/app/api/stripe/metadata, web/src/app/api/stripe/mapping, web/src/app/api/stripe/workspace, web/test/stripe-sync.test.ts
+- **PK-59** Show the billing readout and the no-win-rate line in the workspace  (web-engineer, deps PK-58,PK-49)
+  - owns: web/src/components/BillingReadout.tsx, web/src/components/StripeSetup.tsx, web/src/components/ConnectorWorkspace.tsx, web/test/billing-readout.test.ts
+- **PK-60** Verify Stripe end to end against a planted test-mode account  (qa-engineer, deps PK-59)
+  - owns: tests/connectors/test_stripe_known_answer.py, tests/fixtures/connectors/stripe_test_seed.json
+- **PK-61** Write the Stripe runbook and key-creation guide  (customer-success, deps PK-57,PK-44)
+  - owns: docs/ops/stripe-integration-runbook.md, docs/guides/customer-stripe-key.md
+- **PK-62** Name Stripe on the privacy, trust and pricing pages  (web-engineer, deps PK-60,PK-52)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
+- **PK-63** Map Chargebee subscriptions and invoices to canonical deals and period actuals  (backend-engineer, deps PK-55,PK-56)
+  - owns: pricing/adapters/chargebee.py, api/routers/billing.py#adapters, tests/test_adapter_chargebee.py, tests/fixtures/chargebee
+- **PK-64** Connect Chargebee with a site name and read-only key  (web-engineer, deps PK-57)
+  - owns: web/src/lib/chargebee-client.ts, web/src/app/api/chargebee/connection, web/test/chargebee-connection.test.ts
+- **PK-65** Sync a bounded Chargebee book  (web-engineer, deps PK-64,PK-63)
+  - owns: web/src/lib/chargebee-sync.ts, web/src/app/api/chargebee/metadata, web/src/app/api/chargebee/mapping, web/src/app/api/chargebee/workspace, web/test/chargebee-sync.test.ts
+- **PK-66** Add the Chargebee setup panel to the workspace  (web-engineer, deps PK-65,PK-59)
+  - owns: web/src/components/ChargebeeSetup.tsx, web/src/components/ConnectorWorkspace.tsx, web/test/chargebee-setup.test.ts
+- **PK-67** Verify Chargebee end to end against a planted test site  (qa-engineer, deps PK-66)
+  - owns: tests/connectors/test_chargebee_known_answer.py, tests/fixtures/connectors/chargebee_test_seed.json
+- **PK-68** Write the Chargebee runbook and key-creation guide  (customer-success, deps PK-64,PK-44)
+  - owns: docs/ops/chargebee-integration-runbook.md, docs/guides/customer-chargebee-key.md
+- **PK-69** Name Chargebee on the privacy, trust and pricing pages  (web-engineer, deps PK-67,PK-62)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
+- **PK-70** Drop the legacy salesforce_connections and salesforce_mappings tables  (data-engineer, deps PK-42,PK-41)
+  - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
   - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
