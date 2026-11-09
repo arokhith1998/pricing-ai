@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:25:56Z",
+  "updated": "2026-11-09T20:27:12Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1498,7 +1498,7 @@
       "id": "PK-31",
       "title": "Plant contract-structure answers in the generator",
       "agent": "data-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [
         "PK-23",
         "PK-30"
@@ -1521,14 +1521,14 @@
       },
       "pr": 79,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
         "notes": "",
-        "ts": "2026-11-09T19:42:44Z"
+        "ts": "2026-11-09T20:27:12Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T19:58:15Z",
+      "updated": "2026-11-09T20:27:12Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:09Z",
@@ -1545,6 +1545,10 @@
         {
           "ts": "2026-11-09T19:58:15Z",
           "note": "PR #79"
+        },
+        {
+          "ts": "2026-11-09T20:27:12Z",
+          "note": "review approve-with-nits"
         }
       ]
     },

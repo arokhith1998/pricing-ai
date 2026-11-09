@@ -70,7 +70,7 @@ Acceptance:
 Acceptance:
 - **PK-30:** formulas, labels and thresholds per lever; `method: policy rule`; no cost input.
 - **PK-31:** new RNG stream, pinned dataset unchanged; known-answer key for overage-fence and ramp-concession cases.
-- **PK-32:** planted answers recovered; each lever returns `scored | insufficient_data | not_provided`, no global fallback; flat ramp equals flat discount; nothing labeled margin.
+- **PK-32:** planted answers recovered; each lever returns `scored | insufficient_data | not_provided`, no global fallback; flat ramp equals flat discount; nothing labeled margin; a test asserts `pricing/contract_structure.py` does not import `pricing.generate` (the fixture oracle `_contract_expected_levers` is private and must never become the implementation; PR 79 review, 2026-11-09); known-answer inputs are read from `tests/fixtures/contract_structure/known_answer_deals.csv` concatenated with the planted population (the 23 KA rows alone are below the closed-deal minimum) and expectations from `known_answers.csv`.
 - **PK-33:** readout lists the deals behind each flag; concession fields round-trip through the decision log.
 
 ## Phase D: quote screen and unified decision log (14.5 days)
