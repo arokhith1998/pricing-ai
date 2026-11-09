@@ -148,6 +148,9 @@ def _new_id(kind: str) -> str:
 # Every Opportunity whose dollar figure applies an assumed recoverable share
 # (40%/50%/20% below) carries this caveat, mirroring the assist.py:141-144
 # discipline: correlational price realization, not cost-based/bookable margin.
+# Share of flagged excess discount assumed recoverable on retrospective review.
+INVESTIGATE_RECOVERABLE_SHARE = 0.20
+
 _RECOVERABLE_CAVEAT = (
     "Correlational price-realization estimate at an assumed recoverable "
     "share, not bookable margin. Validate deal by deal before treating it "
@@ -535,14 +538,14 @@ def _opp_investigate(analysis: dict,
         id=_new_id("invest"),
         kind="investigate",
         scope=f"Top {len(rows)} deals flagged in the diagnostic",
-        current=f"{_money(total)} of discount across the flagged deals",
+        current=f"{_money(total)} of excess discount above the reference threshold across the flagged deals",
         recommended="Review approvers and concession patterns; document what to do differently",
-        revenue_impact_usd=total * 0.20,  # 20% recoverable on retrospective review
+        revenue_impact_usd=total * INVESTIGATE_RECOVERABLE_SHARE,
         confidence=0.55,
         evidence=[
             Evidence("deal", f"{len(rows)} deals on the surface",
                      "top_leak_deals"),
-            Evidence("deal", f"{_money(total)} in flagged discount",
+            Evidence("deal", f"{_money(total)} of excess discount above the reference threshold",
                      "top_leak_deals"),
         ],
         methodology="Retrospective deal review (Simon-Kucher)",

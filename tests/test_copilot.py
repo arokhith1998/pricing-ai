@@ -339,8 +339,22 @@ def test_investigate_fires_on_the_synthetic_book_with_the_real_frame():
     o = copilot._opp_investigate(a)
     assert o is not None and o.kind == "investigate"
     expected = float(top["excess_discount_dollars"].sum())
-    assert abs(o.revenue_impact_usd - expected * 0.20) < 0.01
+    assert abs(o.revenue_impact_usd - expected * copilot.INVESTIGATE_RECOVERABLE_SHARE) < 0.01
     prefixes = {x.id.split("-")[0] for x in copilot.opportunities(a)}
     assert "invest" in prefixes
     assert "margin" not in (o.current + o.recommended).lower()
+    phrase = "excess discount above the reference threshold"
+    assert phrase in o.current
+    assert any(phrase in e.value for e in o.evidence)
     assert o.caveat
+
+    # The API sends records (api/shared.py), not a frame: same card, same impact.
+    api_shaped = {**a, "top_leak_deals": top.to_dict("records")}
+    o2 = copilot._opp_investigate(api_shaped)
+    assert o2 is not None
+    assert abs(o2.revenue_impact_usd - o.revenue_impact_usd) < 0.01
+
+
+def test_investigate_empty_top_leak_frame_produces_no_card():
+    a = {"top_leak_deals": pd.DataFrame(columns=["opportunity_id", "excess_discount_dollars"])}
+    assert copilot._opp_investigate(a) is None
