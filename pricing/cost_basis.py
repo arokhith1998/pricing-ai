@@ -51,12 +51,18 @@ _ALLOWED_PROXY_PHRASES: tuple[str, ...] = (
 
 # An allowed phrase counts only as a whole phrase: not glued to a preceding
 # word character or hyphen ("cannot margin"), and followed by end of string or
-# punctuation, optionally after whitespace. "not margin compression",
-# "not margin-dilutive", "not margins of 40%" and "not marginal" all fail.
+# one punctuation mark, optionally after whitespace. "not margin compression",
+# "not margin-dilutive", "not margins of 40%" and "not marginal" all fail. The
+# punctuation must not be "?" (a question is not a negation) and must not lead
+# into a figure ("not margin: 40%", "not margin (40%)" fail).
 _ALLOWED_RE = re.compile(
-    r"(?<![\w-])(?:%s)(?=\s*$|\s*[^\w\s-])" % "|".join(
+    r"(?<![\w-])(?:%s)(?=\s*$|\s*[^\w\s\-?](?!\s*[\d$%%]))" % "|".join(
         re.escape(p) for p in _ALLOWED_PROXY_PHRASES),
     flags=re.IGNORECASE)
+
+# Source-scan boundary: catches "margin", "margins" and snake_case such as
+# gross_margin_pct (underscore is not a letter) but not "marginal".
+_WHOLE_WORD_RE = r"(?<![A-Za-z])margins?(?![A-Za-z])"
 
 
 class MarginLabelError(ValueError):
@@ -108,6 +114,9 @@ def weakest_basis(bases: Iterable[Any]) -> str:
     unknown), then declared_cost, and erp_verified only when every row is
     erp_verified. A book is never labeled stronger than its weakest row.
     """
+    if isinstance(bases, (str, bytes)):
+        raise TypeError("weakest_basis takes an iterable of bases, not a "
+                        "single string (it would iterate characters)")
     normalized = {normalize_basis(b) for b in bases}
     if not normalized or CRM_PROXY in normalized:
         return CRM_PROXY
@@ -150,15 +159,15 @@ def margin_violations(text: str, basis: Any, *,
     Returns [] for declared_cost and erp_verified. For crm_proxy (and unknown or
     missing bases) each case-insensitive "margin" substring not covered by a
     whole-phrase match of `allowed_phrases()` is returned with a little
-    surrounding context. `whole_word=True` counts only the standalone word
-    (used by the source scan so "marginal" in a docstring is not a hit); the
-    guard itself leaves it False so "not marginal" fails.
+    surrounding context. `whole_word=True` counts "margin" and "margins" as a
+    word or inside snake_case (gross_margin_pct) but not "marginal" (used by
+    the source scan); the guard itself leaves it False so "not marginal" fails.
     """
     if normalize_basis(basis) != CRM_PROXY:
         return []
     norm = _normalize_text(text)
     covered = [m.span() for m in _ALLOWED_RE.finditer(norm)]
-    pattern = r"\bmargin\b" if whole_word else "margin"
+    pattern = _WHOLE_WORD_RE if whole_word else "margin"
     out = []
     for m in re.finditer(pattern, norm, flags=re.IGNORECASE):
         if any(a <= m.start() < b for a, b in covered):

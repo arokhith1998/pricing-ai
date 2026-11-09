@@ -100,7 +100,7 @@ def test_allowlist_is_pinned_to_the_four_adr_006_phrases():
 
 def test_guard_passes_the_four_allowed_phrases_and_the_proxy_label():
     for phrase in allowed_phrases():
-        for text in (phrase, f"The figure is {phrase}.", f"{phrase}, and more",
+        for text in (phrase, f"The figure is {phrase}.", f"{phrase}, and more", f"{phrase}: it is a proxy", f"{phrase} [A].",
                      f"It is {phrase.upper()}", f"so  {phrase.replace(' ', '  ')} ;"):
             assert_no_margin_for_proxy(text, "crm_proxy")
     assert_no_margin_for_proxy(PROXY, "crm_proxy")
@@ -116,6 +116,12 @@ def test_guard_passes_the_four_allowed_phrases_and_the_proxy_label():
     "not margins of 40%",
     "we cannot margin this",
     "not marginal",
+    # Trailing punctuation that leads into a figure, or a question.
+    "not margin: 40%",
+    "not margin (40%)",
+    "not margin. 40% of the book",
+    "not margin: $1,200",
+    "Is this not margin?",
     # Whitespace and unicode folding cannot smuggle one through.
     "not margin compression",
     "ＭＡＲＧＩＮ is 40%",   # fullwidth MARGIN
@@ -174,6 +180,12 @@ def test_refuse_helper_raises_for_proxy_and_not_for_others():
 ])
 def test_weakest_basis(bases, want):
     assert weakest_basis(bases) == want
+
+
+def test_weakest_basis_rejects_a_bare_string():
+    for bad in ("erp_verified", "crm_proxy", b"erp_verified"):
+        with pytest.raises(TypeError):
+            weakest_basis(bad)
 
 
 # --- Part 2: the eval against existing narration -----------------------------
@@ -273,13 +285,37 @@ def test_strict_adr_006_reading_no_affirmative_margin_in_any_output(
         assert_no_margin_for_proxy(text, "crm_proxy")
 
 
-def _code_without_comments(path: Path) -> str:
+def code_without_comments(src: str) -> str:
     """Source text with comment-only lines dropped (first non-space char is #)
     and adjacent string literals joined, so "not " / "bookable margin" split
     across lines reads as one phrase."""
-    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines()
-             if not ln.lstrip().startswith("#")]
+    lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith("#")]
     return re.sub(r"""(["'])\s*\n\s*\1""", "", "\n".join(lines))
+
+
+def scan_source_text(src: str) -> list[str]:
+    """What the source scan flags in one file's text."""
+    return margin_violations(code_without_comments(src), "crm_proxy",
+                             whole_word=True)
+
+
+def test_source_scan_self_test_catches_plurals_and_snake_case():
+    src = (
+        "# margin in a comment is exempt\n"
+        "gross_margin_pct = 1\n"
+        "label = 'margins'\n"
+        "other = 'Margin'\n"
+        "fine = 'marginal win gain'\n"
+        "ok = 'cost proxy, not margin'\n"
+        "ok2 = ('not '\n"
+        "       'bookable margin, and more')\n"
+    )
+    hits = scan_source_text(src)
+    assert len(hits) == 3, hits
+    joined = " | ".join(hits)
+    assert "gross_margin_pct" in joined and "margins" in joined
+    assert "Margin" in joined
+    assert "marginal" not in joined
 
 
 def test_source_scan_every_margin_word_in_code_is_an_allowed_negation():
@@ -296,7 +332,6 @@ def test_source_scan_every_margin_word_in_code_is_an_allowed_negation():
     for path in paths:
         if path == owner:
             continue
-        for snippet in margin_violations(_code_without_comments(path),
-                                         "crm_proxy", whole_word=True):
+        for snippet in scan_source_text(path.read_text(encoding="utf-8")):
             bad.append((path.relative_to(ROOT).as_posix(), snippet))
     assert bad == [], bad

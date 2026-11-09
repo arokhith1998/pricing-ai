@@ -38,10 +38,15 @@ This is why the opportunity test traces to a per-item source and why the digest
 and summary checks, which have only the whole dict, should be read as
 "no figure is wildly off", not as proof of each figure.
 
-Formats the parser does not understand fail closed (the bare number is compared
-unscaled and almost never matches): "1.2M" without "$", "$1.2 bn", "18 pct",
-"12 bps", and "Q4 2026". A reply that uses them is reported untraceable and
-needs the parser extended, never a silent pass.
+Formats the parser does not understand fail closed, unconditionally: a number
+followed by an unknown unit (pct, pp, pts, bps, bp, bn, basis points,
+percentage points, or a bare M, K or B with no "$") and the year of a quarter
+label ("Q4 2026") are reported untraceable whatever the source holds, so "12
+bps" cannot trace by coincidence to a leaf 12. A reply that uses them needs the
+parser extended, never a silent pass. Only the listed units are recognised;
+an unlisted alphabetic unit after a bare number ("12 widgets") is read as a
+plain count. An en dash (U+2013) before a figure is read as a minus, like
+U+2212. "-0.0%" against a 0.0 leaf fails closed (a rendered zero has no sign).
 
 Percent tokens match a leaf either as a fraction (x100) or as an already-percent
 value, because the digest and the opportunities use both.
@@ -71,15 +76,26 @@ BOOK = ROOT / "data" / "synthetic" / "deals.csv"
 # an explicit, reviewed exception with its source line.
 TEMPLATE_CONSTANTS = (
     r"\b2 pt\b",   # copilot._opp_raise_prices: "Test a 2 pt list price increase"
+    # copilot._opp_excess_leakage methodology prose "(40% recoverable
+    # assumption)" (copilot.py:301), the literal of recoverable_share = 0.40
+    # (copilot.py:277). Only this exact constant is exempt, not any integer.
+    r"\(40% recoverable assumption\)",
 )
 
 _SUFFIX = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6,
            "b": 1e9, "billion": 1e9}
+# A number followed by one of these units is never traceable: the parser does
+# not understand the unit, so it must not read the bare integer and drop it.
+_UNKNOWN_UNIT = re.compile(
+    r"\s?(?:basis points?|percentage points?|pct|pp|pts?|bps?|bn|mm|mn|[kmb])\b",
+    re.I)
+_QUARTER_LABEL = re.compile(r"\bQ[1-4]\s*$", re.I)
+_MINUS = "-−–"     # hyphen-minus, minus sign, en dash
 _TOKEN = re.compile(
     r"""
-    (?P<money>\$(?P<ms>[-−])?(?P<m>\d[\d,]*(?:\.\d+)?)
+    (?P<money>\$(?P<ms>[-−–])?(?P<m>\d[\d,]*(?:\.\d+)?)
         (?:\s?(?P<suf>million|thousand|billion|[MKBmkb])\b)?)
-  | (?P<pct>(?P<p>\d+(?:\.\d+)?)\s?(?:%|percent))
+  | (?P<pct>(?P<p>\d+(?:\.\d+)?)\s?(?:%|percent\b))
   | (?P<num>(?<![\w.])\d[\d,]*(?:\.\d+)?)
     """, re.X)
 
@@ -169,14 +185,22 @@ def _strip_constants(text: str) -> str:
 
 
 def _scan(text: str):
-    """Yield (match, kind, negative) for each figure; identifiers and ranges
-    such as "D-22" or "OPP-00280" are skipped, not parsed as figures."""
+    """Yield (match, kind, negative, unit) for each figure; identifiers and
+    ranges such as "D-22" or "OPP-00280" are skipped, not parsed as figures.
+    `unit` is the text of an unknown unit right after the figure ("bps", "pct",
+    "bn", a bare "M"), or "" when there is none. A quarter label ("Q4 2026")
+    marks its year as a unit-bearing, hence untraceable, figure.
+
+    Sign: a leading hyphen-minus, U+2212 or en dash U+2013 (an en dash before a
+    figure is read as a minus), the word "minus", or accounting parentheses
+    around money or percent. "-0.0%" against a 0.0 leaf fails closed (the
+    rendered leaf has no sign)."""
     for m in _TOKEN.finditer(text):
         kind = m.lastgroup if m.lastgroup in ("money", "pct", "num") else (
             "money" if m.group("money") else "pct" if m.group("pct") else "num")
         pre = text[:m.start()]
         neg = bool(m.group("ms"))
-        if pre and pre[-1] in "-−":
+        if pre and pre[-1] in _MINUS:
             glued = len(pre) > 1 and (pre[-2].isalnum() or pre[-2] in "._")
             if not glued:
                 neg = True
@@ -187,25 +211,38 @@ def _scan(text: str):
         elif (kind in ("money", "pct") and pre.endswith("(")
               and text[m.end():m.end() + 1] == ")"):
             neg = True            # accounting parentheses
-        yield m, kind, neg
+        unit = _UNKNOWN_UNIT.match(text, m.end())
+        unit_text = unit.group(0) if unit else ""
+        if kind == "num" and _QUARTER_LABEL.search(pre):
+            unit_text = unit_text or " (quarter label)"
+        yield m, kind, neg, unit_text
+
+
+def _display(m, neg, unit) -> str:
+    return (("-" if neg and not m.group(0).startswith("$-") else "")
+            + m.group(0) + unit)
 
 
 def figures_in(text: str) -> list[str]:
     """The figure tokens parsed out of text (money, percent, plain numbers),
     with a leading "-" when the figure is negative."""
-    return [("-" if neg and not m.group(0).startswith("$-") else "") + m.group(0)
-            for m, _, neg in _scan(_strip_constants(text))]
+    return [_display(m, neg, "") for m, _, neg, _ in _scan(_strip_constants(text))]
 
 
 def untraceable_figures(text: str, source) -> list[str]:
     """Figures in `text` with no signed numeric leaf in `source` at the same
     precision. Reference formatting is copilot._money (whole dollars) and
     copilot._pct (one decimal percent); other precisions are compared at the
-    precision the text states. Sign is compared. An empty list means every
-    figure traces."""
+    precision the text states. Sign is compared. A figure followed by an
+    unknown unit (pct, bps, bn, basis points, a bare M or K) or a quarter label
+    is untraceable unconditionally, whatever the source holds. An empty list
+    means every figure traces."""
     idx = source if isinstance(source, _Index) else _Index(source)
     bad = []
-    for m, kind, neg in _scan(_strip_constants(text)):
+    for m, kind, neg, unit in _scan(_strip_constants(text)):
+        if unit:
+            bad.append(_display(m, neg, unit))
+            continue
         sign = "-" if neg else ""
         if kind == "money":
             raw = m.group("m").replace(",", "")
@@ -218,8 +255,7 @@ def untraceable_figures(text: str, source) -> list[str]:
             raw = m.group("num").replace(",", "")
             ok = idx.has_num(sign + raw, _decimals(raw))
         if not ok:
-            bad.append(("-" if neg and not m.group(0).startswith("$-") else "")
-                       + m.group(0))
+            bad.append(_display(m, neg, ""))
     return bad
 
 
@@ -328,13 +364,6 @@ def opp_source(o: copilot.Opportunity, analysis: dict) -> dict:
     return src
 
 
-# Constants the code writes into methodology prose (not data). Each is an
-# explicit reviewed exception; see copilot.py recoverable_share assignments.
-TEMPLATE_CONSTANTS += (
-    r"\b\d+% recoverable assumption",
-)
-
-
 def assert_opportunity_traces(o: copilot.Opportunity, analysis: dict) -> None:
     src = _Index(opp_source(o, analysis))
     for t in opp_texts(o):
@@ -375,6 +404,12 @@ def test_helper_compares_signed_values():
         assert untraceable_figures(text, neg52) == [], text
         assert untraceable_figures(text, {"a": 0.052}) != [], text
     assert untraceable_figures("5.2%", neg52) != []
+    # En dash is read as a minus, like U+2212.
+    assert untraceable_figures("–18%", pos18) != []
+    assert untraceable_figures("–5.2%", neg52) == []
+    # "-0.0%" against 0.0 fails closed (documented).
+    assert untraceable_figures("-0.0%", {"a": 0.0}) != []
+    assert untraceable_figures("0.0%", {"a": 0.0}) == []
     # Money, including accounting parentheses and "$-".
     assert untraceable_figures("($1,234)", {"a": -1234}) == []
     assert untraceable_figures("($1,234)", {"a": 1234}) != []
@@ -385,10 +420,28 @@ def test_helper_compares_signed_values():
                                {"a": 64647544, "b": 1087}) == []
 
 
-def test_unparsed_formats_fail_closed():
-    src = {"a": 1_200_000.0, "b": 0.18, "c": 0.0012, "d": 4}
-    for text in ("1.2M", "$1.2 bn", "18 pct", "12 bps", "Q4 2026"):
+_UNPARSED = ("1.2M", "$1.2 bn", "18 pct", "12 bps", "3 bps", "25 pct",
+             "12 bp", "12 basis points", "1.5 percentage points", "5 pts",
+             "$1.2 B", "Q4 2026", "3 K")
+
+
+def test_unparsed_formats_fail_closed_even_when_the_number_is_in_the_source():
+    """The number is present in the source on purpose: the unit, not the
+    digits, makes the figure untraceable."""
+    src = {"a": 1_200_000.0, "b": 0.18, "c": 0.0012, "d": 4, "e": 12, "f": 3,
+           "g": 25, "h": 1.2, "i": 18, "j": 2026, "k": 1.5, "l": 5, "m": 1200}
+    for text in _UNPARSED:
         assert untraceable_figures(text, src) != [], text
+
+
+def test_unparsed_formats_fail_closed_against_the_real_index(index):
+    """Against the real whole-analysis index, where small integers trace by
+    coincidence, the unit alone must keep these untraceable."""
+    for text in _UNPARSED:
+        assert untraceable_figures(text, index) != [], text
+    # Control: the same bare integers DO trace without the unit, which is
+    # exactly the coincidence the unit rule closes.
+    assert untraceable_figures("12 deals", index) == []
 
 
 def test_measured_coincidence_rates_stay_in_the_documented_bands(analysis, index):
@@ -406,11 +459,11 @@ def test_measured_coincidence_rates_stay_in_the_documented_bands(analysis, index
     pct_1dp = rate(lambda: f"{rng.uniform(1, 60):.1f}%")
     pct_int = rate(lambda: f"{rng.randint(1, 60)}%")
     small_count = rate(lambda: f"{rng.randint(1, 40)} deals")
-    assert whole_dollar < 0.02          # strong
-    assert millions_1dp > 0.05          # weak
-    assert pct_1dp > 0.10               # weak
-    assert pct_int > 0.60               # near meaningless
-    assert small_count > 0.20           # weak, roughly one in three
+    assert 0.0 <= whole_dollar < 0.02        # strong
+    assert 0.03 < millions_1dp < 0.20        # weak (measured 0.085)
+    assert 0.10 < pct_1dp < 0.35             # weak (measured 0.203)
+    assert 0.60 < pct_int < 0.90             # near meaningless (0.762)
+    assert 0.20 < small_count < 0.50         # weak (0.328)
     print(f"MEASURED whole_dollar={whole_dollar:.3f} millions_1dp="
           f"{millions_1dp:.3f} pct_1dp={pct_1dp:.3f} pct_int={pct_int:.3f} "
           f"small_count={small_count:.3f}")
