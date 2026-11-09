@@ -138,3 +138,4 @@
 {"ts": "2026-11-09T18:18:45Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
 {"ts": "2026-11-09T18:18:46Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T18:18:46Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:33:29Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #74"}
