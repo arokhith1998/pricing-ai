@@ -102,10 +102,10 @@ def _blank_periods(text: str):
     """(text with period labels blanked out, [period labels found])."""
     found = [m.group(0) for m in _PERIOD.finditer(text)]
     return _PERIOD.sub(lambda m: " " * len(m.group(0)), text), found
-_MINUS = "-−–"     # hyphen-minus, minus sign, en dash
+_MINUS = "-\u2212\u2013"     # hyphen-minus, minus sign, en dash
 _TOKEN = re.compile(
     r"""
-    (?P<money>\$(?P<ms>[-−–])?(?P<m>\d[\d,]*(?:\.\d+)?)
+    (?P<money>\$(?P<ms>[-\u2212\u2013])?(?P<m>\d[\d,]*(?:\.\d+)?)
         (?:\s?(?P<suf>million|thousand|billion|[MKBmkb])\b)?)
   | (?P<pct>(?P<p>\d+(?:\.\d+)?)\s?(?:%|percent\b))
   | (?P<num>(?<![\w.])\d[\d,]*(?:\.\d+)?)
@@ -406,18 +406,18 @@ def test_helper_skips_identifiers_and_ranges_but_checks_range_percents():
 def test_helper_compares_signed_values():
     pos18, neg52 = {"a": 0.18}, {"a": -0.052}
     # A negative figure cannot trace to a positive leaf, in every notation.
-    for text in ("-18%", "−18%", "minus 18%", "(18%)"):
+    for text in ("-18%", "\u221218%", "minus 18%", "(18%)"):
         assert untraceable_figures(text, pos18) != [], text
     assert untraceable_figures("18%", pos18) == []
     assert untraceable_figures("+18%", pos18) == []
     # A correct negative traces to the negative leaf, and not to a positive.
-    for text in ("-5.2%", "−5.2%", "minus 5.2%", "(5.2%)"):
+    for text in ("-5.2%", "\u22125.2%", "minus 5.2%", "(5.2%)"):
         assert untraceable_figures(text, neg52) == [], text
         assert untraceable_figures(text, {"a": 0.052}) != [], text
     assert untraceable_figures("5.2%", neg52) != []
     # En dash is read as a minus, like U+2212.
-    assert untraceable_figures("–18%", pos18) != []
-    assert untraceable_figures("–5.2%", neg52) == []
+    assert untraceable_figures("\u201318%", pos18) != []
+    assert untraceable_figures("\u20135.2%", neg52) == []
     # "-0.0%" against 0.0 fails closed (documented).
     assert untraceable_figures("-0.0%", {"a": 0.0}) != []
     assert untraceable_figures("0.0%", {"a": 0.0}) == []

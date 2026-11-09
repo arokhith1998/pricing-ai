@@ -136,17 +136,17 @@ def test_guard_passes_sentence_end_and_figureless_lead_ins(ok):
     "not margin (40%)",
     "not margin: $1,200",
     "not margin... 40%",
-    "not margin… 40%",
+    "not margin\u2026 40%",
     "not margin: -5%",
-    "not margin: −40%",
-    "not margin: –40%",
+    "not margin: \u221240%",
+    "not margin: \u201340%",
     "not margin: about 40%",
     "not margin, i.e. 40%",
     "not margin, e.g. $5",
-    "not margin — 40%",
+    "not margin \u2014 40%",
     # Whitespace and unicode folding cannot smuggle one through.
     "not margin compression",
-    "ＭＡＲＧＩＮ is 40%",   # fullwidth MARGIN
+    "\uff2d\uff21\uff32\uff27\uff29\uff2e is 40%",   # fullwidth MARGIN
     "mar​gin is 40%",                            # zero width space
 ])
 def test_guard_fails_affirmative_or_near_miss_margin(bad):

@@ -69,8 +69,8 @@ _ALLOWED_PROXY_PHRASES: tuple[str, ...] = (
 # caught; a figure after a sentence end is deliberately allowed. This is a
 # guard for text our own code and prompts produce, not an adversarial filter.
 _LEAD_IN = (
-    r"(?:\.\.\.|…|[:,(–—])"
-    r"\s*[-−–]?\s*"
+    r"(?:\.\.\.|\u2026|[:,(\u2013\u2014])"
+    r"\s*[-\u2212\u2013]?\s*"
     r"(?:(?:about|roughly|around|nearly|over|under|approximately|circa"
     r"|i\.e\.|e\.g\.)\s*,?\s*)?"
     r"[\d$%]"
