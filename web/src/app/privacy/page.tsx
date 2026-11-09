@@ -95,8 +95,9 @@ export default function PrivacyPage() {
           requested and recommended discount, the policy floor, the figures
           shown with the verdict, the justification, and the name of the
           person who logged it. Retaining this is the product: the decision
-          log is your audit trail, kept for the duration of your engagement
-          plus the audit window in the retention schedule below. This does
+          log is your audit trail, kept until it is deleted. There is no
+          automatic purge today: we delete it manually, by customer
+          reference, on request or at the end of the engagement. This does
           not change how we handle uploaded files: row-level CSV deal data
           is still processed in memory and never stored.
           <br />
@@ -138,8 +139,10 @@ export default function PrivacyPage() {
           question text, and (for Competitor Watch) the public pricing-page
           text</span> to our cloud LLM provider, Anthropic. See our{" "}
           <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
-          for its data-processing addendum link. We do not send row-level
-          deal data. Anthropic&rsquo;s Commercial Terms state that it may
+          for its data-processing addendum link. Deal rows from CSV
+          uploads are never sent. Documents you upload to the copilot for
+          Q&amp;A are sent in chunks, so do not upload deal exports as
+          documents. Anthropic&rsquo;s Commercial Terms state that it may
           not train models on customer content, and we do not authorize it
           to.
         </p>
@@ -253,8 +256,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="font-medium text-fg">Decision log (copilot recommendations, approvals, exception requests):</span>{" "}
-            for the duration of your active engagement, plus 12 months for
-            audit purposes.
+            kept until deleted. No automatic purge exists; we delete it
+            manually, by customer reference, on request or at the end of
+            the engagement.
           </li>
         </ul>
       </Section>

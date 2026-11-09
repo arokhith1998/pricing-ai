@@ -13,17 +13,19 @@ this page is how that promise is met by one person under stress. Companion:
 - Unexpected access: Neon logs show reads/writes you did not make; Render or Vercel
   shows deploys, env-var changes, or traffic you did not initiate.
 - Customer credential exposure: any customer integration credential (a Salesforce token
-  today; HubSpot, Stripe and Chargebee credentials are planned, none is held yet) or the
+  today; HubSpot, Stripe and Chargebee are planned connectors, not yet built, and no
+  credential for them is held) or the
   token encryption key found outside its secret store.
 - Credential exposure: any key, password, or access code found in a public repo, paste,
   email thread, or screenshot.
 - Provider notice: breach notification from Neon, Render, Vercel, Anthropic, Resend,
-  Microsoft, or GoDaddy affecting our tenancy.
+  Perplexity, Tavily, Microsoft, or GoDaddy affecting our tenancy.
 - Customer report: "we received something odd" or "someone has our numbers."
 - Register mismatch: the data register and reality disagree about what we hold or where.
 
 ## 2. Scope (first hour)
 
+<!-- docs/ops/data-register.md is on the org branch until PR 62 merges. -->
 Open `docs/ops/data-register.md` and answer in writing: which customers' data could be
 affected, what categories, the time window, and whether exposure is confirmed or only
 possible. Name the categories using the data classes the register lists in Part A: customer
@@ -31,10 +33,11 @@ deal rows, Salesforce access and refresh tokens, the Salesforce token encryption
 (`SALESFORCE_TOKEN_ENCRYPTION_KEY`), the decision log, confirmed mapping headers, and the
 per-tenant derived snapshot. Also name lead contact details and access codes. The snapshot
 is approved but not built; until the register shows it as built, it holds nothing and is
-out of scope for any current incident. The register also lists categories reserved for
-future intake (billing credentials, usage event streams, and customer-supplied cost data);
-none is held today, so say so explicitly in the scope note rather than omitting them, and
-re-check the register for a new row before each scoping. The register is why scoping takes minutes
+out of scope for any current incident. The register notes two classes not yet in the
+system (billing credentials and usage event streams); cost data is not in the register at
+all yet (decision D2 is open). None of the three is held today, so say so explicitly in the
+scope note rather than omitting them, and re-check the register for a new row before each
+scoping. The register is why scoping takes minutes
 instead of days; if it cannot answer these questions, that gap is a finding for the
 post-incident review.
 
@@ -51,12 +54,16 @@ post-incident review.
   and Chargebee are planned connectors: when each ships, add its vendor-side revoke step
   here in the same change.
 - Rotate `SALESFORCE_TOKEN_ENCRYPTION_KEY` on any suspected exposure of the key or of the
-  token table. Runbook step: generate a new high-entropy secret, re-encrypt the stored
-  tokens under it per the written migration plan (changing the key without re-encrypting
-  breaks every connection), update the Vercel and Render environment variables, redeploy,
-  and confirm a test connection still reads. If the tokens were also exposed, revoking them
-  at the vendor side (previous step) matters more than the re-encryption, because the old
-  ciphertext is then worthless; in that case customers reconnect after the rotation.
+  token table. The path that exists today, in this order:
+  1. Revoke each customer's grant at the Salesforce side (connected-app access in their org).
+  2. Disconnect Salesforce per tenant, or delete the `salesforce_connections` rows by
+     `customer_ref`, and verify the cascading mapping rows are gone.
+  3. Generate a new high-entropy secret, update `SALESFORCE_TOKEN_ENCRYPTION_KEY` in the
+     Vercel and Render environment variables, and redeploy.
+  4. Each customer reconnects Salesforce.
+  Re-encrypting stored tokens in place is not supported: there is a single key and no
+  dual-key decrypt. Rotating the key before step 1 leaves the refresh tokens live at
+  Salesforce, so never reorder these steps.
 - Revoke or rotate customer access codes and invalidate outstanding magic links.
 - Pause the API (Render service suspend) if it is a plausible vector; the static site can
   stay up.
@@ -79,7 +86,9 @@ post-incident review.
 > is confirmed versus possible].
 > Subprocessors involved: [if a provider was the source, name it from pricekeel.com/subprocessors,
 > for example Neon, Render, Vercel, Resend, or Anthropic (our LLM provider, which receives
-> aggregate figures and column header names only, never deal rows); otherwise write "none"].
+> aggregate figures, column header names, uploaded document chunks, question text and
+> public pricing-page text for narration, header mapping, copilot answers and plan
+> extraction; deal rows from CSV uploads are never sent to it); otherwise write "none"].
 > When: [detection date/time; window of exposure as best known].
 > What I have done: [containment actions taken, with timestamps].
 > What I am still doing: [open investigation items and when you will hear next; commit to a

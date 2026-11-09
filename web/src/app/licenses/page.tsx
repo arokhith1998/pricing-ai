@@ -6,8 +6,10 @@ export const metadata: Metadata = { title: "Open-Source Licenses · Pricekeel" }
 // versions read from node_modules) and requirements.txt (installed versions
 // read from the project venv). Direct runtime dependencies only, not
 // transitive packages and not devDependencies. Update when a direct
-// dependency is added, removed or relicensed. The license string is the
-// one declared in the installed package metadata.
+// dependency is added, removed or relicensed. License strings come from the
+// installed package metadata; where that metadata is compound (numpy lists
+// several licenses, fastembed has a free-text "Apache License"), the string
+// shown is a summary of it, not the verbatim field.
 
 type Dep = { name: string; license: string; url: string; layer: string };
 
@@ -29,8 +31,10 @@ const DEPS: Dep[] = [
   { name: "python-multipart", license: "Apache-2.0", url: "https://github.com/Kludex/python-multipart", layer: "api" },
   { name: "psycopg", license: "LGPL-3.0-only", url: "https://github.com/psycopg/psycopg", layer: "api" },
   { name: "requests", license: "Apache-2.0", url: "https://github.com/psf/requests", layer: "api" },
-  { name: "streamlit", license: "Apache-2.0", url: "https://github.com/streamlit/streamlit", layer: "api" },
-  { name: "altair", license: "BSD-3-Clause", url: "https://github.com/vega/altair", layer: "api" },
+
+  // --- Dashboard ---
+  { name: "streamlit", license: "Apache-2.0", url: "https://github.com/streamlit/streamlit", layer: "dashboard" },
+  { name: "altair", license: "BSD-3-Clause", url: "https://github.com/vega/altair", layer: "dashboard" },
 
   // --- Analytics + ML ---
   { name: "pandas", license: "BSD-3-Clause", url: "https://github.com/pandas-dev/pandas", layer: "analytics" },
@@ -54,6 +58,7 @@ const DEPS: Dep[] = [
 const LAYERS: Record<string, string> = {
   web: "Web UI",
   api: "API layer",
+  dashboard: "Dashboard",
   analytics: "Analytics + ML",
   ingest: "Document ingest",
   llm: "LLM and search clients",
