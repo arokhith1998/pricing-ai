@@ -42,6 +42,7 @@ const SUBPROCESSORS: Sub[] = [
     region: "United States (AWS us-east)",
     dataCategory: "Lead contact details, access codes, encrypted Salesforce tokens, connection metadata, logged pricing decisions",
     dpa: "https://neon.com/dpa",
+    dpaLabel: "DPA (Neon schedule to the Databricks DPA)",
   },
   {
     name: "Anthropic",
@@ -50,7 +51,7 @@ const SUBPROCESSORS: Sub[] = [
     region:
       "United States. Pricekeel does not pin a processing region; see the Anthropic DPA for its processing locations and subprocessors",
     dataCategory:
-      "Aggregate analysis figures, column header names, document chunks you upload to the copilot, your question text, public pricing-page text. Never row-level customer deal data",
+      "Aggregate figures, column header names, uploaded document chunks, question text, public pricing-page text. Never deal rows from CSV uploads or live Salesforce rows.",
     dpa: "https://www.anthropic.com/legal/data-processing-addendum",
   },
   {

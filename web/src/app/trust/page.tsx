@@ -84,9 +84,10 @@ export default function TrustPage() {
             We do not use Customer Data to train any model. Our LLM
             provider, Anthropic, is bound by its Commercial Terms, which
             state that it may not train models on customer content, and by
-            its data-processing addendum. Because only aggregates and
-            header names are sent, row-level deal data is never in what it
-            receives.
+            its data-processing addendum. Deal rows from CSV uploads and live
+            Salesforce rows are never sent; documents you upload to the
+            copilot are sent in chunks, so do not upload deal exports as
+            documents.
           </li>
         </ul>
       </Section>
