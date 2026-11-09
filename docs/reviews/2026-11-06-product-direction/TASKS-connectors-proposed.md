@@ -516,3 +516,12 @@ PK-48 (HubSpot sync in the web tier) must loosen the web `CanonicalDeal` so `opp
 - PK-44 (register) lists `source_connections` and `source_connection_config`; PK-43 delete-by-tenant covers the config through the cascade.
 - `neon/MIGRATIONS.md` deploy-order table lacks rows for the PK-24 and PK-41 pairs; whichever task next holds `neon/**` adds them (or PK-70).
 - Deploy order: PK-24's migration, then PK-41's, before any PK-42 or PK-43 code deploys. Both must be applied to production Neon by the founder or with explicit authorization.
+
+## Lead decisions from the PR 89 review, 2026-11-09
+
+- Reruns of the PK-41 up migration are safe only before the PK-42 cutover. After cutover, never rerun the up and never down-then-up: the backfill would resurrect a disconnected or revoked Salesforce row from the legacy table. Until PK-70 drops the legacy tables, PK-42 disconnect and PK-43 revoke also delete the legacy `salesforce_connections` and `salesforce_mappings` rows for that tenant; acceptance lines added to PK-42, PK-43 and PK-70.
+- The down's tenant_ref drift refusal is narrowed: refuse only when a drifted `tenant_ref` appears as `customer_ref` in decision_log, source_mappings, source_connections, salesforce_connections or salesforce_mappings (the actual data-loss condition); routine code issuance before PK-43 no longer blocks a rollback.
+- `last_sync_counts` holds non-negative integers under an allowlisted set of keys only; `mapping` values are strings only; `list_price_set` is a jsonb array of identifier strings and the "never amounts" rule is enforced by the app, stated in the column comment.
+- `tenant_ref` for codes that existed at migration time equals the access code (a bearer secret) until PK-43 re-keys; PK-43's operator script and PK-44's register treat it as secret and never log it.
+- PK-42 returns empty strings for `user_id`, `token_type` and `issued_at`, which are display-only and were not copied; no extra neon claim. PK-42's token-scan acceptance covers `last_error`, `scope` and `external_account_id`, which are free text.
+- Migrations take `set local lock_timeout = '5s'` and lock `access_codes` in ACCESS EXCLUSIVE up front when they will ALTER it, to avoid the lock-upgrade window.
