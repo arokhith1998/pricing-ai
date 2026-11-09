@@ -110,6 +110,14 @@ founder names (the founder for decisions and specs), and `merged --human-approve
 records the founder's explicit acceptance of the content, not a merge to main.
 First applied to PK-30 (the lens spec, accepted by the founder on 2026-11-07).
 
+*Cap raised 2026-11-09.* `max_concurrent` is 4, by founder decision. The cap
+was set at two when agents shared one checkout. Eight tasks have since run in
+their own worktrees (ADR-002) with no overwrite, and the remaining risk is
+review bandwidth, not file collision. Four lets two connector tasks run beside
+one redesign task and one rework. The config change was written through the
+module's own save path and logged as a `config` event; `agentctl` has no
+subcommand for it yet.
+
 ---
 
 ## ADR-004: Merging stays human, because GitHub cannot enforce it here

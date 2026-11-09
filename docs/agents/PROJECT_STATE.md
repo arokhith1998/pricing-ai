@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/2
-Updated: 2026-11-09T19:08:27Z
+Active work: 5/4
+Updated: 2026-11-09T19:14:18Z
 
 ## IN_PROGRESS
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
