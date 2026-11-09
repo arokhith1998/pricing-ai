@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/salesforce-client", () => ({
@@ -26,7 +28,9 @@ vi.mock("@/lib/salesforce-client", () => ({
 }));
 
 import {
+  assessReadiness,
   fetchSalesforceCanonicalDeals,
+  SOURCE_SYSTEMS,
   type CanonicalCrmDeal,
   type CanonicalDeal,
 } from "@/lib/salesforce-adapter";
@@ -79,5 +83,40 @@ describe("CanonicalDeal adapter output (PK-26)", () => {
     );
     expect("source_account_id" in records[1]).toBe(false);
     expect(records[1].source_record_id).toBe("006D");
+  });
+
+  it("readiness is unchanged by the provenance fields", async () => {
+    const { records, readiness } = await fetchSalesforceCanonicalDeals(
+      "tenant-a",
+      DEFAULT_SALESFORCE_MAPPING,
+    );
+    const stripped = records.map((r) =>
+      Object.fromEntries(
+        Object.entries(r).filter(([k]) => !NEW_KEYS.includes(k)),
+      ),
+    ) as CanonicalDeal[];
+    expect(readiness).toEqual(assessReadiness(stripped, DEFAULT_SALESFORCE_MAPPING));
+    expect(readiness.records_fetched).toBe(2);
+    expect(readiness.closed_usable).toBe(0);
+    expect(readiness.open_usable).toBe(0);
+  });
+
+  it("source_url equals salesforce_url", async () => {
+    const { records } = await fetchSalesforceCanonicalDeals(
+      "tenant-a",
+      DEFAULT_SALESFORCE_MAPPING,
+    );
+    for (const r of records) expect(r.source_url).toBe(r.salesforce_url);
+  });
+});
+
+describe("SourceSystem parity with pricing/schema.py", () => {
+  it("TypeScript union has exactly the Python enum members", () => {
+    const text = readFileSync(resolve(process.cwd(), "../pricing/schema.py"), "utf-8");
+    const block = text.match(/class SourceSystem\([^)]*\):([\s\S]*?)(?=\nclass |\n\S)/);
+    expect(block).not.toBeNull();
+    const members = [...block![1].matchAll(/^\s+[A-Z_]+\s*=\s*"([^"]+)"/gm)].map((m) => m[1]);
+    expect(members.length).toBeGreaterThan(0);
+    expect([...SOURCE_SYSTEMS].sort()).toEqual([...members].sort());
   });
 });

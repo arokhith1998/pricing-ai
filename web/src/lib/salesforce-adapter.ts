@@ -15,13 +15,15 @@ type SalesforceRecord = Record<string, unknown> & {
 };
 
 // Mirrors pricing/schema.py SourceSystem and CostBasis (PK-23, ADR-006).
-export type SourceSystem =
-  | "csv"
-  | "salesforce"
-  | "hubspot"
-  | "cpq"
-  | "billing"
-  | "manual";
+export const SOURCE_SYSTEMS = [
+  "csv",
+  "salesforce",
+  "hubspot",
+  "cpq",
+  "billing",
+  "manual",
+] as const;
+export type SourceSystem = (typeof SOURCE_SYSTEMS)[number];
 export type CostBasis = "crm_proxy" | "declared_cost" | "erp_verified";
 
 export type CanonicalDeal = {
@@ -264,9 +266,11 @@ export async function fetchSalesforceCanonicalDeals(
     const list = mappedList ?? lineListValue(lines);
     const booked = mappedBooked ?? asNumber(record.Amount) ?? lineBookedValue(lines);
     const opportunityId = asText(record.Id);
+    const accountId = asText(record.AccountId);
+    const recordUrl = `/lightning/r/Opportunity/${encodeURIComponent(opportunityId)}/view`;
     return {
       opportunity_id: opportunityId,
-      account_id: asText(record.AccountId),
+      account_id: accountId,
       account_name:
         relationValue(record, "Account", "Name") || asText(record.Name) || opportunityId,
       outcome: !isClosed ? "open" : isWon ? "closed_won" : "closed_lost",
@@ -295,11 +299,11 @@ export async function fetchSalesforceCanonicalDeals(
         mappedValue(record, config.mapping.competitor_field),
       ),
       currency_iso: asText(record.CurrencyIsoCode),
-      salesforce_url: `/lightning/r/Opportunity/${encodeURIComponent(opportunityId)}/view`,
+      salesforce_url: recordUrl,
       source_system: "salesforce",
       source_record_id: opportunityId,
-      ...(asText(record.AccountId) ? { source_account_id: asText(record.AccountId) } : {}),
-      source_url: `/lightning/r/Opportunity/${encodeURIComponent(opportunityId)}/view`,
+      ...(accountId ? { source_account_id: accountId } : {}),
+      source_url: recordUrl,
     };
   });
 
