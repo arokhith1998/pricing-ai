@@ -27,14 +27,14 @@ import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
 
 from pricing import model
-from pricing.schema import DEFAULT_POLICY_THRESHOLD
+from pricing.schema import DEFAULT_POLICY_THRESHOLD, SourceSystem
 
 logger = logging.getLogger("pricekeel.governance")
 
@@ -51,6 +51,73 @@ EXCEPTION_MAX_PCT = 40.0
 FLOOR_PCT_DEFAULT = DEFAULT_POLICY_THRESHOLD * 100.0
 
 DECISION_KINDS = ("copilot", "exception")
+
+# --- exception_source: where a logged exception came from ----------------------
+# New rows carry payload["source"] = a pricing.schema.SourceSystem value
+# ("salesforce", "csv", ...). Rows written before 2026-11 carry the legacy
+# strings below; they must keep resolving, both when a row is read and when the
+# log is filtered, because the decision log is append-only and is never
+# rewritten. A Salesforce writeback receipt is no longer a separate source: it
+# is a "salesforce" row whose event is one of _WRITEBACK_EVENTS (legacy rows
+# carry source "salesforce_crm_writeback" instead).
+_LEGACY_SOURCE_ALIASES = {
+    "salesforce_crm": "salesforce",
+    "salesforce_crm_writeback": "salesforce",
+    "sfdc": "salesforce",
+    "hubspot_crm": "hubspot",
+}
+_LEGACY_WRITEBACK_SOURCE = "salesforce_crm_writeback"
+_WRITEBACK_EVENTS = ("salesforce_writeback_succeeded", "salesforce_writeback_failed")
+_SOURCE_SYSTEMS = frozenset(m.value for m in SourceSystem)
+# SQL twin of is_writeback_receipt, for the filter pushed into the query.
+_NOT_RECEIPT_SQL = (
+    "(coalesce(payload->>'source', '') <> %s "
+    "and coalesce(payload->>'event', '') <> all(%s))"
+)
+_NOT_RECEIPT_VALS: tuple = (_LEGACY_WRITEBACK_SOURCE, list(_WRITEBACK_EVENTS))
+
+
+def resolve_source(value: Any) -> str:
+    """A stored source string as its SourceSystem value; legacy strings map to
+    their system, a recognized value is returned as is, anything else (or
+    blank) is returned stripped and lower-cased unchanged."""
+    text = str(value or "").strip().lower()
+    return _LEGACY_SOURCE_ALIASES.get(text, text)
+
+
+def _requested_systems(source: "str | Iterable[str]") -> set[str]:
+    wanted = [source] if isinstance(source, str) else list(source)
+    return {resolve_source(v) for v in wanted}
+
+
+def source_spellings(source: "str | Iterable[str] | None") -> list[str]:
+    """Every stored spelling that resolves to the requested source(s).
+
+    Filtering the decision log by "salesforce" must also find rows stored as
+    "salesforce_crm", so the filter matches the resolved system, not the raw
+    string. An empty list means no source filter.
+    """
+    if source is None:
+        return []
+    systems = _requested_systems(source)
+    spellings = set(systems)
+    spellings.update(a for a, target in _LEGACY_SOURCE_ALIASES.items()
+                     if target in systems)
+    return sorted(spellings)
+
+
+def exception_source(payload: dict) -> str:
+    """The resolved source system of a logged exception payload ("" when the
+    row predates provenance, e.g. a demo /exceptions row)."""
+    return resolve_source((payload or {}).get("source"))
+
+
+def is_writeback_receipt(payload: dict) -> bool:
+    """True for the append-only record of a write-back attempt, not a decision."""
+    payload = payload or {}
+    return (str(payload.get("source") or "").strip().lower() == _LEGACY_WRITEBACK_SOURCE
+            or payload.get("event") in _WRITEBACK_EVENTS)
+
 
 
 def _now_utc() -> datetime:
@@ -163,14 +230,20 @@ class DecisionStore:
 
     # -- read ----------------------------------------------------------------
     def list(self, *, kind: str | None = None, session_id: str | None = None,
-              deal_id: str | None = None, source: str | None = None,
+              deal_id: str | None = None,
+              source: "str | Iterable[str] | None" = None,
               since: datetime | None = None, limit: int = 200,
               newest_first: bool = True,
-              customer_ref: str = "default") -> list[dict]:
+              customer_ref: str = "default",
+              exclude_receipts: bool = False) -> list[dict]:
         """Rows matching the filters, database and memory merged the same way.
 
         Tenant-scoped: only rows for `customer_ref` are returned (Finding 3).
         One customer's decision log is invisible to another.
+
+        `source` is a SourceSystem value or an iterable of them; legacy
+        spellings of the same system match too (see source_spellings).
+        `exclude_receipts` drops write-back receipts (see is_writeback_receipt).
         """
         rows: list[dict] = []
         url = _db_url()
@@ -188,8 +261,11 @@ class DecisionStore:
                 clauses.append("deal_id = %s")
                 vals.append(deal_id)
             if source is not None:
-                clauses.append("payload->>'source' = %s")
-                vals.append(source)
+                clauses.append("payload->>'source' = any(%s)")
+                vals.append(source_spellings(source))
+            if exclude_receipts:
+                clauses.append(_NOT_RECEIPT_SQL)
+                vals.extend(_NOT_RECEIPT_VALS)
             if since is not None:
                 clauses.append("created_at >= %s")
                 vals.append(since)
@@ -210,7 +286,7 @@ class DecisionStore:
         with self._lock:
             mem = [r for r in self._memory
                    if self._matches(r, kind, session_id, deal_id, source,
-                                    since, customer_ref)]
+                                    since, customer_ref, exclude_receipts)]
         seen = {r.get("id") for r in rows}
         rows.extend(r for r in mem if r.get("id") not in seen)
         rows.sort(key=lambda r: (_parse_iso(r.get("created_at", ""))
@@ -219,8 +295,9 @@ class DecisionStore:
         return rows[:limit]
 
     def latest_by_deal(self, *, kind: str, deal_ids: list[str],
-                       source: str | None = None,
-                       customer_ref: str = "default") -> dict[str, dict]:
+                       source: "str | Iterable[str] | None" = None,
+                       customer_ref: str = "default",
+                       exclude_receipts: bool = False) -> dict[str, dict]:
         """Newest matching row for each requested deal in one database query."""
         unique = list(dict.fromkeys(str(value) for value in deal_ids if value))[:5000]
         if not unique:
@@ -231,8 +308,11 @@ class DecisionStore:
             clauses = ["customer_ref = %s", "kind = %s", "deal_id = any(%s)"]
             vals: list[Any] = [customer_ref, kind, unique]
             if source is not None:
-                clauses.append("payload->>'source' = %s")
-                vals.append(source)
+                clauses.append("payload->>'source' = any(%s)")
+                vals.append(source_spellings(source))
+            if exclude_receipts:
+                clauses.append(_NOT_RECEIPT_SQL)
+                vals.extend(_NOT_RECEIPT_VALS)
             query = (
                 f"select distinct on (deal_id) * from {_TABLE} where "
                 + " and ".join(clauses)
@@ -252,6 +332,7 @@ class DecisionStore:
                 if row.get("deal_id") in unique
                 and self._matches(
                     row, kind, None, None, source, None, customer_ref,
+                    exclude_receipts,
                 )
             ]
         for row in memory:
@@ -303,7 +384,8 @@ class DecisionStore:
     @staticmethod
     def _matches(row: dict, kind: str | None, session_id: str | None,
                   deal_id: str | None, source: str | None,
-                  since: datetime | None, customer_ref: str = "default") -> bool:
+                  since: datetime | None, customer_ref: str = "default",
+                  exclude_receipts: bool = False) -> bool:
         if row.get("customer_ref", "default") != customer_ref:
             return False
         if kind and row.get("kind") != kind:
@@ -313,7 +395,10 @@ class DecisionStore:
                 return False
         if deal_id is not None and row.get("deal_id") != deal_id:
             return False
-        if source is not None and (row.get("payload") or {}).get("source") != source:
+        if source is not None and exception_source(
+                row.get("payload") or {}) not in _requested_systems(source):
+            return False
+        if exclude_receipts and is_writeback_receipt(row.get("payload") or {}):
             return False
         if since is not None:
             created = _parse_iso(row.get("created_at", ""))
@@ -456,29 +541,28 @@ def exception_verdict(tm: "model.TrainedModel", X_row, list_acv: float,
 # book's diagnostic aggregates. No row-level customer data beyond what was
 # explicitly logged as decisions.
 
-# Within a CRM workflow row (payload["source"] == "salesforce_crm"), only
-# these events are a fresh exception *request*; "approved"/"rejected" are a
-# decision on one already logged, and "outcome_recorded" is a reconciliation.
+# Within a source-tagged workflow row (payload["source"] a SourceSystem value,
+# or a legacy alias such as "salesforce_crm"), only these events are a fresh
+# exception *request*; "approved"/"rejected" are a decision on one already
+# logged, and "outcome_recorded" is a reconciliation.
 # Legacy /exceptions rows carry no "source"/"event" at all and are always a
-# request (one row per POST). Writeback receipts
-# (source == "salesforce_crm_writeback") are never requests: they are the
-# append-only record of a Salesforce Task attempt/result for a decision
-# already counted. Without this filter the digest counted every kind
-# "exception" row, so one override plus its approval plus one writeback
-# receipt rendered as "3 exception requests" instead of 1 (code-reviewer
-# finding, reproduced).
+# request (one row per POST). Writeback receipts (see is_writeback_receipt) are
+# never requests: they are the append-only record of a Salesforce Task
+# attempt/result for a decision already counted. Without this filter the digest
+# counted every kind "exception" row, so one override plus its approval plus one
+# writeback receipt rendered as "3 exception requests" instead of 1
+# (code-reviewer finding, reproduced).
 _CRM_REQUEST_EVENTS = {"override_requested"}
-_CRM_WRITEBACK_SOURCE = "salesforce_crm_writeback"
+_CRM_WRITEBACK_SOURCE = _LEGACY_WRITEBACK_SOURCE
 
 
 def _is_exception_request(payload: dict) -> bool:
     """True when a kind="exception" row is a fresh request for the digest
     headline, not an approval/rejection, an outcome reconciliation, or a
     writeback receipt."""
-    source = payload.get("source")
-    if source == _CRM_WRITEBACK_SOURCE:
+    if is_writeback_receipt(payload):
         return False
-    if source == "salesforce_crm":
+    if exception_source(payload) in _SOURCE_SYSTEMS:
         return payload.get("event") in _CRM_REQUEST_EVENTS
     return True
 
