@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 3/2
-Updated: 2026-11-09T18:44:49Z
+Updated: 2026-11-09T18:45:44Z
 
 ## IN_PROGRESS
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
@@ -60,6 +60,8 @@ Updated: 2026-11-09T18:44:49Z
   - owns: tools/agentctl.py
 - **PK-4** Triage the six open PRs  (pk-lead)
   - owns: docs/agents/TASKS.md
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
+  - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-8** agentctl cannot expand a claim on an in-flight task  (pk-lead)
   - owns: docs/agents/WORKFLOW.md
 

@@ -193,6 +193,13 @@ prompts: `crm_proxy` renders as "cost proxy, not margin"; `declared_cost` as
 when the basis is `crm_proxy`, and a test (PK-29) asserts it. Net margin per
 deal is not produced for any basis.
 
+*Amended 2026-11-09 (PK-29).* The ban is on affirmative use. A negation that
+tells the reader the figure is not margin is allowed and is the honest form of
+the caveat the product already carries: "not margin", "never labeled margin",
+"not bookable margin", "not cost-based margin". The allowlist lives in
+`pricing/cost_basis.py` and nowhere else; adding a phrase means editing it there
+with a test.
+
 **Context.** The 2026-11-06 product-direction review had three agents propose
 three different enums (ai-engineer: `erp_billing | user_supplied | crm_proxy`;
 data-engineer: six cost-line bases including `bom_standard` and `landed_actual`;

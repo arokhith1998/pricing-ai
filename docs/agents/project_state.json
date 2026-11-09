@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:44:49Z",
+  "updated": "2026-11-09T18:45:44Z",
   "config": {
     "max_concurrent": 2
   },
@@ -1293,6 +1293,37 @@
           "note": "claimed 3 path(s)"
         }
       ]
+    },
+    {
+      "id": "PK-74",
+      "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "pricing/copilot.py",
+        "tests/test_copilot.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "_opp_investigate sums excess_discount_dollars (the column metrics.py puts on top_leak_deals), not discount_amount; the fixture in tests/test_copilot.py uses the real column name",
+        "on the synthetic book, opportunities() fires the investigate type; the PK-29 test_synthetic_book_produces_all_seven_types xfail is removed and passes, or its expectation is corrected with a stated reason for any type that legitimately cannot fire on that book (raise_price thresholds)",
+        "numeric-fidelity and margin-word evals from PK-29 still pass; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py",
+          "tests/test_numeric_fidelity.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:45:44Z",
+      "updated": "2026-11-09T18:45:44Z",
+      "notes": []
     }
   ]
 }
