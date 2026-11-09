@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 3/4
-Updated: 2026-11-09T19:29:27Z
+Updated: 2026-11-09T19:33:22Z
 
 ## IN_PROGRESS
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
@@ -32,8 +32,6 @@ Updated: 2026-11-09T19:29:27Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
-- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
-  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
@@ -42,6 +40,8 @@ Updated: 2026-11-09T19:29:27Z
   - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
+- **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
+  - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
