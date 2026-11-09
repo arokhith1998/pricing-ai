@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:06:42Z",
+  "updated": "2026-11-09T23:19:28Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3544,6 +3544,39 @@
       "created": "2026-11-09T21:44:23Z",
       "updated": "2026-11-09T21:44:23Z",
       "notes": []
+    },
+    {
+      "id": "PK-89",
+      "title": "Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green",
+      "agent": "web-engineer",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "web/src/lib/salesforce-adapter.ts"
+      ],
+      "branch": "agent/web-engineer/PK-89",
+      "worktree": ".claude/worktrees/PK-89",
+      "acceptance": [
+        "SOURCE_SYSTEMS in web/src/lib/salesforce-adapter.ts lists exactly the members of pricing/schema.py SourceSystem on main (csv, salesforce, hubspot, cpq, billing, stripe, chargebee, manual); the parity test in web/test/salesforce-canonical-deal.test.ts passes",
+        "no other change; eslint, tsc, npm test and build green; CI green on the branch; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "web/test/salesforce-canonical-deal.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T23:19:10Z",
+      "updated": "2026-11-09T23:19:28Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:19:23Z",
+          "note": "claimed 1 path(s)"
+        }
+      ]
     }
   ]
 }

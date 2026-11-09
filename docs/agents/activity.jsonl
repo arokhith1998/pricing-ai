@@ -337,3 +337,7 @@
 {"ts": "2026-11-09T23:06:32Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-09T23:06:37Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
 {"ts": "2026-11-09T23:06:42Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:19:10Z", "event": "add", "task": "PK-89", "agent": "web-engineer", "detail": "Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green"}
+{"ts": "2026-11-09T23:19:16Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:19:23Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-09T23:19:28Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 4/4
-Updated: 2026-11-09T23:06:42Z
+Active work: 5/4
+Updated: 2026-11-09T23:19:28Z
 
 ## IN_PROGRESS
 - **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, deps PK-27)
@@ -16,6 +16,8 @@ Updated: 2026-11-09T23:06:42Z
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
+- **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer)
+  - owns: web/src/lib/salesforce-adapter.ts
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
