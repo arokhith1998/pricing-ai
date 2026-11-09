@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:40:47Z",
+  "updated": "2026-11-09T23:41:49Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1846,7 +1846,7 @@
       "id": "PK-41",
       "title": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref",
       "agent": "data-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-24",
         "PK-25"
@@ -1882,7 +1882,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-09T23:24:41Z",
+      "updated": "2026-11-09T23:41:49Z",
       "notes": [
         {
           "ts": "2026-11-09T22:49:00Z",
@@ -1895,6 +1895,10 @@
         {
           "ts": "2026-11-09T23:24:41Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T23:41:49Z",
+          "note": "PR #89"
         }
       ]
     },
