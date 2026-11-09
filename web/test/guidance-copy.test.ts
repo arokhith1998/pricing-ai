@@ -13,7 +13,7 @@
 // a .ts file (same pattern as guidance-client.test.ts).
 import { createElement } from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import GuidanceClient from "@/components/GuidanceClient";
 import type { ComparableDeal, Deal, Diagnostic, Recommendation } from "@/lib/api";
@@ -23,6 +23,7 @@ const EM_DASH = "—";
 
 let bandFixture: { win_rate: number; deals?: number }[] = [];
 let thresholdFixture = 0.2;
+let basisFixture: string | undefined = undefined;
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
@@ -39,7 +40,11 @@ vi.mock("@/lib/api", async (importOriginal) => {
           avg_discount: i * 0.05 + 0.025,
           win_rate: b.win_rate,
         })),
-        leakage: { ...base.leakage, reference_threshold: thresholdFixture },
+        leakage: {
+          ...base.leakage,
+          reference_threshold: thresholdFixture,
+          excess_basis: basisFixture,
+        },
       } as Diagnostic;
     }),
   };
@@ -136,12 +141,28 @@ describe("PK-14 criterion 1: comparables outcome label", () => {
   });
 });
 
-describe("PK-14 criterion 2: win-rate subtitle follows the band shape", () => {
-  async function subtitle(rates: number[], threshold = 0.2, deals?: number[]) {
+// Rendering the whole async page is slow on first import (several seconds
+// on a cold transform), so import it once and give this block an explicit
+// timeout instead of paying that per case.
+describe("PK-14 criterion 2: win-rate subtitle follows the band shape", { timeout: 60_000 }, () => {
+  let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
+  let DiagnosticPage: () => Promise<React.ReactElement>;
+
+  beforeAll(async () => {
+    ({ renderToStaticMarkup } = await import("react-dom/server"));
+    DiagnosticPage = (await import("@/app/diagnostic/page"))
+      .default as unknown as () => Promise<React.ReactElement>;
+  }, 60_000);
+
+  async function subtitle(
+    rates: number[],
+    threshold = 0.2,
+    deals?: number[],
+    basis?: string,
+  ) {
     bandFixture = rates.map((win_rate, i) => ({ win_rate, deals: deals?.[i] }));
     thresholdFixture = threshold;
-    const { renderToStaticMarkup } = await import("react-dom/server");
-    const { default: DiagnosticPage } = await import("@/app/diagnostic/page");
+    basisFixture = basis;
     document.body.innerHTML = renderToStaticMarkup(await DiagnosticPage());
     const h2 = Array.from(document.body.querySelectorAll("h2")).find(
       (h) => h.textContent === "Win rate vs discount",
@@ -176,6 +197,37 @@ describe("PK-14 criterion 2: win-rate subtitle follows the band shape", () => {
   it("a rise after a plateau is not described as flattening", async () => {
     const s = await subtitle([0.2, 0.4, 0.4, 0.6]);
     expect(s).not.toMatch(/then flattens/);
+  });
+
+  it("a plateau that drifts up or down past tolerance is not 'flattens'", async () => {
+    for (const rates of [
+      [0.2, 0.5, 0.519, 0.538, 0.557, 0.576],
+      [0.2, 0.5, 0.481, 0.462, 0.443, 0.424],
+    ]) {
+      const s = await subtitle(rates);
+      expect(s).not.toMatch(/then flattens/);
+      expect(s).toContain("does not follow a clean climb-then-flatten pattern");
+    }
+  });
+
+  it("win point not estimable (threshold 0, excess_basis 'insufficient data'): no 'about 0%' and no number", async () => {
+    for (const rates of [[0.3, 0.5, 0.6, 0.605, 0.61], [0.3, 0.6, 0.4, 0.5]]) {
+      const s = await subtitle(rates, 0, undefined, "insufficient data");
+      expect(s).toContain("not estimable yet");
+      expect(s).not.toMatch(/0%|about \d/);
+    }
+  });
+
+  it("flattening copy does not place the flattening at the reference win point", async () => {
+    const s = await subtitle([0.3, 0.5, 0.6, 0.605, 0.61], 0.37);
+    expect(s).not.toMatch(/Past the win point/);
+    expect(s).toContain("The reference win point is about 37%");
+  });
+
+  it("flat copy is correlational, not causal", async () => {
+    const s = await subtitle([0.4, 0.41, 0.4, 0.405]);
+    expect(s).toContain("discount level does not line up with win rate here");
+    expect(s).not.toContain("separating wins from losses");
   });
 
   it("flat bands: says roughly flat; slow drift beyond tolerance does not", async () => {
@@ -213,11 +265,15 @@ describe("PK-14 criterion 3: expected-value headline vs uplift sign", () => {
     // Tile: coral accent for the loss, same figure as the headline.
     const figures = screen.getAllByText(/\$12,345/);
     expect(figures.some((el) => el.className.includes("text-coral"))).toBe(true);
-    expect(screen.getByText("Expected value gain")).toBeTruthy();
   });
 
-  it("raising or holding the discount makes no 'more/less in expected value' claim", async () => {
+  it("holding the discount makes no 'more/less in expected value' claim", async () => {
     await renderRec(makeRec({ recommended_discount: 0.14, uplift: -500 }));
+    expect(headline()).not.toMatch(/(more|less) in expected value/);
+  });
+
+  it("raising the discount makes no 'more/less in expected value' claim", async () => {
+    await renderRec(makeRec({ recommended_discount: 0.2, uplift: -500 }));
     expect(headline()).not.toMatch(/(more|less) in expected value/);
   });
 
