@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T20:01:49Z
+Active work: 4/4
+Updated: 2026-11-09T20:03:04Z
 
 ## IN_PROGRESS
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
+- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
+  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
@@ -47,8 +49,6 @@ Updated: 2026-11-09T20:01:49Z
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
-- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
-  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T20:01:49Z",
+  "updated": "2026-11-09T20:03:04Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2125,7 +2125,7 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-25"
       ],
@@ -2134,8 +2134,8 @@
         "pricing/generate_billing.py",
         "tests/test_schema_billing.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/data-engineer/PK-53",
+      "worktree": ".claude/worktrees/PK-53",
       "acceptance": [
         "SourceSystem gains stripe and chargebee; billing stays; existing files load unchanged and the pinned dataset is byte-identical.",
         "A CONTRACT_PERIOD_FIELDS list defines the grain in design section 4, all money in one currency per row, tax excluded, with no field for contact data or end-customer identifiers.",
@@ -2153,8 +2153,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T19:52:32Z",
-      "notes": []
+      "updated": "2026-11-09T20:03:04Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:03:02Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-54",
