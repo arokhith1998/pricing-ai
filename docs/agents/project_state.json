@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T18:56:18Z",
+  "updated": "2026-11-09T19:00:34Z",
   "config": {
     "max_concurrent": 2
   },
@@ -937,11 +937,9 @@
       "id": "PK-30",
       "title": "Specify the contract-structure lens",
       "agent": "pricing-strategist",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "docs/design/2026-11-07-contract-structure-lens-spec.md"
-      ],
+      "owns": [],
       "branch": "agent/pricing-strategist/PK-30",
       "worktree": null,
       "acceptance": [
@@ -953,13 +951,18 @@
       ],
       "tests": {
         "required": [],
-        "ci_run": null
+        "ci_run": "42673927453"
       },
       "pr": 62,
-      "review": null,
+      "review": {
+        "verdict": "approve",
+        "by": "founder",
+        "notes": "",
+        "ts": "2026-11-09T19:00:31Z"
+      },
       "blocked_by": null,
       "created": "2026-11-07T15:52:49Z",
-      "updated": "2026-11-07T16:07:38Z",
+      "updated": "2026-11-09T19:00:34Z",
       "notes": [
         {
           "ts": "2026-11-07T15:55:14Z",
@@ -968,8 +971,26 @@
         {
           "ts": "2026-11-07T16:07:38Z",
           "note": "PR #62"
+        },
+        {
+          "ts": "2026-11-09T19:00:31Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-09T19:00:32Z",
+          "note": "CI run 42673927453"
+        },
+        {
+          "ts": "2026-11-09T19:00:33Z",
+          "note": "merged as 4c0dda8, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "4c0dda8",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T19:00:33Z"
+      }
     },
     {
       "id": "PK-23",
@@ -1056,7 +1077,7 @@
       "id": "PK-24",
       "title": "Add a migration for saved mappings and a decision-log source index",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-23"
       ],
@@ -1065,8 +1086,8 @@
         "neon/migrations/2026-11-source-mappings.sql",
         "neon/migrations/2026-11-source-mappings.down.sql"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/data-engineer/PK-24",
+      "worktree": ".claude/worktrees/PK-24",
       "acceptance": [
         "up and down migrations, with a row-count guard; QA pastes scratch up/down/up output",
         "saved mappings hold header strings only, no deal rows; a schema comment says so",
@@ -1082,8 +1103,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-07T16:32:03Z",
-      "notes": []
+      "updated": "2026-11-09T18:59:10Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:59:08Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-25",
@@ -1341,7 +1367,7 @@
       "id": "PK-31",
       "title": "Plant contract-structure answers in the generator",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-23",
         "PK-30"
@@ -1350,8 +1376,8 @@
         "pricing/generate.py",
         "tests/test_generate_contract.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/data-engineer/PK-31",
+      "worktree": ".claude/worktrees/PK-31",
       "acceptance": [
         "New RNG stream; the pinned dataset is unchanged.",
         "Known-answer key for overage-fence and ramp-concession cases."
@@ -1366,8 +1392,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-09T18:56:07Z",
-      "notes": []
+      "updated": "2026-11-09T18:59:10Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:59:09Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-32",

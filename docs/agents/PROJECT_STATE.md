@@ -6,8 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-11-09T18:56:18Z
+Active work: 2/2
+Updated: 2026-11-09T19:00:34Z
+
+## IN_PROGRESS
+- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
+- **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
+  - owns: pricing/generate.py, tests/test_generate_contract.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,8 +30,6 @@ Updated: 2026-11-09T18:56:18Z
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
   - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
-- **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
-  - owns: docs/design/2026-11-07-contract-structure-lens-spec.md
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 
@@ -46,16 +50,12 @@ Updated: 2026-11-09T18:56:18Z
   - owns: tools/agentctl.py
 - **PK-21** Amend incident response for credentials and new data classes  (customer-success, deps PK-20,PK-6)
   - owns: docs/ops/incident-response.md
-- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 - **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, deps PK-25)
   - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-28** Persist the confirmed mapping per tenant, headers only  (backend-engineer, deps PK-24,PK-27)
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
 - **PK-3** agentctl approve fetches the CI verdict itself  (pk-lead, deps PK-2)
   - owns: tools/agentctl.py
-- **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
-  - owns: pricing/generate.py, tests/test_generate_contract.py
 - **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, deps PK-31)
   - owns: pricing/contract_structure.py, tests/test_contract_structure.py
 - **PK-33** Add the lens readout and concession fields to the decision record  (backend-engineer, deps PK-32,PK-25)
@@ -137,5 +137,6 @@ Updated: 2026-11-09T18:56:18Z
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
 - **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
+- **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)

@@ -103,6 +103,13 @@ checkout from parallel edits, and documentation tasks edit no code. Trigger: the
 tasks in flight at once and `check` reported the board as failing. The file
 claims still apply, so two documentation tasks cannot own the same file.
 
+*Further amended 2026-11-09.* A documentation task completes on the org branch:
+its "PR" is PR 62 (the branch PR), its CI run is the green run on that branch at
+or after the commit that carries the document, its reviewer is whoever the
+founder names (the founder for decisions and specs), and `merged --human-approved`
+records the founder's explicit acceptance of the content, not a merge to main.
+First applied to PK-30 (the lens spec, accepted by the founder on 2026-11-07).
+
 ---
 
 ## ADR-004: Merging stays human, because GitHub cannot enforce it here

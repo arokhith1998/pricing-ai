@@ -187,3 +187,13 @@
 {"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-68", "agent": "customer-success", "detail": "Write the Chargebee runbook and key-creation guide"}
 {"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-69", "agent": "web-engineer", "detail": "Name Chargebee on the privacy, trust and pricing pages"}
 {"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-70", "agent": "data-engineer", "detail": "Drop the legacy salesforce_connections and salesforce_mappings tables"}
+{"ts": "2026-11-09T18:59:03Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:59:04Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:59:08Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T18:59:09Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T18:59:10Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:59:10Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:00:31Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-09T19:00:32Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "QA -> APPROVED: CI run 42673927453"}
+{"ts": "2026-11-09T19:00:33Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "APPROVED -> MERGED: merged as 4c0dda8, human-approved by product owner"}
+{"ts": "2026-11-09T19:00:34Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "MERGED -> DONE"}
