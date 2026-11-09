@@ -6,8 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/2
-Updated: 2026-11-07T17:30:11Z
+Active work: 2/2
+Updated: 2026-11-09T18:18:46Z
+
+## IN_PROGRESS
+- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, deps PK-23)
+  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
+- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, deps PK-23)
+  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -22,10 +28,6 @@ Updated: 2026-11-07T17:30:11Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
   - owns: docs/design/2026-11-07-contract-structure-lens-spec.md
-
-## APPROVED
-- **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
-  - owns: pricing/schema.py, pricing/ingest.py#numeric, pricing/mapping.py#synonyms, gtm/data-request.md, tests/test_schema_provenance.py
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -44,12 +46,8 @@ Updated: 2026-11-07T17:30:11Z
   - owns: docs/ops/incident-response.md
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
-- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, deps PK-23)
-  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
 - **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, deps PK-25)
   - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
-- **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, deps PK-23)
-  - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 - **PK-28** Persist the confirmed mapping per tenant, headers only  (backend-engineer, deps PK-24,PK-27)
   - owns: pricing/mapping_store.py, api/routers/diagnostic.py#map_headers, tests/test_mapping_store.py
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, deps PK-23)
@@ -66,5 +64,6 @@ Updated: 2026-11-07T17:30:11Z
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
+- **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)

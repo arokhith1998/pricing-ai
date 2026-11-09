@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-07T17:30:11Z",
+  "updated": "2026-11-09T18:18:46Z",
   "config": {
     "max_concurrent": 2
   },
@@ -966,15 +966,9 @@
       "id": "PK-23",
       "title": "Add source, provenance and contract-structure fields to the canonical deal",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "pricing/schema.py",
-        "pricing/ingest.py#numeric",
-        "pricing/mapping.py#synonyms",
-        "gtm/data-request.md",
-        "tests/test_schema_provenance.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-23",
       "worktree": ".claude/worktrees/PK-23",
       "acceptance": [
@@ -1003,7 +997,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-07T17:30:11Z",
+      "updated": "2026-11-09T18:18:40Z",
       "notes": [
         {
           "ts": "2026-11-07T16:32:20Z",
@@ -1036,8 +1030,18 @@
         {
           "ts": "2026-11-07T17:30:11Z",
           "note": "CI run 42396015700"
+        },
+        {
+          "ts": "2026-11-09T18:18:39Z",
+          "note": "merged as 0976558, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "0976558",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T18:18:39Z"
+      }
     },
     {
       "id": "PK-24",
@@ -1076,7 +1080,7 @@
       "id": "PK-25",
       "title": "Make Salesforce the first adapter behind a neutral guardrail",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-23"
       ],
@@ -1087,8 +1091,8 @@
         "pricing/governance.py#exception_source",
         "tests/test_guardrail.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/backend-engineer/PK-25",
+      "worktree": ".claude/worktrees/PK-25",
       "acceptance": [
         "no Salesforce string remains in pricing/guardrail.py; the adapter protocol has exactly two implementations, Salesforce and CSV",
         "legacy salesforce_crm and salesforce_crm_writeback source strings resolve as aliases so existing decision_log rows still load",
@@ -1107,8 +1111,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-07T16:32:03Z",
-      "notes": []
+      "updated": "2026-11-09T18:18:46Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:18:45Z",
+          "note": "claimed 5 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-26",
@@ -1145,7 +1154,7 @@
       "id": "PK-27",
       "title": "Add source profiles and export presets to the mapper",
       "agent": "ai-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-23"
       ],
@@ -1154,8 +1163,8 @@
         "tests/test_mapping_profiles.py",
         "tests/fixtures/mapping_profiles"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/ai-engineer/PK-27",
+      "worktree": ".claude/worktrees/PK-27",
       "acceptance": [
         "a deterministic layer-0 source profile detects crm_opportunity and cpq_line from headers; fixtures for each",
         "quote lines roll up to one deal; unknown stage maps to ask-user, never to lost; the refuse path fires when an export cannot supply outcome",
@@ -1173,8 +1182,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-07T16:32:05Z",
-      "notes": []
+      "updated": "2026-11-09T18:18:46Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:18:45Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-28",
