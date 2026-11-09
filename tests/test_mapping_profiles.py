@@ -76,11 +76,11 @@ def test_no_vendor_named_profile_exists():
             assert vendor not in n
 
 
-def test_profile_reads_headers_only(crm):
-    """Same headers, wildly different values: identical profile."""
-    other = crm.copy()
-    other["Stage"] = "zzz"
-    assert profile_source(list(crm.columns)) == profile_source(list(other.columns))
+def test_profile_source_takes_headers_only():
+    import inspect
+    assert list(inspect.signature(profile_source).parameters) == ["headers"]
+    p = profile_source(["Opportunity ID", "Stage", "Close Date", "Amount"])
+    assert p["profile"] == "crm_opportunity"
 
 
 # --- roll-up -----------------------------------------------------------------
@@ -103,7 +103,8 @@ def test_rollup_one_deal_per_quote_with_summed_amounts(cpq):
 def test_rollup_outcome_comes_from_quote_status(cpq):
     deals = rollup_quote_lines(cpq).set_index("source_quote_id")
     assert deals.loc["Q-2001", "outcome"] == "closed_won"
-    assert deals.loc["Q-2002", "outcome"] == "closed_lost"
+    # A declined quote is not a CRM closed-lost: ask_user (decision B).
+    assert deals.loc["Q-2002", "outcome"] == "ask_user"
     assert deals.loc["Q-2004", "outcome"] == "open"
     assert set(deals["outcome"]) <= set(OUTCOME_VALUES)
 
@@ -111,7 +112,8 @@ def test_rollup_outcome_comes_from_quote_status(cpq):
 def test_rollup_expired_quote_is_ask_user_not_lost(cpq):
     deals = rollup_quote_lines(cpq).set_index("source_quote_id")
     assert deals.loc["Q-2006", "outcome"] == "ask_user"
-    assert deals.attrs["ask_user"] == {"Q-2006": ["Expired"]}
+    assert deals.attrs["ask_user"] == {"Q-2002": ["Declined"],
+                                       "Q-2006": ["Expired"]}
 
 
 def test_rollup_conflicting_line_statuses_go_to_ask_user():
@@ -147,7 +149,7 @@ def test_rollup_without_quote_id_raises(crm):
 @pytest.mark.parametrize("raw,expected", [
     ("Closed Won", "closed_won"), ("closed-won", "closed_won"),
     ("ClosedWon", "closed_won"), ("Accepted", "closed_won"),
-    ("Closed Lost", "closed_lost"), ("Declined", "closed_lost"),
+    ("Closed Lost", "closed_lost"), ("Lost", "closed_lost"),
     ("Negotiation/Review", "open"), ("Prospecting", "open"), ("Draft", "open"),
 ])
 def test_known_stages_map_into_the_closed_enum(raw, expected):
@@ -311,3 +313,155 @@ def test_llm_status_like_header_claim_dropped_under_refusal(monkeypatch):
                       use_embeddings=False)
     assert res["mapping"]["lost_reason"] is None
     assert res["refusal"] is not None
+
+
+# --- review rework: decisions A and B, findings 1 to 13 ----------------------
+
+@pytest.mark.parametrize("raw", ["Declined", "Rejected", "Expired", "Cancelled",
+                                 "Canceled", "Whatever"])
+def test_cpq_map_sends_declined_and_friends_to_ask_user(raw):
+    assert normalize_stage(raw, "cpq_line") == "ask_user"
+
+
+@pytest.mark.parametrize("raw", ["Accepted", "Signed", "Won"])
+def test_cpq_map_wins(raw):
+    assert normalize_stage(raw, "cpq_line") == "closed_won"
+
+
+def test_crm_map_keeps_closed_lost_and_lost():
+    assert normalize_stage("Closed Lost") == "closed_lost"
+    assert normalize_stage("Lost") == "closed_lost"
+
+
+def _lines(**over):
+    base = {"Quote ID": ["A", "A", "B"], "Line ID": ["1", "2", "3"],
+            "Quantity": ["1", "1", "1"], "Unit Price": ["10", "20", "30"],
+            "Quote Status": ["Accepted", "Accepted", "Sent"]}
+    base.update(over)
+    return pd.DataFrame(base)
+
+
+def test_blank_nan_none_quote_ids_are_quarantined_not_grouped(tmp_path):
+    f = tmp_path / "q.csv"
+    f.write_text("Quote ID,Line ID,Quantity,Unit Price,Quote Status\n"
+                 "A,1,1,10,Accepted\n,2,1,99,Accepted\nB,3,1,30,Sent\n,4,1,5,\n")
+    for kw in ({}, {"keep_default_na": False}):
+        df = pd.read_csv(f, dtype=str, **kw)
+        d = rollup_quote_lines(df)
+        assert sorted(d["source_quote_id"]) == ["A", "B"]
+        q = d.attrs["quarantined_lines"]
+        assert len(q) == 2 and set(q["Line ID"]) == {"2", "4"}
+        assert d.attrs["quarantined_reason"]
+    df = _lines(**{"Quote ID": ["A", None, float("nan")]})
+    d = rollup_quote_lines(df)
+    assert list(d["source_quote_id"]) == ["A"]
+    assert len(d.attrs["quarantined_lines"]) == 2
+
+
+def test_nan_and_none_status_beside_a_real_one_is_ask_user_without_typeerror():
+    df = _lines(**{"Quote Status": ["Accepted", None, float("nan")]})
+    d = rollup_quote_lines(df).set_index("source_quote_id")
+    assert d.loc["A", "outcome"] == "ask_user"
+    assert d.loc["B", "outcome"] == "ask_user"
+    assert d.attrs["ask_user"]["A"] == ["", "Accepted"]
+    outs, ask = normalize_stage_series(["Won", float("nan"), None, "Won"])
+    assert outs.count("ask_user") == 2 and ask == {"": 2}
+
+
+def test_line_amounts_use_parse_money():
+    df = pd.DataFrame({"Quote ID": ["A", "A", "B"], "Line ID": ["1", "2", "3"],
+                       "Line Total": ["(100)", "$250", "1.234,50"],
+                       "Quote Status": ["Accepted"] * 3})
+    d = rollup_quote_lines(df).set_index("source_quote_id")
+    assert d.loc["A", "booked_acv"] == 150          # -100 + 250
+    assert d.loc["B", "booked_acv"] == pytest.approx(1234.50)
+
+
+def test_quote_id_role_never_lands_on_a_line_header():
+    h = ["Quote Line ID", "Quote ID", "Quantity", "Unit Price", "Quote Status"]
+    p = profile_source(h)
+    assert p["roles"]["quote_id"] == "Quote ID"
+    assert p["roles"]["line"] == "Quote Line ID"
+    assert profile_source(["Quote Line ID", "Quote Number", "Quantity",
+                           "Unit Price"])["roles"]["quote_id"] == "Quote Number"
+    only_line = profile_source(["Quote Line ID", "Quantity", "Unit Price"])
+    assert "quote_id" not in only_line["roles"]
+
+
+@pytest.mark.parametrize("headers", [
+    ["id", "customer", "subscription", "status", "amount_due", "period_start",
+     "period_end"],                                   # Stripe invoices
+    ["Subscription ID", "Customer", "Status", "Plan", "Current Period Start",
+     "Quantity", "Created"],                          # Stripe subscriptions
+    ["Subscription Id", "Customer Id", "Plan Id", "Billing Period", "Status",
+     "MRR", "Currency"],                              # Chargebee style
+])
+def test_billing_fingerprint_makes_bare_status_a_billing_state(headers):
+    p = profile_source(headers)
+    assert p["billing_fingerprint"] is True
+    assert "outcome" not in p["roles"]
+    r = outcome_refusal(headers)
+    assert r is not None and r["missing"] == ["outcome"]
+    res = map_headers(headers, llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] is None
+    assert res["refusal"] is not None
+
+
+def test_bare_status_still_outcome_without_billing_fingerprint():
+    res = map_headers(["Opportunity ID", "Status", "Close Date", "Amount"],
+                      llm_fallback=False, use_embeddings=False)
+    assert res["mapping"]["outcome"] == "Status" and res["refusal"] is None
+
+
+def test_colon_separated_headers_profile_correctly():
+    p = profile_source(["Opportunity: Opportunity ID", "Opportunity: Stage",
+                        "Opportunity: Close Date", "Opportunity: Amount"])
+    assert p["profile"] == "crm_opportunity"
+    q = profile_source(["Quote: Quote ID", "Quote: Line ID", "Quote: Quantity",
+                        "Quote: Unit Price", "Quote: Status"])
+    assert q["profile"] == "cpq_line"
+    assert q["roles"]["quote_status"] == "Quote: Status"
+
+
+def test_refusal_never_returned_beside_a_deterministic_outcome_claim(monkeypatch):
+    monkeypatch.setattr(mapping, "embedding_match",
+                        lambda h, notes=None: ("outcome", 0.9)
+                        if h == "Phase Thing" else None)
+    res = map_headers(["Account Name", "Phase Thing"], llm_fallback=False,
+                      use_embeddings=True)
+    assert res["mapping"]["outcome"] == "Phase Thing"
+    assert res["refusal"] is None
+
+
+def test_embedding_cannot_promote_a_billing_state_header(monkeypatch):
+    monkeypatch.setattr(mapping, "embedding_match",
+                        lambda h, notes=None: ("outcome", 0.9)
+                        if h == "Subscription Status" else None)
+    res = map_headers(["Subscription ID", "Plan", "Subscription Status"],
+                      llm_fallback=False, use_embeddings=True)
+    assert res["mapping"]["outcome"] is None and res["refusal"] is not None
+
+
+def test_llm_outcome_claim_rejected_on_nonrefused_cpq_file(cpq, monkeypatch):
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+    monkeypatch.setattr(assist, "map_columns",
+                        lambda h: {"outcome": "Mystery Column"})
+    df = cpq.assign(**{"Mystery Column": "x"})
+    res = map_headers(list(df.columns), llm_fallback=True, use_embeddings=False)
+    assert res["refusal"] is None
+    assert res["mapping"]["outcome"] == "Quote Status"
+    assert res["used"]["Quote Status"] == "profile"
+    assert {"field": "outcome", "header": "Mystery Column"} in res["llm_rejected"]
+
+
+def test_unpriced_lines_counted_and_opportunity_id_never_filled():
+    df = _lines(**{"Unit Price": ["10", "n/a", "30"]})
+    d = rollup_quote_lines(df).set_index("source_quote_id")
+    assert d.loc["A", "unpriced_lines"] == 1 and d.loc["B", "unpriced_lines"] == 0
+    assert d.attrs["unpriced_lines"] == {"A": 1}
+    assert d.attrs["opportunity_id_present"] is False
+    assert d["opportunity_id"].isna().all()
+    assert (d["source_system"] == "cpq").all()
+    with_opp = rollup_quote_lines(_lines(**{"Opportunity ID": ["O1", "O1", "O2"]}))
+    assert with_opp.attrs["opportunity_id_present"] is True
+    assert set(with_opp["opportunity_id"]) == {"O1", "O2"}
