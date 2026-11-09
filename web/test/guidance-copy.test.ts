@@ -19,7 +19,7 @@ import GuidanceClient from "@/components/GuidanceClient";
 import type { ComparableDeal, Deal, Diagnostic, Recommendation } from "@/lib/api";
 import sampleFallback from "@/data/sample-fallback.json";
 
-const EM_DASH = "—";
+const EM_DASH = "\u2014";
 
 let bandFixture: { win_rate: number; deals?: number }[] = [];
 let thresholdFixture = 0.2;
@@ -216,6 +216,12 @@ describe("PK-14 criterion 2: win-rate subtitle follows the band shape", { timeou
       expect(s).toContain("not estimable yet");
       expect(s).not.toMatch(/0%|about \d/);
     }
+  });
+
+  it("a real 0% reference (sufficient basis) is shown as 'about 0%', not 'not estimable'", async () => {
+    const s = await subtitle([0.3, 0.5, 0.6, 0.605, 0.61], 0, undefined, "observed");
+    expect(s).toContain("The reference win point is about 0%");
+    expect(s).not.toContain("not estimable");
   });
 
   it("flattening copy does not place the flattening at the reference win point", async () => {

@@ -72,7 +72,8 @@ function classifyWinRateShape(bands: WinRateBand[]): WinRateShape {
 // point. The win point is stated separately, and only when the API says it
 // was estimable: pricing/metrics.py ships reference_threshold 0 with
 // excess_basis "insufficient data" when it was not, and "about 0%" would be
-// a fabricated number.
+// a fabricated number. A real 0 (win point in the lowest band, basis not
+// "insufficient data") is estimable and is shown, as WinPointWhy does.
 function winRateSubtitle(
   bands: WinRateBand[],
   referenceThreshold: number | null | undefined,
@@ -83,7 +84,7 @@ function winRateSubtitle(
     excessBasis !== "insufficient data" &&
     typeof referenceThreshold === "number" &&
     Number.isFinite(referenceThreshold) &&
-    referenceThreshold > 0;
+    referenceThreshold >= 0;
   const winPointSentence = estimable
     ? ` The reference win point is about ${pct(referenceThreshold, 0)}.`
     : " The win point is not estimable yet.";
