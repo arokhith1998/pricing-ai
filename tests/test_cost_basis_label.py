@@ -107,6 +107,21 @@ def test_guard_passes_the_four_allowed_phrases_and_the_proxy_label():
     assert_no_margin_for_proxy("no figure here", "crm_proxy")
 
 
+@pytest.mark.parametrize("ok", [
+    # A sentence end ends the check, so a figure in the next sentence is fine.
+    "not bookable margin. 12 deals were above",
+    "not margin. 40% of the book",
+    "Is this not margin, really?",
+    "Is this not margin?",
+    "not margin!?",
+    "not margin... really",
+    "not margin: it is a proxy",
+])
+def test_guard_passes_sentence_end_and_figureless_lead_ins(ok):
+    assert_no_margin_for_proxy(ok, "crm_proxy")
+    assert margin_violations(ok, "crm_proxy") == []
+
+
 @pytest.mark.parametrize("bad", [
     "gross margin 40 percent", "Margin", "MARGIN is 12%", "net margin",
     "contribution margin", "This is bookable margin.", "cost-based margin of 12%",
@@ -116,12 +131,19 @@ def test_guard_passes_the_four_allowed_phrases_and_the_proxy_label():
     "not margins of 40%",
     "we cannot margin this",
     "not marginal",
-    # Trailing punctuation that leads into a figure, or a question.
+    # Lead-in punctuation that leads into a figure (lead decision 2026-11-09).
     "not margin: 40%",
     "not margin (40%)",
-    "not margin. 40% of the book",
     "not margin: $1,200",
-    "Is this not margin?",
+    "not margin... 40%",
+    "not margin… 40%",
+    "not margin: -5%",
+    "not margin: −40%",
+    "not margin: –40%",
+    "not margin: about 40%",
+    "not margin, i.e. 40%",
+    "not margin, e.g. $5",
+    "not margin — 40%",
     # Whitespace and unicode folding cannot smuggle one through.
     "not margin compression",
     "ＭＡＲＧＩＮ is 40%",   # fullwidth MARGIN
@@ -183,7 +205,8 @@ def test_weakest_basis(bases, want):
 
 
 def test_weakest_basis_rejects_a_bare_string():
-    for bad in ("erp_verified", "crm_proxy", b"erp_verified"):
+    for bad in ("erp_verified", "crm_proxy", b"erp_verified",
+                bytearray(b"erp_verified")):
         with pytest.raises(TypeError):
             weakest_basis(bad)
 

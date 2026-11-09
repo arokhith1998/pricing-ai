@@ -52,12 +52,32 @@ _ALLOWED_PROXY_PHRASES: tuple[str, ...] = (
 # An allowed phrase counts only as a whole phrase: not glued to a preceding
 # word character or hyphen ("cannot margin"), and followed by end of string or
 # one punctuation mark, optionally after whitespace. "not margin compression",
-# "not margin-dilutive", "not margins of 40%" and "not marginal" all fail. The
-# punctuation must not be "?" (a question is not a negation) and must not lead
-# into a figure ("not margin: 40%", "not margin (40%)" fail).
+# "not margin-dilutive", "not margins of 40%" and "not marginal" all fail.
+#
+# A sentence-ending period, question mark or exclamation mark ends the check,
+# so "not bookable margin. 12 deals were above" and "Is this not margin,
+# really?" pass. The phrase is rejected when it is followed by a lead-in
+# (":", ",", "(", an en or em dash, "..." or U+2026), then optional whitespace,
+# an optional sign (hyphen, U+2212, U+2013), at most one qualifier word (about,
+# roughly, around, nearly, over, under, approximately, circa, "i.e.", "e.g.")
+# and then a digit, "$" or "%": "not margin: 40%", "not margin (40%)",
+# "not margin... 40%", "not margin: -5%", "not margin: about 40%" fail.
+#
+# Residual gaps, documented like the homoglyph limit: a figure after a lead-in
+# not listed (";", "=", "/") is not caught; two qualifier words ("about
+# roughly 40") or a spelled-out figure ("not margin: forty percent") are not
+# caught; a figure after a sentence end is deliberately allowed. This is a
+# guard for text our own code and prompts produce, not an adversarial filter.
+_LEAD_IN = (
+    r"(?:\.\.\.|…|[:,(–—])"
+    r"\s*[-−–]?\s*"
+    r"(?:(?:about|roughly|around|nearly|over|under|approximately|circa"
+    r"|i\.e\.|e\.g\.)\s*,?\s*)?"
+    r"[\d$%]"
+)
 _ALLOWED_RE = re.compile(
-    r"(?<![\w-])(?:%s)(?=\s*$|\s*[^\w\s\-?](?!\s*[\d$%%]))" % "|".join(
-        re.escape(p) for p in _ALLOWED_PROXY_PHRASES),
+    r"(?<![\w-])(?:" + "|".join(re.escape(p) for p in _ALLOWED_PROXY_PHRASES)
+    + r")(?=\s*$|\s*[^\w\s\-])(?!\s*" + _LEAD_IN + ")",
     flags=re.IGNORECASE)
 
 # Source-scan boundary: catches "margin", "margins" and snake_case such as
@@ -114,7 +134,7 @@ def weakest_basis(bases: Iterable[Any]) -> str:
     unknown), then declared_cost, and erp_verified only when every row is
     erp_verified. A book is never labeled stronger than its weakest row.
     """
-    if isinstance(bases, (str, bytes)):
+    if isinstance(bases, (str, bytes, bytearray)):
         raise TypeError("weakest_basis takes an iterable of bases, not a "
                         "single string (it would iterate characters)")
     normalized = {normalize_basis(b) for b in bases}

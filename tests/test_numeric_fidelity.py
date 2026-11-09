@@ -40,8 +40,8 @@ and summary checks, which have only the whole dict, should be read as
 
 Formats the parser does not understand fail closed, unconditionally: a number
 followed by an unknown unit (pct, pp, pts, bps, bp, bn, basis points,
-percentage points, or a bare M, K or B with no "$") and the year of a quarter
-label ("Q4 2026") are reported untraceable whatever the source holds, so "12
+percentage points, or a bare M, K or B with no "$") and a 20xx year next to a
+quarter or FY label ("Q4 2026", "FY2026", "FY 2026", "2026 Q4") are reported untraceable whatever the source holds, so "12
 bps" cannot trace by coincidence to a leaf 12. A reply that uses them needs the
 parser extended, never a silent pass. Only the listed units are recognised;
 an unlisted alphabetic unit after a bare number ("12 widgets") is read as a
@@ -87,9 +87,21 @@ _SUFFIX = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6,
 # A number followed by one of these units is never traceable: the parser does
 # not understand the unit, so it must not read the bare integer and drop it.
 _UNKNOWN_UNIT = re.compile(
-    r"\s?(?:basis points?|percentage points?|pct|pp|pts?|bps?|bn|mm|mn|[kmb])\b",
+    r"\s?(?:basis points?|percentage points?|million|thousand|billion"
+    r"|pct|pp|pts?|bps?|bn|mm|mn|[kmb])\b",
     re.I)
-_QUARTER_LABEL = re.compile(r"\bQ[1-4]\s*$", re.I)
+# A 20xx year next to Q1 to Q4 or FY, before or after, with or without a space
+# or hyphen ("Q4 2026", "FY2026", "FY 2026", "2026 Q4", "2025-Q2"): a period
+# label, never a count, so it is untraceable unconditionally.
+_PERIOD = re.compile(
+    r"(?<![A-Za-z0-9])(?:(?:Q[1-4]|FY)[\s-]?20\d\d|20\d\d[\s-]?(?:Q[1-4]|FY))"
+    r"(?![A-Za-z0-9])", re.I)
+
+
+def _blank_periods(text: str):
+    """(text with period labels blanked out, [period labels found])."""
+    found = [m.group(0) for m in _PERIOD.finditer(text)]
+    return _PERIOD.sub(lambda m: " " * len(m.group(0)), text), found
 _MINUS = "-−–"     # hyphen-minus, minus sign, en dash
 _TOKEN = re.compile(
     r"""
@@ -188,8 +200,8 @@ def _scan(text: str):
     """Yield (match, kind, negative, unit) for each figure; identifiers and
     ranges such as "D-22" or "OPP-00280" are skipped, not parsed as figures.
     `unit` is the text of an unknown unit right after the figure ("bps", "pct",
-    "bn", a bare "M"), or "" when there is none. A quarter label ("Q4 2026")
-    marks its year as a unit-bearing, hence untraceable, figure.
+    "bn", "million", a bare "M"), or "" when there is none. Period labels
+    ("Q4 2026", "FY2026") are blanked out first by _blank_periods.
 
     Sign: a leading hyphen-minus, U+2212 or en dash U+2013 (an en dash before a
     figure is read as a minus), the word "minus", or accounting parentheses
@@ -213,8 +225,6 @@ def _scan(text: str):
             neg = True            # accounting parentheses
         unit = _UNKNOWN_UNIT.match(text, m.end())
         unit_text = unit.group(0) if unit else ""
-        if kind == "num" and _QUARTER_LABEL.search(pre):
-            unit_text = unit_text or " (quarter label)"
         yield m, kind, neg, unit_text
 
 
@@ -226,7 +236,8 @@ def _display(m, neg, unit) -> str:
 def figures_in(text: str) -> list[str]:
     """The figure tokens parsed out of text (money, percent, plain numbers),
     with a leading "-" when the figure is negative."""
-    return [_display(m, neg, "") for m, _, neg, _ in _scan(_strip_constants(text))]
+    text, periods = _blank_periods(_strip_constants(text))
+    return periods + [_display(m, neg, "") for m, _, neg, _ in _scan(text)]
 
 
 def untraceable_figures(text: str, source) -> list[str]:
@@ -238,8 +249,8 @@ def untraceable_figures(text: str, source) -> list[str]:
     is untraceable unconditionally, whatever the source holds. An empty list
     means every figure traces."""
     idx = source if isinstance(source, _Index) else _Index(source)
-    bad = []
-    for m, kind, neg, unit in _scan(_strip_constants(text)):
+    text, bad = _blank_periods(_strip_constants(text))
+    for m, kind, neg, unit in _scan(text):
         if unit:
             bad.append(_display(m, neg, unit))
             continue
@@ -422,14 +433,16 @@ def test_helper_compares_signed_values():
 
 _UNPARSED = ("1.2M", "$1.2 bn", "18 pct", "12 bps", "3 bps", "25 pct",
              "12 bp", "12 basis points", "1.5 percentage points", "5 pts",
-             "$1.2 B", "Q4 2026", "3 K")
+             "$1.2 B", "Q4 2026", "FY2026", "FY 2026", "2026 Q4", "2025-Q2",
+             "3 K", "4 thousand", "1.2 million deals", "2 billion")
 
 
 def test_unparsed_formats_fail_closed_even_when_the_number_is_in_the_source():
     """The number is present in the source on purpose: the unit, not the
     digits, makes the figure untraceable."""
     src = {"a": 1_200_000.0, "b": 0.18, "c": 0.0012, "d": 4, "e": 12, "f": 3,
-           "g": 25, "h": 1.2, "i": 18, "j": 2026, "k": 1.5, "l": 5, "m": 1200}
+           "g": 25, "h": 1.2, "i": 18, "j": 2026, "k": 1.5, "l": 5, "m": 1200,
+           "n": 2}
     for text in _UNPARSED:
         assert untraceable_figures(text, src) != [], text
 
@@ -511,9 +524,12 @@ def test_synthetic_book_fires_the_investigate_opportunity(analysis):
 
 
 def test_raise_price_fires_when_a_segment_reaches_the_thresholds():
-    """raise_price needs win >= 70%, realization >= 85%, >= 25 deals. The
-    synthetic book has no such segment (a property of its data, not a bug), so
-    a fixture that reaches the thresholds proves the extractor and its text."""
+    """Behavior pin for raise_price: win >= 70%, realization >= 85%, >= 25
+    deals. It cannot fire on ANY real book today: _opp_raise_prices reads
+    win_rate from realization_by_segment, whose real columns are segment,
+    deals, list_acv, booked_acv, avg_discount and price_realization (no
+    win_rate). Filed as PK-87. This fixture supplies a win_rate column, so it
+    proves the extractor's logic and its text, not that a real book reaches it."""
     a = {
         "realization_by_segment": pd.DataFrame([
             {"segment": "Enterprise", "win_rate": 0.72,
