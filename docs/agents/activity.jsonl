@@ -210,3 +210,4 @@
 {"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-82", "agent": "web-engineer", "detail": "Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged"}
 {"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-83", "agent": "web-engineer", "detail": "Split and restyle the Salesforce workspace into readable components"}
 {"ts": "2026-11-09T19:06:31Z", "event": "add", "task": "PK-84", "agent": "web-engineer", "detail": "Audit the whole site, remove dead styles, and pin the budgets in tests"}
+{"ts": "2026-11-09T19:08:27Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "BACKLOG -> READY"}

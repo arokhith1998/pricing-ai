@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 5/2
-Updated: 2026-11-09T19:06:31Z
+Updated: 2026-11-09T19:08:27Z
 
 ## IN_PROGRESS
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
@@ -44,6 +44,8 @@ Updated: 2026-11-09T19:06:31Z
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
+- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
+  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
 ## BACKLOG
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
@@ -130,8 +132,6 @@ Updated: 2026-11-09T19:06:31Z
   - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
   - owns: pricing/copilot.py, tests/test_copilot.py
-- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
-  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
