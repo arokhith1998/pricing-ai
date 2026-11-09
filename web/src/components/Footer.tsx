@@ -14,7 +14,7 @@ export default function Footer() {
               <h2 className="pk-eyebrow text-muted">{col.title}</h2>
               <ul className="mt-2 flex flex-col">
                 {col.links.map((link) => (
-                  <li key={link.href}>
+                  <li key={`${col.title}:${link.label}`}>
                     <Link
                       href={link.href}
                       className="pk-small inline-flex min-h-11 items-center text-muted hover:text-fg"

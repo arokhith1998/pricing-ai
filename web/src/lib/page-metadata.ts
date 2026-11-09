@@ -49,7 +49,7 @@ export function pageMetadata({ title, description, path, noindex }: PageMetadata
       card: "summary_large_image",
       title,
       description,
-      images: [SOCIAL_IMAGE.url],
+      images: [{ url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt }],
     },
   };
   if (noindex) meta.robots = { index: false, follow: false };

@@ -14,6 +14,8 @@ export const PRIMARY_NAV: readonly NavLink[] = [
 // Links to /crm on purpose: the proxy sends an unauthenticated visitor to
 // /login?next=/crm, and a signed-in customer lands in the workspace. The
 // /login route itself is matched for aria-current separately (CUSTOMER_LOGIN_ALSO).
+// The link is marked aria-current on /crm itself, deliberately: the visitor is
+// on the page it points to, and that is what aria-current="page" means.
 export const CUSTOMER_LOGIN: NavLink = { href: "/crm", label: "Customer login" };
 export const CUSTOMER_LOGIN_ALSO = "/login";
 export const PRIMARY_CTA: NavLink = { href: "/contact", label: "Talk to us" };
@@ -51,8 +53,9 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Customers",
     links: [
-      { href: "/crm", label: "Login" },
-      { href: "/crm", label: "Salesforce workspace" },
+      // One row for /crm: a separate "Login" row had the same destination, which
+      // is a redundant link for screen-reader users and a duplicate React key.
+      { href: "/crm", label: "Salesforce workspace login" },
       { href: "/upload", label: "Run it on your data" },
     ],
   },

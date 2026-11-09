@@ -113,6 +113,17 @@ describe("Nav", () => {
 });
 
 describe("Footer", () => {
+  it("renders without React key or other console errors, with no duplicate hrefs in a column", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockPath = "/";
+    render(<Footer />);
+    expect(err).not.toHaveBeenCalled();
+    for (const col of FOOTER_COLUMNS) {
+      const hrefs = col.links.map((l) => l.href);
+      expect(new Set(hrefs).size, col.title).toBe(hrefs.length);
+    }
+  });
+
   it("renders four labelled columns built from site-nav", () => {
     mockPath = "/";
     const { container } = render(<Footer />);

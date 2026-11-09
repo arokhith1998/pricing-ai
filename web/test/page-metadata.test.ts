@@ -53,7 +53,7 @@ describe("pageMetadata", () => {
   it("sets openGraph.images and twitter.images to the root /opengraph-image (1200x630)", () => {
     const m = pageMetadata(input);
     expect(m.openGraph?.images).toEqual([SOCIAL_IMAGE]);
-    expect(m.twitter?.images).toEqual([SOCIAL_IMAGE.url]);
+    expect(m.twitter?.images).toEqual([{ url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt }]);
     expect(SOCIAL_IMAGE).toMatchObject({ url: "/opengraph-image", width: 1200, height: 630 });
     expect(SOCIAL_IMAGE.alt.length).toBeGreaterThan(10);
   });
