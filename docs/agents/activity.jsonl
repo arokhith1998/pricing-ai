@@ -148,3 +148,4 @@
 {"ts": "2026-11-09T18:41:55Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T18:44:49Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T18:45:44Z", "event": "add", "task": "PK-74", "agent": "ai-engineer", "detail": "Fix the copilot investigate opportunity reading a column the real book does not carry"}
+{"ts": "2026-11-09T18:47:56Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #77"}
