@@ -6,12 +6,10 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/4
-Updated: 2026-11-09T19:25:07Z
+Active work: 4/4
+Updated: 2026-11-09T19:28:23Z
 
 ## IN_PROGRESS
-- **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
-  - owns: pricing/generate.py, tests/test_generate_contract.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer)
@@ -34,6 +32,8 @@ Updated: 2026-11-09T19:25:07Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
+- **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
+  - owns: pricing/generate.py, tests/test_generate_contract.py
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
