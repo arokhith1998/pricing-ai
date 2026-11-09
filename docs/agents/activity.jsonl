@@ -286,3 +286,4 @@
 {"ts": "2026-11-09T21:41:32Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42697114425"}
 {"ts": "2026-11-09T21:44:18Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
 {"ts": "2026-11-09T21:44:23Z", "event": "add", "task": "PK-88", "agent": "qa-engineer", "detail": "Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts"}
+{"ts": "2026-11-09T21:52:01Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}

@@ -240,3 +240,12 @@ D-R6 repository fact (2026-11-09, `gh repo list arokhith1998 --visibility public
 ## Lead note, 2026-11-09: upload callout
 
 PK-6 could not reach `web/src/components/UploadPrivacyCallout.tsx` (outside its claim). PK-81 (app screens, which includes /upload) adds the sentence "Deal rows from CSV uploads are never sent to the LLM; documents uploaded for Q&A are sent in chunks, so do not upload deal exports as documents" to that callout, word for word as on the privacy page.
+
+## Lead decisions from the PR 87 review, 2026-11-09
+
+- The global footer disclosure reads: "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data." It replaces the sentence in PK-75's acceptance line 8, which was literally false on /calculator (reader inputs), /pricing (hand-built scenarios) and /blog (illustrative figures). It is shown on every route except /crm, /upload and /competitor-watch, which can show a customer's own data or public competitor pages; /diagnostic and /guidance show the synthetic sample and carry it.
+- Customer login links to /crm; the proxy redirects an unauthenticated visitor to /login?next=/crm and a signed-in customer lands in the workspace. aria-current for /login is matched separately.
+- pageMetadata() sets openGraph.images and twitter.images to the root /opengraph-image (1200 by 630, existing alt text) from one shared constant, because a page-level openGraph replaces the root file-based image in Next 16; a test asserts both.
+- Page tasks PK-76 to PK-83 add id="main" to their <main> as a gate; the ChromeEffects shim is a bridge that PK-84 removes.
+- PK-84 note: the PALETTE.md action-fill row correction assigned to it was done in PK-75; PK-77 and PK-79 remove the static coral glow on the pricing tier and calculator result (status colour as decoration).
+- Lighthouse for the acceptance baseline and after numbers is measured against the Vercel preview URL of the PR, per design doc 6.9, not a local next start.

@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/4
-Updated: 2026-11-09T21:44:23Z
+Active work: 2/4
+Updated: 2026-11-09T21:52:01Z
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
+- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
+  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,8 +26,6 @@ Updated: 2026-11-09T21:44:23Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
-  - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
 ## QA
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
