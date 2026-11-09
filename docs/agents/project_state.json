@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T22:49:11Z",
+  "updated": "2026-11-09T22:59:49Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1469,7 +1469,7 @@
       "id": "PK-29",
       "title": "Add numeric-fidelity and cost-basis label evals",
       "agent": "ai-engineer",
-      "status": "QA",
+      "status": "APPROVED",
       "dependencies": [
         "PK-23"
       ],
@@ -1490,7 +1490,7 @@
           "tests/test_numeric_fidelity.py",
           "tests/test_cost_basis_label.py"
         ],
-        "ci_run": null
+        "ci_run": "42714756585"
       },
       "pr": 76,
       "review": {
@@ -1501,7 +1501,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T19:44:27Z",
+      "updated": "2026-11-09T22:59:49Z",
       "notes": [
         {
           "ts": "2026-11-09T18:34:48Z",
@@ -1530,6 +1530,10 @@
         {
           "ts": "2026-11-09T19:44:27Z",
           "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:59:49Z",
+          "note": "CI run 42714756585"
         }
       ]
     },
