@@ -257,8 +257,9 @@ def test_registry_default_and_membership():
 
 
 def test_registry_unknown_system_raises_named_error():
-    with pytest.raises(UnknownSourceSystemError, match="stripe"):
+    with pytest.raises(UnknownSourceSystemError, match="registered: csv, hubspot, salesforce") as err:
         get_adapter("stripe")
+    assert "stripe" not in str(err.value)  # the caller's value is not echoed
     with pytest.raises(UnknownSourceSystemError):
         get_adapter("billing")  # a SourceSystem value with no adapter yet
 
@@ -364,7 +365,9 @@ def test_analyze_without_source_system_stays_salesforce(client, monkeypatch):
 
 def test_analyze_unknown_source_and_bad_config_are_422(client):
     resp = client.post("/crm/analyze", json={"records": [], "source_system": "stripe"})
-    assert resp.status_code == 422 and "stripe" in resp.json()["detail"]
+    assert resp.status_code == 422 and "stripe" not in resp.json()["detail"]
+    resp = client.post("/crm/analyze", json={"records": [], "source_system": "x" * 33})
+    assert resp.status_code == 422
     resp = client.post("/crm/analyze", json={
         "records": [], "source_system": "hubspot", "source_config": {"portal_id": "x"}})
     assert resp.status_code == 422
@@ -380,35 +383,132 @@ def test_hubspot_without_list_prices_names_the_blocker(client):
     assert "at least 30" in resp.json()["detail"]
 
 
-def test_hubspot_workflow_logs_with_hubspot_source_and_is_isolated(client):
-    body = {"records": _book(), "source_system": "hubspot", "source_config": BOOK_CONFIG,
-            "deal_id": "10001", "event": "flagged", "actor": "A. Rep"}
-    resp = client.post("/crm/workflow", json=body)
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["verdict"]["method"] == "band_guardrail"
-    rows = governance.STORE.list(kind="exception", limit=10)
-    assert rows[0]["payload"]["source"] == "hubspot"
-
-    hub = client.get("/crm/workflow", params={"source_system": "hubspot"}).json()["items"]
-    assert [i["deal_id"] for i in hub] == ["10001"]
-    # No source_system on the read is Salesforce and sees none of it.
-    assert client.get("/crm/workflow").json()["items"] == []
-
-
-def test_hubspot_reconcile_and_writeback_rules(client):
-    client.post("/crm/workflow", json={
+def test_only_analyze_is_hubspot_enabled(client):
+    """Workflow, reconcile and write-back refuse any non-Salesforce source, and
+    nothing is logged: a request body is never a source of HubSpot outcomes."""
+    wf = client.post("/crm/workflow", json={
         "records": _book(), "source_system": "hubspot", "source_config": BOOK_CONFIG,
         "deal_id": "10001", "event": "flagged", "actor": "A. Rep"})
-    out = {"outcomes": [{"deal_id": "10001", "outcome": "closed_won"}]}
-    # Salesforce scope sees no HubSpot decision to reconcile.
-    assert client.post("/crm/reconcile", json=out).json()["count"] == 0
-    resp = client.post("/crm/reconcile", json={**out, "source_system": "hubspot"})
-    assert resp.json()["count"] == 1
-    logged = governance.STORE.list(kind="exception", limit=10)[0]["payload"]
-    assert logged["source"] == "hubspot" and logged["actor"] == "HubSpot sync"
-    assert "Salesforce" not in logged["justification"]
-    # F3: read-only, no write-back.
-    resp = client.post("/crm/writeback", json={
+    assert wf.status_code == 422 and "/crm/workflow" in wf.json()["detail"]
+    rec = client.post("/crm/reconcile", json={
+        "outcomes": [{"deal_id": "10001", "outcome": "closed_won"}],
+        "source_system": "hubspot"})
+    assert rec.status_code == 422 and "/crm/reconcile" in rec.json()["detail"]
+    wb = client.post("/crm/writeback", json={
         "deal_id": "10001", "actor": "x", "action_event": "flagged", "success": True,
         "source_system": "hubspot"})
-    assert resp.status_code == 422 and "read-only" in resp.json()["detail"]
+    assert wb.status_code == 422
+    assert governance.STORE.list(kind="exception", limit=10) == []
+    # The log read is per-source and empty for HubSpot.
+    assert client.get("/crm/workflow", params={"source_system": "hubspot"}).json()["items"] == []
+    assert client.get("/crm/workflow", params={"source_system": "x" * 33}).status_code == 422
+
+
+def test_salesforce_analyze_adds_neutral_keys_beside_legacy_ones(client, monkeypatch):
+    legacy = {"opportunity_id": "O1", "salesforce_url": "/lightning/r/Opportunity/O1/view",
+              "comparables": [{"opportunity_id": "O2"}]}
+    monkeypatch.setattr(crm_router.crm_mod, "analyze_records",
+                        lambda *a, **k: {"analysis": {}, "guidance": [legacy], "readiness": {}})
+    monkeypatch.setattr(crm_router, "analysis_payload", lambda a: a)
+    row = client.post("/crm/analyze", json={"records": []}).json()["guidance"][0]
+    assert row["deal_id"] == "O1" and row["opportunity_id"] == "O1"
+    assert row["source_url"] == row["salesforce_url"] == "/lightning/r/Opportunity/O1/view"
+    assert row["comparables"] == [{"opportunity_id": "O2", "deal_id": "O2"}]
+    assert "deal_id" not in legacy  # the wrapper's own output is not mutated
+
+
+def test_floor_refusal_explains_ask_user_and_list_sources(client):
+    records = [_synthetic_record(i, won=True, stage="review") for i in range(40)]
+    resp = client.post("/crm/analyze", json={
+        "records": records, "source_system": "hubspot", "source_config": BOOK_CONFIG})
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert "at least 30" in detail and "40 deals" in detail and '"line_items": 40' in detail
+    assert "Acct" not in detail  # counts only
+
+
+def test_readiness_surfaces_booked_sources_and_mismatch_counts(client):
+    book = _book()
+    book[0]["properties"]["amount"] = "1"  # typed amount far from its line items
+    resp = client.post("/crm/analyze", json={
+        "records": book, "source_system": "hubspot", "source_config": BOOK_CONFIG})
+    readiness = resp.json()["readiness"]
+    assert readiness["booked_source_counts"] == {"line_items": 242}
+    assert readiness["amount_mismatch"] == 1
+
+
+# --- money safety and shared basis -------------------------------------------
+
+def _line(price=None, qty=None, amount=None) -> dict:
+    props = {k: v for k, v in {"price": price, "quantity": qty, "amount": amount}.items()
+             if v is not None}
+    return {"id": "li", "properties": props}
+
+
+def _basis_deal(lines, amount) -> dict:
+    deal = _synthetic_record(1, won=True, with_lines=False)
+    deal["properties"].update({"amount": amount, "pipeline": "p_book", "dealstage": "won"})
+    deal["line_items"] = lines
+    return deal
+
+
+def _book_adapter() -> HubSpotAdapter:
+    return HubSpotAdapter().configured(BOOK_CONFIG)
+
+
+def test_crafted_numbers_are_dropped_not_fatal():
+    adapter = _book_adapter()
+    huge = "1E+600000"
+    row = adapter.to_canonical(_basis_deal([_line(huge, huge, huge)], "5000"))
+    assert row["list_acv"] is None and row["list_source"] == "none"
+    assert row["list_reason"] in {"line_unpriced", "no_list_source"}
+    assert row["booked_acv"] == 5000.0
+    # A deal whose own amount is out of range has no booked value.
+    row = adapter.to_canonical(_basis_deal([], huge))
+    assert row["booked_acv"] is None
+    # Products of in-range values that exceed the bound are skipped too.
+    row = adapter.to_canonical(_basis_deal([_line("1E+15", "1E+15", "1")], "5000"))
+    assert row["list_acv"] is None
+
+
+def test_term_months_is_capped_and_prompt():
+    import time
+    cfg = {**BOOK_CONFIG, "property_mapping": {"term_months": "term"}}
+    adapter = HubSpotAdapter().configured(cfg)
+    started = time.monotonic()
+    for value, want in (("1E+50000000", None), ("601", None), ("600", 600),
+                        ("0", 0), ("36", 36), ("-3", None), ("abc", None)):
+        deal = _basis_deal([], "5000")
+        deal["properties"]["term"] = value
+        assert adapter.to_canonical(deal)["term_months"] == want, value
+    assert time.monotonic() - started < 2
+
+
+def test_partial_line_pricing_drops_the_list():
+    # One priced line without an amount plus one amount-only line, deal amount
+    # 5900: the priced line alone (5000) is not the basis of the 5900 sold.
+    deal = _basis_deal([_line("5000", "1"), _line(amount="900")], "5900")
+    row = _book_adapter().to_canonical(deal)
+    assert row["list_acv"] is None and row["list_source"] == "none"
+    assert row["list_reason"] == "line_unpriced"
+    assert row["booked_acv"] == 5900.0 and row["booked_source"] == "deal_property"
+
+
+def test_recurring_line_below_the_deal_total_drops_the_list():
+    # Monthly price 1000 x 10 against a 108000 term total: list under booked.
+    deal = _basis_deal([_line("1000", "10")], "108000")
+    row = _book_adapter().to_canonical(deal)
+    assert row["list_acv"] is None and row["list_reason"] == "list_below_booked"
+    assert row["booked_acv"] == 108000.0
+    # With a line amount the booked value is the line basis, and the typed
+    # amount's disagreement is flagged on the same basis.
+    deal = _basis_deal([_line("1000", "10", "10000")], "108000")
+    row = _book_adapter().to_canonical(deal)
+    assert (row["list_acv"], row["booked_acv"]) == (10000.0, 10000.0)
+    assert row["amount_mismatch"] is True
+
+
+def test_consistent_line_basis_keeps_the_list_and_flags_nothing():
+    deal = _basis_deal([_line("1000", "10", "9000")], "9000")
+    row = _book_adapter().to_canonical(deal)
+    assert (row["list_acv"], row["list_reason"], row["amount_mismatch"]) == (10000.0, "", False)

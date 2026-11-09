@@ -45,6 +45,10 @@ _APP_HOSTS = frozenset({"app.hubspot.com", "app-eu1.hubspot.com"})
 _DEAL_OBJECT_TYPE_ID = "0-3"
 _PRIMARY_COMPANY_TYPE_ID = 5
 _DIGITS = re.compile(r"^[0-9]{1,20}$")
+# Crafted numeric strings ("1E+600000") parse as finite Decimals; bound every
+# amount so no product, sum or int() can blow up.
+_MAX_EXPONENT = 15  # magnitudes above 1e15 are not money
+_MAX_TERM_MONTHS = 600
 
 
 class HubSpotConfigError(ValueError):
@@ -57,7 +61,7 @@ def _text(value: Any) -> str:
 
 def _money(value: Any) -> Decimal | None:
     """A HubSpot numeric string as an exact Decimal; None when absent,
-    non-numeric, non-finite or negative."""
+    non-numeric, non-finite, negative or above 1e15 in magnitude."""
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -65,6 +69,8 @@ def _money(value: Any) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     if not out.is_finite() or out < 0:
+        return None
+    if out != 0 and out.adjusted() > _MAX_EXPONENT:
         return None
     return out
 
@@ -90,8 +96,11 @@ def _bool(value: Any) -> bool:
 
 
 def _whole(value: Any) -> int | None:
+    """A whole number of months in 0..600, else None."""
     dec = _money(value)
-    return None if dec is None else int(dec)
+    if dec is None or dec > _MAX_TERM_MONTHS:
+        return None
+    return int(dec)
 
 
 def _parse_stage_map(raw: Any) -> tuple[dict, set]:
@@ -258,21 +267,27 @@ class HubSpotAdapter:
         return sorted(pool, key=lambda c: (len(c), c))[0]
 
     @staticmethod
-    def _line_totals(items: Any) -> tuple[Decimal | None, Decimal | None, Decimal | None]:
-        """(list, net, quantity) over usable line items. List is unit price
+    def _line_totals(items: Any) -> tuple[Decimal | None, Decimal | None,
+                                          Decimal | None, int]:
+        """(list, net, quantity, skipped) over line items. List is unit price
         times quantity before any line discount; net is the sum of line
-        `amount` and is None unless every usable line carries one."""
+        `amount` and is None unless every line carries one. `skipped` counts
+        lines that could not be priced (missing or out-of-range price or
+        quantity): a list built from the rest would be on a different basis
+        from the deal amount, so the caller drops it."""
         if not isinstance(items, list) or not items:
-            return None, None, None
+            return None, None, None, 0
         list_total = net_total = quantity = Decimal(0)
         net_complete = True
-        used = 0
+        used = skipped = 0
         for item in items:
             props = item.get("properties") if isinstance(item, dict) else None
-            if not isinstance(props, dict):
-                continue
-            price, qty = _money(props.get("price")), _money(props.get("quantity"))
-            if price is None or qty is None:
+            price = qty = None
+            if isinstance(props, dict):
+                price, qty = _money(props.get("price")), _money(props.get("quantity"))
+            if price is None or qty is None or price * qty > Decimal(10) ** _MAX_EXPONENT:
+                skipped += 1
+                net_complete = False
                 continue
             used += 1
             list_total += price * qty
@@ -283,8 +298,8 @@ class HubSpotAdapter:
             else:
                 net_total += net
         if not used or list_total <= 0:
-            return None, None, None
-        return list_total, (net_total if net_complete else None), quantity
+            return None, None, None, skipped
+        return list_total, (net_total if net_complete else None), quantity, skipped
 
     def to_canonical(self, record: dict) -> dict:
         props = record.get("properties") if isinstance(record.get("properties"), dict) else {}
@@ -309,7 +324,8 @@ class HubSpotAdapter:
         else:
             deal_amount = _money(self._prop("booked_acv", props, company, "amount"))
 
-        list_total, net_total, line_qty = self._line_totals(record.get("line_items"))
+        list_total, net_total, line_qty, skipped = self._line_totals(record.get("line_items"))
+        list_reason = ""
         mapped_list = _money(self._prop("list_acv", props, company)) \
             if "list_acv" in self._mapping else None
         if mapped_list is not None and mapped_list > 0:
@@ -321,15 +337,28 @@ class HubSpotAdapter:
             list_value, list_source = list_total * factor, "line_items"
         else:
             list_value, list_source = None, "none"
+            list_reason = ("rate_not_derivable" if list_total is not None
+                           else "no_list_source")
 
         booked, booked_source = deal_amount, "deal_property"
         if net_total is not None and factor is not None and "booked_acv" not in self._mapping:
             booked, booked_source = net_total * factor, "line_items"
-        # Flag a deal whose typed amount disagrees with its line items by more
-        # than one percent; the engine uses line items, the reader sees why.
+        # List and booked must share a basis. A list built from line items is
+        # dropped, with a reason, when a line could not be priced, or when it
+        # falls below a booked value that came from the deal amount (the line
+        # items then cover only part of what was sold, or a recurring price is
+        # not the deal's term total). Never a list under the price paid.
+        if list_source == "line_items" and booked is not None:
+            if skipped:
+                list_value, list_source, list_reason = None, "none", "line_unpriced"
+            elif booked_source == "deal_property" and list_value < booked:
+                list_value, list_source, list_reason = None, "none", "list_below_booked"
+        # One basis for the mismatch flag in both branches: the line items' own
+        # net total against the deal amount, when both exist.
         amount_mismatch = bool(
-            booked_source == "line_items" and deal_amount is not None
-            and deal_amount > 0 and abs(booked - deal_amount) / deal_amount > Decimal("0.01")
+            net_total is not None and factor is not None and deal_amount is not None
+            and deal_amount > 0
+            and abs(net_total * factor - deal_amount) / deal_amount > Decimal("0.01")
         )
 
         tier = (_text(self._prop("product_tier", props, company))
@@ -362,6 +391,7 @@ class HubSpotAdapter:
             "list_acv": float(list_value) if list_value is not None else None,
             "booked_acv": float(booked) if booked is not None else None,
             "list_source": list_source,
+            "list_reason": list_reason,
             "booked_source": booked_source,
             "amount_mismatch": amount_mismatch,
             "quantity": float(qty) if qty is not None else None,
@@ -385,9 +415,14 @@ class HubSpotAdapter:
         only, no names or amounts."""
         asked: dict[tuple, int] = {}
         sources: dict[str, int] = {}
+        booked: dict[str, int] = {}
+        mismatched = 0
         for row in rows:
             src = str(row.get("list_source") or "none")
             sources[src] = sources.get(src, 0) + 1
+            bsrc = str(row.get("booked_source") or "none")
+            booked[bsrc] = booked.get(bsrc, 0) + 1
+            mismatched += bool(row.get("amount_mismatch"))
             if row.get("outcome") == ASK_USER:
                 key = (str(row.get("pipeline_id") or ""), str(row.get("stage_id") or ""),
                        str(row.get("stage_label") or ""), str(row.get("outcome_reason") or ""))
@@ -400,4 +435,6 @@ class HubSpotAdapter:
         return {
             "ask_user": {"deals": sum(asked.values()), "by_stage": by_stage},
             "list_source_counts": dict(sorted(sources.items())),
+            "booked_source_counts": dict(sorted(booked.items())),
+            "amount_mismatch": mismatched,
         }

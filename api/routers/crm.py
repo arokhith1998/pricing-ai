@@ -28,7 +28,7 @@ import os
 import subprocess
 
 import psycopg
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from pricing import crm as crm_mod
@@ -226,8 +226,21 @@ class CRMAnalyzeReq(BaseModel):
     # existing caller is unchanged. `source_config` is that adapter's per-tenant
     # config (HubSpot: portal_id, confirmed stage_map, property_mapping); config
     # only, never credentials.
-    source_system: str | None = None
+    source_system: str | None = Field(None, max_length=32)
     source_config: dict | None = None
+
+
+def _salesforce_only(adapter, route: str) -> None:
+    """Workflow, reconcile and write-back are Salesforce-only for now. HubSpot
+    sync and reconcile semantics belong to PK-48 (outcomes would come only from
+    adapter.to_canonical over the confirmed stage map, never a request body),
+    and F3 keeps HubSpot read-only, so any other source is refused here."""
+    if not _is_salesforce(adapter):
+        raise HTTPException(
+            status_code=422,
+            detail=(f"{route} is not available for {adapter.labels.system} yet; "
+                    "only /crm/analyze reads it."),
+        )
 
 
 def _analyze(adapter, req: CRMAnalyzeReq) -> dict:
@@ -235,34 +248,48 @@ def _analyze(adapter, req: CRMAnalyzeReq) -> dict:
     wrappers in pricing.crm (their output names are what the web tier reads);
     every other source uses the neutral guardrail keys (deal_id, source_url)."""
     if _is_salesforce(adapter):
-        return crm_mod.analyze_records(
+        result = crm_mod.analyze_records(
             req.records, policy_threshold_pct=req.policy_threshold_pct,
             list_field_mapped=req.list_field_mapped,
         )
+        # Additive neutral keys for one release: deal_id and source_url beside
+        # the legacy opportunity_id and salesforce_url (PK-26 and PK-49 read
+        # the neutral ones).
+        result["guidance"] = [_with_neutral_keys(row) for row in result["guidance"]]
+        return result
     rows = guardrail.canonical_records(adapter, req.records)
-    result = guardrail.analyze_deals(
-        rows, req.policy_threshold_pct,
-        list_field_mapped=req.list_field_mapped, labels=adapter.labels,
-        max_records=guardrail.MAX_RECORDS,
-    )
     extras = getattr(adapter, "readiness_extras", None)
+    try:
+        result = guardrail.analyze_deals(
+            rows, req.policy_threshold_pct,
+            list_field_mapped=req.list_field_mapped, labels=adapter.labels,
+            max_records=guardrail.MAX_RECORDS,
+        )
+    except guardrail.DealDataError as exc:
+        if extras and str(exc).startswith("Only "):
+            # The floor refusal: say what was excluded and why, counts only, so
+            # a first run with an unconfirmed stage map explains itself.
+            info = extras(rows)
+            raise guardrail.DealDataError(
+                f"{exc} Excluded as ask_user (stage not confirmed or not in the "
+                f"map): {info['ask_user']['deals']} deals. List price source "
+                f"counts: {json.dumps(info['list_source_counts'], sort_keys=True)}."
+            ) from None
+        raise
     if extras:
         result["readiness"].update(extras(rows))
     return result
 
 
-def _selected_guidance(adapter, req: "CRMWorkflowReq") -> dict:
-    if _is_salesforce(adapter):
-        return crm_mod.selected_guidance(
-            req.records, req.deal_id,
-            policy_threshold_pct=req.policy_threshold_pct,
-            list_field_mapped=req.list_field_mapped,
-        )
-    return guardrail.selected_deal_guidance(
-        guardrail.canonical_records(adapter, req.records), req.deal_id,
-        req.policy_threshold_pct, list_field_mapped=req.list_field_mapped,
-        labels=adapter.labels, max_records=guardrail.MAX_RECORDS,
-    )
+def _with_neutral_keys(row: dict) -> dict:
+    out = dict(row)
+    out["deal_id"] = out.get("opportunity_id", "")
+    out["source_url"] = out.get("salesforce_url", "")
+    out["comparables"] = [
+        {**comp, "deal_id": comp.get("opportunity_id", "")}
+        for comp in out.get("comparables", [])
+    ]
+    return out
 
 
 @router.post("/crm/analyze")
@@ -318,7 +345,8 @@ def _normalized_actor(value: str) -> str:
 @router.post("/crm/workflow")
 def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
     from api import main  # deferred: see module docstring
-    adapter = _resolve_adapter(req.source_system, req.source_config)
+    adapter = _resolve_adapter(req.source_system, bind=False)
+    _salesforce_only(adapter, "/crm/workflow")
     source = adapter.system
     event = req.event.strip().lower()
     if event not in _CRM_EVENTS:
@@ -349,7 +377,7 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
     if event == "outcome_recorded":
         raise HTTPException(
             status_code=409,
-            detail=f"Outcomes are reconciled from {adapter.labels.system} on the next sync.",
+            detail="Outcomes are reconciled from Salesforce on the next sync.",
         )
     if decides_override:
         # A decision resolves the terms that were actually requested, so the
@@ -379,14 +407,18 @@ def crm_workflow(req: CRMWorkflowReq, request: Request) -> dict:
                 detail="The pending override request has no recorded terms to decide.",
             )
         guidance: dict = {
-            ("opportunity_id" if _is_salesforce(adapter) else "deal_id"): req.deal_id,
+            "opportunity_id": req.deal_id,
             "account": str(previous_payload.get("account") or ""),
             "evidence_source": "persisted_override_request",
         }
     else:
         try:
-            guidance = _selected_guidance(adapter, req)
-        except guardrail.DealDataError as exc:
+            guidance = crm_mod.selected_guidance(
+                req.records, req.deal_id,
+                policy_threshold_pct=req.policy_threshold_pct,
+                list_field_mapped=req.list_field_mapped,
+            )
+        except crm_mod.CRMDataError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
 
         recommended_pct = float(guidance["recommended_discount"]) * 100.0
@@ -505,22 +537,23 @@ class CRMOutcome(BaseModel):
 
 class CRMReconcileReq(BaseModel):
     outcomes: list[CRMOutcome]
-    source_system: str | None = None
+    source_system: str | None = Field(None, max_length=32)
 
 
 @router.post("/crm/reconcile")
 def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
-    """Close the loop from the source system's truth on each live sync.
+    """Close the loop from Salesforce truth on each live sync.
 
     Only deals already present in the Pricekeel CRM workflow are eligible; a
-    closed deal that never had a decision is not silently added. The source is
-    the request's source_system (salesforce when absent); a HubSpot outcome
-    arrives already resolved through the confirmed stage map, never inferred.
+    closed Opportunity that never had a decision is not silently added. Any
+    source other than Salesforce is refused (see _salesforce_only): this route
+    takes outcomes from the request body, which is only defensible for
+    Salesforce's own IsWon/IsClosed.
     """
     from api import main  # deferred: see module docstring
     adapter = _resolve_adapter(req.source_system, bind=False)
+    _salesforce_only(adapter, "/crm/reconcile")
     source = adapter.system
-    sync_actor = f"{adapter.labels.system} sync"
     customer = main._customer_ref(request)
     # Fail closed BEFORE writing anything, not partway through the batch: see
     # _store_reachable's docstring.
@@ -561,8 +594,8 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
             "event": "outcome_recorded",
             "deal_id": item.deal_id,
             "account": item.account,
-            "actor": sync_actor,
-            "justification": _reconcile_justification(source, adapter.labels.system),
+            "actor": "Salesforce sync",
+            "justification": "Outcome reconciled from Salesforce IsWon/IsClosed.",
             "outcome": item.outcome,
             "prior_event": prior_event,
             "verdict": latest_payload.get("verdict") or {},
@@ -573,7 +606,7 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
             payload=payload,
             decision="outcome_recorded",
             justification=payload["justification"],
-            requested_by=sync_actor,
+            requested_by="Salesforce sync",
             customer_ref=customer,
         )
         added.append({
@@ -582,12 +615,6 @@ def crm_reconcile(req: CRMReconcileReq, request: Request) -> dict:
             "outcome": item.outcome,
         })
     return {"added": added, "count": len(added)}
-
-
-def _reconcile_justification(source: str, system_label: str) -> str:
-    if source == crm_mod.ADAPTER.system:
-        return "Outcome reconciled from Salesforce IsWon/IsClosed."
-    return f"Outcome reconciled from the confirmed {system_label} stage map."
 
 
 class CRMWritebackReq(BaseModel):
@@ -600,7 +627,7 @@ class CRMWritebackReq(BaseModel):
     success: bool
     task_id: str = Field("", max_length=200)
     error: str = ""
-    source_system: str | None = None
+    source_system: str | None = Field(None, max_length=32)
 
 
 @router.post("/crm/writeback")
@@ -610,14 +637,9 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
     if req.action_event not in {"flagged", "accepted", "override_requested", "approved", "rejected"}:
         raise HTTPException(status_code=422, detail="Unsupported writeback action event.")
     adapter = _resolve_adapter(req.source_system, bind=False)
-    if not _is_salesforce(adapter):
-        # Founder answer F3: HubSpot is read-only in v1; the decision log is the
-        # record and nothing is written back to the source.
-        raise HTTPException(
-            status_code=422,
-            detail=(f"{adapter.labels.system} write-back is not supported; "
-                    "the connector is read-only."),
-        )
+    # Founder answer F3: HubSpot is read-only in v1; the decision log is the
+    # record and nothing is written back to the source.
+    _salesforce_only(adapter, "/crm/writeback")
     source = adapter.system
     customer = main._customer_ref(request)
     history = _crm_deal_history(customer, req.deal_id, source)
@@ -665,7 +687,7 @@ def crm_writeback(req: CRMWritebackReq, request: Request) -> dict:
 
 @router.get("/crm/workflow")
 def crm_workflow_log(request: Request, limit: int = 100,
-                     source_system: str | None = None) -> dict:
+                     source_system: str | None = Query(None, max_length=32)) -> dict:
     from api import main  # deferred: see module docstring
     source = _resolve_adapter(source_system, bind=False).system
     rows = governance_mod.STORE.list(

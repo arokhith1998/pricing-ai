@@ -38,6 +38,6 @@ def get_adapter(source_system: str | None = None) -> DealSourceAdapter:
         return REGISTRY[key]
     except KeyError:
         raise UnknownSourceSystemError(
-            f"No adapter is registered for source_system {key!r}; "
+            "No adapter is registered for that source_system; "
             f"registered: {', '.join(sorted(REGISTRY))}."
         ) from None
