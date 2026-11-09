@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 4/4
-Updated: 2026-11-09T19:52:32Z
+Active work: 5/4
+Updated: 2026-11-09T19:53:44Z
 
 ## IN_PROGRESS
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
@@ -20,6 +20,8 @@ Updated: 2026-11-09T19:52:32Z
 ## REWORK_REQUIRED
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
+- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
+  - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -32,8 +34,6 @@ Updated: 2026-11-09T19:52:32Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
-  - owns: pricing/copilot.py, tests/test_copilot.py
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)

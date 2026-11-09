@@ -249,3 +249,4 @@
 {"ts": "2026-11-09T19:51:20Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-09T19:52:27Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-09T19:52:32Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:53:44Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
