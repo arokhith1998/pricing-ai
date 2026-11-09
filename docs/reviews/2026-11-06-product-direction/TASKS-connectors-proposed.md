@@ -503,3 +503,7 @@ PK-53 found that `pricing/guardrail.py` has no source awareness: a billing-sourc
 - Adapter money safety: `_money` rejects magnitudes above 1e15 and returns None; `_whole` caps term_months to 0 to 600; list and booked share one basis or the list is dropped with a reason; `amount_mismatch` is computed on one basis.
 - Readiness for non-Salesforce sources surfaces `booked_source_counts`, an `amount_mismatch` count and the `ask_user` by-stage counts; the thin-data 422 on that path includes the ask_user and list_source counts (counts only).
 - Follow-up for a guardrail task: `_currency_guard` runs over closed and open rows only, so unconfirmed-stage deals in another currency do not block a book.
+
+## Lead note from the PR 86 review, 2026-11-09
+
+PK-48 (HubSpot sync in the web tier) must loosen the web `CanonicalDeal` so `opportunity_id` and `salesforce_url` are optional or move into a Salesforce subtype, with `deal_id` and `source_url` as the neutral pair; PK-26 keeps them required to stay byte-identical for `/crm`. The web `SourceSystem` union is pinned to `pricing/schema.py` by a test (PK-26 nit), so adding stripe and chargebee on the web side is forced when PK-53 merges.

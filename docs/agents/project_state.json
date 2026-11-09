@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T21:32:44Z",
+  "updated": "2026-11-09T21:40:58Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1259,7 +1259,7 @@
       "id": "PK-26",
       "title": "Rename the web canonical type to CanonicalDeal",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [
         "PK-25"
       ],
@@ -1280,10 +1280,15 @@
         "ci_run": null
       },
       "pr": 86,
-      "review": null,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:40:58Z"
+      },
       "blocked_by": null,
       "created": "2026-11-07T16:32:04Z",
-      "updated": "2026-11-09T21:22:32Z",
+      "updated": "2026-11-09T21:40:58Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:26Z",
@@ -1292,6 +1297,10 @@
         {
           "ts": "2026-11-09T21:22:32Z",
           "note": "PR #86"
+        },
+        {
+          "ts": "2026-11-09T21:40:58Z",
+          "note": "review approve-with-nits"
         }
       ]
     },

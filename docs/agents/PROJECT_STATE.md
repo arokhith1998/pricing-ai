@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 1/4
-Updated: 2026-11-09T21:32:44Z
+Updated: 2026-11-09T21:40:58Z
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
@@ -26,8 +26,6 @@ Updated: 2026-11-09T21:32:44Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
-  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
@@ -36,6 +34,8 @@ Updated: 2026-11-09T21:32:44Z
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
+- **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
+  - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 - **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
