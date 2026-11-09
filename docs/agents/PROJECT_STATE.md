@@ -6,10 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T23:05:20Z
+Active work: 4/4
+Updated: 2026-11-09T23:06:42Z
 
 ## IN_PROGRESS
+- **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, deps PK-27)
+  - owns: pricing/ingest.py#profiles, api/routers/diagnostic.py#load_report, api/routers/diagnostic.py#map_columns, api/shared.py#diagnostic_payload, tests/test_ingest_profiles.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
@@ -60,8 +62,6 @@ Updated: 2026-11-09T23:05:20Z
   - owns: tools/agentctl.py
 - **PK-33** Add the lens readout and concession fields to the decision record  (backend-engineer, deps PK-32,PK-25)
   - owns: pricing/diagnostic.py#readout, pricing/governance.py#concessions, api/routers/diagnostic.py#response
-- **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, deps PK-27)
-  - owns: pricing/ingest.py#profiles, api/routers/diagnostic.py#load_report, api/routers/diagnostic.py#map_columns, tests/test_ingest_profiles.py
 - **PK-4** Triage the six open PRs  (pk-lead)
   - owns: docs/agents/TASKS.md
 - **PK-40** Annualise multi-year quote roll-ups from term_months  (backend-engineer, deps PK-39)

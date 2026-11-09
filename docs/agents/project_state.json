@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:05:20Z",
+  "updated": "2026-11-09T23:06:42Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1751,7 +1751,7 @@
       "id": "PK-39",
       "title": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-27"
       ],
@@ -1759,10 +1759,11 @@
         "pricing/ingest.py#profiles",
         "api/routers/diagnostic.py#load_report",
         "api/routers/diagnostic.py#map_columns",
+        "api/shared.py#diagnostic_payload",
         "tests/test_ingest_profiles.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/backend-engineer/PK-39",
+      "worktree": ".claude/worktrees/PK-39",
       "acceptance": [
         "A file detected as the cpq_line profile reaches pricing.mapping.rollup_quote_lines before _exclude_open runs; a known-answer fixture of 3 quotes and 7 lines loads as 3 deals with the summed list_acv and booked_acv.",
         "Deals with outcome ask_user are not counted in report.excluded_open and are not dropped silently: LoadReport carries an ask_user section with each raw stage value, its deal count and its quote ids, and the diagnostic response includes it.",
@@ -1782,8 +1783,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-09T18:56:08Z",
-      "notes": []
+      "updated": "2026-11-09T23:06:42Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:06:37Z",
+          "note": "claimed 5 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-40",
