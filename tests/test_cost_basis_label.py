@@ -90,7 +90,7 @@ def test_guard_passes_the_proxy_label_and_fails_an_affirmative_margin():
     assert_no_margin_for_proxy("Realization is never labeled margin.", "crm_proxy")
     assert_no_margin_for_proxy("no figure here", "crm_proxy")
     for bad in ("gross margin 40 percent", "Margin", "MARGIN is 12%",
-                "not bookable margin", "net margin", "contribution margin"):
+                "net margin", "contribution margin"):
         with pytest.raises(MarginLabelError):
             assert_no_margin_for_proxy(bad, "crm_proxy")
 
@@ -117,9 +117,8 @@ def test_refuse_helper_raises_for_proxy_and_not_for_others():
 
 # --- Part 2: the eval against existing narration -----------------------------
 
-# Negated phrasings the existing caveats use. The lead's brief allows these;
-# ADR-006's strict wording ("no output may contain the word margin") does not,
-# see test_strict_adr_006_reading below.
+# Negated phrasings the existing caveats use; the guard's allowlist in
+# pricing/cost_basis.py (ADR-006 amendment) is the authority for output text.
 _ALLOWED_NEGATED = re.compile(
     r"\bnot (?:cost-based/bookable|bookable|cost-based) margin\b", re.I)
 
@@ -206,20 +205,19 @@ def test_margin_appears_only_in_negated_phrases_for_proxy_data(
     assert any(s.startswith("opportunity[") for s in sources)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="STRICT ADR-006 READING: pricing/copilot.py:153 (_RECOVERABLE_CAVEAT, "
-           "'not bookable margin'), pricing/copilot.py:638-639 (_COPILOT_SYSTEM, "
-           "same phrase), pricing/assist.py:247 (_SUMMARY_SYSTEM, 'not "
-           "cost-based margin') carry the word margin on crm_proxy output. "
-           "They are negated, so the brief allows them, but ADR-006 says no "
-           "output may contain the word. Decision needed: reword to 'not "
-           "bookable revenue' or amend the ADR to allow negation.")
-def test_strict_adr_006_reading_no_margin_word_at_all(monkeypatch, analysis):
+def test_strict_adr_006_reading_no_affirmative_margin_in_any_output(monkeypatch, analysis):
     for source, text in _collect_outputs(monkeypatch, analysis).items():
         if source.startswith("prompt:"):
             continue  # prompts instruct the model; the strict read is outputs
         assert_no_margin_for_proxy(text, "crm_proxy")
+
+
+def test_bookable_margin_without_not_still_fails_the_guard():
+    for ok in ("not bookable margin", "Not Cost-Based Margin"):
+        assert_no_margin_for_proxy(ok, "crm_proxy")
+    for bad in ("This is bookable margin.", "cost-based margin of 12%"):
+        with pytest.raises(MarginLabelError):
+            assert_no_margin_for_proxy(bad, "crm_proxy")
 
 
 def test_source_scan_every_margin_in_pricing_is_negated_or_reviewed():

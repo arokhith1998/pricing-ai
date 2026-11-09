@@ -36,7 +36,15 @@ LABELS: dict[str, str] = {
 }
 
 # The only phrases that may carry the word "margin" next to a crm_proxy basis.
-_ALLOWED_PROXY_PHRASES = ("not margin", "never labeled margin")
+# ADR-006 amendment (lead decision 2026-11-09): the ban is on affirmative use of
+# "margin" for crm_proxy; negations telling the reader the figure is not margin
+# are allowed. This tuple is the only allowlist; no test or caller keeps its own.
+_ALLOWED_PROXY_PHRASES = (
+    "not margin",
+    "never labeled margin",
+    "not bookable margin",
+    "not cost-based margin",
+)
 
 
 class MarginLabelError(ValueError):
@@ -86,8 +94,10 @@ def label_for(cost_basis: Any, figure: Any = None) -> CostBasisLabel:
 def assert_no_margin_for_proxy(text: str, basis: Any) -> None:
     """Raise MarginLabelError if `text` says margin about a crm_proxy basis.
 
-    Case-insensitive substring check for "margin". Only the exact phrases "not
-    margin" and "never labeled margin" are removed before the check. Other
+    Case-insensitive substring check for "margin". Only the negated phrases in
+    _ALLOWED_PROXY_PHRASES ("not margin", "never labeled margin", "not bookable
+    margin", "not cost-based margin", per the ADR-006 amendment of 2026-11-09)
+    are removed before the check, so "bookable margin" without "not" fails. Other
     bases pass untouched. Unknown or missing bases count as crm_proxy.
     """
     if normalize_basis(basis) != CRM_PROXY:

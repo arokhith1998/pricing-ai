@@ -246,14 +246,14 @@ def test_synthetic_book_covers_five_of_seven_opportunity_types(analysis):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="FINDING pricing/copilot.py:530: _opp_investigate sums the "
+    reason="PK-74, pricing/copilot.py:530: _opp_investigate sums the "
            "'discount_amount' column but the real top_leak_deals frame "
            "(metrics.top_leak_deals, via diagnostic.analyze) carries "
            "'excess_discount_dollars'. The investigate opportunity never fires "
            "on a real book; existing unit tests pass only because their "
            "fixture invents a discount_amount column. raise_price does not "
-           "fire either: no synthetic segment reaches win>=70% and "
-           "realization>=85%.")
+           "fire either, which is a data property of the synthetic book "
+           "(no segment reaches win>=70% and realization>=85%), not a bug.")
 def test_synthetic_book_produces_all_seven_types(analysis):
     prefixes = {o.id.split("-")[0] for o in copilot.opportunities(analysis)}
     assert {"defended", "excess", "offpolicy", "qe", "od", "invest",
