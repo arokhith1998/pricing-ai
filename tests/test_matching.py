@@ -427,7 +427,9 @@ def _assert_nullable_confidence_enum(prop: dict) -> None:
     # type key (PK-86). Assert the invariant, not the rendering: one branch
     # carries exactly the three values, the other is null.
     assert {"type": "null"} in prop["anyOf"]
-    enum_branch = next(b for b in prop["anyOf"] if "enum" in b)
+    enum_branch = next((b for b in prop["anyOf"] if "enum" in b), None)
+    assert enum_branch is not None, (
+        f"no enum branch in the strictified confidence property: {prop!r}")
     assert enum_branch["enum"] == ["high", "medium", "low"]
     assert enum_branch.get("type", "string") == "string"
     assert len(prop["anyOf"]) == 2
@@ -463,7 +465,8 @@ def test_strictified_context_schema_still_validates_good_and_rejects_bad():
         "claims": [{"claim": "Overage billed per unit", "confidence": None,
                     "evidence_excerpt": None}],
     }
-    jsonschema.validate(good, schema)
+    for level in ("high", "medium", "low"):
+        jsonschema.validate({**good, "confidence": level}, schema)
     jsonschema.validate({**good, "confidence": None, "summary": None}, schema)
     for bad in (
         {**good, "confidence": "certain"},

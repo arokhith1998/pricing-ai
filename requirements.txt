@@ -11,8 +11,9 @@ scikit-learn>=1.4
 # moved off OpenAI). 0.77.0 (2026-01-29 changelog: "use output_config for
 # structured outputs") is the verified floor for output_config on
 # messages.create; below it, that parameter does not exist.
-# PK-86: <3 caps at the majors CI has proven (2.6, 2.7); 2.7 changed the
-# transform_schema rendering, so re-prove before crossing a major.
+# PK-86: 2.6.0 and 2.7.0 are proven green (2.7 changed the transform_schema
+# rendering and broke CI). The matching tests assert the invariant, so later
+# 2.x minors are caught by the test, not the pin; <3 only guards the major.
 anthropic>=0.77.0,<3
 # API (FastAPI wrapper consumed by the Next.js front end)
 fastapi>=0.110
@@ -32,3 +33,4 @@ tavily-python>=0.5
 requests>=2.31
 # Tests
 pytest>=8.0
+jsonschema>=4  # tests/test_matching.py imports it directly (PK-86)
