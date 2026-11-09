@@ -6,10 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T19:34:41Z
+Active work: 4/4
+Updated: 2026-11-09T19:35:58Z
 
 ## IN_PROGRESS
+- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
+  - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer)
   - owns: pricing/copilot.py, tests/test_copilot.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer)
@@ -45,7 +47,6 @@ Updated: 2026-11-09T19:34:41Z
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
-- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 

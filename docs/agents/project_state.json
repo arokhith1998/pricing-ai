@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:34:41Z",
+  "updated": "2026-11-09T19:35:58Z",
   "config": {
     "max_concurrent": 4
   },
@@ -622,13 +622,17 @@
       "id": "PK-14",
       "title": "Close the asserted-not-computed claims found by the PK-11 audit",
       "agent": "web-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-11"
       ],
-      "owns": [],
-      "branch": null,
-      "worktree": null,
+      "owns": [
+        "web/src/components/GuidanceClient.tsx",
+        "web/src/app/diagnostic/page.tsx",
+        "web/test/guidance-copy.test.ts"
+      ],
+      "branch": "agent/web-engineer/PK-14",
+      "worktree": ".claude/worktrees/PK-14",
       "acceptance": [
         "GuidanceClient.tsx comparables label says 'won and lost' only when the rendered set contains both outcomes, otherwise names what it contains",
         "diagnostic/page.tsx win-rate-by-band subtitle is derived from the shape of d.win_rate_by_band or makes no shape claim",
@@ -646,8 +650,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-09-11T23:25:00Z",
-      "updated": "2026-09-11T23:40:37Z",
-      "notes": []
+      "updated": "2026-11-09T19:35:58Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:35:52Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-15",
