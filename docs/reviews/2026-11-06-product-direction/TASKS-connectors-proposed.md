@@ -477,3 +477,11 @@ edit outside its claim.
 ## Sequencing note, 2026-11-09: site redesign overlap
 
 The site redesign (PK-75 to PK-84, `TASKS-redesign-proposed.md`) was entered on 2026-11-09. PK-77 owns `web/src/app/pricing/page.tsx` and PK-82 owns the trust and privacy pages, which PK-52, PK-62 and PK-69 also claim. `agentctl` cannot add dependencies to tasks already on the board, so the order is a lead rule: **PK-52 is not moved to READY or assigned until PK-77 and PK-82 are MERGED**; PK-62 and PK-69 inherit the order through their existing dependency on PK-52. `assign` refuses the overlap while either side holds a live claim. PK-83 (the `/crm` workspace restyle) depends on PK-49 on the board and starts from PK-49's merged version. No redesign task claims a `web/src/lib` connector or Salesforce path or anything under `web/src/app/api`.
+
+## Lead notes from the PR 78 and PR 74 reviews, 2026-11-09
+
+- PK-44 (data register amendment) adds a row for `source_mappings`: header strings and field names only, no FK, no cascade, deleted by `customer_ref` on disconnect or tenant revoke.
+- PK-43 (operator revoke path) includes `source_mappings` in the rows it deletes for a tenant.
+- PK-28 carries an explicit acceptance line: the database CHECKs enforce shape only; `pricing/mapping_store.py` enforces that no header string or mapping value is a row value, with a test.
+- Migration file names follow `YYYY-MM-DD-slug`; PK-24 renames to `2026-11-09-source-mappings`, and PK-41 uses a later date so the files sort in dependency order.
+- PK-39 cites the common Stripe subscriptions export header set (`id, Customer ID, Plan, Interval, Amount, Status`) as a billing shape that the mapper does not refuse because its id column is bare; PK-39 or the Stripe connector decides how it is recognised.
