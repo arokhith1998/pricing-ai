@@ -330,3 +330,6 @@
 {"ts": "2026-11-09T22:49:11Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T22:59:49Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42714756585"}
 {"ts": "2026-11-09T23:03:00Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #88"}
+{"ts": "2026-11-09T23:03:39Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:03:46Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T23:03:50Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

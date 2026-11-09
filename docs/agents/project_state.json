@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:03:00Z",
+  "updated": "2026-11-09T23:03:50Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3081,7 +3081,7 @@
       "id": "PK-77",
       "title": "Redesign the pricing page and clear its claims that exceed the evidence",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-75"
       ],
@@ -3089,8 +3089,8 @@
         "web/src/app/pricing/page.tsx",
         "web/test/pricing-page.test.ts"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/web-engineer/PK-77",
+      "worktree": ".claude/worktrees/PK-77",
       "acceptance": [
         "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
         "two tiers (Diagnostic, Operate) render side by side in a roomy layout; Data expansion is a roadmap line with no CTA button and no tier card styling; body copy is 16px",
@@ -3110,8 +3110,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T19:06:29Z",
-      "updated": "2026-11-09T19:06:29Z",
-      "notes": []
+      "updated": "2026-11-09T23:03:50Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:03:46Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-78",

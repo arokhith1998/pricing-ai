@@ -6,14 +6,16 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T23:03:00Z
+Active work: 4/4
+Updated: 2026-11-09T23:03:50Z
 
 ## IN_PROGRESS
 - **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, deps PK-24,PK-25)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
+- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
+  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
@@ -118,8 +120,6 @@ Updated: 2026-11-09T23:03:00Z
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
 - **PK-70** Drop the legacy salesforce_connections and salesforce_mappings tables  (data-engineer, deps PK-42,PK-41)
   - owns: neon/schema.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.sql, neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql
-- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, deps PK-75)
-  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-78** Redesign methodology and contact, and show the method on the sample  (web-engineer, deps PK-75)
   - owns: web/src/app/methodology/page.tsx, web/src/app/contact/page.tsx, web/src/components/methodology, web/test/methodology-page.test.ts
 - **PK-79** Restyle the calculator, blog, 404 and error pages and promote the calculator  (web-engineer, deps PK-75)
