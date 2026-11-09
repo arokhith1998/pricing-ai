@@ -259,9 +259,16 @@ def executive_summary(res: dict) -> str:
 # --- CSV column mapping ------------------------------------------------------
 
 def mapping_targets() -> list[dict]:
-    """Our schema fields the mapper tries to fill (pure)."""
+    """Our schema fields the LLM suggester may fill (pure).
+
+    EXACT_ONLY_FIELDS are withheld: list_unit_rate, credits_tcv and the
+    provenance fields are claimed only by an exact synonym, never by a model
+    guess. The filter lives here, not only in map_headers, because
+    map_columns is also returned directly by the diagnostic route.
+    """
+    from pricing.mapping import EXACT_ONLY_FIELDS
     return [{"field": f.name, "required": f.required, "description": f.description}
-            for f in FIELDS]
+            for f in FIELDS if f.name not in EXACT_ONLY_FIELDS]
 
 
 def map_columns(headers: list[str]) -> dict:
@@ -276,7 +283,9 @@ def map_columns(headers: list[str]) -> dict:
         "single best-matching customer header (verbatim) or null if there is no "
         "confident match. Map only confident matches; prefer null over guessing."
     )
-    user = json.dumps({"our_fields": targets, "their_headers": headers})
+    # Header strings and field descriptions only; never a row value.
+    user = json.dumps({"our_fields": targets,
+                       "their_headers": [str(h)[:200] for h in headers]})
     # The API's structured-outputs subset does not accept a JSON Schema type
     # array (e.g. {"type": ["string", "null"]}) for constrained decoding.
     # anthropic.lib._parse._transform.transform_schema is not on this
