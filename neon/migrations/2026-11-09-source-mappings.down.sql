@@ -1,4 +1,4 @@
--- DOWN migration for 2026-11-source-mappings.sql (PK-24).
+-- DOWN migration for 2026-11-09-source-mappings.sql (PK-24).
 --
 -- Drops exactly what the up created: the decision_log source index and the
 -- source_mappings table. The table is a derived cache of customer-confirmed
@@ -13,6 +13,9 @@
 -- Idempotent and re-runnable.
 
 begin;
+
+-- Block concurrent writes so an app insert cannot trip the row-count guard.
+lock table decision_log in share mode;
 
 select set_config('pk24.decision_log_before',
                   (select count(*) from decision_log)::text, true);
