@@ -2,42 +2,51 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Open-Source Licenses · Pricekeel" };
 
-// Manually curated to match requirements.txt + web/package.json runtime
-// dependencies. Update when a major dep changes. The license string for
-// each row reflects the license under which we receive the dependency
-// (not necessarily its source repo's primary license, where they differ).
+// Regenerated 2026-11-09 from web/package.json "dependencies" (installed
+// versions read from node_modules) and requirements.txt (installed versions
+// read from the project venv). Direct runtime dependencies only, not
+// transitive packages and not devDependencies. Update when a direct
+// dependency is added, removed or relicensed. The license string is the
+// one declared in the installed package metadata.
 
 type Dep = { name: string; license: string; url: string; layer: string };
 
 const DEPS: Dep[] = [
-  // --- Web runtime ---
+  // --- Web runtime (web/package.json dependencies) ---
   { name: "next", license: "MIT", url: "https://github.com/vercel/next.js", layer: "web" },
   { name: "react", license: "MIT", url: "https://github.com/facebook/react", layer: "web" },
   { name: "react-dom", license: "MIT", url: "https://github.com/facebook/react", layer: "web" },
-  { name: "framer-motion", license: "MIT", url: "https://github.com/framer/motion", layer: "web" },
+  { name: "framer-motion", license: "MIT", url: "https://github.com/motiondivision/motion", layer: "web" },
   { name: "recharts", license: "MIT", url: "https://github.com/recharts/recharts", layer: "web" },
   { name: "@neondatabase/serverless", license: "MIT", url: "https://github.com/neondatabase/serverless", layer: "web" },
+  { name: "@vercel/analytics", license: "MIT", url: "https://github.com/vercel/analytics", layer: "web" },
   { name: "marked", license: "MIT", url: "https://github.com/markedjs/marked", layer: "web" },
-  { name: "tailwindcss", license: "MIT", url: "https://github.com/tailwindlabs/tailwindcss", layer: "web" },
-  { name: "typescript", license: "Apache-2.0", url: "https://github.com/microsoft/TypeScript", layer: "web" },
+  { name: "sanitize-html", license: "MIT", url: "https://github.com/apostrophecms/sanitize-html", layer: "web" },
 
-  // --- API + analytics runtime (Python) ---
-  { name: "fastapi", license: "MIT", url: "https://github.com/tiangolo/fastapi", layer: "api" },
+  // --- API runtime (Python, requirements.txt) ---
+  { name: "fastapi", license: "MIT", url: "https://github.com/fastapi/fastapi", layer: "api" },
   { name: "uvicorn", license: "BSD-3-Clause", url: "https://github.com/encode/uvicorn", layer: "api" },
-  { name: "pydantic", license: "MIT", url: "https://github.com/pydantic/pydantic", layer: "api" },
   { name: "python-multipart", license: "Apache-2.0", url: "https://github.com/Kludex/python-multipart", layer: "api" },
+  { name: "psycopg", license: "LGPL-3.0-only", url: "https://github.com/psycopg/psycopg", layer: "api" },
   { name: "requests", license: "Apache-2.0", url: "https://github.com/psf/requests", layer: "api" },
+  { name: "streamlit", license: "Apache-2.0", url: "https://github.com/streamlit/streamlit", layer: "api" },
+  { name: "altair", license: "BSD-3-Clause", url: "https://github.com/vega/altair", layer: "api" },
+
+  // --- Analytics + ML ---
   { name: "pandas", license: "BSD-3-Clause", url: "https://github.com/pandas-dev/pandas", layer: "analytics" },
   { name: "numpy", license: "BSD-3-Clause", url: "https://github.com/numpy/numpy", layer: "analytics" },
   { name: "scikit-learn", license: "BSD-3-Clause", url: "https://github.com/scikit-learn/scikit-learn", layer: "analytics" },
-  { name: "lightgbm", license: "MIT", url: "https://github.com/microsoft/LightGBM", layer: "analytics" },
-  { name: "rapidfuzz", license: "MIT", url: "https://github.com/maxbachmann/RapidFuzz", layer: "analytics" },
+  { name: "lightgbm", license: "MIT", url: "https://github.com/lightgbm-org/LightGBM", layer: "analytics" },
+  { name: "rapidfuzz", license: "MIT", url: "https://github.com/rapidfuzz/RapidFuzz", layer: "analytics" },
   { name: "fastembed", license: "Apache-2.0", url: "https://github.com/qdrant/fastembed", layer: "analytics" },
+
+  // --- Document ingest ---
   { name: "openpyxl", license: "MIT", url: "https://foss.heptapod.net/openpyxl/openpyxl", layer: "ingest" },
   { name: "pypdf", license: "BSD-3-Clause", url: "https://github.com/py-pdf/pypdf", layer: "ingest" },
   { name: "python-docx", license: "MIT", url: "https://github.com/python-openxml/python-docx", layer: "ingest" },
   { name: "python-pptx", license: "MIT", url: "https://github.com/scanny/python-pptx", layer: "ingest" },
-  { name: "openai", license: "Apache-2.0", url: "https://github.com/openai/openai-python", layer: "llm" },
+
+  // --- LLM and search clients ---
   { name: "anthropic", license: "MIT", url: "https://github.com/anthropics/anthropic-sdk-python", layer: "llm" },
   { name: "tavily-python", license: "MIT", url: "https://github.com/tavily-ai/tavily-python", layer: "llm" },
 ];
@@ -47,7 +56,7 @@ const LAYERS: Record<string, string> = {
   api: "API layer",
   analytics: "Analytics + ML",
   ingest: "Document ingest",
-  llm: "LLM clients",
+  llm: "LLM and search clients",
 };
 
 export default function LicensesPage() {
@@ -56,9 +65,10 @@ export default function LicensesPage() {
     <main className="mx-auto max-w-4xl px-6 py-12">
       <h1 className="text-3xl font-bold text-fg">Open-source licenses</h1>
       <p className="mt-2 text-sm text-muted">
-        Pricekeel is built on permissively-licensed open-source software.
-        Below is the list of runtime dependencies and the licenses under
-        which we receive them.
+        Pricekeel is built on open-source software. Below is the list of
+        direct runtime dependencies (not every transitive package) and the
+        licenses under which we receive them. Last regenerated 9 November
+        2026.
       </p>
 
       {layers.map((layer) => (
@@ -92,9 +102,11 @@ export default function LicensesPage() {
       ))}
 
       <p className="mt-10 text-sm leading-relaxed text-muted">
-        All licenses above are permissive (MIT, Apache-2.0, BSD-3-Clause).
-        Pricekeel does not depend on any copyleft (GPL / AGPL / LGPL)
-        software in its runtime path. If you find an omission or error,
+        Almost all licenses above are permissive (MIT, Apache-2.0,
+        BSD-3-Clause). One exception: <code>psycopg</code>, our Postgres
+        driver, is LGPL-3.0-only. We use it unmodified as an installed
+        library. None of the direct dependencies listed here is GPL or
+        AGPL. If you find an omission or error,
         please open an issue at{" "}
         <a className="text-teal underline" href="https://github.com/arokhith1998/pricing-ai" target="_blank" rel="noreferrer noopener">
           github.com/arokhith1998/pricing-ai
