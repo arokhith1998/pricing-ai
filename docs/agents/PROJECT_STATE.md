@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 3/4
-Updated: 2026-11-09T20:42:46Z
+Updated: 2026-11-09T20:50:45Z
 
 ## IN_PROGRESS
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
@@ -34,8 +34,6 @@ Updated: 2026-11-09T20:42:46Z
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 - **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
   - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
-- **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
-  - owns: requirements.txt, pricing/matching.py#schema, tests/test_matching.py
 
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
@@ -50,6 +48,8 @@ Updated: 2026-11-09T20:42:46Z
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
   - owns: pricing/copilot.py, tests/test_copilot.py
+- **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
+  - owns: requirements.txt, pricing/matching.py#schema, tests/test_matching.py
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)

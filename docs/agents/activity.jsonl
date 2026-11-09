@@ -272,3 +272,4 @@
 {"ts": "2026-11-09T20:42:32Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-09T20:42:40Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
 {"ts": "2026-11-09T20:42:46Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:50:45Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
