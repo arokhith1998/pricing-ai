@@ -354,6 +354,7 @@ _NON_OUTCOME_QUALIFIERS = frozenset({
     "subscription", "invoice", "payment", "billing", "renewal", "account",
     "customer", "contract", "license", "order", "shipping", "approval",
 })
+_STATUS_TOKENS = frozenset({"status", "stage", "state", "outcome"})
 _QUOTE_ID_TAILS = frozenset({"id", "number", "no", "num", "ref", "key", "code"})
 _QUOTE_WORDS = frozenset({"quote", "proposal"})
 
@@ -511,10 +512,13 @@ def outcome_refusal(headers: list[str],
     # layer is not asked to promote one of them.
     blocked = [str(h) for h in headers
                if _NON_OUTCOME_QUALIFIERS & set(_tokens(h))
-               and set(_tokens(h)) & {"status", "stage", "state", "outcome"}]
+               and set(_tokens(h)) & _STATUS_TOKENS]
     return {
         "refused": True,
         "blocked_headers": blocked,
+        "decided_by": ("Deterministic layers decided this refusal. The LLM, "
+                       "when enabled, was consulted only for non-outcome "
+                       "headers and can never supply outcome."),
         "reason": "no_outcome_column",
         "profile": p["profile"],
         "missing": ["outcome"],
@@ -699,6 +703,7 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     # "it was never invoked" apart from "it was invoked and broke", which an
     # unmapped-column list alone cannot distinguish.
     llm_fallback_failed = False
+    llm_rejected: list[dict] = []
 
     # Layer 0: deterministic source profile and refuse path, header set only.
     profile = profile_source(headers)
@@ -755,11 +760,19 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
                         # (assist.map_columns already enforces this): a header
                         # this layer did not actually receive must never be
                         # claimed, regardless of what the LLM returned.
-                        if (h and h in unmatched_headers and h not in claimed
-                                and f in unmatched_fields
-                                and not (f == "outcome" and
-                                         _NON_OUTCOME_QUALIFIERS & set(_tokens(h)))):
-                            _claim(f, h, "llm", "low")
+                        if not (h and h in unmatched_headers and h not in claimed
+                                and f in unmatched_fields):
+                            continue
+                        # The LLM never supplies outcome. Always reject a claim
+                        # on a billing-state header; when layer 0 refused, also
+                        # reject any outcome claim and any status or stage role.
+                        status_like = bool(set(_tokens(h)) & _STATUS_TOKENS)
+                        if ((f == "outcome" and _NON_OUTCOME_QUALIFIERS & set(_tokens(h)))
+                                or (refusal is not None
+                                    and (f == "outcome" or status_like))):
+                            llm_rejected.append({"field": f, "header": h})
+                            continue
+                        _claim(f, h, "llm", "low")
             except Exception as exc:
                 # Unmatched fields already show confidence "none" to the user;
                 # the operator still needs to know the LLM layer failed.
@@ -780,4 +793,5 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
 
     return {"mapping": out_mapping, "confidence": confidence, "used": used,
             "notes": notes, "llm_fallback_failed": llm_fallback_failed,
-            "profile": profile, "refusal": refusal}
+            "profile": profile, "refusal": refusal,
+            "llm_rejected": llm_rejected}

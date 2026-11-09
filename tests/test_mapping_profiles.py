@@ -283,3 +283,31 @@ def test_pk23_probe_headers_stay_unmapped(header):
 def test_pk23_probe_headers_map_exactly(header, field):
     res = map_headers([header], llm_fallback=False, use_embeddings=False)
     assert res["mapping"][field] == header
+
+
+# --- the LLM can never supply outcome ----------------------------------------
+
+def test_llm_outcome_claim_is_dropped_when_refusal_set(monkeypatch):
+    headers = ["Weird Col A", "Account Name", "Mystery Phase"]
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+    monkeypatch.setattr(assist, "map_columns",
+                        lambda h: {"outcome": "Mystery Phase",
+                                   "segment": "Weird Col A"})
+    res = map_headers(headers, llm_fallback=True, use_embeddings=False)
+    assert res["refusal"] is not None
+    assert res["mapping"]["outcome"] is None
+    assert {"field": "outcome", "header": "Mystery Phase"} in res["llm_rejected"]
+    # Non-outcome headers were still matched by the LLM.
+    assert res["mapping"]["segment"] == "Weird Col A"
+    assert "LLM" in res["refusal"]["decided_by"]
+    assert "Deterministic" in res["refusal"]["decided_by"]
+
+
+def test_llm_status_like_header_claim_dropped_under_refusal(monkeypatch):
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+    monkeypatch.setattr(assist, "map_columns",
+                        lambda h: {"lost_reason": "Phase Status Note"})
+    res = map_headers(["Phase Status Note", "Account Name"], llm_fallback=True,
+                      use_embeddings=False)
+    assert res["mapping"]["lost_reason"] is None
+    assert res["refusal"] is not None
