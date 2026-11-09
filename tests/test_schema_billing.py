@@ -136,7 +136,7 @@ def test_win_rate_eligibility_refuses_billing_sources():
     assert win_rate_eligible(" CSV ", "Closed_Lost")
     assert not win_rate_eligible(SourceSystem.STRIPE, "closed_won")
     assert not win_rate_eligible(SourceSystem.CHARGEBEE, Outcome.WON)
-    for missing in (None, float("nan"), ""):
+    for missing in (None, float("nan"), pd.NA, pd.NaT, ""):
         assert not win_rate_eligible(missing, "closed_won")
     assert not win_rate_eligible("csv", BILLING_ONLY_OUTCOME)
     for source in ("stripe", "chargebee", "billing", "Stripe"):
@@ -144,6 +144,13 @@ def test_win_rate_eligibility_refuses_billing_sources():
         assert not win_rate_eligible(source, "closed_lost")
         assert not win_rate_eligible(source, BILLING_ONLY_OUTCOME)
     assert BILLING_ONLY_OUTCOME not in {m.value for m in Outcome}
+
+
+def test_unknown_source_aliases_are_ineligible():
+    for alias in ("stripe_billing", "sfdc", "quickbooks", "Stripe Billing"):
+        assert not win_rate_eligible(alias, "closed_won")
+    assert win_rate_eligible("hubspot", "closed_lost")
+    assert not win_rate_eligible(pd.NA, "closed_won")
 
 
 def _crm_records(n=240) -> list[dict]:

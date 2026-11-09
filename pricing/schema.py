@@ -264,9 +264,15 @@ BILLING_ONLY_OUTCOME: str = "billing_only"
 
 
 def _plain(value: object) -> str:
-    """An enum member, string, None or NaN as a lowercase plain string."""
+    """An enum member or string as lowercase text; a missing value as "".
+
+    Missing is None, float NaN, pandas NA and NaT. pandas is not imported
+    here, so NA and NaT are recognised by type name.
+    """
     value = getattr(value, "value", value)
-    if value is None or (isinstance(value, float) and value != value):
+    if value is None or type(value).__name__ in {"NAType", "NaTType"}:
+        return ""
+    if isinstance(value, float) and value != value:
         return ""
     return str(value).strip().lower()
 
@@ -277,11 +283,12 @@ def win_rate_eligible(source_system: object, outcome: object) -> bool:
     Accepts plain strings or the SourceSystem and Outcome enum members. A
     missing source (None, NaN or blank) is NOT read as csv here: the csv
     default is applied by ingest, and a row whose origin is unknown is not
-    let into win rate. Billing sources are never eligible, whatever their
-    outcome says.
+    let into win rate. The normalised source must be a SourceSystem value,
+    so an unknown alias such as "stripe_billing" is ineligible. Billing
+    sources are never eligible, whatever their outcome says.
     """
     source = _plain(source_system)
-    if not source or source in BILLING_SOURCES:
+    if source not in PROVENANCE_ENUMS["source_system"] or source in BILLING_SOURCES:
         return False
     return _plain(outcome) in {m.value for m in Outcome}
 
@@ -301,9 +308,9 @@ def win_rate_eligible(source_system: object, outcome: object) -> bool:
 # positive reductions. discount_amount is coupon and discount objects only;
 # custom-price overrides and ramp phases leave it 0 (the gap is list_amount
 # minus invoiced_amount), and free coupon months are credit_amount. So
-# list_amount >= invoiced_amount + discount_amount + credit_amount. There is no outcome, no contact data and no end-customer
-# identifier on the grain, and it carries no cost field: billing holds no
-# product cost (ADR-006).
+# list_amount >= invoiced_amount + discount_amount + credit_amount. There is
+# no outcome, no contact data and no end-customer identifier on the grain,
+# and it carries no cost field: billing holds no product cost (ADR-006).
 CONTRACT_PERIOD_FIELDS: list[Field] = [
     Field("source_system", "enum", False,
           "Billing source: stripe | chargebee | billing.", "stripe"),
