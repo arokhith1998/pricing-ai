@@ -6,10 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-09T23:41:49Z
+Active work: 4/4
+Updated: 2026-11-09T23:43:27Z
 
 ## IN_PROGRESS
+- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
+  - owns: pricing/billing.py, tests/test_billing.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer)
@@ -88,8 +90,6 @@ Updated: 2026-11-09T23:41:49Z
   - owns: docs/ops/hubspot-integration-runbook.md, docs/guides/customer-hubspot-workspace.md
 - **PK-52** Name HubSpot on the privacy, trust and pricing pages  (web-engineer, deps PK-50,PK-6)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
-- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
-  - owns: pricing/billing.py, tests/test_billing.py
 - **PK-55** Map Stripe subscriptions and invoices to canonical deals and period actuals  (backend-engineer, deps PK-53,PK-46)
   - owns: pricing/adapters/stripe.py, pricing/adapters/billing_common.py, tests/test_adapter_stripe.py, tests/fixtures/stripe
 - **PK-56** Serve the billing readout from POST /billing/analyze  (backend-engineer, deps PK-54,PK-55)

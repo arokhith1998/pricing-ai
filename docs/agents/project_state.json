@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:41:49Z",
+  "updated": "2026-11-09T23:43:27Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2402,7 +2402,7 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "IN_PROGRESS",
       "dependencies": [
         "PK-53"
       ],
@@ -2410,8 +2410,8 @@
         "pricing/billing.py",
         "tests/test_billing.py"
       ],
-      "branch": null,
-      "worktree": null,
+      "branch": "agent/backend-engineer/PK-54",
+      "worktree": ".claude/worktrees/PK-54",
       "acceptance": [
         "Each output carries a method name (billing_realization, contracted_vs_billed, usage_actuals) and per-lever status scored | insufficient_data | not_provided.",
         "Win rate is always not_provided with the reason text from the design doc; the guardrail refuses rows whose source_system is stripe, chargebee or billing (test).",
@@ -2429,8 +2429,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T18:56:12Z",
-      "notes": []
+      "updated": "2026-11-09T23:43:27Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:43:23Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-55",
