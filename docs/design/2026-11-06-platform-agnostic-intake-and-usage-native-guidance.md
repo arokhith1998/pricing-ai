@@ -1,7 +1,7 @@
 ---
 title: Platform-agnostic intake and usage-native guidance, first increment
 created: 2026-11-06
-updated: 2026-11-07
+updated: 2026-11-09
 tags: [design, product-direction, intake, ubp, decision-log]
 status: draft
 source: docs/reviews/2026-11-06-product-direction/ (BRIEF.md and nine reports)
@@ -125,7 +125,7 @@ Each lever returns `scored | insufficient_data | not_provided`, no global fallba
 
 ## 5. Founder decisions required before dispatch
 
-**Status 2026-11-07.** D1 approved as option (a), persisted aggregates with no rows and no named comparables. D4 approved: the census gates every connector, HubSpot preset only at 30 percent or more. D3 answered: the first partner's tool is unknown. Recorded in `vault/Decisions/2026-11-07-per-tenant-snapshot-and-connector-gate.md`. D2, D5, D6, D7, D8 and D9 remain open. Phase A (PK-17 to PK-20, PK-22) and PK-30 dispatched and delivered the same day. Later on 2026-11-07 the founder confirmed the six lens-spec defaults and approved two optional schema fields, `list_unit_rate` and `credits_tcv`, which ride on PK-23 (`docs/design/2026-11-07-contract-structure-lens-spec.md` section 8). Phases B to D still await plan approval.
+**Status 2026-11-07.** D1 approved as option (a), persisted aggregates with no rows and no named comparables. D4 approved: the census gates every connector, HubSpot preset only at 30 percent or more. D3 answered: the first partner's tool is unknown. Recorded in `vault/Decisions/2026-11-07-per-tenant-snapshot-and-connector-gate.md`. D2, D5, D6, D7, D8 and D9 remain open. Phase A (PK-17 to PK-20, PK-22) and PK-30 dispatched and delivered the same day. Later on 2026-11-07 the founder confirmed the six lens-spec defaults and approved two optional schema fields, `list_unit_rate` and `credits_tcv`, which ride on PK-23 (`docs/design/2026-11-07-contract-structure-lens-spec.md` section 8). Phase B approved and started 2026-11-07; PK-23 merged 2026-11-09. On 2026-11-09 the founder superseded the connector half of D4: native connectors are built in the order HubSpot, Stripe, Chargebee after PK-25 merges (`vault/Decisions/2026-11-09-named-connectors-hubspot-stripe-chargebee.md`); a connector design doc and task list follow before dispatch.
 
 | # | Decision | Options and what each unblocks | Sources |
 |---|---|---|---|

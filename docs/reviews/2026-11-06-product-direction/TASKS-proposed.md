@@ -1,7 +1,7 @@
 ---
 title: Proposed tasks, platform-agnostic intake and usage-native guidance
 created: 2026-11-06
-updated: 2026-11-07
+updated: 2026-11-09
 tags: [tasks, proposal, product-direction]
 status: active
 source: docs/design/2026-11-06-platform-agnostic-intake-and-usage-native-guidance.md
@@ -105,8 +105,8 @@ Acceptance:
 
 | Item | Reason | Trigger to un-defer |
 |---|---|---|
-| Native CRM, CPQ or billing connectors | 1.5 to 3 founder-weeks each, zero added Tier A accounts (cfo.md s1) | Census plus two paying or LOI accounts on one platform |
-| HubSpot deals preset as native surface | Unmeasured share | PK-17 shows HubSpot at 30% or more |
+| Native CRM, CPQ or billing connectors | Un-deferred by founder decision 2026-11-09: HubSpot, then Stripe, then Chargebee, after PK-25 merges; tasks come from the connector design doc | Decided; see vault 2026-11-09 decision |
+| HubSpot deals preset as native surface | Folded into the HubSpot connector (census measured 18.9%, threshold no longer applies) | Decided 2026-11-09 |
 | Billing and usage profiles, `contract_period_actuals` | No partner file; key custody risk | A partner shares a billing export after PK-32 |
 | Child entities `quote_line`, `contract_term`, `rate_card` | Shape unknown | First real partner export |
 | Slack approve, email notify (5 to 8 days) | Approver unknown (D5) | Three real quotes in a week on `/quote` |
