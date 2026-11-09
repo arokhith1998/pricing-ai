@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:51:20Z",
+  "updated": "2026-11-09T19:52:32Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1835,7 +1835,7 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-25"
       ],
@@ -1869,7 +1869,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-09T18:56:09Z",
+      "updated": "2026-11-09T19:52:27Z",
       "notes": []
     },
     {
@@ -2098,7 +2098,7 @@
       "id": "PK-53",
       "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [
         "PK-25"
       ],
@@ -2126,7 +2126,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T18:56:12Z",
+      "updated": "2026-11-09T19:52:32Z",
       "notes": []
     },
     {

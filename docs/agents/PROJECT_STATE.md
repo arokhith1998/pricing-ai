@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-09T19:51:20Z
+Updated: 2026-11-09T19:52:32Z
 
 ## IN_PROGRESS
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
@@ -47,6 +47,10 @@ Updated: 2026-11-09T19:51:20Z
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
+- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
+  - owns: pricing/adapters/__init__.py, pricing/adapters/hubspot.py, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
+- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
+  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 
@@ -83,8 +87,6 @@ Updated: 2026-11-09T19:51:20Z
   - owns: docs/ops/data-register.md, docs/ops/incident-response.md, docs/ops/salesforce-integration-runbook.md
 - **PK-45** Draft the per-customer credentials amendment and update the readiness access-method lines  (customer-success, deps PK-22,PK-19)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md, gtm/data-readiness-checklists.md
-- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, deps PK-25)
-  - owns: pricing/adapters/__init__.py, pricing/adapters/hubspot.py, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 - **PK-47** Connect, refresh and disconnect a HubSpot portal by OAuth  (web-engineer, deps PK-43,PK-44)
   - owns: web/src/lib/hubspot-oauth.ts, web/src/lib/hubspot-client.ts, web/src/app/api/hubspot/oauth, web/src/app/api/hubspot/connection, web/test/hubspot-oauth.test.ts, web/test/hubspot-client.test.ts
 - **PK-48** Discover pipelines and properties and sync a bounded HubSpot book  (web-engineer, deps PK-47,PK-46,PK-26)
@@ -97,8 +99,6 @@ Updated: 2026-11-09T19:51:20Z
   - owns: docs/ops/hubspot-integration-runbook.md, docs/guides/customer-hubspot-workspace.md
 - **PK-52** Name HubSpot on the privacy, trust and pricing pages  (web-engineer, deps PK-50,PK-6)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/pricing/page.tsx, web/test/claims-connectors.test.ts
-- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, deps PK-25)
-  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
   - owns: pricing/billing.py, tests/test_billing.py
 - **PK-55** Map Stripe subscriptions and invoices to canonical deals and period actuals  (backend-engineer, deps PK-53,PK-46)
