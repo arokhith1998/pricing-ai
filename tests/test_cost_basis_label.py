@@ -16,6 +16,7 @@ real provider response (model id and date) is a follow-up.
 """
 from __future__ import annotations
 
+import ast
 import re
 import socket
 from pathlib import Path
@@ -308,11 +309,36 @@ def test_strict_adr_006_reading_no_affirmative_margin_in_any_output(
         assert_no_margin_for_proxy(text, "crm_proxy")
 
 
+def _docstring_line_spans(src: str) -> list[tuple[int, int]]:
+    """1-based (first, last) line spans of module, class and function
+    docstrings, found with ast. Unparseable source yields no spans."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+    spans = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                             ast.AsyncFunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                spans.append((body[0].lineno, body[0].end_lineno))
+    return spans
+
+
 def code_without_comments(src: str) -> str:
-    """Source text with comment-only lines dropped (first non-space char is #)
-    and adjacent string literals joined, so "not " / "bookable margin" split
-    across lines reads as one phrase."""
-    lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith("#")]
+    """Source text with docstrings and comment-only lines dropped (a comment
+    line's first non-space char is #) and adjacent string literals joined, so
+    "not " / "bookable margin" split across lines reads as one phrase.
+    Documentation may say "never a margin"; every other string literal is
+    still scanned."""
+    drop = set()
+    for first, last in _docstring_line_spans(src):
+        drop.update(range(first, last + 1))
+    lines = [ln for i, ln in enumerate(src.splitlines(), 1)
+             if i not in drop and not ln.lstrip().startswith("#")]
     return re.sub(r"""(["'])\s*\n\s*\1""", "", "\n".join(lines))
 
 
@@ -320,6 +346,22 @@ def scan_source_text(src: str) -> list[str]:
     """What the source scan flags in one file's text."""
     return margin_violations(code_without_comments(src), "crm_proxy",
                              whole_word=True)
+
+
+def test_source_scan_skips_docstrings_but_not_other_string_literals():
+    src = (
+        '"""Module doc: gross margin is never claimed here."""\n'
+        "def f():\n"
+        '    """Function doc with gross margin in it."""\n'
+        '    return "gross margin 40%"\n'
+        "class C:\n"
+        '    """Class doc about gross margin."""\n'
+        '    note = "gross margin again"\n'
+    )
+    hits = scan_source_text(src)
+    assert len(hits) == 2, hits
+    assert all("gross margin" in h for h in hits)
+    assert any("40%" in h for h in hits) and any("again" in h for h in hits)
 
 
 def test_source_scan_self_test_catches_plurals_and_snake_case():
