@@ -289,3 +289,4 @@
 {"ts": "2026-11-09T21:52:01Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
 {"ts": "2026-11-09T22:03:17Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-09T22:03:18Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #87"}
+{"ts": "2026-11-09T22:09:49Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}

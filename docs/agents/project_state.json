@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T22:03:18Z",
+  "updated": "2026-11-09T22:09:49Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2850,7 +2850,7 @@
       "id": "PK-75",
       "title": "Build the design system, tokens, shared UI primitives and site chrome",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [],
       "owns": [
         "web/src/app/globals.css",
@@ -2896,14 +2896,14 @@
       },
       "pr": 87,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
         "notes": "",
-        "ts": "2026-11-09T21:52:01Z"
+        "ts": "2026-11-09T22:09:49Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-09T22:03:18Z",
+      "updated": "2026-11-09T22:09:49Z",
       "notes": [
         {
           "ts": "2026-11-09T19:18:15Z",
@@ -2920,6 +2920,10 @@
         {
           "ts": "2026-11-09T22:03:18Z",
           "note": "PR #87"
+        },
+        {
+          "ts": "2026-11-09T22:09:49Z",
+          "note": "review approve-with-nits"
         }
       ]
     },
