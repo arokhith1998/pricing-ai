@@ -493,7 +493,7 @@ PK-53 found that `pricing/guardrail.py` has no source awareness: a billing-sourc
 ## Lead decisions from the PR 84 review, 2026-11-09
 
 - `discount_amount` on the contract-period grain holds coupon and discount objects only (percentage or amount off). Custom-price overrides and ramp-phase gaps are not discounts: they appear as `list_amount` minus `invoiced_amount` with `discount_amount` 0, so the identity is `list_amount >= invoiced_amount + discount_amount + credit_amount`. Free months (a 100 percent coupon for N periods) map to credits, never also to `discount_amount`, matching lens spec section 2.2.
-- PK-54 gains two acceptance lines: readiness discloses billing-sourced rows by count (today they are counted nowhere on the guardrail path); the refusal by `source_system` does not rely on `win_rate_eligible` alone until PK-72 lands alias handling (unknown aliases such as `stripe_billing` currently read as csv).
+- PK-54 gains two acceptance lines: readiness discloses billing-sourced rows by count (today they are counted nowhere on the guardrail path); the refusal by `source_system` does not rely on `win_rate_eligible` alone until PK-72 lands alias handling; `win_rate_eligible` now requires a recognised `SourceSystem` value, so unknown aliases such as `stripe_billing` are ineligible until normalised; PK-54 applies `PROVENANCE_DEFAULTS["source_system"]` (csv) to records before calling it, with a test that a CSV book without `source_system` still scores (PR 84 re-review, 2026-11-09).
 - The answer key carries the committed figure for metered accounts so PK-54 and PK-55 have a commit value to recover.
 
 ## Lead decisions from the PR 83 review, 2026-11-09

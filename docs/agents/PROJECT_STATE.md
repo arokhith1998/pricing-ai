@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 1/4
-Updated: 2026-11-09T21:22:36Z
+Updated: 2026-11-09T21:32:44Z
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
@@ -28,8 +28,6 @@ Updated: 2026-11-09T21:22:36Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
   - owns: web/src/lib/salesforce-adapter.ts, web/src/lib/salesforce-types.ts
-- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
-  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
@@ -44,6 +42,8 @@ Updated: 2026-11-09T21:22:36Z
   - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
+- **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
+  - owns: pricing/schema.py, pricing/generate_billing.py, tests/test_schema_billing.py
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
