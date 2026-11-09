@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T21:41:32Z",
+  "updated": "2026-11-09T21:44:23Z",
   "config": {
     "max_concurrent": 4
   },
@@ -566,7 +566,7 @@
       "id": "PK-12",
       "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [
         "PK-9"
       ],
@@ -589,10 +589,15 @@
         "ci_run": null
       },
       "pr": 85,
-      "review": null,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:44:18Z"
+      },
       "blocked_by": null,
       "created": "2026-09-11T23:12:34Z",
-      "updated": "2026-11-09T21:22:28Z",
+      "updated": "2026-11-09T21:44:18Z",
       "notes": [
         {
           "ts": "2026-11-09T20:42:40Z",
@@ -601,6 +606,10 @@
         {
           "ts": "2026-11-09T21:22:28Z",
           "note": "PR #85"
+        },
+        {
+          "ts": "2026-11-09T21:44:18Z",
+          "note": "review approve-with-nits"
         }
       ]
     },
@@ -3366,6 +3375,35 @@
       "blocked_by": null,
       "created": "2026-11-09T19:46:00Z",
       "updated": "2026-11-09T19:46:00Z",
+      "notes": []
+    },
+    {
+      "id": "PK-88",
+      "title": "Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "web/test/diagnostic-mobile-overflow.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "the test no longer times out at the default 5000ms on a loaded Windows host: either the page import is hoisted into a beforeAll and the describe block carries an explicit timeout, or the assertion is made against the rendered markup of the table subtree without a full cold page render",
+        "the test still fails when a table is rendered outside an overflow-x-auto ancestor (prove by temporarily breaking the page in a scratch copy, not in the commit)",
+        "no other test or product file changes; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "web/test/diagnostic-mobile-overflow.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T21:44:23Z",
+      "updated": "2026-11-09T21:44:23Z",
       "notes": []
     }
   ]

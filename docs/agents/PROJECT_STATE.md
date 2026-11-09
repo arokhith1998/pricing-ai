@@ -7,15 +7,13 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 1/4
-Updated: 2026-11-09T21:41:32Z
+Updated: 2026-11-09T21:44:23Z
 
 ## REWORK_REQUIRED
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 
 ## REVIEW
-- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
-  - owns: web/src/app/competitor-watch/page.tsx, docs/reviews/founder-action-checklist.md
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
@@ -30,6 +28,8 @@ Updated: 2026-11-09T21:41:32Z
   - owns: web/src/app/globals.css, web/src/app/layout.tsx, web/src/components/Nav.tsx, web/src/components/Footer.tsx, web/src/components/ChromeEffects.tsx, web/src/components/AuroraBackground.tsx, web/src/components/ScrollProgress.tsx, web/src/components/Reveal.tsx, web/src/components/CountUp.tsx, web/src/components/ui, web/src/lib/site-nav.ts, web/src/lib/page-metadata.ts, brand/PALETTE.md, web/test/design-system.test.ts, web/test/chrome.test.tsx, web/test/page-metadata.test.ts
 
 ## QA
+- **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
+  - owns: web/src/app/competitor-watch/page.tsx, docs/reviews/founder-action-checklist.md
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
@@ -156,6 +156,8 @@ Updated: 2026-11-09T21:41:32Z
   - owns: web/src/app/globals.css, web/scripts/lighthouse-budget.mjs, brand/PALETTE.md, web/test/site-audit.test.ts
 - **PK-87** Make the copilot raise-price opportunity fire on a real book by joining win rate into the segment table  (ai-engineer, deps PK-74)
   - owns: pricing/copilot.py, pricing/metrics.py#realization_by_segment, tests/test_copilot.py
+- **PK-88** Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts  (qa-engineer)
+  - owns: web/test/diagnostic-mobile-overflow.test.ts
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
