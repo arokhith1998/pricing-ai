@@ -212,3 +212,4 @@
 {"ts": "2026-11-09T19:06:31Z", "event": "add", "task": "PK-84", "agent": "web-engineer", "detail": "Audit the whole site, remove dead styles, and pin the budgets in tests"}
 {"ts": "2026-11-09T19:08:27Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-09T19:14:18Z", "event": "config", "task": "-", "agent": "founder", "detail": "max_concurrent 2 -> 4 (ADR-003 amendment 2026-11-09)"}
+{"ts": "2026-11-09T19:16:17Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #78"}

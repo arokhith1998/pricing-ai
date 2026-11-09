@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T19:14:18Z",
+  "updated": "2026-11-09T19:16:17Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1086,7 +1086,7 @@
       "id": "PK-24",
       "title": "Add a migration for saved mappings and a decision-log source index",
       "agent": "data-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-23"
       ],
@@ -1108,15 +1108,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 78,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-07T16:32:03Z",
-      "updated": "2026-11-09T18:59:10Z",
+      "updated": "2026-11-09T19:16:17Z",
       "notes": [
         {
           "ts": "2026-11-09T18:59:08Z",
           "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:16:17Z",
+          "note": "PR #78"
         }
       ]
     },

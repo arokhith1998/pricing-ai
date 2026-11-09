@@ -6,12 +6,10 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 5/4
-Updated: 2026-11-09T19:14:18Z
+Active work: 4/4
+Updated: 2026-11-09T19:16:17Z
 
 ## IN_PROGRESS
-- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, deps PK-23)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, deps PK-23,PK-30)
   - owns: pricing/generate.py, tests/test_generate_contract.py
 
@@ -34,6 +32,8 @@ Updated: 2026-11-09T19:14:18Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
+- **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
+  - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
 
 ## QA
 - **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
