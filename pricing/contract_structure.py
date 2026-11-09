@@ -320,8 +320,8 @@ def contract_structure_deals(df: pd.DataFrame, *,
     pocket_real = (pocket / list_acv).round(6)
 
     d5 = _Decide(idx)
-    d5.add(list_acv.isna() | booked.isna() | (list_acv <= 0), INSUFFICIENT, "invalid_money_value")
-    d5.add(booked <= 0, INSUFFICIENT, "booked_missing_or_zero")
+    d5.add(list_acv.isna() | booked.isna() | (list_acv <= 0) | (booked <= 0),
+           INSUFFICIENT, "invalid_money_value")
     d5.add(s4 == INSUFFICIENT, INSUFFICIENT, "ramp_step_insufficient")
     d5.add(credits < 0, INSUFFICIENT, "invalid_money_value")
     d5.add(credits_present & (term.isna() | (term <= 0)), INSUFFICIENT, "term_months_missing")
@@ -492,7 +492,8 @@ def _basis_clause(bases: set[str]) -> str:
     return f"List unit rate supplied or {derived}."
 
 
-def _deal_label(flag: str, row: pd.Series) -> str | None:
+def _deal_label(flag: str, row: pd.Series, ramp_in_file: bool = True,
+                credits_in_file: bool = True) -> str | None:
     """Per-deal label, built only from that deal's own lens outputs."""
     if flag == "unit_rate_below_floor":
         text = LEVER_LABELS["unit_rate"] + " " + _basis_clause({str(row["list_unit_rate_basis"])})
@@ -506,8 +507,10 @@ def _deal_label(flag: str, row: pd.Series) -> str | None:
                 f"ramp, it is {float(row['tcv_weighted_effective_discount']):.1%}.")
     if flag == "off_invoice_below_floor":
         text = LEVER_LABELS["waterfall"]
-        for name, col in (("ramp", "wf_ramp_step_status"), ("credits", "wf_credits_step_status")):
-            if row[col] != SCORED:
+        # only a column absent from the file is excluded; a blank in a present column
+        # is not_provided for the deal and gets no sentence (spec 7a.6)
+        for name, present in (("ramp", ramp_in_file), ("credits", credits_in_file)):
+            if not present:
                 text += f" Excludes {name}: not in the file."
         return text
     if flag == "overage_below_list_unit_rate":
@@ -519,14 +522,18 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
                                policy_threshold: float = DEFAULT_POLICY_THRESHOLD) -> dict:
     """Won-deal readout: per-flag lists, trade check, coverage, deterministic sentences.
 
+    The floor and ramp sentences format the floor_frac the flags were computed
+    with (frame attrs); policy_threshold is used by the trade check only.
     Every entry carries method "policy rule". Lists are sorted as spec section 5
     states, ties broken by opportunity_id ascending. No LLM runs here.
     """
     params = deals.attrs.get("contract_structure", {})
     summary = contract_structure_summary(deals)
     won = _won_mask(deals)
-    ramp_in_file = bool(params.get("ramp_columns_in_file", True))
-    credits_in_file = bool(params.get("credits_column_in_file", True))
+    floor = float(params.get("floor_frac", DEFAULT_POLICY_THRESHOLD))
+    # without attrs, infer column presence from the data: a scored step means its column exists
+    ramp_in_file = bool(params["ramp_columns_in_file"]) if "ramp_columns_in_file" in params         else bool((deals["wf_ramp_step_status"] == SCORED).any())
+    credits_in_file = bool(params["credits_column_in_file"]) if "credits_column_in_file" in params         else bool((deals["wf_credits_step_status"] == SCORED).any())
 
     def col(name: str) -> pd.Series:
         return deals[name] if name in deals.columns else pd.Series(np.nan, index=deals.index)
@@ -541,7 +548,7 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
         for _, r in sub.head(n).iterrows():
             d = {c: (_py(r[c]) if c in sub.columns else None) for c in (*_COMMON, *cols)}
             if flag is not None:
-                lab = _deal_label(flag, r)
+                lab = _deal_label(flag, r, ramp_in_file, credits_in_file)
                 if lab:
                     d["label"] = lab
             if flag == "off_invoice_below_floor":
@@ -580,7 +587,7 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
                     label += f" Excludes {step}: not in the file."
         entry = {"flag": flag, "lever": lever, "method": METHOD, "label": label,
                  "total_flagged": total, "deals": lst, "truncated": total > len(lst)}
-        sentence = _sentence(flag, summary, deals, mask, policy_threshold, total)
+        sentence = _sentence(flag, summary, deals, mask, floor, total)
         if sentence:
             entry["sentence"] = sentence
         if summary[lever]["share_status"] == INSUFFICIENT:
@@ -614,11 +621,11 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
 
 
 def _sentence(flag: str, summary: dict, deals: pd.DataFrame, mask: pd.Series,
-              policy_threshold: float, total: int) -> str | None:
+              floor: float, total: int) -> str | None:
     if flag == "unit_rate_below_floor":
         d = summary["unit_rate"]
         return (f"{total} of {d['n_scored']} scored won usage deals sit below the "
-                f"{policy_threshold:.0%} unit-rate floor, "
+                f"{floor:.0%} unit-rate floor, "
                 f"${d['dollars']['unit_rate_gap_to_floor_acv']:,.0f} below floor in total. "
                 "Method: policy rule.")
     if flag == "overage_fence_breach":
@@ -626,7 +633,7 @@ def _sentence(flag: str, summary: dict, deals: pd.DataFrame, mask: pd.Series,
                 "unit rate. Method: policy rule.")
     if flag == "ramp_hidden_discount":
         unapproved = int((mask & deals["ramp_unapproved"].fillna(False).astype(bool)).sum())
-        return (f"{total} won deals pass the {policy_threshold:.0%} discount line at steady state "
+        return (f"{total} won deals pass the {floor:.0%} discount line at steady state "
                 f"but exceed it once the ramp is counted; {unapproved} of them have no recorded "
                 "approver. Method: policy rule.")
     return None

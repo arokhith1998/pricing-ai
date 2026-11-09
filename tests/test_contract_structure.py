@@ -464,15 +464,16 @@ def test_cent_denominated_floor_deals_agree_between_ramp_and_waterfall():
     df = pd.DataFrame({
         "opportunity_id": [f"C{i}" for i in range(n)], "outcome": "closed_won",
         "value_metric": "seats", "list_acv": list_acv, "booked_acv": booked, "term_months": term,
-        "ramp_year_1_acv": booked, "ramp_year_2_acv": booked, "approved_by": "",
+        "ramp_year_1_acv": (booked * 0.9).round(2), "ramp_year_2_acv": booked, "approved_by": "",
     })
     enriched = enrich(df)
     assert (enriched["price_realization"] < 0.85).any()  # the unrounded value really is below
     out = contract_structure_deals(enriched)
     assert (out["waterfall_status"] == "scored").all()
     assert (out["ramp_hidden_discount"].astype(bool) == out["off_invoice_below_floor"].astype(bool)).all()
-    assert not out["off_invoice_below_floor"].astype(bool).any()
-    # flat ramp at the floor: pocket realization equals one minus the TCV discount
+    # a non-flat ramp at exactly 15 percent steady state crosses the line on every deal
+    assert out["off_invoice_below_floor"].astype(bool).all()
+    assert out["ramp_hidden_discount"].astype(bool).all()
     assert (out["pocket_realization"] - (1 - out["tcv_weighted_effective_discount"])).abs().max() < 2e-6
 
 
@@ -509,7 +510,7 @@ def test_waterfall_bounds_and_nonfinite_list_rate():
     assert big["waterfall_status"] == "insufficient_data"
     assert big["waterfall_reason"] == "pocket_realization_out_of_bounds"
     zero = _one(**{**seats, "booked_acv": 0.0}, credits_tcv=1000.0)
-    assert zero["waterfall_reason"] == "booked_missing_or_zero"
+    assert zero["waterfall_reason"] == "invalid_money_value"
     short = _one(**{**seats, "term_months": 1}, credits_tcv=5000.0)  # 60,000 a year on a 100,000 list
     assert short["waterfall_status"] == "scored" and short["pocket_acv"] == 30000.0
     short2 = _one(**{**seats, "term_months": 1, "booked_acv": 50000.0}, credits_tcv=5000.0)
@@ -626,3 +627,80 @@ def test_readout_coverage_lists_first_ids_per_insufficient_reason(lens7):
     assert set(planted) <= set(cov["quantity_missing_or_zero"])
     assert cov["quantity_missing_or_zero"] == sorted(cov["quantity_missing_or_zero"])
     assert ro["coverage"]["unit_rate"]["counts"]["scored"] == ro["summary"]["unit_rate"]["n_scored"]
+
+
+def test_deal_labels_exclude_only_columns_absent_from_the_file(lens7):
+    deals, _, _ = lens7
+    ro = contract_structure_readout(deals, n=1000)
+    e = next(x for x in ro["flags"] if x["flag"] == "off_invoice_below_floor")
+    assert "Excludes" not in e["label"]
+    assert e["deals"] and all("Excludes" not in d["label"] for d in e["deals"])
+    ka10 = next(d for d in e["deals"] if d["opportunity_id"] == "KA-10")
+    assert "Excludes credits" not in ka10["label"]
+    # attrs missing: infer from the data rather than defaulting to present
+    bare = deals.copy()
+    bare.attrs = {}
+    again = contract_structure_readout(bare, n=1000)
+    e2 = next(x for x in again["flags"] if x["flag"] == "off_invoice_below_floor")
+    assert all("Excludes" not in d["label"] for d in e2["deals"])
+
+
+def test_readout_sentences_use_the_floor_the_flags_were_computed_with():
+    frame, _ = _frame_and_key(7)
+    enriched, _ = ingest_frame_verbose(frame, source="PK-32 floor 0.20")
+    out = contract_structure_deals(enriched, floor_frac=0.20, columns_present=set(frame.columns))
+    ro = contract_structure_readout(out, n=1000)  # policy_threshold left at its 15 percent default
+    by = {e["flag"]: e for e in ro["flags"]}
+    assert "20% unit-rate floor" in by["unit_rate_below_floor"]["sentence"]
+    assert "20% discount line" in by["ramp_hidden_discount"]["sentence"]
+    won = out[out["is_won"]]
+    n_below = int(won["unit_rate_below_floor"].fillna(False).astype(bool).sum())
+    assert by["unit_rate_below_floor"]["total_flagged"] == n_below
+    base = contract_structure_deals(enriched, columns_present=set(frame.columns))
+    assert n_below != int(base[base["is_won"]]["unit_rate_below_floor"].fillna(False).astype(bool).sum())
+
+
+def test_readout_ties_break_on_opportunity_id_ascending(lens7):
+    deals, _, _ = lens7
+    ro = contract_structure_readout(deals, n=1000)
+    sort_cols = {"low_commit_share": ("uncommitted_booked_acv", None),
+                 "overage_below_list_unit_rate": ("overage_rate", "list_unit_rate_used"),
+                 "ramp_unapproved": ("ramp_concession_tcv", None),
+                 "off_invoice_below_floor": ("pocket_acv", None)}
+    lists = {e["flag"]: e["deals"] for e in ro["flags"]}
+    lists["trade_check"] = ro["trade_check"]["deals"]
+    key_fn = {
+        "low_commit_share": lambda d: -d["uncommitted_booked_acv"],
+        "overage_below_list_unit_rate": lambda d: d["overage_rate"] / d["list_unit_rate_used"],
+        "ramp_unapproved": lambda d: -d["ramp_concession_tcv"],
+        "off_invoice_below_floor": None,
+        "trade_check": lambda d: -d["discount_amount"],
+    }
+    by_id = deals.set_index("opportunity_id")
+    key_fn["off_invoice_below_floor"] = (
+        lambda d: -(by_id.loc[d["opportunity_id"], "booked_acv"] - by_id.loc[d["opportunity_id"], "pocket_acv"]))
+    for flag, fn in key_fn.items():
+        rows = lists[flag]
+        assert rows, flag
+        keyed = [(fn(d), d["opportunity_id"]) for d in rows]
+        assert keyed == sorted(keyed), flag
+
+
+def test_readout_tie_break_with_identical_sort_keys_in_shuffled_order():
+    rng = np.random.default_rng(3)
+    usage = dict(value_metric="consumption", list_acv=100000.0, booked_acv=80000.0,
+                 committed_acv=30000.0, quantity=40000.0, list_unit_rate=1.0,
+                 overage_rate=0.5, term_months=12)  # low commit, below list, trade check
+    ramp = dict(value_metric="seats", list_acv=100000.0, booked_acv=90000.0, term_months=36,
+                ramp_year_1_acv=60000.0, ramp_year_2_acv=80000.0)  # hidden, unapproved, off invoice
+    rows = [dict(opportunity_id=f"T{i:02d}", outcome="closed_won", approved_by="",
+                 **(usage if i % 2 else ramp)) for i in range(40)]
+    order = rng.permutation(len(rows))
+    df = enrich(pd.DataFrame([rows[i] for i in order]))
+    ro = contract_structure_readout(contract_structure_deals(df), n=1000)
+    lists = {e["flag"]: e["deals"] for e in ro["flags"]}
+    lists["trade_check"] = ro["trade_check"]["deals"]
+    for flag in ("low_commit_share", "overage_below_list_unit_rate", "ramp_unapproved",
+                 "off_invoice_below_floor", "trade_check"):
+        ids = [d["opportunity_id"] for d in lists[flag]]
+        assert len(ids) == 20 and ids == sorted(ids), flag
