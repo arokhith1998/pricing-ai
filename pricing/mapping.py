@@ -1,6 +1,9 @@
 """Robust column mapper — prospect headers in any form to our canonical schema.
 
-Four-layer cascade, cheapest and most certain first:
+Layer 0 profiles the export from its header set alone (crm_opportunity,
+cpq_line, unknown), normalises stage values into a closed outcome enum and
+refuses, before any LLM call, an export that cannot supply outcome. Then a
+four-layer cascade, cheapest and most certain first:
 
   1. Synonyms dictionary  (deterministic, hand-curated per field)
   2. Fuzzy match          (rapidfuzz token-set ratio on normalized headers)
@@ -328,6 +331,344 @@ def embedding_match(header: str, threshold: float = 0.55,
     return None
 
 
+# --- Layer 0: source profile (header set only, deterministic) ---------------
+#
+# Profiles are generic export SHAPES, not vendor presets (founder decision D4,
+# census 2026-11-07: no platform reaches the 30 percent threshold, and the
+# quote tool is unknown for 45 of 47 accounts). The classifier reads header
+# strings and nothing else; no row value is consulted, no LLM is involved.
+
+PROFILE_CRM = "crm_opportunity"   # one row per deal
+PROFILE_CPQ = "cpq_line"          # one row per quote line, many rows per quote
+PROFILE_UNKNOWN = "unknown"
+
+# Closed outcome enum. ask_user is an explicit bucket for anything we cannot
+# place, because an unknown stage must never be guessed into closed_lost.
+OUTCOME_WON, OUTCOME_LOST = "closed_won", "closed_lost"
+OUTCOME_OPEN, OUTCOME_ASK_USER = "open", "ask_user"
+OUTCOME_VALUES = (OUTCOME_WON, OUTCOME_LOST, OUTCOME_OPEN, OUTCOME_ASK_USER)
+
+# Qualifiers that make a "status" column a billing or lifecycle state, not a
+# sales outcome ("Subscription Status: canceled" is churn, not closed-lost).
+_NON_OUTCOME_QUALIFIERS = frozenset({
+    "subscription", "invoice", "payment", "billing", "renewal", "account",
+    "customer", "contract", "license", "order", "shipping", "approval",
+})
+_QUOTE_ID_TAILS = frozenset({"id", "number", "no", "num", "ref", "key", "code"})
+_QUOTE_WORDS = frozenset({"quote", "proposal"})
+
+# Roll-up spec for cpq_line. Pure data so it can be shown, tested and audited.
+CPQ_ROLLUP_SPEC: dict = {
+    "join_key": "quote_id",            # role; the header is resolved per file
+    "canonical_key_field": "source_quote_id",
+    "sum": {"line_list": "list_acv", "line_booked": "booked_acv"},
+    "outcome_from": "quote_status",
+    "first_non_blank": ["account_name", "account_id", "opportunity_id",
+                        "created_date", "close_date", "rep_id", "currency",
+                        "segment", "region", "industry", "term_months"],
+    "not_rolled_up": ["quantity"],     # units of different SKUs do not add
+    "amounts": "summed as exported, never annualised or converted",
+}
+
+
+def _tokens(header: str) -> list[str]:
+    return normalize(header).split()
+
+
+def _field_of(header: str) -> Optional[str]:
+    """Deterministic field guess for one header (layers 1 and 2 only)."""
+    f = synonyms_match(header)
+    if f:
+        return f
+    r = fuzzy_match(header)
+    return r[0] if r else None
+
+
+def _is_outcome_header(header: str) -> bool:
+    toks = _tokens(header)
+    if not toks or _NON_OUTCOME_QUALIFIERS & set(toks):
+        return False
+    return _field_of(header) == "outcome"
+
+
+def _classify_roles(headers: list[str]) -> dict[str, str]:
+    """Role -> header for the cues the profiles are built from. First header
+    wins per role, in file order; a header serves one role only."""
+    roles: dict[str, str] = {}
+    used: set[str] = set()
+
+    def put(role: str, h: str) -> None:
+        if role not in roles and h not in used:
+            roles[role] = h
+            used.add(h)
+
+    for h in headers:
+        toks = _tokens(h)
+        tset = set(toks)
+        if not toks:
+            continue
+        n = " ".join(toks)
+        if (tset & _QUOTE_WORDS) and (toks[-1] in _QUOTE_ID_TAILS or n in _QUOTE_WORDS):
+            put("quote_id", h)
+        elif (tset & _QUOTE_WORDS) and tset & {"status", "stage", "state"}:
+            put("quote_status", h)
+        elif "unit" in tset and tset & {"price", "rate", "amount"}:
+            put("unit_list" if "list" in tset else "unit_net", h)
+        elif "line" in tset and tset & {"total", "amount", "price", "value"}:
+            put("line_list" if "list" in tset else "line_booked", h)
+        elif "line" in tset and tset & {"id", "item", "number", "no", "num"}:
+            put("line", h)
+        elif n in ("line item", "line items"):
+            put("line", h)
+    for h in headers:
+        if h in used:
+            continue
+        n = normalize(h)
+        f = _field_of(h)
+        if f == "sku" or n in ("product", "product name", "item name", "description"):
+            put("line", h)
+        elif f == "quantity":
+            put("quantity", h)
+        elif f == "list_acv":
+            put("line_list", h)
+        elif f == "booked_acv":
+            put("line_booked", h)
+        elif f == "close_date":
+            put("close_date", h)
+        elif f == "opportunity_id":
+            put("opportunity_id", h)
+        elif _is_outcome_header(h):
+            put("outcome", h)
+    # A quote status doubles as the outcome source; a plain outcome header does
+    # too when the file is quote-shaped.
+    if "quote_status" not in roles and "outcome" in roles:
+        roles["quote_status"] = roles["outcome"]
+    if "outcome" not in roles and "quote_status" in roles:
+        roles["outcome"] = roles["quote_status"]
+    return roles
+
+
+def profile_source(headers: list[str]) -> dict:
+    """Classify an export from its header set alone.
+
+    Returns {profile, confidence, grain, evidence, missing, roles, rollup}.
+    `evidence` is the list of input headers that carried the decision; every
+    entry is a header the caller passed in. `missing` names the cues the
+    winning (or closest) profile lacks. Never reads row values.
+    """
+    headers = [str(h).strip() for h in headers]
+    roles = _classify_roles(headers)
+    cpq_cues = ["quote_id", "line", "unit_net", "quantity", "quote_status"]
+    # Amount cue for CRM: any booked-like header, whatever its role label.
+    unit_hdrs = {roles.get("unit_net"), roles.get("unit_list")}
+    crm_amount = next((h for h in headers if h not in unit_hdrs
+                       and _field_of(h) == "booked_acv"), None)
+    crm_cues = {"outcome": roles.get("outcome"), "close_date": roles.get("close_date"),
+                "amount": crm_amount or roles.get("line_booked")}
+
+    has_unit_price = "unit_net" in roles or "unit_list" in roles
+    cpq_hits = [c for c in cpq_cues
+                if c in roles or (c == "unit_net" and has_unit_price)]
+    is_cpq = ("quote_id" in roles and "line" in roles
+              and (has_unit_price or "quantity" in roles))
+
+    if is_cpq:
+        profile = PROFILE_CPQ
+        conf = "high" if len(cpq_hits) >= 5 else "medium"
+        ev = [roles[r] for r in ("quote_id", "line", "unit_net", "unit_list",
+                                 "quantity", "quote_status") if r in roles]
+        missing = [c for c in cpq_cues if c not in cpq_hits]
+        grain = "one row per quote line"
+    elif crm_cues["outcome"] and (crm_cues["close_date"] or crm_cues["amount"]):
+        profile = PROFILE_CRM
+        conf = "high" if all(crm_cues.values()) else "medium"
+        ev = [h for h in crm_cues.values() if h]
+        missing = [k for k, v in crm_cues.items() if not v]
+        grain = "one row per deal"
+    else:
+        profile, conf, grain = PROFILE_UNKNOWN, "none", "unknown"
+        ev = [h for h in crm_cues.values() if h]
+        missing = [k for k, v in crm_cues.items() if not v]
+    return {"profile": profile, "confidence": conf, "grain": grain,
+            "evidence": list(dict.fromkeys(ev)), "missing": missing,
+            "roles": roles,
+            "rollup": CPQ_ROLLUP_SPEC if profile == PROFILE_CPQ else None}
+
+
+def outcome_refusal(headers: list[str],
+                    profile: Optional[dict] = None) -> Optional[dict]:
+    """Structured refusal when no header can supply outcome, else None.
+
+    Runs before any LLM call. A billing or quote export without a stage,
+    status or outcome column cannot yield closed-won or closed-lost rows;
+    guessing one would fabricate win rates.
+    """
+    p = profile or profile_source(headers)
+    if p["roles"].get("outcome"):
+        return None
+    # Status-like headers we deliberately did not accept as an outcome
+    # ("Subscription Status"): named so the caller can see why, and so the LLM
+    # layer is not asked to promote one of them.
+    blocked = [str(h) for h in headers
+               if _NON_OUTCOME_QUALIFIERS & set(_tokens(h))
+               and set(_tokens(h)) & {"status", "stage", "state", "outcome"}]
+    return {
+        "refused": True,
+        "blocked_headers": blocked,
+        "reason": "no_outcome_column",
+        "profile": p["profile"],
+        "missing": ["outcome"],
+        "missing_detail": ("No stage, status or outcome column was found. A "
+                           "subscription, invoice or payment status is a "
+                           "billing state, not a sales outcome."),
+        "message": ("This export cannot supply deal outcome (won or lost). "
+                    "Add the CRM opportunity export, or a stage or status "
+                    "column, and upload again."),
+    }
+
+
+# --- Stage normalisation (closed enum, explicit ask_user) -------------------
+
+_STAGE_WON = {"closed won", "won", "closedwon", "closed win", "win", "w",
+              "accepted", "signed", "closed signed", "booked", "closed booked"}
+_STAGE_LOST = {"closed lost", "lost", "closedlost", "closed loss", "loss", "l",
+               "declined", "rejected", "closed declined", "closed rejected"}
+_STAGE_OPEN = {
+    "open", "draft", "sent", "pending", "in review", "in progress",
+    "prospecting", "qualification", "qualified", "needs analysis",
+    "value proposition", "id decision makers", "perception analysis",
+    "proposal price quote", "proposal", "negotiation review", "negotiation",
+    "discovery", "demo", "contract sent", "presented", "viewed",
+    "awaiting approval", "pending approval", "new", "working",
+}
+
+
+def normalize_stage(value: object) -> str:
+    """Map one stage or status value into closed_won | closed_lost | open |
+    ask_user. Exact lookup on the normalized string only, never a substring
+    test, so "Closed - Lost to Competitor" is ask_user, not a guess, and a
+    blank or unrecognised value is ask_user, never closed_lost."""
+    if value is None:
+        return OUTCOME_ASK_USER
+    s = normalize(str(value))
+    if s in _STAGE_WON:
+        return OUTCOME_WON
+    if s in _STAGE_LOST:
+        return OUTCOME_LOST
+    if s in _STAGE_OPEN:
+        return OUTCOME_OPEN
+    return OUTCOME_ASK_USER
+
+
+def normalize_stage_series(values) -> tuple[list[str], dict[str, int]]:
+    """Normalise a column. Returns (outcomes, ask_user_counts) where
+    ask_user_counts maps each unrecognised raw value to its row count, so the
+    user can resolve them. Stays in process; never sent to a provider."""
+    out: list[str] = []
+    ask: dict[str, int] = {}
+    for v in values:
+        o = normalize_stage(v)
+        out.append(o)
+        if o == OUTCOME_ASK_USER:
+            key = "" if v is None else str(v)
+            ask[key] = ask.get(key, 0) + 1
+    return out, ask
+
+
+# --- cpq_line roll-up: quote lines to one canonical deal per quote ----------
+
+def rollup_quote_lines(lines, roles: Optional[dict[str, str]] = None):
+    """Roll a quote-line DataFrame up to one deal row per quote id.
+
+    Join key: the quote id column (role `quote_id`), which becomes
+    `source_quote_id` on the deal. list_acv and booked_acv are sums of the
+    line list and booked amounts (a line total column when present, otherwise
+    unit price times quantity). Outcome comes from the quote status through
+    normalize_stage; lines of one quote that disagree give ask_user. Pure
+    deterministic arithmetic, no LLM. Raises ValueError when the file has no
+    quote id or no way to price a line. Amounts are summed as exported:
+    multi-year quotes are not annualised here.
+
+    Result attrs: join_key (header used), ask_user (quote id -> raw values).
+    """
+    import pandas as pd
+
+    lines = lines.copy()
+    lines.columns = [str(c).strip() for c in lines.columns]
+    r = roles or profile_source(list(lines.columns))["roles"]
+    key = r.get("quote_id")
+    if not key or key not in lines.columns:
+        raise ValueError("roll-up needs a quote id column; none was found")
+
+    def _num(col: Optional[str]):
+        if not col or col not in lines.columns:
+            return None
+        return pd.to_numeric(
+            lines[col].astype(str).str.replace(r"[^0-9.\-]", "", regex=True),
+            errors="coerce")
+
+    qty = _num(r.get("quantity"))
+    booked = _num(r.get("line_booked"))
+    listed = _num(r.get("line_list"))
+    if booked is None:
+        unit = _num(r.get("unit_net"))
+        if unit is None or qty is None:
+            raise ValueError("roll-up cannot price lines: need a line total "
+                             "column, or unit price and quantity")
+        booked = unit * qty
+    if listed is None:
+        ulist = _num(r.get("unit_list"))
+        listed = ulist * qty if (ulist is not None and qty is not None) else None
+
+    work = pd.DataFrame({"_q": lines[key].astype(str).str.strip()})
+    work["booked_acv"] = booked
+    if listed is not None:
+        work["list_acv"] = listed
+    status_col = r.get("quote_status")
+    if status_col and status_col in lines.columns:
+        work["_o"] = [normalize_stage(v) for v in lines[status_col]]
+        work["_raw"] = lines[status_col].astype(str)
+    else:
+        work["_o"] = OUTCOME_ASK_USER
+        work["_raw"] = ""
+
+    firsts: dict[str, str] = {}
+    for role in CPQ_ROLLUP_SPEC["first_non_blank"]:
+        h = r.get(role)
+        if h and h in lines.columns:
+            firsts[role] = h
+    for h in lines.columns:
+        f = _field_of(h)
+        if (f in CPQ_ROLLUP_SPEC["first_non_blank"] and f not in firsts
+                and h not in (key, status_col)):
+            firsts[f] = h
+    for field_name, h in firsts.items():
+        work[field_name] = lines[h]
+
+    rows, ask_user = [], {}
+    for q, g in work.groupby("_q", sort=False):
+        d: dict = {"source_quote_id": q}
+        d["booked_acv"] = g["booked_acv"].sum(min_count=1)
+        if "list_acv" in g:
+            d["list_acv"] = g["list_acv"].sum(min_count=1)
+        outs = set(g["_o"])
+        d["outcome"] = outs.pop() if len(outs) == 1 else OUTCOME_ASK_USER
+        if d["outcome"] == OUTCOME_ASK_USER:
+            ask_user[q] = sorted(set(g["_raw"]))
+        for f in firsts:
+            s = g[f].dropna()
+            s = s[s.astype(str).str.strip() != ""]
+            d[f] = s.iloc[0] if len(s) else None
+        d["opportunity_id"] = d.get("opportunity_id") or q
+        d["line_count"] = len(g)
+        d["source_system"] = "cpq"
+        rows.append(d)
+    deals = pd.DataFrame(rows)
+    deals.attrs["join_key"] = key
+    deals.attrs["ask_user"] = ask_user
+    return deals
+
+
 # --- Orchestrator -----------------------------------------------------------
 
 Confidence = str  # "high" | "medium" | "low" | "none"
@@ -358,6 +699,10 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
     # "it was never invoked" apart from "it was invoked and broke", which an
     # unmapped-column list alone cannot distinguish.
     llm_fallback_failed = False
+
+    # Layer 0: deterministic source profile and refuse path, header set only.
+    profile = profile_source(headers)
+    refusal = outcome_refusal(headers, profile)
 
     def _claim(field: str, header: str, layer: str, conf: Confidence) -> None:
         field_to_header[field] = header
@@ -391,8 +736,11 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
             conf = "medium" if r[1] >= 0.65 else "low"
             _claim(r[0], h, "embedding", conf)
 
-    # Layer 4: cloud LLM (header strings only, opt-in)
-    if llm_fallback:
+    # Layer 4: cloud LLM (header strings only, opt-in). Skipped when layer 0
+    # refused because the export carries only a billing-state status column:
+    # the model must not be offered a chance to promote it to outcome.
+    llm_blocked = bool(refusal and refusal["blocked_headers"])
+    if llm_fallback and not llm_blocked:
         unmatched_headers = [h for h in headers if h not in claimed]
         unmatched_fields = [f for f in _FIELDS_BY_NAME
                             if f not in field_to_header
@@ -408,7 +756,9 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
                         # this layer did not actually receive must never be
                         # claimed, regardless of what the LLM returned.
                         if (h and h in unmatched_headers and h not in claimed
-                                and f in unmatched_fields):
+                                and f in unmatched_fields
+                                and not (f == "outcome" and
+                                         _NON_OUTCOME_QUALIFIERS & set(_tokens(h)))):
                             _claim(f, h, "llm", "low")
             except Exception as exc:
                 # Unmatched fields already show confidence "none" to the user;
@@ -429,4 +779,5 @@ def map_headers(headers: list[str], llm_fallback: bool = True,
         confidence.setdefault(f, "none")
 
     return {"mapping": out_mapping, "confidence": confidence, "used": used,
-            "notes": notes, "llm_fallback_failed": llm_fallback_failed}
+            "notes": notes, "llm_fallback_failed": llm_fallback_failed,
+            "profile": profile, "refusal": refusal}

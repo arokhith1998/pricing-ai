@@ -1,0 +1,25 @@
+Opportunity ID,Account Name,Stage,Created Date,Close Date,Amount,List Price,Owner,Segment,Lost Reason
+OPP-1000,Northwind Test Co,Closed Won,2025-01-01,2025-02-10,90000,120000,rep_01,MidMarket,
+OPP-1001,Alder Labs,Closed Won,2025-02-02,2025-03-11,85500,90000,rep_02,SMB,
+OPP-1002,Birchwood Metrics,Closed Won,2025-03-03,2025-04-12,36000,40000,rep_03,Enterprise,
+OPP-1003,Cobalt Harbor,Closed Won,2025-04-04,2025-05-13,81000,90000,rep_01,MidMarket,
+OPP-1004,Delta Fern Systems,Closed Won,2025-05-05,2025-06-14,114000,120000,rep_02,SMB,
+OPP-1005,Ember Grid,Closed Won,2025-06-06,2025-07-15,51000,60000,rep_03,SMB,
+OPP-1006,Fjord Analytics,Closed Won,2025-01-07,2025-02-16,112500,150000,rep_01,SMB,
+OPP-1007,Granite Loop,Closed Won,2025-02-08,2025-03-17,127500,150000,rep_02,MidMarket,
+OPP-1008,Hollow Pine Data,Closed Won,2025-03-01,2025-04-18,30000,40000,rep_03,MidMarket,
+OPP-1009,Indigo Mesa,Closed Won,2025-04-02,2025-05-10,90000,90000,rep_01,Enterprise,
+OPP-1010,Juniper Relay,Closed Won,2025-05-03,2025-06-11,108000,120000,rep_02,SMB,
+OPP-1011,Kestrel Works,Closed Won,2025-06-04,2025-07-12,135000,150000,rep_03,Enterprise,
+OPP-1012,Northwind Test Co,Closed Lost,2025-01-05,2025-02-13,45000,60000,rep_01,Enterprise,Price
+OPP-1013,Alder Labs,Closed Lost,2025-02-06,2025-03-14,60000,60000,rep_02,MidMarket,Price
+OPP-1014,Birchwood Metrics,Closed Lost,2025-03-07,2025-04-15,67500,90000,rep_03,SMB,Price
+OPP-1015,Cobalt Harbor,Closed Lost,2025-04-08,2025-05-16,150000,150000,rep_01,SMB,Price
+OPP-1016,Delta Fern Systems,Closed Lost,2025-05-01,2025-06-17,90000,120000,rep_02,SMB,Price
+OPP-1017,Ember Grid,Closed Lost,2025-06-02,2025-07-18,72000,90000,rep_03,SMB,Price
+OPP-1018,Fjord Analytics,Closed Lost,2025-01-03,2025-02-10,45000,60000,rep_01,SMB,Price
+OPP-1019,Granite Loop,Closed Lost,2025-02-04,2025-03-11,114000,120000,rep_02,MidMarket,Price
+OPP-1020,Hollow Pine Data,Closed Lost,2025-03-05,2025-04-12,120000,150000,rep_03,MidMarket,Price
+OPP-1021,Indigo Mesa,Negotiation/Review,2025-04-06,2025-05-13,36000,40000,rep_01,MidMarket,
+OPP-1022,Juniper Relay,Negotiation/Review,2025-05-07,2025-06-14,108000,120000,rep_02,SMB,
+OPP-1023,Kestrel Works,Negotiation/Review,2025-06-08,2025-07-15,85500,90000,rep_03,MidMarket,
