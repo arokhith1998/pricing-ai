@@ -362,4 +362,4 @@ def test_module_has_no_llm_or_io_imports():
     src = (ROOT / "pricing" / "billing.py").read_text(encoding="utf-8")
     for banned in ("openai", "anthropic", "requests", "httpx", "open("):
         assert banned not in src
-    assert "—" not in src
+    assert chr(0x2014) not in src
