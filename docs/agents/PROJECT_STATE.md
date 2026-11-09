@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-09T19:35:58Z
+Updated: 2026-11-09T19:38:42Z
 
 ## IN_PROGRESS
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, deps PK-11)
@@ -38,12 +38,14 @@ Updated: 2026-11-09T19:35:58Z
 ## QA
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-mappings.sql, neon/migrations/2026-11-source-mappings.down.sql
-- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
-  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
   - owns: pricing/mapping.py, tests/test_mapping_profiles.py, tests/fixtures/mapping_profiles
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
   - owns: web/src/app/privacy, web/src/app/trust, web/src/app/subprocessors, web/src/app/licenses, gtm/security-one-pager.md, docs/ops/incident-response.md
+
+## APPROVED
+- **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
+  - owns: pricing/crm.py, pricing/guardrail.py, api/routers/crm.py, pricing/governance.py#exception_source, tests/test_guardrail.py
 
 ## READY
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, deps PK-9)
