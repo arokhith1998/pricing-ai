@@ -39,17 +39,25 @@ function Card({
 // as flat, matching the 2-point materiality cut used elsewhere in guidance.
 const WIN_RATE_STEP_TOL_PTS = 0.02;
 
-type WinRateShape = "insufficient" | "monotone" | "rising_then_flat" | "flat" | "noisy";
+type WinRateShape = "insufficient" | "monotone" | "rising_then_flat" | "flat" | "other";
 
 function classifyWinRateShape(bands: WinRateBand[]): WinRateShape {
   const rates = bands.filter((b) => b.deals > 0).map((b) => b.win_rate);
   if (rates.length < 3) return "insufficient";
   const steps = rates.slice(1).map((r, i) => r - rates[i]);
+  const isFlat = (s: number) => Math.abs(s) <= WIN_RATE_STEP_TOL_PTS;
   const hasDown = steps.some((s) => s < -WIN_RATE_STEP_TOL_PTS);
-  const hasUp = steps.some((s) => s > WIN_RATE_STEP_TOL_PTS);
-  if (hasDown) return "noisy";
-  if (hasUp) return steps.every((s) => s > WIN_RATE_STEP_TOL_PTS) ? "monotone" : "rising_then_flat";
-  return "flat";
+  if (hasDown) return "other";
+  // Small steps can still add up to a real drift, so "flat" also requires
+  // the whole range to stay inside twice the step tolerance.
+  const range = Math.max(...rates) - Math.min(...rates);
+  if (steps.every(isFlat)) return range <= 2 * WIN_RATE_STEP_TOL_PTS ? "flat" : "other";
+  if (steps.every((s) => s > WIN_RATE_STEP_TOL_PTS)) return "monotone";
+  // "Climbs, then flattens" only when every rise comes before the first flat
+  // step. A rise after a plateau is not a flattening.
+  const firstFlat = steps.findIndex(isFlat);
+  if (firstFlat > 0 && steps.slice(firstFlat).every(isFlat)) return "rising_then_flat";
+  return "other";
 }
 
 function winRateSubtitle(bands: WinRateBand[], referenceThreshold: number): string {
@@ -63,8 +71,8 @@ function winRateSubtitle(bands: WinRateBand[], referenceThreshold: number): stri
       return `Win rate keeps climbing with discount across every band in this data; there is no point yet where extra discount stops buying extra wins. ${confidenceNote}`;
     case "flat":
       return `Win rate stays roughly flat across discount bands in this data; discount is not the thing separating wins from losses here. ${confidenceNote}`;
-    case "noisy":
-      return `Win rate does not simply climb then flatten in this data; it moves both up and down across bands. Read the win point (${winPoint}) as approximate. ${confidenceNote}`;
+    case "other":
+      return `Win rate does not follow a clean climb-then-flatten pattern in this data, so read the win point (${winPoint}) as approximate. ${confidenceNote}`;
     case "insufficient":
     default:
       return `Not enough discount bands with deals yet to describe a shape. ${confidenceNote}`;
