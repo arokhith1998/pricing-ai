@@ -21,6 +21,8 @@ export const SOURCE_SYSTEMS = [
   "hubspot",
   "cpq",
   "billing",
+  "stripe",
+  "chargebee",
   "manual",
 ] as const;
 export type SourceSystem = (typeof SOURCE_SYSTEMS)[number];
