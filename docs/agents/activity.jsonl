@@ -400,3 +400,7 @@
 {"ts": "2026-11-10T22:23:16Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree."}
 {"ts": "2026-11-10T22:31:16Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T22:31:18Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
+{"ts": "2026-11-10T22:36:06Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-10T22:36:10Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42913387831"}
+{"ts": "2026-11-10T22:36:18Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:36:19Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #91"}
