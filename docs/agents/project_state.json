@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T21:17:05Z",
+  "updated": "2026-11-10T21:32:16Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1784,7 +1784,7 @@
       "id": "PK-39",
       "title": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-27"
       ],
@@ -1813,10 +1813,15 @@
         "ci_run": null
       },
       "pr": 90,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply.",
+        "ts": "2026-11-10T21:32:16Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-09T23:37:53Z",
+      "updated": "2026-11-10T21:32:16Z",
       "notes": [
         {
           "ts": "2026-11-09T23:06:37Z",
@@ -1825,6 +1830,10 @@
         {
           "ts": "2026-11-09T23:37:53Z",
           "note": "PR #90"
+        },
+        {
+          "ts": "2026-11-10T21:32:16Z",
+          "note": "review rejected: Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply."
         }
       ]
     },
