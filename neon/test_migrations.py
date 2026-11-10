@@ -200,6 +200,8 @@ def test_pk41_down_refuses_non_salesforce_rows_and_drops_exactly_the_up():
     down = PK41_DOWN.read_text(encoding="utf-8").lower()
     assert "do $$" in down
     assert "source_system <> ''salesforce''" in down
+    assert "no legacy salesforce_connections match" in down
+    assert "stage_map <> ''{}''::jsonb or list_price_set <> ''[]''::jsonb" in down
     assert "down migration refused" in down
     refuse = down.index("down migration refused")
     first_drop = down.index("drop table if exists source_connection_config")
@@ -251,7 +253,8 @@ def test_pk41_mapping_values_are_strings_only_and_sf_needs_instance_url():
     assert "jsonb_path_exists(mapping, 'strict $.* ? (@.type() != \"string\")')" in mapping
     conn = _table_body(up, "source_connections")
     assert "check (source_system <> 'salesforce' or instance_url is not null)" in conn
-    assert "check (key_id <> '' or credential_encrypted like 'v1.%')" in conn
+    assert "credential_encrypted like 'v1.%'" in conn
+    assert "access_token_encrypted is null or access_token_encrypted like 'v1.%'" in conn
 
 
 def test_pk41_lock_timeout_and_access_exclusive_up_front():
@@ -264,9 +267,10 @@ def test_pk41_lock_timeout_and_access_exclusive_up_front():
 
 def test_pk41_down_drift_refusal_is_narrowed_to_keyed_data():
     down = PK41_DOWN.read_text(encoding="utf-8").lower()
-    for table in ("decision_log", "source_mappings", "source_connections",
-                  "salesforce_connections", "salesforce_mappings"):
-        assert f"'{table}'" in down
+    # tables are enumerated from information_schema, not hardcoded
+    assert "information_schema.columns" in down
+    assert "c.column_name = 'customer_ref'" in down
+    assert "foreach tbl in array" not in down
     assert "t.customer_ref = a.tenant_ref" in down
     # the old blanket refusal (any drifted row) is gone
     assert "select count(*) from access_codes where tenant_ref is distinct from code'" not in down
@@ -281,3 +285,152 @@ def test_pk41_header_rerun_safety_and_tenant_ref_secret_wording():
     assert "bearer secret" in up and "never log it" in up
     schema = SCHEMA_SQL.read_text(encoding="utf-8")
     assert "EQUALS THE ACCESS CODE" in schema and "EQUALS THE ACCESS CODE" in up
+
+
+# ---------------------------------------------------------------------------
+# Executed against a real Postgres (skipped when no URL is configured).
+# ---------------------------------------------------------------------------
+
+import os
+import uuid
+from urllib.parse import urlsplit, urlunsplit
+
+import pytest
+
+_CTRL = "pk41-ctrl"
+_CT = "v1.aGVsbG8.d29ybGQ"      # synthetic ciphertext shape, not a real secret
+_CT2 = "v2.k1.aGVsbG8.d29ybGQ"
+
+
+def _test_url() -> str | None:
+    return os.environ.get("PRICEKEEL_TEST_DATABASE_URL") or os.environ.get("DATABASE_URL")
+
+
+@pytest.fixture()
+def scratch():
+    """A throwaway database created on the configured server and dropped after.
+    Refuses a Neon host so this can never touch production."""
+    url = _test_url()
+    if not url:
+        pytest.skip("no PRICEKEEL_TEST_DATABASE_URL or DATABASE_URL set: real-Postgres migration test skipped")
+    psycopg = pytest.importorskip("psycopg")
+    parts = urlsplit(url)
+    if "neon.tech" in (parts.hostname or ""):
+        pytest.skip("refusing to run migration tests against a Neon host; point at a local scratch Postgres")
+    name = "pk41_" + uuid.uuid4().hex[:12]
+    admin = psycopg.connect(url, autocommit=True)
+    try:
+        admin.execute(f'create database "{name}"')
+        conn = psycopg.connect(urlunsplit(parts._replace(path="/" + name)), autocommit=True)
+    except Exception:
+        admin.close()
+        raise
+    try:
+        yield conn
+    finally:
+        conn.close()
+        admin.execute(f'drop database if exists "{name}" with (force)')
+        admin.close()
+
+
+def _run(conn, path: Path):
+    conn.execute(path.read_text(encoding="utf-8"))
+
+
+def _refused(conn, path: Path, fragment: str):
+    psycopg = pytest.importorskip("psycopg")
+    with pytest.raises(psycopg.errors.RaiseException) as exc:
+        _run(conn, path)
+    assert "DOWN MIGRATION REFUSED" in str(exc.value)
+    assert fragment in str(exc.value)
+    conn.execute("rollback")  # the script opened begin; and aborted before commit
+    # refusal rolled everything back: nothing dropped
+    assert conn.execute("select to_regclass('public.source_connections')").fetchone()[0] is not None
+    assert conn.execute(
+        "select count(*) from information_schema.columns where table_name='access_codes' and column_name='tenant_ref'"
+    ).fetchone()[0] == 1
+
+
+def _seed_legacy(conn):
+    conn.execute(
+        "insert into salesforce_connections (customer_ref, org_id, instance_url, access_token_encrypted,"
+        " refresh_token_encrypted, last_sync_closed, last_sync_open) values (%s,'00Dxx','https://x.example',%s,%s,3,2)",
+        (_CTRL, _CT, _CT),
+    )
+    conn.execute("insert into salesforce_mappings (customer_ref, mapping) values (%s, '{\"amount\":\"Amount\"}')", (_CTRL,))
+    conn.execute("insert into access_codes (code) values ('code-one')")
+
+
+def _counts(conn):
+    return [conn.execute(f"select count(*) from {t}").fetchone()[0]
+            for t in ("source_connections", "source_connection_config")]
+
+
+def test_pk41_up_down_up_on_real_postgres(scratch):
+    conn = scratch
+    conn.execute(SCHEMA_SQL.read_text(encoding="utf-8"))
+    _run(conn, PK41_DOWN)  # strip PK-41 objects: baseline is the pre-PK-41 shape
+    assert conn.execute("select to_regclass('public.source_connections')").fetchone()[0] is None
+    _seed_legacy(conn)
+
+    _run(conn, PK41_UP)
+    first = _counts(conn)
+    assert first == [1, 1]
+    _run(conn, PK41_UP)  # idempotent
+    assert _counts(conn) == first
+    assert conn.execute("select tenant_ref from access_codes where code='code-one'").fetchone()[0] == "code-one"
+    conn.execute("insert into access_codes (code) values ('code-two')")
+    ref = conn.execute("select tenant_ref from access_codes where code='code-two'").fetchone()[0]
+    assert re.fullmatch(r"tn_[0-9a-f]{32}", ref)
+    assert conn.execute(
+        "select last_sync_counts from source_connections where customer_ref=%s", (_CTRL,)
+    ).fetchone()[0] == {"closed": 3, "open": 2}
+
+    # the key_id nit: v2 ciphertext (credential or access token) needs a key_id
+    psycopg = pytest.importorskip("psycopg")
+    ins = ("insert into source_connections (customer_ref, source_system, credential_kind,"
+           " access_token_encrypted, credential_encrypted, key_id, instance_url)"
+           " values (%s,'salesforce','oauth_refresh',%s,%s,%s,'https://y.example')")
+    for tok, cred, key in ((_CT, _CT2, ""), (_CT2, _CT, ""), (_CT2, _CT2, "")):
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute(ins, ("bad", tok, cred, key))
+    conn.execute(ins, ("good", _CT2, _CT2, "k1"))
+    conn.execute("delete from source_connections where customer_ref='good'")
+
+    # refusal 1: a drifted tenant_ref keys data (including competitor_context_sources)
+    conn.execute("insert into competitor_context_sources (customer_ref, competitor_name, source_url, source_type) values (%s,'Rival','https://c.example','web')", (ref,))
+    _refused(conn, PK41_DOWN, "competitor_context_sources")
+    conn.execute("delete from competitor_context_sources where customer_ref=%s", (ref,))
+
+    # refusal 2: non-Salesforce row
+    conn.execute(
+        "insert into source_connections (customer_ref, source_system, credential_kind, credential_encrypted)"
+        " values ('hs','hubspot','oauth_refresh',%s)", (_CT,))
+    _refused(conn, PK41_DOWN, "other than salesforce")
+    conn.execute("delete from source_connections where customer_ref='hs'")
+
+    # refusal 3: Salesforce row with no legacy match (blocker finding)
+    conn.execute(
+        "insert into source_connections (customer_ref, source_system, credential_kind, credential_encrypted,"
+        " instance_url) values ('post-cutover','salesforce','oauth_refresh',%s,'https://z.example')", (_CT,))
+    conn.execute(
+        "insert into source_connection_config (customer_ref, source_system, stage_map)"
+        " values ('post-cutover','salesforce','{\"Closed Won\":\"won\"}')")
+    _refused(conn, PK41_DOWN, "no legacy salesforce_connections match")
+    conn.execute("delete from source_connections where customer_ref='post-cutover'")  # cascades config
+
+    # refusal 4: confirmed stage_map / list_price_set on a matched row
+    conn.execute("update source_connection_config set stage_map='{\"Closed Won\":\"won\"}' where customer_ref=%s", (_CTRL,))
+    _refused(conn, PK41_DOWN, "stage_map or list_price_set")
+    conn.execute("update source_connection_config set stage_map='{}', list_price_set='[\"p1\"]' where customer_ref=%s", (_CTRL,))
+    _refused(conn, PK41_DOWN, "stage_map or list_price_set")
+    conn.execute("update source_connection_config set list_price_set='[]' where customer_ref=%s", (_CTRL,))
+
+    # clean state: down succeeds, legacy data intact, then up again restores
+    _run(conn, PK41_DOWN)
+    assert conn.execute("select to_regclass('public.source_connections')").fetchone()[0] is None
+    assert conn.execute("select count(*) from salesforce_connections").fetchone()[0] == 1
+    assert conn.execute("select count(*) from access_codes").fetchone()[0] == 2
+    _run(conn, PK41_DOWN)  # rerunnable
+    _run(conn, PK41_UP)
+    assert _counts(conn) == [1, 1]

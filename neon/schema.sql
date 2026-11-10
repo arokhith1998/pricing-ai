@@ -228,7 +228,9 @@ create table if not exists source_connections (
   constraint source_connections_sf_has_instance_url
     check (source_system <> 'salesforce' or instance_url is not null),
   constraint source_connections_v2_has_key_id
-    check (key_id <> '' or credential_encrypted like 'v1.%')
+    check (key_id <> ''
+           or (credential_encrypted like 'v1.%'
+               and (access_token_encrypted is null or access_token_encrypted like 'v1.%')))
 );
 
 comment on table source_connections is
