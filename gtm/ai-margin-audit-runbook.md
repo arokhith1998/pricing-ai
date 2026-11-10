@@ -17,9 +17,10 @@ Companion files: [[ai-margin-audit-offer]] Â· [[ai-margin-audit-data-request]] Â
 
 ## Ground rules
 
-1. **Day 0 is data receipt**, not the call and not payment. The clock starts when the minimum
-   viable set (see the data request) is received and passes the readiness check within one
-   business day. Day 14 is the written deliverable.
+1. **Day 0 is validated intake**, not the call and not payment. The clock starts when the
+   minimum viable set (see the data request) is received and passes the one-business-day
+   readiness check. Day 14 is the written deliverable. The fee is $7,500 fixed, paid upfront,
+   with no credit toward a later subscription on the first two audits (F4).
 2. **No LLM touches customer data.** No customer rows, codes, or amounts pasted into any cloud
    model, including for "thought partner" help. A model may help with generic formula syntax
    using synthetic values only (data register, deal rows class: never pasted into any LLM).
@@ -29,24 +30,34 @@ Companion files: [[ai-margin-audit-offer]] Â· [[ai-margin-audit-data-request]] Â
    unverified.
 4. **Register on the day.** Add a Part B row to `docs/ops/data-register.md` the day anything
    arrives, and update it the day anything is deleted. Slug only, no contact names, no values.
-5. **Cost basis wording (ADR-006).** A founder-supplied cost export is `declared_cost`. The word
-   margin is used only on that basis, always as "contribution margin, customer-supplied cost
-   basis". Never gross margin (that is `erp_verified`, which this audit never has). Never net
-   margin. Never margin on any revenue-only or CRM figure. Provider processing fees and payment
-   fees are not cost of goods.
+5. **Cost basis wording (ADR-006, ADR-007, F1).** A customer-supplied cost export that carries
+   the upload declaration is `declared_cost`. The word margin is used only on that basis,
+   always as "contribution margin, customer-supplied cost basis". No other margin label is used
+   in any output, slide, message or note. Never margin on any revenue-only or CRM figure.
+   Provider processing fees and payment fees are not cost of goods.
 6. **Capacity.** At most two audits in flight, with starts at least four days apart. Hypothesis:
    25 to 35 hours per audit, so one audit consumes most of a focused week-and-a-half.
 7. **No em dashes** in anything the customer reads.
 8. **Human in the loop and audit trail** lead every conversation: we recommend, they decide, and
    every number traces to a formula in the method log.
 
+## Before we can accept any file (F11)
+
+No customer cost file is received, opened or stored until all four are true: counsel has signed
+the data-addendum amendment for per-customer cost (PK-96), the entity is formed, insurance is
+bound, and an engagement letter exists. If a prospect sends a file early, do not open it: tell
+the founder, who asks them to hold it. Interviews, the calculator and the intake call (with no
+files) need none of this.
+
 ## Gates before Day 0 (all must be true)
 
 - [ ] Mutual NDA and data addendum signed (counsel-reviewed, entity formed). Not true today.
 - [ ] Written amendment covering per-customer cost rollups and customer codes signed
-      (F-audit-data-class in the offer). Not true today.
-- [ ] Engagement letter signed and fee paid (F-audit-price decided by the founder).
+      (F-audit-data-class in the offer, PK-96). Not true today.
+- [ ] Engagement letter signed and the $7,500 fee paid upfront (F4).
 - [ ] E&O and cyber insurance bound (security one-pager roadmap item 4).
+- [ ] The customer's upload declaration ("this file is our own cost of serving") and key map
+      (cost key to billing account) are in hand (ADR-007).
 - [ ] WIP check: fewer than two audits in flight.
 - [ ] Benchmarking consent asked and recorded as yes or no (opt-in box, section 9). A no costs
       nothing and changes nothing.
@@ -77,8 +88,9 @@ Agenda:
 6. **Data handling (5 min).** Exports only, no keys, no prompts or outputs, customer codes not
    names. Walk the NDA and the amendment. Benchmarking consent: opt-in, off by default, cost
    data never included. Do not push it.
-7. **Expectations (2 min).** 14 days from data receipt. A readout meeting on day 13. No
-   guarantee of recovered revenue. They decide.
+7. **Expectations (2 min).** $7,500 fixed, paid upfront. 14 days from validated intake. A
+   readout meeting on day 13. No guarantee of recovered revenue. No share of results is
+   offered. They decide.
 
 Two answers to have ready, because every CEO or CFO asks:
 
@@ -96,9 +108,9 @@ chosen attribution method, and the data request sent by the founder.
 
 ## Day-by-day plan
 
-Day numbers count from Day 0 (data receipt). Skip no day; if a day is blocked, the log says why.
+Day numbers count from Day 0 (validated intake). Skip no day; if a day is blocked, the log says why.
 
-### Day 0: Receipt and register
+### Day 0: Validated intake and register
 
 - Save files to the customer folder. Hash or record file names and row counts only.
 - Register the receipt in `docs/ops/data-register.md` Part B the same day.
@@ -111,8 +123,9 @@ Day numbers count from Day 0 (data receipt). Skip no day; if a day is blocked, t
 - Check each file against the data request: columns present, date ranges, currency, tax
   treatment, one row per expected grain. Headers only first, then row counts.
 - Write a data dictionary tab in the workbook: each column, meaning, as stated by the customer.
-- Test the join: do the customer codes match across billing, cost, and customer list? Count
-  matched, unmatched, duplicated.
+- Test the join through the customer-declared key map (cost key to billing account), never an
+  inferred match: do the keys and codes match across billing, cost, and customer list? Count
+  matched, unmatched, duplicated. Unmatched cost goes to an unallocated line (ADR-007).
 - Reconcile totals: invoiced revenue by month against any total the customer states; provider
   cost by month against the provider bill total. Record the coverage percentage of cost that is
   attributable to a customer.
@@ -137,15 +150,19 @@ Day numbers count from Day 0 (data receipt). Skip no day; if a day is blocked, t
   - **B. App-side rollup** (customer code, month, model, token counts, cost): validate token
     totals against the provider total.
   - **C. Allocated** (proportional to a stated driver such as requests, tokens, tasks, or
-    storage bytes): driver must be a column in the data; label every row "allocated".
+    storage bytes): driver must be a column in the data; label every row "allocated". Apply
+    it only where the customer has confirmed the rule for that cost pool (F12). With no
+    confirmed rule, the pool stays unattributable.
   - **D. Not attributable**: no per-customer cost. Switch to the plan-level view for the
     cost-floor questions and tell the customer the per-customer table cannot be produced.
 - Add cloud and storage lines: attribute by storage volume per customer where given, otherwise
-  allocate by a stated driver or hold as unallocated overhead. Never smear unallocated cost
-  silently. Unallocated cost is its own line.
+  allocate by a stated driver the customer confirmed for that pool, or hold as unallocated
+  overhead. Never smear unallocated cost silently, and never allocate in proportion to
+  invoiced revenue by default. Unallocated cost is its own line.
 - Compute the **attribution coverage**: attributed cost divided by total provider and hosting
-  cost. Below about 80 percent, the margin-health table carries a warning (threshold is a
-  hypothesis to refine).
+  cost. If unattributable cost is above 20 percent, mark the readout an upper bound (it is not
+  blocked), and state negative-account findings in full, since missing cost can only worsen
+  them (F12).
 - Assign every customer an attribution confidence: direct, rolled up, allocated.
 
 ### Day 4: Analysis 1, per-customer revenue joined to cost
@@ -279,15 +296,17 @@ supplied, not a forecast, not a recovery promise, their decision.
     worth?"); the three stall replies; "never end on think it over"; the same-day decision-log
     entry and five-line recap.
   - Replace: the $15K, 90-day Salesforce pilot sentence and the 20-deals usage criterion do not
-    apply. No product exists yet for the margin wedge, and margin computation in the product is
-    still an open founder decision. The next step offered is a founder decision
+    apply. No product exists yet for the margin wedge. Contribution margin on a customer-supplied
+    cost basis is the only computation (F1). No credit toward a subscription is offered on the
+    first two audits, and credit terms are set per deal after the third (F4). The next step offered is a founder decision
     (F-audit-followon): for example a re-run on the next quarter's exports, help implementing
     the packaging, or a seat on the design-partner list for the product. Do not price or promise
     a product that has not been built.
   - Keep the honest sentence: "The audit is a rear-view mirror on your data. What it cannot tell
     you is how your customers react to a new price."
 - Log: decision, date of next step, and the willingness-to-pay data point (price tested,
-  accept or decline, stated reason).
+  accept or decline, stated reason). Count qualified prospects who hear the price: if three of
+  the first five decline on price, test $6,000 and record why (F4).
 
 ## What to capture for the product
 
@@ -323,8 +342,8 @@ Engineering reads the log to decide what to build first. The likely first candid
 reconcile, cost attribution, customer-month margin table, tail concentration, packaging
 re-pricing table. This is a hypothesis; the log decides.
 
-Do not add margin computation to the product until founder decision D2 is settled. The log
-informs D2; it does not pre-empt it.
+Founder decision F1 settled D2 narrowly: the product computes contribution margin per customer
+per period on declared cost only. The log informs the build; it does not widen that scope.
 
 ## Risks specific to doing this by hand
 

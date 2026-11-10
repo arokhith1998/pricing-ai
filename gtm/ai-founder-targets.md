@@ -9,7 +9,7 @@ source: 'WebFetch of public pricing pages and WebSearch on 2026-11-10; vault/Dec
 
 # AI founder targets
 
-Scope: the **new audit-first motion** only. ICP here is seed-to-Series-A AI companies moving from flat or per-seat pricing to usage or outcome pricing. The site's $20M to $100M ARR ICP and the Salesforce-first design-partner list in [[design-partner-targets]] are unchanged and are not mixed with this list. There is no 500-closed-opportunities gate and no Salesforce requirement for interviews.
+Scope: the **new audit-first motion** only. ICP here is seed-to-Series-A AI companies moving from flat or per-seat pricing to usage or outcome pricing. The site's $10M to $100M ARR ICP and the Salesforce-first design-partner list in [[design-partner-targets]] are unchanged and are not mixed with this list. There is no 500-closed-opportunities gate and no Salesforce requirement for interviews.
 
 Rules: company names and public founder titles only. No private contact details, no personal email or phone, no scraped profile data. The founder does every outreach touch by hand. Real prospects and real interviews are logged apart from synthetic examples; see the tracker note in [[ai-founder-outreach-sequence]].
 

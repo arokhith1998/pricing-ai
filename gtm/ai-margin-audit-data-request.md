@@ -19,6 +19,27 @@ No named vendor's current export has been checked. The intake call confirms each
 the customer's actual headers. Treat every vendor column list as a hypothesis, and accept their
 natural headers: we map them.
 
+## Before we can accept any file
+
+Do not send any file yet. We receive no customer cost file until counsel has signed the
+data-addendum amendment for per-customer cost (PK-96), our legal entity is formed, our insurance
+is bound, and an engagement letter exists. We will tell you when all four are true. Interviews
+and the calculator need none of that and need no files.
+
+## Required declarations (two items, before the files)
+
+1. **Upload declaration.** In writing, with the cost file: "this file is our own cost of
+   serving." Without it the file is not treated as your cost basis and no margin is computed.
+2. **Key map.** A small table that you declare, from each cost key (API key id, project,
+   workspace, tag, or app-side id) to a billing account code. We do not infer or guess the
+   match. Cost that does not match any entry in your key map is reported as an **unallocated
+   line**, never spread across customers.
+
+Shared cost (for example a cloud bill used by every customer): no allocation rule is applied
+unless you confirm one for that cost pool, and shared cost stays unattributable until you do.
+If more than 20 percent of cost is unattributable, the readout is marked an upper bound rather
+than blocked.
+
 ## How to send, and what not to send
 
 - **Exports only.** CSV or XLSX. No API keys, no OAuth tokens, no restricted keys, no read-only
@@ -34,9 +55,9 @@ natural headers: we map them.
 - **One currency per file**, or tell us the exchange rate and date to use.
 - **Delivery route** is confirmed by the founder at intake. Files go into the encrypted
   customer folder per `docs/ops/data-handling-sop.md`. They are never sent to a cloud AI service.
-- **Cost data.** The cost exports are your own statement of what serving each customer cost, and
-  we treat them as your cost basis. Results are labelled "contribution margin, customer-supplied
-  cost basis". We do not verify cost against your ledger.
+- **Cost data.** The cost exports are your own statement of what serving each customer cost, made
+  by the upload declaration above, and we treat them as your cost basis. Results are labelled
+  "contribution margin, customer-supplied cost basis". We do not verify cost against your ledger.
 
 Window: the last **6 months** is the target, **3 months** the minimum. Twelve months is better for
 pilot-to-ARR conversion.
@@ -189,7 +210,7 @@ One row per billed customer, by code.
 
 ## Minimum viable set and nice-to-haves
 
-**Minimum viable set (the clock does not start without all four):**
+**Minimum viable set (the clock does not start at validated intake without all five):**
 
 1. A1 and A2: invoices with line items and subscriptions, at least 3 months, customer codes.
 2. B or C1 cost: inference cost per customer per month by method A, B, or C, plus the provider
@@ -197,6 +218,11 @@ One row per billed customer, by code.
    table cannot then be produced.)
 3. D: the customer list with plan and start date.
 4. E1 and E3: the current pricing page and the discount policy statement and owner.
+5. The upload declaration and the customer-declared key map (cost key to billing account),
+   as described under "Required declarations".
+
+The fee is $7,500 fixed, paid upfront. The 14-day clock starts at validated intake: this set
+received and passed our one-business-day readiness check.
 
 **Nice-to-haves:** A3 and A4, B usage columns beyond cost, C1 to C4, D contract type and pilot
 fields, delivery effort, E2, E4 to E6. Each one sharpens a named analysis (below) and none stops
@@ -219,14 +245,21 @@ the clock.
 
 ## Readiness check (what we do on day 1)
 
-- Headers and row counts for every file, then the join test on customer codes: matched,
-  unmatched, duplicated.
+- Headers and row counts for every file, then the join test through your key map and customer
+  codes: matched, unmatched, duplicated. Unmatched cost is reported as an unallocated line.
 - Revenue by month against any total you state. Provider cost by month against the provider bill.
-- Attribution coverage: the share of cost attributable to a customer.
+- Attribution coverage: the share of cost attributable to a customer. Above 20 percent
+  unattributable, the readout is marked an upper bound.
 - Outcome: go, go with limits (we name the analyses that cannot run), or stop.
 
 ## Handling and contract status (internal, remove before sending)
 
+Section order note: F3 places seed-to-Series-A AI companies as the audit's learning segment and
+the product's ICP as AI-native usage or hybrid companies in the $20M to $100M ARR band.
+
+- **F11 gate: no real cost file until the amendment (PK-96) is signed by counsel, the entity is
+  formed, insurance is bound and an engagement letter exists.** Do not send this request before
+  then.
 - **Blocker: this request asks for data the current addendum does not cover.** Schedule A says
   Class 2 usage is rollups with no end-customer identifiers (customer codes plausibly satisfy
   this, counsel to confirm), and Class 3 cost is only a rate or margin-percentage table by
@@ -240,9 +273,12 @@ the clock.
   row is needed.
 - Benchmarking (section 9) never covers cost data, even on opt-in. If the customer opts in, only
   revenue-side aggregates could qualify, and nothing publishes below the minimum cohort size.
-- ADR-006: a customer-supplied cost export is `declared_cost`. Label every figure "contribution
-  margin, customer-supplied cost basis". Never gross margin. Never net margin. The word margin
-  never describes revenue-only or CRM figures.
+- ADR-006 and ADR-007 (accepted): a cost export is `declared_cost` only through the upload
+  declaration, joined only through the customer-declared key map. Label every figure
+  "contribution margin, customer-supplied cost basis" (F1) and no other margin label. The word
+  margin never describes revenue-only or CRM figures. F12 defaults: no allocation rule unless
+  the customer confirms one per cost pool; unattributable cost above 20 percent marks the
+  readout an upper bound, not a block.
 - Stripe and Chargebee connectors do not exist yet (earliest early 2027). This audit is export
   only, which also matches the pilot 1 rule of no keys.
 - No em dashes.

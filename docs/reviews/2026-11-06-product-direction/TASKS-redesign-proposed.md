@@ -255,3 +255,7 @@ PK-6 could not reach `web/src/components/UploadPrivacyCallout.tsx` (outside its 
 - **PK-77 ARR band:** the pricing page states the ICP as "$20M to $100M ARR", matching vault/Decisions/2026-08-01-salesforce-first-crm-workflow.md and the social card in `web/src/app/opengraph-image.tsx`. CLAUDE.md's "$10M to $100M" is the product's broad market line, not the ICP. Any change to the band is a founder decision recorded in the vault first, then reflected on the site.
 - **Feature tense:** anything not implemented in `api/` or `pricing/` is labelled roadmap on every page; the illustrative tag covers figures only, never whether a feature exists.
 
+### Correction, 2026-11-10 (lead)
+
+- **PK-77 ARR band: superseded.** The 2026-09-11 decision (vault/Decisions/2026-09-11-arr-band-and-post-funnel-sizing.md) restated the ICP band as $10M to $100M ARR everywhere and named "$20M to $100M" as drift; it supersedes the 2026-08-01 note the PR 91 review cited. The pricing page lead (PK-77) and the social card line (PK-76) therefore carry drift again. PK-112 restores "$10M to $100M ARR" in both and adds a site-wide test that bans "$20M". Never state the band without the deal-volume gate where space allows.
+

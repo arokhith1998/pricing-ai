@@ -451,3 +451,7 @@
 {"ts": "2026-11-10T23:43:36Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-10T23:43:42Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
 {"ts": "2026-11-10T23:43:46Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-10T23:48:40Z", "event": "add", "task": "PK-112", "agent": "web-engineer", "detail": "Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide"}
+{"ts": "2026-11-10T23:48:53Z", "event": "status", "task": "PK-112", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:49:01Z", "event": "status", "task": "PK-112", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-10T23:49:08Z", "event": "status", "task": "PK-112", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

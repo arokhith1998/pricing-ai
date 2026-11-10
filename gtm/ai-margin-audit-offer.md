@@ -15,19 +15,22 @@ prospect. The internal notes below it are not.
 
 ## The promise, in one sentence
 
-In 14 days from receiving your billing and cost exports, we show you which customers and plans
-your inference and storage costs are eroding contribution margin on, using the cost basis you
-supply, and we recommend a packaging structure for you to decide on.
+In 14 days from validated intake of your billing and cost exports, we show you which customers
+and plans your inference and storage costs leave with thin or negative contribution margin,
+customer-supplied cost basis, and we recommend a packaging structure for you to decide on.
 
 No guarantee of recovered revenue. The audit is analytical and advisory, built on your
 historical data. Every pricing decision stays with you.
 
 ## Who this is for
 
-Seed to Series A AI companies moving from flat-rate or per-seat pricing to usage or outcome
-pricing, who suspect some customers cost more to serve than they pay. The usual sign: someone
-on your team already reconciles the monthly model-provider bill against Stripe or Chargebee in
-a spreadsheet.
+AI companies moving from flat-rate or per-seat pricing to usage or outcome pricing, who suspect
+some customers cost more to serve than they pay. The usual sign: someone on your team already
+reconciles the monthly model-provider bill against Stripe or Chargebee in a spreadsheet.
+
+Seed-to-Series-A AI companies are the audit's learning segment: the fastest place to learn
+what this analysis needs to answer. The product's ICP is AI-native usage or hybrid companies in
+the $20M to $100M ARR band (F3). Both are welcome to ask for the audit.
 
 ## What we audit
 
@@ -74,8 +77,9 @@ numbers and some are judgement, and the deliverables say which is which.
 1. **Per-customer margin-health table.** One row per customer: plan, monthly revenue, attributed
    cost, contribution margin on a customer-supplied cost basis, a health band, and a
    confidence rating for how the cost was attributed. Labelled "contribution margin,
-   customer-supplied cost basis" because the cost figures come from you. Net margin is not
-   produced.
+   customer-supplied cost basis" because the cost figures come from you. Cost you cannot
+   attribute to a customer is shown as an unallocated line, and if more than 20 percent of
+   cost cannot be attributed, the readout says it is an upper bound.
 2. **Plan-level cost floor.** For each plan, the usage level at which it stops covering its cost.
 3. **Heavy-user tail analysis.** Share of cost by customer decile, and who sits in the tail.
 4. **Negative-margin account list**, with the drivers for each (plan, usage pattern, discount,
@@ -106,18 +110,28 @@ minimum set, and formats are in [[ai-margin-audit-data-request]] (file
 questions and who owns the pricing decision.
 
 We ask for exports only. No API keys, no OAuth tokens, no prompts or model outputs, no
-end-user personal data. Customers appear as codes you assign.
+end-user personal data. Customers appear as codes you assign. You also confirm in writing that
+the cost file is your own cost of serving, and give us a key map from each cost key to a
+billing account.
+
+## Before we can accept any file
+
+We do not receive any customer cost file until all four of these are in place: counsel has
+signed the data-addendum amendment covering per-customer cost, our legal entity is formed, our
+insurance is bound, and an engagement letter is signed. Until then we can talk, and you can use
+the calculator, neither of which needs any of that. We will tell you when each is done.
 
 ## Price
 
-Fee and structure to be confirmed by the founder. See internal notes (F-audit-price).
+**$7,500, fixed, paid upfront.** No share of results, no success fee. There is no credit toward
+a later subscription on the first two audits.
 
 ## Terms (summary)
 
-- **Upfront fee**, due at signature, before work starts.
-- **14-day clock starts at data receipt**: the day we receive the minimum set of exports and
-  they pass our one-business-day readiness check. If they do not pass, we tell you what is
-  missing and the clock has not started.
+- **Upfront fee**, $7,500 fixed, due at signature, before work starts.
+- **14-day clock starts at validated intake**: the day we receive the minimum viable set of
+  exports and they pass our one-business-day readiness check. If they do not pass, we tell you
+  what is missing and the clock has not started.
 - **Mutual NDA and data addendum** signed before any data moves.
 - **No data leaves the audit.** Your data is used only to deliver your audit. It is never sent
   to a cloud AI service, never used to train models, never used for another customer. Working
@@ -147,38 +161,35 @@ Fee and structure to be confirmed by the founder. See internal notes (F-audit-pr
 
 ## Internal notes (remove before this leaves the vault)
 
-### F-audit-price: founder decision, fee not set
+### F-audit-price: decided (F4, 2026-11-10)
 
-Recommendation: a fixed fee in the range **$4,500 to $7,500**, test at **$6,000** for the first
-two audits. Reasoning:
+**$7,500 fixed, paid upfront. The clock starts at validated intake** (minimum viable set
+received and passed a one-business-day readiness check). **No credit toward a later
+subscription on the first two audits.** Credit terms are decided per deal after the third
+audit, when a subscription exists. Reasoning:
 
-- **Buyer budget.** A seed to Series A founder can usually approve a one-time spend of this size
-  on a card or without a board conversation. This is a judgement, not evidence. Above roughly
-  $10,000 it becomes a procurement and runway discussion, which is a slower and different
-  sale.
-- **The sheet's anchors.** The Opportunity tab argues for value pricing, around $2,500 a month
-  or a share of the margin lift, and against cheap pricing that signals low quality. A 14-day
-  audit at $6,000 is about two and a half months of that anchor, for a fixed deliverable. The
-  floor of $4,500 stays well above the $2,500 level that reads as a tire-kicker price.
-- **Our cost.** Estimated 25 to 35 solo hours per audit (hypothesis, untested). $6,000 over 30
-  hours is about $200 an hour, defensible for pricing expertise and not a windfall.
+- **Our cost.** The CFO review puts break-even near $7,500 at a $150 an hour founder rate for a
+  50 to 72 hour hand-run audit (the earlier 25 to 35 hour estimate was low). A lower fee loses
+  money on every audit.
 - **What the price must test.** The purpose is willingness to pay. A price low enough that
-  nobody hesitates proves little. A corporate-card purchase at $5,000 to $7,500 is a real
-  signal.
+  nobody hesitates proves little. A corporate-card or approved purchase at $7,500 is a real
+  signal. Above roughly $10,000 it becomes a procurement and runway discussion, a slower sale.
 - **Different from the $15K pilot.** The existing $15K, 90-day pilot is the Salesforce discount
   product. Do not stack or reuse it here. No product exists yet for the margin wedge, so the
   audit must not be priced as if software were included.
 - **Adjustment rule.** If three of the first five qualified prospects who hear the price decline
-  on price, test $4,500. If none hesitate, test $7,500.
-- **Alternatives, not recommended now.** Share of margin lift (unmeasurable on a historical
-  audit, invites a dispute about attribution) and a monthly retainer (premature; no follow-on
-  deliverable is defined).
-- **Open sub-decisions:** whether any fee is credited to a later Pricekeel agreement (the
-  recommendation is no credit for the first two, to keep the willingness-to-pay signal clean);
-  whether a follow-on monthly re-run is offered (F-audit-followon, not priced here).
+  on price, test $6,000 and record why they declined.
+- **Not offered.** No share of any improvement (F5: attribution on a historical audit is
+  disputable). Revisit only after one audit has produced a finance-signed per-customer baseline
+  at constant input unit prices. No monthly retainer yet (no follow-on deliverable is defined).
+- **Open sub-decision:** whether a follow-on monthly re-run is offered (F-audit-followon, not
+  priced here).
 
 ### Blockers before this offer can go to a prospect
 
+0. **F11 gate: no customer cost file is received until** counsel has signed the data-addendum
+   amendment for per-customer cost (PK-96), the entity is formed, insurance is bound and an
+   engagement letter exists. Interviews and the calculator need none of it.
 1. **Data classes need a written amendment (F-audit-data-class).** The audit needs per-customer
    revenue joined to per-customer cost. The current addendum Schedule A says Class 2 usage data
    is rollups only with no end-customer identifiers, and Class 3 cost data is only a rate or
@@ -194,19 +205,20 @@ two audits. Reasoning:
    first paid engagement. Not yet bound.
 4. **An engagement letter** carrying the fee, the clock definition, and the section 11
    disclaimer does not exist. Section 10 of the addendum says "validated intake" for the SLA,
-   while this offer says "data receipt". The definition here (minimum set received and passing
-   a one-business-day check) is meant to reconcile them; counsel should confirm.
-5. **ICP conflict is open.** This offer targets the narrow AI ICP for the new motion only. The
-   site's $20M to $100M ARR band and the Salesforce-first product are unchanged until the
-   founder rules (see the decision note).
+   while this offer now says "validated intake" too. The definition (minimum viable set received
+   and passing a one-business-day check) is meant to match; counsel should confirm.
+5. **ICP settled (F3).** Seed-to-Series-A AI companies are the audit's learning segment. The
+   product's ICP is AI-native usage or hybrid companies in the $20M to $100M ARR band. The
+   site and the Salesforce-first product are unchanged. Record the ICP sentence in the vault
+   before any site copy changes.
 6. **Payment is a commercial action.** The founder sends the offer, the invoice, and the
    agreement. Nothing here is sent by anyone else.
 
 ### Wording rules applied
 
-- "Margin" appears only attached to a customer-supplied cost basis (`declared_cost` under
-  ADR-006, label "contribution margin, customer-supplied cost basis"). Never on a CRM figure.
-  Never "gross margin" (reserved for `erp_verified`), and never net margin per deal.
+- "Margin" appears only as "contribution margin, customer-supplied cost basis" (`declared_cost`
+  under ADR-006 and ADR-007, F1). Every promise and output uses that label. Never on a CRM
+  figure. No other margin label is used anywhere.
 - No "proven", no guarantees, no recovery figure. The sheet's $50,000 and $2,500 figures are
   the founder's synthesis, not evidence, and are not used in customer copy.
 - No em dashes.
@@ -214,4 +226,5 @@ two audits. Reasoning:
 ### Related
 
 [[2026-11-10-audit-first-motion-and-ai-margin-wedge]] · [[ai-margin-audit-runbook]] ·
-[[ai-margin-audit-data-request]] · [[readout-close-script]] · [[security-one-pager]]
+[[ai-margin-audit-data-request]] · [[readout-close-script]] · [[security-one-pager]] ·
+`docs/reviews/2026-11-10-audit-first/FOUNDER-DECISIONS.md`

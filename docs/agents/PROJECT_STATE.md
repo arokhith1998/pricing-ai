@@ -6,14 +6,16 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-10T23:43:46Z
+Active work: 4/4
+Updated: 2026-11-10T23:49:08Z
 
 ## IN_PROGRESS
 - **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
   - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
 - **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer)
   - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
+- **PK-112** Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide  (web-engineer)
+  - owns: web/src/app/pricing/page.tsx#lead,web/src/app/opengraph-image.tsx#band,web/test/arr-band.test.ts
 - **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer)
   - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
