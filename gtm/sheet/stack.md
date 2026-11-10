@@ -22,11 +22,11 @@ Spreadsheets: each audit is done by hand, one encrypted workbook per customer, e
 
 The existing diagnostic: when the customer also sends a CRM export, the live leakage diagnostic adds the discounting half of the readout unchanged.
 
-The data request: a billing export, a cost export, a written upload declaration and a key map. No file is accepted until counsel signs the cost addendum (PK-96) and the entity, insurance and engagement letter exist.
+The data request: billing export, cost export, written declaration, key map. No file is accepted until counsel signs the cost addendum (PK-96) and entity, insurance and engagement letter exist.
 
 3. What the AI margin wedge adds, in build order
 
-Cost-export grain, profile and intake (PK-99 to PK-101): recognise a model-provider or hosting cost export and load it with its declaration and key map. 6 half-days.
+Cost-export grain, profile and intake (PK-99 to PK-101): recognise a provider or hosting cost export, load it with declaration and key map. 6 half-days.
 
 Margin-health module and planted-answer tests (PK-102, PK-103): result per account, heavy-user break-even, cost per unit, cost-plus and storage trends, tested against planted answers to the cent. 22 half-days.
 
@@ -38,7 +38,7 @@ The /margin readout (PK-105): every figure with its label, unallocated cost show
 
 The calculator page at /margin-audit (PK-107 to PK-110): browser-only arithmetic on typed numbers. 7 half-days plus 0.25 for the privacy sentence. Waits on the email-gate question.
 
-The cost connector, later (PK-106): specified only after two delivered audits show what customers actually export. No estimate until then.
+The cost connector, later (PK-106): specified only after two delivered audits show what customers export. No estimate until then.
 
 4. Rules the stack enforces that marketing must not contradict
 
@@ -48,7 +48,7 @@ Declared cost (ADR-007): an uploaded cost export earns "contribution margin, cus
 
 Humans in the loop: Pricekeel explains and recommends. A person confirms key maps, allocation rules and every price.
 
-No number from an LLM: every figure comes from tested code with its method named. The model only writes the words around it.
+No number from an LLM: every figure comes from tested code with its method named. The model writes the words around it.
 
 Tenant isolation: every stored row is read per tenant. Only aggregates persist, never rows or names. Cost never joins a benchmark.
 
