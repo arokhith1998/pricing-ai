@@ -87,8 +87,23 @@ def analysis_payload(res: dict) -> dict:
     }
 
 
+def _ask_user_section(rep) -> dict:
+    """Deals whose stage could not be placed as won, lost or open, as counts and
+    ids only (plus the raw stage string). They are in no metric: not won, not
+    lost, not open, never in win rate. Never row values beyond the stage."""
+    values = [{"stage": stage, "deals": v["deals"], "id_kind": v["id_kind"],
+               "ids": list(v["ids"]), "ids_omitted": v["ids_omitted"]}
+              for stage, v in rep.ask_user.items()]
+    return {"deals": sum(v["deals"] for v in values), "values": values}
+
+
 def diagnostic_payload(csv_path: str, policy: float) -> dict:
-    return analysis_payload(run(csv_path, policy_threshold=policy))
+    res = run(csv_path, policy_threshold=policy)
+    out = analysis_payload(res)
+    # Deals set aside as ask_user are never dropped silently: surfaced here as
+    # counts and ids, and in load_report.ask_user (same data, raw form).
+    out["ask_user"] = _ask_user_section(res["load_report"])
+    return out
 
 
 # --- Win-probability model + discount guidance (Phase 2 / web M2) ------------

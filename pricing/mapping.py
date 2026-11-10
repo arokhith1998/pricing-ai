@@ -602,7 +602,8 @@ _STAGE_OPEN = {
     "open", "draft", "sent", "pending", "in review", "in progress",
     "prospecting", "qualification", "qualified", "needs analysis",
     "value proposition", "id decision makers", "perception analysis",
-    "proposal price quote", "proposal", "negotiation review", "negotiation",
+    "proposal price quote", "proposal", "proposal sent", "negotiation review",
+    "negotiation",
     "discovery", "demo", "contract sent", "presented", "viewed",
     "awaiting approval", "pending approval", "new", "working",
 }
