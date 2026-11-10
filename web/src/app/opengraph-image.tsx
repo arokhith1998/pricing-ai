@@ -67,13 +67,11 @@ export default function Image() {
               letterSpacing: -1,
             }}
           >
-            <span>Salesforce deal guidance for</span>
-            <span style={{ display: "flex" }}>
-              every discount exception.
-            </span>
+            <span>Stop giving away price that</span>
+            <span style={{ display: "flex" }}>has stopped winning deals.</span>
           </div>
           <div style={{ display: "flex", fontSize: 26, color: "#8ea3bd" }}>
-            Priced before approval, with evidence Finance can audit.
+            Salesforce deal guidance: priced before approval, with evidence Finance can audit.
           </div>
         </div>
 
