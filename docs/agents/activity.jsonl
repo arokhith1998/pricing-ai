@@ -404,3 +404,5 @@
 {"ts": "2026-11-10T22:36:10Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42913387831"}
 {"ts": "2026-11-10T22:36:18Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T22:36:19Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #91"}
+{"ts": "2026-11-10T22:36:23Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:36:26Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "MERGED -> DONE"}

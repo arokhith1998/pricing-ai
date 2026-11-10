@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-10T22:36:19Z
+Updated: 2026-11-10T22:36:26Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -28,10 +28,6 @@ Updated: 2026-11-10T22:36:19Z
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
-
-## APPROVED
-- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
-  - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
@@ -151,6 +147,7 @@ Updated: 2026-11-10T22:36:19Z
 - **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, PR #88, deps PK-31)
 - **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, PR #90, deps PK-27)
 - **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, PR #89, deps PK-24,PK-25)
+- **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)

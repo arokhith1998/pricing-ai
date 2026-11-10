@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:36:19Z",
+  "updated": "2026-11-10T22:36:26Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2134,19 +2134,11 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-25"
       ],
-      "owns": [
-        "pricing/adapters",
-        "pricing/csv_adapter.py",
-        "pricing/crm.py#adapter_import",
-        "api/routers/crm.py#analyze",
-        "api/routers/crm.py#source",
-        "tests/test_adapter_hubspot.py",
-        "tests/fixtures/hubspot"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-46",
       "worktree": ".claude/worktrees/PK-46",
       "acceptance": [
@@ -2174,7 +2166,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-10T22:36:10Z",
+      "updated": "2026-11-10T22:36:26Z",
       "notes": [
         {
           "ts": "2026-11-09T19:59:40Z",
@@ -2207,8 +2199,18 @@
         {
           "ts": "2026-11-10T22:36:10Z",
           "note": "CI run 42913387831"
+        },
+        {
+          "ts": "2026-11-10T22:36:23Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:36:23Z"
+      }
     },
     {
       "id": "PK-47",
