@@ -20,7 +20,7 @@ import tempfile
 
 import pandas as pd
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pricing import assist, mapping
 from pricing.diagnostic import run
@@ -128,13 +128,47 @@ def summary(req: SummaryReq) -> dict:
     return {"enabled": True, "summary": assist.executive_summary(res)}
 
 
+# /map-columns takes header strings only, so a file cannot be rolled up or
+# read here. A bound keeps one request from sending an unbounded header list
+# to the LLM layer (422 above it).
+MAX_MAP_HEADERS = 200
+
+
 class MapReq(BaseModel):
-    headers: list[str]
+    headers: list[str] = Field(max_length=MAX_MAP_HEADERS)
 
 
 @router.post("/map-columns")
 def map_columns(req: MapReq) -> dict:
-    """Map a prospect's CSV headers to our schema (header names only)."""
-    if not assist.has_llm():
-        return {"enabled": False, "mapping": {}}
-    return {"enabled": True, "mapping": assist.map_columns(req.headers)}
+    """Header-suggestion only: map a prospect's CSV headers to our schema.
+
+    Goes through layer 0 exactly as /map-headers does (profile and refusal come
+    from the same mapping.map_headers call), so a billing export with no
+    outcome column is refused here too and its status-like headers are never
+    offered to the LLM. `mapping` holds LLM suggestions only (layer 4, header
+    names only, never an outcome); `profile` and `refusal` are deterministic.
+    It reads no rows and rolls nothing up: for that, upload to /diagnostic.
+    """
+    headers = [str(h) for h in req.headers]
+    enabled = assist.has_llm()
+    result = mapping.map_headers(headers, llm_fallback=enabled,
+                                 use_embeddings=False)
+    return {
+        "enabled": enabled,
+        "scope": ("header suggestion only: no rows are read and quote lines "
+                  "are not rolled up; upload the file to /diagnostic for that"),
+        # The full mapping when enabled: deterministic matches keep their
+        # header and are listed in `used` with the layer that matched them
+        # (profile, synonym, fuzzy, ...); only "llm" entries are suggestions.
+        # A field is None only when no layer mapped it.
+        "mapping": result["mapping"] if enabled else {},
+        "used": result["used"] if enabled else {},
+        "profile": result["profile"],
+        "refusal": result["refusal"],
+        "llm_rejected": result["llm_rejected"],
+        # "LLM down" (true, with a class-name note) is distinct from "LLM found
+        # nothing" (false, no note). Notes carry the exception class only,
+        # never its message, which may echo headers.
+        "llm_fallback_failed": result["llm_fallback_failed"],
+        "notes": result["notes"],
+    }
