@@ -388,3 +388,7 @@
 {"ts": "2026-11-10T22:04:08Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T22:04:09Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-10T22:05:15Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree."}
+{"ts": "2026-11-10T22:10:13Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:10:14Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42911548787"}
+{"ts": "2026-11-10T22:10:28Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:10:30Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "MERGED -> DONE"}

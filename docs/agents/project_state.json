@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:05:15Z",
+  "updated": "2026-11-10T22:10:30Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1910,17 +1910,12 @@
       "id": "PK-41",
       "title": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref",
       "agent": "data-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-24",
         "PK-25"
       ],
-      "owns": [
-        "neon/schema.sql",
-        "neon/migrations/2026-11-source-connections.sql",
-        "neon/migrations/2026-11-source-connections.down.sql",
-        "neon/test_migrations.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-41",
       "worktree": ".claude/worktrees/PK-41",
       "acceptance": [
@@ -1935,18 +1930,18 @@
         "required": [
           "neon/test_migrations.py"
         ],
-        "ci_run": null
+        "ci_run": "42911548787"
       },
       "pr": 89,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve",
         "by": "code-reviewer",
-        "notes": "Rework round rejected: down migration still drops confirmed stage_map/list_price_set for Salesforce rows without a legacy match (blocker, reproduced on PG16); drift check misses competitor_context_sources; migration tests are string matches only; v2 key_id check incomplete. Findings on PR 89.",
-        "ts": "2026-11-10T21:07:43Z"
+        "notes": "Third-round approve; DATABASE_URL fallback removed, loopback-only scratch test",
+        "ts": "2026-11-10T22:10:13Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-10T21:50:02Z",
+      "updated": "2026-11-10T22:10:30Z",
       "notes": [
         {
           "ts": "2026-11-09T22:49:00Z",
@@ -1971,8 +1966,26 @@
         {
           "ts": "2026-11-10T21:50:02Z",
           "note": "PR #89"
+        },
+        {
+          "ts": "2026-11-10T22:10:13Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:10:14Z",
+          "note": "CI run 42911548787"
+        },
+        {
+          "ts": "2026-11-10T22:10:28Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:10:28Z"
+      }
     },
     {
       "id": "PK-42",

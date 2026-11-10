@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-10T22:05:15Z
+Updated: 2026-11-10T22:10:30Z
 
 ## IN_PROGRESS
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
@@ -32,8 +32,6 @@ Updated: 2026-11-10T22:05:15Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, PR #89, deps PK-24,PK-25)
-  - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
 
@@ -154,6 +152,7 @@ Updated: 2026-11-10T22:05:15Z
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
 - **PK-32** Score commit, ramp, overage and unit-rate floors  (backend-engineer, PR #88, deps PK-31)
 - **PK-39** Route cpq_line exports through the quote-line roll-up and surface ask_user deals  (backend-engineer, PR #90, deps PK-27)
+- **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, PR #89, deps PK-24,PK-25)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
