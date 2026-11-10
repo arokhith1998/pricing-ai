@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T23:10:29Z",
+  "updated": "2026-11-10T23:42:30Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4037,7 +4037,7 @@
       "id": "PK-97",
       "title": "Write the audit delivery template and the workbook spec mapped to the method log",
       "agent": "customer-success",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [],
       "owns": [
         "gtm/ai-margin-audit-delivery-template.md",
@@ -4059,7 +4059,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:09:25Z",
-      "updated": "2026-11-10T23:09:25Z",
+      "updated": "2026-11-10T23:41:54Z",
       "notes": []
     },
     {
@@ -4099,7 +4099,7 @@
       "id": "PK-99",
       "title": "Add the customer cost-period grain and plant a cost answer key",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [],
       "owns": [
         "pricing/schema.py#cost_period",
@@ -4125,7 +4125,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:09:37Z",
-      "updated": "2026-11-10T23:09:37Z",
+      "updated": "2026-11-10T23:42:00Z",
       "notes": []
     },
     {
@@ -4374,7 +4374,7 @@
       "id": "PK-107",
       "title": "Compute the calculator figures in a pure module with code-owned labels",
       "agent": "web-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [],
       "owns": [
         "web/src/lib/margin-audit.ts",
@@ -4399,14 +4399,14 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:10:12Z",
-      "updated": "2026-11-10T23:10:12Z",
+      "updated": "2026-11-10T23:42:27Z",
       "notes": []
     },
     {
       "id": "PK-108",
       "title": "Add a lead_magnet column to leads, with a down migration",
       "agent": "data-engineer",
-      "status": "BACKLOG",
+      "status": "READY",
       "dependencies": [],
       "owns": [
         "neon/schema.sql",
@@ -4433,7 +4433,7 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:10:16Z",
-      "updated": "2026-11-10T23:10:16Z",
+      "updated": "2026-11-10T23:42:30Z",
       "notes": []
     },
     {

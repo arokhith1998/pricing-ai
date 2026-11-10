@@ -1,6 +1,6 @@
 # Audit-first motion and AI margin wedge: founder decisions
 
-Date: 2026-11-10. Lead: pk-lead (Claude). Source instruction: "start on both the filled tabs. that's what we need to do."
+Date: 2026-11-10. Lead: pk-lead (Claude). **Status: decided 2026-11-10. The founder accepted every recommendation below ("go with your recommendations on all founder decisions"). Each F item's recommendation is now the decision.** Source instruction: "start on both the filled tabs. that's what we need to do."
 
 Everything below was produced today from the two filled tabs of the founder research sheet. Each decision lists the inputs that bear on it and the lead's recommendation. Nothing on this list has been applied to the site, the price or the product. Work that does not depend on a decision has started or is queued on the board (PK-94 to PK-111).
 

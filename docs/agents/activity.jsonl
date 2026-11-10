@@ -441,3 +441,7 @@
 {"ts": "2026-11-10T23:10:22Z", "event": "add", "task": "PK-110", "agent": "web-engineer", "detail": "Ship the AI pricing and margin audit calculator page"}
 {"ts": "2026-11-10T23:10:25Z", "event": "add", "task": "PK-111", "agent": "web-engineer", "detail": "Build the three-screen clickable audit prototype on synthetic data"}
 {"ts": "2026-11-10T23:10:29Z", "event": "status", "task": "PK-94", "agent": "sales-outreach", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:41:54Z", "event": "status", "task": "PK-97", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:42:00Z", "event": "status", "task": "PK-99", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:42:27Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:42:30Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "BACKLOG -> READY"}

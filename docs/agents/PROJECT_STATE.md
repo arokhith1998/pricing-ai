@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-10T23:10:29Z
+Updated: 2026-11-10T23:42:30Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,10 +24,18 @@ Updated: 2026-11-10T23:10:29Z
   - owns: web/src/lib/salesforce-adapter.ts
 
 ## READY
+- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
+  - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
+- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer)
+  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-94** Seed the objection inventory with the audit-motion objections, marked predicted  (sales-outreach)
   - owns: gtm/objection-inventory.md
+- **PK-97** Write the audit delivery template and the workbook spec mapped to the method log  (customer-success)
+  - owns: gtm/ai-margin-audit-delivery-template.md, gtm/ai-margin-audit-workbook-spec.md
+- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer)
+  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## BACKLOG
 - **PK-100** Recognise cost exports as a layer-0 source profile  (ai-engineer, deps PK-99)
@@ -44,10 +52,6 @@ Updated: 2026-11-10T23:10:29Z
   - owns: web/src/app/margin/page.tsx, web/src/components/MarginHealthReadout.tsx, web/src/lib/api.ts#margin, web/test/margin-readout.test.ts
 - **PK-106** Specify the first cost connector from what audit customers actually export  (cto, deps PK-101)
   - owns: docs/design/2026-11-cost-connector.md
-- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
-  - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
-- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer)
-  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
 - **PK-109** Tag calculator leads on /api/lead and in the lead form  (web-engineer, deps PK-108)
   - owns: web/src/app/api/lead/route.ts, web/src/lib/store.ts#saveLead, web/src/components/LeadForm.tsx, web/test/lead-magnet.test.ts
 - **PK-110** Ship the AI pricing and margin audit calculator page  (web-engineer, deps PK-107,PK-109)
@@ -154,12 +158,8 @@ Updated: 2026-11-10T23:10:29Z
   - owns: docs/ops/funnel-tracker.csv, docs/ops/funnel-tracker-example.csv
 - **PK-96** Add the per-customer cost rollup data class to the addendum and the data register, for counsel  (customer-success, deps PK-22,PK-20)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md, docs/ops/data-register.md
-- **PK-97** Write the audit delivery template and the workbook spec mapped to the method log  (customer-success)
-  - owns: gtm/ai-margin-audit-delivery-template.md, gtm/ai-margin-audit-workbook-spec.md
 - **PK-98** Synthesise the AI-founder interviews and promote heard objections  (pricing-strategist, deps PK-94,PK-95)
   - owns: vault/GTM/2026-11-ai-founder-interview-synthesis.md, gtm/objection-inventory.md
-- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer)
-  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
