@@ -1,7 +1,7 @@
 ---
 title: 'Objection inventory: talk tracks for the ten objections we will actually hear'
 created: 2026-06-11
-updated: 2026-09-26
+updated: 2026-11-10
 tags: [gtm, sales, objections, talk-tracks]
 status: active
 ---
@@ -201,3 +201,125 @@ order gets decided by design partners, not by guesses.
 
 [[readout-close-script]] · [[outreach-sequence]] · [[personas]] · [[data-request]] ·
 [[security-one-pager]] · NDA at `docs/legal/one-page-mutual-nda-data-addendum.md`
+
+---
+
+## Added 2026-11-10: AI-pricing motion objections (11 to 18, draft)
+
+These eight belong to the audit-first motion for seed-to-Series-A AI companies, see
+[[ai-founder-outreach-sequence]], [[ai-founder-interview-module]] and
+`vault/Decisions/2026-11-10-audit-first-motion-and-ai-margin-wedge.md`. They sit outside the
+ICP statement at the top of this file (the $10M to $100M, Salesforce-first, 500-closed-deals
+screen), which is unchanged and does not apply to this motion. House rules still apply:
+concede what is true, say our caveats first, never overclaim. Pricekeel has no customers and
+has run no audit yet; the audit is new and the offer one-pager and price are still pending
+review, so no price is quoted in any answer below.
+
+| # | Objection | Core of the answer |
+|---|---|---|
+| 11 | "Model prices keep falling, so margin fixes itself" | Unit costs may fall, but mix and heavy-user behavior can move faster; measure per customer before assuming |
+| 12 | "Stripe or our billing tool already shows usage and revenue" | Billing shows revenue; provider bills show cost; the gap is the join per customer |
+| 13 | "We cannot share provider bills or cost data" | Nothing is needed on the call; later, a per-customer cost export with IDs not names, labelled as declared |
+| 14 | "We are too early to worry about margin" | Possibly true; early is when packaging is cheapest to change, but the answer can be "not yet" |
+| 15 | "Why pay a stranger with no customers for a pricing audit?" | Correct, so the offer is small, written, and priced to be easy to walk away from |
+| 16 | "Buyers want predictability, we are staying flat or per seat" | Possibly right; the audit can conclude that; the question is where flat is subsidising heavy users |
+| 17 | "Provider pricing changes every quarter, an audit goes stale" | A snapshot does go stale; the method is the asset, and the audit states its as-of date |
+| 18 | "Can you guarantee a margin improvement?" | No; findings are correlational with caveats printed; no guarantee and no performance fee quoted |
+
+### 11. "Model prices keep falling, so margin fixes itself"
+
+Concede it: unit costs for many models have trended down, and betting on that is not
+irrational. Two things can still hurt. Usage per customer can grow faster than unit cost
+falls, especially with agent loops, and a flat price set before that growth stays flat. And
+which customers are expensive is a distribution question, not an average. I am not claiming
+yours is a problem. The cheap test is whether you can say, for your top ten customers by
+usage, what each cost last month and what each paid. If you can, you are ahead of most. If
+you cannot, that is the thing worth measuring before leaning on the trend.
+
+Supporting asset: interview questions 7 to 12 in [[ai-founder-interview-module]] (cost
+visibility and heavy-user stories).
+
+### 12. "Stripe or our billing tool already shows usage and revenue"
+
+It does, and it is the right source for the revenue side. What it does not hold is what each
+customer cost you at the model provider, GPU or storage vendor. Those bills arrive per
+account, per project or per key, not per customer. So the question is who joins them, how
+often, and on what key. If the answer is "a script that runs every month and everyone
+trusts it", you have solved it and I would like to learn from that. If it is a spreadsheet
+someone dreads on Fridays, that join is the work.
+
+Do not name a competitor first. Let them name their tool, then ask what it misses.
+
+Supporting asset: interview questions 13 to 16.
+
+### 13. "We cannot share provider bills or cost data"
+
+Understood, and nothing is needed on a research call. For an audit, the path is smaller than
+it sounds: a per-customer cost export keyed on customer ID, no names, no prompts, no
+content. Under ADR-006 a founder-supplied export is labelled `declared_cost`, and we never
+call it verified margin. A connector-verified basis (`erp_verified`) is a later, separate
+step. If cost cannot be shared even as a percentage by customer tier, I would rather say so
+early: the audit then stops at billing-side findings and says what it could not see.
+
+Supporting asset: the cost-basis definitions in ADR-006 and the data answer in
+interview question 25.
+
+### 14. "We are too early to worry about margin"
+
+Sometimes true, and I would rather hear that than push. Two reasons it still comes up. First,
+packaging is cheapest to change before many customers are on a plan, and grandfathering is
+real cost once you have them. Second, the first few large customers set a price anchor that
+is hard to move. If you have under a handful of paying customers and no variable-cost
+concern, "come back later" is a fair answer and I will note it, not chase it.
+
+Supporting asset: scorecard "0 to 6" row in [[ai-founder-interview-module]]: logged as not a
+fit now, which is a useful result.
+
+### 15. "Why pay a stranger with no customers for a pricing audit?"
+
+You should not take my word for it. The honest version is: I have not run one yet, you would
+be one of the first, and the offer is built around that. It is short and written, so you can
+judge the work on one page before committing anything beyond it. You decide at each step
+whether to continue, and I would say plainly if the data you have cannot support a finding.
+What I bring is a pricing and discount-governance method built on named sources, not a
+track record of AI-company engagements. If that is not enough, it is not enough.
+
+Supporting asset: the one-page offer, which is pending founder approval and must not be sent
+before it exists. Related to talk track 5 above.
+
+### 16. "Buyers want predictability, we are staying flat or per seat"
+
+You may be right, and the audit can conclude exactly that. Enterprise finance teams do ask
+for predictable spend, and some buyers prefer a fixed fee. The question is narrower: under
+your flat or seat price, which customers cost you the most, and is that gap small enough to
+absorb? If it is, keep the flat price and add a fair-use line or a cap for the tail. If it
+is not, the options are a commit with overage, tiers, or a hard cap. Predictability and
+usage cost are compatible when the price is a committed band rather than a raw meter.
+
+Supporting asset: interview questions 17 to 19 (buyer pushback).
+
+### 17. "Provider pricing changes every quarter, an audit goes stale"
+
+A snapshot does go stale, and I will not pretend otherwise. Two things reduce the problem.
+Every finding carries its as-of date and the provider rates used, so a reader can re-run it.
+And what lasts is the method: how cost is attributed per customer, which segments are
+exposed, and which thresholds to watch. If a provider reprices next quarter, the sensible
+step is to re-run the same method on the new rates. Whether that is worth a recurring
+arrangement is a question for after the first audit, not something I am selling now.
+
+Supporting asset: the as-of date convention in every readout, as in the existing readout
+structure.
+
+### 18. "Can you guarantee a margin improvement?"
+
+No, and I would be wary of anyone who did. The analysis is retrospective and correlational:
+it shows where cost and revenue diverged and what would have happened under alternative
+rules, with the caveats printed on the page. It cannot promise what customers do after a
+price change. I am also not offering a performance fee or a share of any lift: that
+structure is still under internal review and I will not quote it before it is settled.
+What I can promise is that every number traces to the rows behind it and that I will say
+what the data could not support.
+
+Supporting asset: methodology and caveats sections of the sample readout at
+pricekeel.com/sample (for the discount-leakage readout; an AI-margin readout does not exist
+yet).
