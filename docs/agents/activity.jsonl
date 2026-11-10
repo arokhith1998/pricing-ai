@@ -364,3 +364,6 @@
 {"ts": "2026-11-10T21:13:13Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93."}
 {"ts": "2026-11-10T21:14:33Z", "event": "add", "task": "PK-90", "agent": "backend-engineer", "detail": "Validate the policy threshold as a fraction on /diagnostic, /demo and /summary"}
 {"ts": "2026-11-10T21:14:39Z", "event": "add", "task": "PK-91", "agent": "backend-engineer", "detail": "Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate"}
+{"ts": "2026-11-10T21:16:34Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42898065668"}
+{"ts": "2026-11-10T21:17:00Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T21:17:05Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "MERGED -> DONE"}

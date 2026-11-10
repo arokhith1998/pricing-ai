@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-10T21:14:39Z
+Updated: 2026-11-10T21:17:05Z
 
 ## IN_PROGRESS
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
@@ -40,10 +40,6 @@ Updated: 2026-11-10T21:14:39Z
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
-
-## QA
-- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
-  - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
@@ -148,6 +144,7 @@ Updated: 2026-11-10T21:14:39Z
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
+- **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
 - **PK-23** Add source, provenance and contract-structure fields to the canonical deal  (data-engineer, PR #73)
 - **PK-24** Add a migration for saved mappings and a decision-log source index  (data-engineer, PR #78, deps PK-23)
