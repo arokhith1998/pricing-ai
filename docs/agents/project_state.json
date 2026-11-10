@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:39:20Z",
+  "updated": "2026-11-10T22:41:06Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3290,14 +3290,11 @@
       "id": "PK-77",
       "title": "Redesign the pricing page and clear its claims that exceed the evidence",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-75"
       ],
-      "owns": [
-        "web/src/app/pricing/page.tsx",
-        "web/test/pricing-page.test.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-77",
       "worktree": ".claude/worktrees/PK-77",
       "acceptance": [
@@ -3313,18 +3310,18 @@
         "required": [
           "web/test/pricing-page.test.ts"
         ],
-        "ci_run": null
+        "ci_run": "42915584758"
       },
       "pr": 91,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
-        "notes": "Rejected (no blockers): ARR band 10M contradicts the 20M ICP decision and the social card; scenario arithmetic wrong; three unshipped features stated as live. Findings on PR 91. Forced past cap 4: each active task has its own worktree.",
-        "ts": "2026-11-10T21:56:11Z"
+        "notes": "Re-review approve; nit on a self-referential arithmetic test",
+        "ts": "2026-11-10T22:40:49Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T19:06:29Z",
-      "updated": "2026-11-10T22:36:19Z",
+      "updated": "2026-11-10T22:41:06Z",
       "notes": [
         {
           "ts": "2026-11-09T23:03:46Z",
@@ -3341,8 +3338,26 @@
         {
           "ts": "2026-11-10T22:36:19Z",
           "note": "PR #91"
+        },
+        {
+          "ts": "2026-11-10T22:40:49Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-10T22:40:51Z",
+          "note": "CI run 42915584758"
+        },
+        {
+          "ts": "2026-11-10T22:41:03Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:41:03Z"
+      }
     },
     {
       "id": "PK-78",

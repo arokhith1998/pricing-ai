@@ -410,3 +410,7 @@
 {"ts": "2026-11-10T22:38:58Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42911471054"}
 {"ts": "2026-11-10T22:39:16Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T22:39:20Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:40:49Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-10T22:40:51Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42915584758"}
+{"ts": "2026-11-10T22:41:04Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:41:06Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "MERGED -> DONE"}

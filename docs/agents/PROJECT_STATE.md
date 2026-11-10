@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-10T22:39:20Z
+Updated: 2026-11-10T22:41:06Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -22,8 +22,6 @@ Updated: 2026-11-10T22:39:20Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
-- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
-  - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
 
@@ -152,5 +150,6 @@ Updated: 2026-11-10T22:39:20Z
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
+- **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
