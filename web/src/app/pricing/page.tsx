@@ -10,12 +10,14 @@ export const metadata = pageMetadata({
   path: "/pricing",
 });
 
+type Feature = { text: string; roadmap?: boolean };
+
 type Tier = {
   id: string;
   name: string;
   audience: string;
   body: string;
-  features: string[];
+  features: Feature[];
   footer: string;
   primary?: boolean;
 };
@@ -27,10 +29,10 @@ const TIERS: Tier[] = [
     audience: "First touch, pilot",
     body: "A one-time retrospective on your last four quarters of closed deals. Free for design partners. Designed to prove the methodology on your own book before any commercial conversation.",
     features: [
-      "CSV or Excel upload, mapping reviewed with you on the call",
-      "Win point, leakage lenses, packaging signal, trade-or-give",
-      "Per-deal discount Guidance with plain-language factors",
-      "Executive summary written from the figures, CFO-forwardable",
+      { text: "CSV or Excel upload, mapping reviewed with you on the call" },
+      { text: "Win point, leakage lenses, packaging signal, trade-or-give" },
+      { text: "Per-deal discount Guidance with plain-language factors" },
+      { text: "Executive summary written from the figures, CFO-forwardable" },
     ],
     footer: "One cycle. NDA on request.",
   },
@@ -38,18 +40,29 @@ const TIERS: Tier[] = [
     id: "operate",
     name: "Pricekeel Operate",
     audience: "The governance loop",
-    body: "Not a report you read, a loop your deals run through. Every below-floor discount request is priced before it is approved, every decision lands in the log with its math, and the loop reports back to you on a weekly, monthly, and quarterly rhythm.",
+    body: "Not a report you read, a loop your deals run through. Every below-floor discount request is priced before it is approved, every decision lands in the log with its math, and the loop reports back to you every week. Monthly and quarterly readouts are on the roadmap.",
     features: [
-      "Every exception priced before it is approved: the floor, the win odds, the expected-value cost in dollars",
-      "Every decision logged with its math, the audit trail your CFO and your next diligence see",
-      "A weekly digest that comes to you: exceptions priced, below-floor count, realization, what moved",
-      "Monthly drift readout naming the segments where realization is slipping and the deals behind it",
-      "Quarterly policy re-simulation: floors re-fit against the deals you actually closed",
+      { text: "Every exception priced before it is approved: the floor, the win odds, the expected-value cost in dollars" },
+      { text: "Every decision logged with its math, the audit trail your CFO and your next diligence see" },
+      { text: "A weekly digest that comes to you: exceptions priced, below-floor count, realization, what moved" },
+      { text: "Monthly drift readout naming the segments where realization is slipping and the deals behind it", roadmap: true },
+      { text: "Quarterly policy re-simulation: floors re-fit against the deals you actually closed", roadmap: true },
     ],
     footer: "Native Salesforce OAuth and live Opportunity analysis. Initial rollout remains founder-led.",
     primary: true,
   },
 ];
+
+function RoadmapBadge() {
+  return (
+    <span
+      data-roadmap="feature"
+      className="pk-small ml-2 whitespace-nowrap rounded border border-control px-2 py-0.5 font-medium text-fg"
+    >
+      Roadmap, not yet built
+    </span>
+  );
+}
 
 function TierCard({ tier }: { tier: Tier }) {
   return (
@@ -60,7 +73,10 @@ function TierCard({ tier }: { tier: Tier }) {
         <p className="pk-body mt-3 text-muted">{tier.body}</p>
         <ul className="pk-body mt-5 flex-1 list-disc space-y-3 pl-5 text-ink marker:text-teal">
           {tier.features.map((f) => (
-            <li key={f}>{f}</li>
+            <li key={f.text}>
+              {f.text}
+              {f.roadmap ? <RoadmapBadge /> : null}
+            </li>
           ))}
         </ul>
         <p className="pk-small mt-6 text-muted">{tier.footer}</p>
@@ -80,7 +96,7 @@ function TierCard({ tier }: { tier: Tier }) {
 // Monday-morning scenarios for Operate. The figures are hand-built, not read
 // from the snapshot, so each card carries the "Illustrative, not customer data"
 // label.
-type Scenario = { when: string; who: string; what: string; detail: string };
+type Scenario = { when: string; who: string; what: string; detail: string; roadmap?: boolean };
 const SCENARIOS: Scenario[] = [
   {
     when: "Monday, 8:30 AM",
@@ -106,9 +122,10 @@ const SCENARIOS: Scenario[] = [
   {
     when: "End of quarter",
     who: "CFO before the board prep",
-    what: "Defended-vs-investigate dashboard, updated weekly",
+    what: "Defended-vs-investigate dashboard",
     detail:
       "What discipline earned the quarter, what to investigate next, and every approval or rejection traceable to its historical evidence and actor.",
+    roadmap: true,
   },
 ];
 
@@ -122,8 +139,8 @@ const THRESHOLDS: Threshold[] = [
     who: "RevOps",
   },
   {
-    label: "Caught underdiscounting",
-    math: "If 1 to 2 deals per quarter would have had 3 to 5 extra points given, at $250K ACV per deal, that is $30K to $50K per year.",
+    label: "Over-discounting caught",
+    math: "If 4 to 8 deals a year (1 to 2 per quarter) would have had 3 to 5 fewer points given away, at $250K ACV per deal, that is $30K to $100K per year.",
     who: "Sales",
   },
   {
@@ -140,7 +157,7 @@ export default function PricingPage() {
         <PageHeader
           eyebrow="Pricing"
           title="Built for the conversation, not the credit card."
-          lead="We sell into pricing and RevOps teams at $10M to $100M ARR B2B SaaS. That means an actual scoping call, not a self-serve checkout. Pick the closest fit and we will reply within one business day."
+          lead="We sell into pricing and RevOps teams at $20M to $100M ARR B2B SaaS. That means an actual scoping call, not a self-serve checkout. Pick the closest fit and we will reply within one business day."
         />
         <p className="pk-body mt-4 max-w-prose text-muted">
           We expect pricing to start in the low five figures. We share the structure on the first
@@ -186,6 +203,7 @@ export default function PricingPage() {
                     {s.when}, {s.who}
                   </span>
                   <SyntheticTag variant="illustrative" />
+                  {s.roadmap ? <RoadmapBadge /> : null}
                 </div>
                 <h3 className="pk-h3 mt-3">{s.what}</h3>
                 <p className="pk-body mt-2 text-muted">{s.detail}</p>

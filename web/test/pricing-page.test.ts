@@ -28,14 +28,15 @@ describe("/pricing", () => {
     ]) {
       expect(text).not.toContain(phrase);
     }
-    expect(text).not.toMatch(/\$20(?!K)/);
+    expect(text).not.toMatch(/\$20(?!K|M to \$100M)/);
+    expect(text).not.toContain("$10M");
   });
 
   it("keeps the D-R6 wording and the corrected ARR band", () => {
     const { text } = renderText();
     expect(text).toContain("We expect");
     expect(text).toContain("we will reply within one business day");
-    expect(text).toContain("$10M");
+    expect(text).toContain("$20M to $100M ARR");
   });
 
   it("renders exactly two tier cards and a roadmap line with no button or link", () => {
@@ -67,19 +68,49 @@ describe("/pricing", () => {
     for (const el of walker) {
       if (labelled.some((b) => b.contains(el))) continue;
       const own = el.textContent ?? "";
-      const stripped = own.replace(/\$10M to \$100M ARR/g, "");
+      const stripped = own.replace(/\$20M to \$100M ARR/g, "");
       if (el.querySelector("p, li")) continue; // container, children are checked
       expect(stripped, own).not.toMatch(/\$\d|\d%/);
     }
   });
 
-  it("is on main#main, uses Link for /contact, and has one h1", () => {
+  it("labels unbuilt Operate features as roadmap", () => {
+    const { container } = renderText();
+    const badges = Array.from(container.querySelectorAll("[data-roadmap='feature']"));
+    expect(badges).toHaveLength(3);
+    for (const b of badges) expect(b.textContent).toMatch(/roadmap/i);
+    const host = (needle: string) =>
+      Array.from(container.querySelectorAll("li")).find(
+        (li) => li.textContent?.includes(needle) && li.querySelector("[data-roadmap='feature']"),
+      );
+    expect(host("Monthly drift readout")).toBeTruthy();
+    expect(host("Quarterly policy re-simulation")).toBeTruthy();
+    expect(host("Defended-vs-investigate dashboard")).toBeTruthy();
+    expect(container.textContent).not.toContain("updated weekly");
+  });
+
+  it("states the over-discounting arithmetic correctly", () => {
+    const { text } = renderText();
+    expect(text).toContain("Over-discounting caught");
+    expect(text).not.toContain("Caught underdiscounting");
+    expect(text).toContain("$30K to $100K per year");
+    expect(4 * 250_000 * 0.03).toBe(30_000);
+    expect(8 * 250_000 * 0.05).toBe(100_000);
+  });
+
+  it("is on main#main, links every tier to /contact through Link, and has one h1", () => {
     const { container } = renderText();
     const main = container.querySelector("main");
     expect(main?.id).toBe("main");
     expect(container.querySelectorAll("h1")).toHaveLength(1);
     expect(container.querySelectorAll("main")).toHaveLength(1);
     expect(container.querySelector(".pk-upside-glow")).toBeNull();
+    const links = container.querySelectorAll("[data-tier] a");
+    expect(links).toHaveLength(2);
+    for (const a of links) {
+      expect(a.getAttribute("href")).toBe("/contact");
+      expect(a.textContent).toContain("Talk to us");
+    }
   });
 
   it("has no em dash", () => {
