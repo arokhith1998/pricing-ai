@@ -1,0 +1,49 @@
+# Agent ownership map, mirrored from docs/agents/OWNERSHIP.md.
+#
+# Advisory only. These are agent role names, not GitHub users, so GitHub will
+# not request reviews from them and branch protection is unavailable on this
+# plan for a private repo. The file exists so the boundary is visible in the
+# diff view and so the mapping has one machine-readable home. The enforced
+# check is `python tools/agentctl.py assign`, which refuses a colliding claim.
+#
+# The human owner reviews and merges everything. See docs/agents/DECISIONS.md
+# ADR-004.
+
+*                               @arokhith1998
+
+# Backend: deterministic engine and the API perimeter
+/api/                           @arokhith1998  # backend-engineer
+/pricing/metrics.py             @arokhith1998  # backend-engineer
+/pricing/ingest.py              @arokhith1998  # backend-engineer
+/pricing/diagnostic.py          @arokhith1998  # backend-engineer
+/pricing/governance.py          @arokhith1998  # backend-engineer
+/pricing/crm.py                 @arokhith1998  # backend-engineer
+/pricing/_safe_fetch.py         @arokhith1998  # backend-engineer
+
+# Data: schema, migrations, fixtures
+/neon/                          @arokhith1998  # data-engineer
+/pricing/schema.py              @arokhith1998  # data-engineer
+/pricing/generate.py            @arokhith1998  # data-engineer
+/data/                          @arokhith1998  # data-engineer
+
+# AI: LLM layer, prompts, evals, the win model
+/pricing/assist.py              @arokhith1998  # ai-engineer
+/pricing/copilot.py             @arokhith1998  # ai-engineer
+/pricing/rag.py                 @arokhith1998  # ai-engineer
+/pricing/docs.py                @arokhith1998  # ai-engineer
+/pricing/mapping.py             @arokhith1998  # ai-engineer
+/pricing/matching.py            @arokhith1998  # ai-engineer
+/pricing/model.py               @arokhith1998  # ai-engineer
+
+# Web
+/web/                           @arokhith1998  # web-engineer
+/brand/                         @arokhith1998  # web-engineer
+
+# QA
+/tests/                         @arokhith1998  # qa-engineer
+/web/test/                      @arokhith1998  # qa-engineer
+/.github/workflows/             @arokhith1998  # qa-engineer
+
+# Coordination
+/tools/agentctl.py              @arokhith1998  # pk-lead
+/docs/agents/                   @arokhith1998  # pk-lead

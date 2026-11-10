@@ -17,7 +17,7 @@ Track pain frequency and cost, current workaround, approval latency, access obje
 buyer/champion alignment, and willingness to pay.
 
 ## ICP filters (qualify hard, disqualify fast)
-Qualify: $20-100M ARR, sales-led or hybrid B2B SaaS; Salesforce with 500+ annual closed
+Qualify: $10-100M ARR, sales-led or hybrid B2B SaaS; Salesforce with 500+ annual closed
 outcomes; reliable list and booked values plus a documented discount policy; recurring
 exception volume; an identifiable Deal Desk / RevOps / Pricing champion; a CFO or VP
 Pricing economic buyer; willingness to authorize sandbox access and a 90-day paid pilot.

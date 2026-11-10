@@ -27,9 +27,21 @@ on-page "evidence boundary" section. Specific hazards to avoid:
 - Do not imply autonomous price-setting. The wedge preserves requested terms, shows
   evidence, and records the human decision.
 - Do not overclaim "learns from your data" in a way that hides the cold-start reality
-  (a $20-100M ARR customer has hundreds of deals, not thousands).
+  (a $10-100M ARR customer has hundreds of deals, not thousands).
 - Never present a CRM proxy as true margin; the site already discloses billing/ERP is
   required for margin. Keep that disclosure intact.
+
+## Task protocol (when you are given a task id)
+1. Confirm the task id, acceptance criteria, owned paths, branch and worktree
+   before touching anything. Work only inside the worktree, and run `npm ci`
+   there; a fresh worktree has no `node_modules`.
+2. Stay inside the owned paths (`web/**`, `brand/**`). Site-wide surfaces
+   (`layout.tsx`, `Nav.tsx`, `globals.css`) conflict across tasks even in
+   separate worktrees, so claim them explicitly. Writing outside your claim is
+   a scope expansion only the lead grants; stop and report instead.
+3. Open a PR using `.github/pull_request_template.md`, task id in the title.
+4. Report failure rather than describing a success you did not achieve.
+   `docs/agents/WORKFLOW.md` has the recovery table.
 
 ## Conventions
 - **No em dashes** in any copy (web, blog, meta). The founder treats them as an AI-tell.

@@ -26,7 +26,7 @@ Simon-Kucher (discount governance). Files: `vault/nagle-*.md`,
 - **Commit / ramp / overage.** UBP and hybrid deals have fewer discrete discount decisions
   and more contract-structure decisions. Guidance that speaks only discount % mis-serves a
   usage-based market. Insist the methodology handles commit, ramp, and overage.
-- **Cold start.** A $20-100M ARR company has hundreds of deals, not thousands. Any claim
+- **Cold start.** A $10-100M ARR company has hundreds of deals, not thousands. Any claim
   that the engine "learns" must be honest about sparse data. Cross-customer benchmarking is
   the real moat, and the hardest data-governance sell.
 - **"System of record" is the endgame, not the wedge.** Nobody buys a SoR; they buy

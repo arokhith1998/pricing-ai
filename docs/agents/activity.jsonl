@@ -1,0 +1,412 @@
+{"ts": "2026-08-29T18:51:41Z", "event": "init", "task": null, "agent": null, "detail": "state initialised"}
+{"ts": "2026-08-29T18:51:41Z", "event": "add", "task": "PK-1", "agent": "backend-engineer", "detail": "Split api/main.py into routers"}
+{"ts": "2026-08-29T18:51:42Z", "event": "add", "task": "PK-2", "agent": "pk-lead", "detail": "agentctl creates and removes the git worktree on assign/done"}
+{"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-3", "agent": "pk-lead", "detail": "agentctl approve fetches the CI verdict itself"}
+{"ts": "2026-08-29T18:51:43Z", "event": "add", "task": "PK-4", "agent": "pk-lead", "detail": "Triage the six open PRs"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-08-29T19:13:07Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T19:16:40Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #63"}
+{"ts": "2026-08-29T19:31:36Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T19:31:37Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "QA -> REWORK_REQUIRED: findings 1+2: perimeter split across module boundary, and main.py still owns two components which breaks AC4"}
+{"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-08-29T19:47:39Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #63"}
+{"ts": "2026-08-29T19:47:40Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T20:02:03Z", "event": "add", "task": "PK-5", "agent": "ai-engineer", "detail": "Make Anthropic the only LLM provider in the product runtime"}
+{"ts": "2026-08-29T20:02:03Z", "event": "add", "task": "PK-6", "agent": "web-engineer", "detail": "Update trust, privacy and subprocessor disclosures to name Anthropic"}
+{"ts": "2026-08-29T20:02:11Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-08-29T20:02:12Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T20:18:17Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
+{"ts": "2026-08-29T20:20:28Z", "event": "add", "task": "PK-7", "agent": "ai-engineer", "detail": "Declare openai as a dev-only dependency for the cross-model reviewer"}
+{"ts": "2026-08-29T20:26:39Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: 2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object"}
+{"ts": "2026-08-29T20:33:37Z", "event": "add", "task": "PK-8", "agent": "pk-lead", "detail": "agentctl cannot expand a claim on an in-flight task"}
+{"ts": "2026-08-29T20:33:38Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS: unblocked"}
+{"ts": "2026-08-29T20:39:38Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
+{"ts": "2026-08-29T20:43:12Z", "event": "add", "task": "PK-9", "agent": "web-engineer", "detail": "Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup"}
+{"ts": "2026-08-29T20:43:13Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T20:43:13Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 6 path(s)"}
+{"ts": "2026-08-29T20:43:14Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T20:47:25Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #65"}
+{"ts": "2026-08-29T20:47:26Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: misattributed transform_schema rationale in load-bearing comments, plus ValueError contract, confidence enum, nullable billed_annually"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #64"}
+{"ts": "2026-08-29T20:53:30Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-08-29T21:18:00Z", "event": "add", "task": "PK-10", "agent": "web-engineer", "detail": "Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy"}
+{"ts": "2026-08-29T21:18:02Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-29T21:18:02Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-08-29T21:18:03Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #66"}
+{"ts": "2026-08-29T21:32:32Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 33271704443"}
+{"ts": "2026-08-29T21:32:33Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 33274590015"}
+{"ts": "2026-08-29T23:46:19Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-08-29T23:46:19Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 33276328808"}
+{"ts": "2026-08-29T23:46:20Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as ee43a6f, human-approved by adhithya (explicit: make it live)"}
+{"ts": "2026-08-29T23:46:20Z", "event": "status", "task": "PK-10", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-08-30T18:20:07Z", "event": "add", "task": "PK-11", "agent": "web-engineer", "detail": "Guidance asserts 'barely moves the odds of winning' without checking it"}
+{"ts": "2026-08-30T18:20:09Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-08-30T18:20:10Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-08-30T18:20:10Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-08-30T18:28:43Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #67"}
+{"ts": "2026-09-11T23:12:20Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-09-11T23:12:21Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 33274371933"}
+{"ts": "2026-09-11T23:12:34Z", "event": "add", "task": "PK-12", "agent": "web-engineer", "detail": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential"}
+{"ts": "2026-09-11T23:14:51Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: BLOCKER: dWinPts rounds the raw difference while the stat tile rounds each pct independently, so the headline disagrees with the tile in ~24% of cases (e.g. 0.344->0.318 says 3 pts, tile shows 34%->32%). MAJOR: AC4 audit lists no other uncomputed claims; three found (GuidanceClient:75 'won and lost', diagnostic/page.tsx:211 'climbs then flattens', GuidanceClient:286 'more in expected value' vs coral negative-uplift accent). MINOR: threshold applied pre-rounding; NaN falls into the optimistic branch; rise branch untested; test file outside owns; exported unused constant; imprecise test header."}
+{"ts": "2026-09-11T23:15:03Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-09-11T23:15:30Z", "event": "add", "task": "PK-13", "agent": "pk-lead", "detail": "Reconcile task owns claims with OWNERSHIP.md test-file carve-out"}
+{"ts": "2026-09-11T23:24:44Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #67"}
+{"ts": "2026-09-11T23:25:00Z", "event": "add", "task": "PK-14", "agent": "web-engineer", "detail": "Close the asserted-not-computed claims found by the PK-11 audit"}
+{"ts": "2026-09-11T23:28:40Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-09-11T23:28:40Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 34657865423"}
+{"ts": "2026-09-11T23:37:30Z", "event": "add", "task": "PK-15", "agent": "ai-engineer", "detail": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more"}
+{"ts": "2026-09-11T23:37:30Z", "event": "add", "task": "PK-16", "agent": "backend-engineer", "detail": "Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference"}
+{"ts": "2026-09-11T23:39:30Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as 8c52e7c, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:30Z", "event": "status", "task": "PK-1", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:31Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 95aa3d6, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:32Z", "event": "status", "task": "PK-5", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:32Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 885aa46, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:33Z", "event": "status", "task": "PK-9", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:39:34Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as ca47c67, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"}
+{"ts": "2026-09-11T23:39:34Z", "event": "status", "task": "PK-11", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-09-11T23:40:35Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:36Z", "event": "status", "task": "PK-7", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:40:37Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:53:23Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-09-11T23:53:23Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-09-11T23:53:24Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-09-11T23:59:15Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #68"}
+{"ts": "2026-09-12T00:05:42Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-09-12T00:10:25Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 34660616795"}
+{"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as a977dd0, human-approved by adhithya (explicit: yeah, 2026-09-15)"}
+{"ts": "2026-09-15T22:17:38Z", "event": "status", "task": "PK-15", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-07T15:52:46Z", "event": "add", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "Publish a platform census of target accounts"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-18", "agent": "customer-success", "detail": "Add the pricing-surface interview module"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-19", "agent": "customer-success", "detail": "Write per-source data-readiness checklists"}
+{"ts": "2026-11-07T15:52:47Z", "event": "add", "task": "PK-20", "agent": "customer-success", "detail": "Create the data register"}
+{"ts": "2026-11-07T15:52:48Z", "event": "add", "task": "PK-21", "agent": "customer-success", "detail": "Amend incident response for credentials and new data classes"}
+{"ts": "2026-11-07T15:52:48Z", "event": "add", "task": "PK-22", "agent": "customer-success", "detail": "Draft the NDA data-classes schedule for counsel"}
+{"ts": "2026-11-07T15:52:49Z", "event": "add", "task": "PK-30", "agent": "pricing-strategist", "detail": "Specify the contract-structure lens"}
+{"ts": "2026-11-07T15:52:49Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:49Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:50Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:52:51Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T15:55:14Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:14Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:15Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-07T15:55:15Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:16Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:16Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:17Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:55:18Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-18", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-19", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:51Z", "event": "status", "task": "PK-20", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T15:57:52Z", "event": "status", "task": "PK-22", "agent": "customer-success", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:07:37Z", "event": "status", "task": "PK-17", "agent": "market-sizing-analyst", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:07:38Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "IN_PROGRESS -> REVIEW: PR #62"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-23", "agent": "data-engineer", "detail": "Add source, provenance and contract-structure fields to the canonical deal"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-24", "agent": "data-engineer", "detail": "Add a migration for saved mappings and a decision-log source index"}
+{"ts": "2026-11-07T16:32:03Z", "event": "add", "task": "PK-25", "agent": "backend-engineer", "detail": "Make Salesforce the first adapter behind a neutral guardrail"}
+{"ts": "2026-11-07T16:32:04Z", "event": "add", "task": "PK-26", "agent": "web-engineer", "detail": "Rename the web canonical type to CanonicalDeal"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-27", "agent": "ai-engineer", "detail": "Add source profiles and export presets to the mapper"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-28", "agent": "backend-engineer", "detail": "Persist the confirmed mapping per tenant, headers only"}
+{"ts": "2026-11-07T16:32:05Z", "event": "add", "task": "PK-29", "agent": "ai-engineer", "detail": "Add numeric-fidelity and cost-basis label evals"}
+{"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-07T16:32:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
+{"ts": "2026-11-07T16:32:21Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-07T16:43:17Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #73"}
+{"ts": "2026-11-07T16:50:44Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-07T17:02:46Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-07T17:02:46Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #73"}
+{"ts": "2026-11-07T17:08:31Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-07T17:15:20Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-07T17:15:21Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #73"}
+{"ts": "2026-11-07T17:19:00Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-07T17:30:11Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42396015700"}
+{"ts": "2026-11-09T18:18:39Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as 0976558, human-approved by product owner"}
+{"ts": "2026-11-09T18:18:40Z", "event": "status", "task": "PK-23", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T18:18:42Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:18:43Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:18:45Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
+{"ts": "2026-11-09T18:18:45Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T18:18:46Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:18:46Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:33:29Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #74"}
+{"ts": "2026-11-09T18:34:13Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #75"}
+{"ts": "2026-11-09T18:34:43Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:34:49Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T18:34:52Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:37:54Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 6 path(s)"}
+{"ts": "2026-11-09T18:37:54Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:41:55Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T18:44:49Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T18:45:44Z", "event": "add", "task": "PK-74", "agent": "ai-engineer", "detail": "Fix the copilot investigate opportunity reading a column the real book does not carry"}
+{"ts": "2026-11-09T18:47:56Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #77"}
+{"ts": "2026-11-09T18:50:59Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:51:00Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #74"}
+{"ts": "2026-11-09T18:52:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-31", "agent": "data-engineer", "detail": "Plant contract-structure answers in the generator"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-32", "agent": "backend-engineer", "detail": "Score commit, ramp, overage and unit-rate floors"}
+{"ts": "2026-11-09T18:56:07Z", "event": "add", "task": "PK-33", "agent": "backend-engineer", "detail": "Add the lens readout and concession fields to the decision record"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-39", "agent": "backend-engineer", "detail": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-40", "agent": "backend-engineer", "detail": "Annualise multi-year quote roll-ups from term_months"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-41", "agent": "data-engineer", "detail": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref"}
+{"ts": "2026-11-09T18:56:08Z", "event": "add", "task": "PK-42", "agent": "web-engineer", "detail": "Move connection storage and token crypto onto source_connections, with key ids"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-43", "agent": "web-engineer", "detail": "Key tenants by opaque ref and revoke every credential for a tenant on request"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-44", "agent": "customer-success", "detail": "Register the connector credential classes and their revoke paths in incident response"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-45", "agent": "customer-success", "detail": "Draft the per-customer credentials amendment and update the readiness access-method lines"}
+{"ts": "2026-11-09T18:56:09Z", "event": "add", "task": "PK-46", "agent": "backend-engineer", "detail": "Map HubSpot deals, confirmed stage maps and properties to canonical deals"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-47", "agent": "web-engineer", "detail": "Connect, refresh and disconnect a HubSpot portal by OAuth"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-48", "agent": "web-engineer", "detail": "Discover pipelines and properties and sync a bounded HubSpot book"}
+{"ts": "2026-11-09T18:56:10Z", "event": "add", "task": "PK-49", "agent": "web-engineer", "detail": "Give /crm a source switcher and a HubSpot stage-map confirmation screen"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-50", "agent": "qa-engineer", "detail": "Verify HubSpot end to end against a planted test portal"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-51", "agent": "customer-success", "detail": "Write the HubSpot runbook and customer guide"}
+{"ts": "2026-11-09T18:56:11Z", "event": "add", "task": "PK-52", "agent": "web-engineer", "detail": "Name HubSpot on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-53", "agent": "data-engineer", "detail": "Add the contract_period_actuals grain and stripe and chargebee source values"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-54", "agent": "backend-engineer", "detail": "Compute realization, contracted versus billed and usage actuals from billing"}
+{"ts": "2026-11-09T18:56:12Z", "event": "add", "task": "PK-55", "agent": "backend-engineer", "detail": "Map Stripe subscriptions and invoices to canonical deals and period actuals"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-56", "agent": "backend-engineer", "detail": "Serve the billing readout from POST /billing/analyze"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-57", "agent": "web-engineer", "detail": "Connect Stripe with a customer-created restricted key"}
+{"ts": "2026-11-09T18:56:13Z", "event": "add", "task": "PK-58", "agent": "web-engineer", "detail": "Sync a bounded Stripe book and confirm which prices are list"}
+{"ts": "2026-11-09T18:56:14Z", "event": "add", "task": "PK-59", "agent": "web-engineer", "detail": "Show the billing readout and the no-win-rate line in the workspace"}
+{"ts": "2026-11-09T18:56:14Z", "event": "add", "task": "PK-60", "agent": "qa-engineer", "detail": "Verify Stripe end to end against a planted test-mode account"}
+{"ts": "2026-11-09T18:56:15Z", "event": "add", "task": "PK-61", "agent": "customer-success", "detail": "Write the Stripe runbook and key-creation guide"}
+{"ts": "2026-11-09T18:56:15Z", "event": "add", "task": "PK-62", "agent": "web-engineer", "detail": "Name Stripe on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-63", "agent": "backend-engineer", "detail": "Map Chargebee subscriptions and invoices to canonical deals and period actuals"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-64", "agent": "web-engineer", "detail": "Connect Chargebee with a site name and read-only key"}
+{"ts": "2026-11-09T18:56:16Z", "event": "add", "task": "PK-65", "agent": "web-engineer", "detail": "Sync a bounded Chargebee book"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-66", "agent": "web-engineer", "detail": "Add the Chargebee setup panel to the workspace"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-67", "agent": "qa-engineer", "detail": "Verify Chargebee end to end against a planted test site"}
+{"ts": "2026-11-09T18:56:17Z", "event": "add", "task": "PK-68", "agent": "customer-success", "detail": "Write the Chargebee runbook and key-creation guide"}
+{"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-69", "agent": "web-engineer", "detail": "Name Chargebee on the privacy, trust and pricing pages"}
+{"ts": "2026-11-09T18:56:18Z", "event": "add", "task": "PK-70", "agent": "data-engineer", "detail": "Drop the legacy salesforce_connections and salesforce_mappings tables"}
+{"ts": "2026-11-09T18:59:03Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:59:04Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T18:59:08Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T18:59:09Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T18:59:10Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T18:59:10Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:00:31Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-09T19:00:32Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "QA -> APPROVED: CI run 42673927453"}
+{"ts": "2026-11-09T19:00:33Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "APPROVED -> MERGED: merged as 4c0dda8, human-approved by product owner"}
+{"ts": "2026-11-09T19:00:34Z", "event": "status", "task": "PK-30", "agent": "pricing-strategist", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:02:05Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:04:43Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:06:28Z", "event": "add", "task": "PK-75", "agent": "web-engineer", "detail": "Build the design system, tokens, shared UI primitives and site chrome"}
+{"ts": "2026-11-09T19:06:28Z", "event": "add", "task": "PK-76", "agent": "web-engineer", "detail": "Redesign the landing page around the decision record and a scroll-driven walk"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-77", "agent": "web-engineer", "detail": "Redesign the pricing page and clear its claims that exceed the evidence"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-78", "agent": "web-engineer", "detail": "Redesign methodology and contact, and show the method on the sample"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-79", "agent": "web-engineer", "detail": "Restyle the calculator, blog, 404 and error pages and promote the calculator"}
+{"ts": "2026-11-09T19:06:29Z", "event": "add", "task": "PK-80", "agent": "web-engineer", "detail": "Redesign the sample page, the lead gate and the login page"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-81", "agent": "web-engineer", "detail": "Restyle diagnostic, guidance, upload and competitor-watch onto the shared system"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-82", "agent": "web-engineer", "detail": "Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged"}
+{"ts": "2026-11-09T19:06:30Z", "event": "add", "task": "PK-83", "agent": "web-engineer", "detail": "Split and restyle the Salesforce workspace into readable components"}
+{"ts": "2026-11-09T19:06:31Z", "event": "add", "task": "PK-84", "agent": "web-engineer", "detail": "Audit the whole site, remove dead styles, and pin the budgets in tests"}
+{"ts": "2026-11-09T19:08:27Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:14:18Z", "event": "config", "task": "-", "agent": "founder", "detail": "max_concurrent 2 -> 4 (ADR-003 amendment 2026-11-09)"}
+{"ts": "2026-11-09T19:16:17Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #78"}
+{"ts": "2026-11-09T19:17:35Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:17:36Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T19:17:37Z", "event": "add", "task": "PK-86", "agent": "ai-engineer", "detail": "Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7"}
+{"ts": "2026-11-09T19:17:38Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:17:42Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T19:17:43Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:18:11Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:18:11Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #77"}
+{"ts": "2026-11-09T19:18:15Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 16 path(s)"}
+{"ts": "2026-11-09T19:18:15Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:19:35Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:19:42Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #74"}
+{"ts": "2026-11-09T19:24:00Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:25:06Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:25:06Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T19:25:07Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T19:28:23Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #79"}
+{"ts": "2026-11-09T19:29:19Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:29:27Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #77"}
+{"ts": "2026-11-09T19:33:22Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-09T19:33:56Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:34:01Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #76"}
+{"ts": "2026-11-09T19:34:28Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:34:38Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T19:34:41Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:35:52Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T19:35:58Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:38:42Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42677170978"}
+{"ts": "2026-11-09T19:42:44Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:44:27Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T19:45:54Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #80"}
+{"ts": "2026-11-09T19:46:00Z", "event": "add", "task": "PK-87", "agent": "ai-engineer", "detail": "Make the copilot raise-price opportunity fire on a real book by joining win rate into the segment table"}
+{"ts": "2026-11-09T19:51:10Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as 2cd5358, human-approved by product owner"}
+{"ts": "2026-11-09T19:51:20Z", "event": "status", "task": "PK-25", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T19:52:27Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:52:32Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T19:53:44Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T19:58:08Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T19:58:15Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #79"}
+{"ts": "2026-11-09T19:58:21Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #81"}
+{"ts": "2026-11-09T19:59:40Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 7 path(s)"}
+{"ts": "2026-11-09T19:59:44Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:01:44Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:01:49Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #80"}
+{"ts": "2026-11-09T20:03:02Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-09T20:03:04Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:24:48Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T20:25:56Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T20:27:12Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T20:29:30Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #82"}
+{"ts": "2026-11-09T20:39:08Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
+{"ts": "2026-11-09T20:40:21Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:40:28Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #81"}
+{"ts": "2026-11-09T20:41:25Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #84"}
+{"ts": "2026-11-09T20:42:18Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T20:42:26Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T20:42:32Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:42:40Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T20:42:46Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T20:50:45Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T20:54:55Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T20:55:44Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T21:22:14Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T21:22:17Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T21:22:22Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #84"}
+{"ts": "2026-11-09T21:22:28Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #85"}
+{"ts": "2026-11-09T21:22:32Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #86"}
+{"ts": "2026-11-09T21:22:37Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #87"}
+{"ts": "2026-11-09T21:32:44Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T21:40:58Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T21:41:32Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42697114425"}
+{"ts": "2026-11-09T21:44:18Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T21:44:23Z", "event": "add", "task": "PK-88", "agent": "qa-engineer", "detail": "Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts"}
+{"ts": "2026-11-09T21:52:01Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T22:03:17Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:03:18Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #87"}
+{"ts": "2026-11-09T22:09:49Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-09T22:25:08Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 90dcbdd, human-approved by product owner"}
+{"ts": "2026-11-09T22:25:12Z", "event": "status", "task": "PK-86", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:33:06Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42711841198"}
+{"ts": "2026-11-09T22:33:15Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711862393"}
+{"ts": "2026-11-09T22:33:24Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711872583"}
+{"ts": "2026-11-09T22:33:32Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711879930"}
+{"ts": "2026-11-09T22:33:34Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42711891057"}
+{"ts": "2026-11-09T22:33:39Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42711903009"}
+{"ts": "2026-11-09T22:33:42Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711911539"}
+{"ts": "2026-11-09T22:33:47Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711923583"}
+{"ts": "2026-11-09T22:35:52Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42711935159"}
+{"ts": "2026-11-09T22:40:04Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as c3c0959, human-approved by product owner"}
+{"ts": "2026-11-09T22:40:06Z", "event": "status", "task": "PK-74", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:40:34Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as bdcc7fd, human-approved by product owner"}
+{"ts": "2026-11-09T22:40:38Z", "event": "status", "task": "PK-12", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:42:08Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 24639a7, human-approved by product owner"}
+{"ts": "2026-11-09T22:42:10Z", "event": "status", "task": "PK-26", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:43:34Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 168a7c3, human-approved by product owner"}
+{"ts": "2026-11-09T22:43:36Z", "event": "status", "task": "PK-6", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:45:30Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as 774ed82, human-approved by product owner"}
+{"ts": "2026-11-09T22:45:31Z", "event": "status", "task": "PK-27", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:45:46Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as d372411, human-approved by product owner"}
+{"ts": "2026-11-09T22:45:49Z", "event": "status", "task": "PK-31", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:46:04Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as 8e5cdd1, human-approved by product owner"}
+{"ts": "2026-11-09T22:46:06Z", "event": "status", "task": "PK-53", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:46:22Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as 23b821f, human-approved by product owner"}
+{"ts": "2026-11-09T22:46:23Z", "event": "status", "task": "PK-24", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:46:52Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as 780d9fa, human-approved by product owner"}
+{"ts": "2026-11-09T22:46:58Z", "event": "status", "task": "PK-75", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-09T22:48:38Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:41Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:46Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T22:48:56Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 10 path(s)"}
+{"ts": "2026-11-09T22:49:00Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 4 path(s)"}
+{"ts": "2026-11-09T22:49:03Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T22:49:06Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:49:09Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:49:11Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T22:59:49Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "QA -> APPROVED: CI run 42714756585"}
+{"ts": "2026-11-09T23:03:00Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #88"}
+{"ts": "2026-11-09T23:03:39Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:03:46Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T23:03:50Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:05:20Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #89"}
+{"ts": "2026-11-09T23:06:32Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:06:37Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
+{"ts": "2026-11-09T23:06:42Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:19:10Z", "event": "add", "task": "PK-89", "agent": "web-engineer", "detail": "Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green"}
+{"ts": "2026-11-09T23:19:16Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:19:23Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-09T23:19:28Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:20:43Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T23:24:41Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T23:33:40Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:33:45Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #88"}
+{"ts": "2026-11-09T23:37:53Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #90"}
+{"ts": "2026-11-09T23:40:47Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #91"}
+{"ts": "2026-11-09T23:41:40Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:41:49Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #89"}
+{"ts": "2026-11-09T23:43:14Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-09T23:43:23Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-09T23:43:27Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-09T23:46:50Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: "}
+{"ts": "2026-11-09T23:48:27Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #92"}
+{"ts": "2026-11-10T20:24:36Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as d076b3c, human-approved by product owner"}
+{"ts": "2026-11-10T20:24:38Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T20:29:03Z", "event": "deploy", "task": null, "agent": "pk-lead", "detail": "Production redeployed by founder instruction: Vercel dpl_7oZZGj2H5wjwtmnzVau6oLh96zKN from main d076b3c (PK-29 merge), READY, aliased pricekeel.com and www.pricekeel.com; live site verified serving PK-75 design system (global disclosure, Customer login). Ends the stale-production window after the Hobby build-rate limit skipped ten builds."}
+{"ts": "2026-11-10T20:44:25Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
+{"ts": "2026-11-10T20:44:51Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T20:44:52Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
+{"ts": "2026-11-10T21:07:43Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rework round rejected: down migration still drops confirmed stage_map/list_price_set for Salesforce rows without a legacy match (blocker, reproduced on PG16); drift check misses competitor_context_sources; migration tests are string matches only; v2 key_id check incomplete. Findings on PR 89."}
+{"ts": "2026-11-10T21:13:13Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93."}
+{"ts": "2026-11-10T21:14:33Z", "event": "add", "task": "PK-90", "agent": "backend-engineer", "detail": "Validate the policy threshold as a fraction on /diagnostic, /demo and /summary"}
+{"ts": "2026-11-10T21:14:39Z", "event": "add", "task": "PK-91", "agent": "backend-engineer", "detail": "Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate"}
+{"ts": "2026-11-10T21:16:34Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42898065668"}
+{"ts": "2026-11-10T21:17:00Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T21:17:05Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T21:32:16Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply."}
+{"ts": "2026-11-10T21:39:01Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T21:39:02Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
+{"ts": "2026-11-10T21:40:17Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rework round rejected: line-item per-period net replaces annual deal amount as booked_acv (blocker); money bound off by one order; ask_user disclosure keyed on error text; scope nit on _records_hash. Findings on PR 83. Forced past cap 4: each active task has its own worktree."}
+{"ts": "2026-11-10T21:48:28Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T21:48:30Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #88"}
+{"ts": "2026-11-10T21:48:30Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T21:48:33Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #90"}
+{"ts": "2026-11-10T21:49:59Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T21:50:02Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #89"}
+{"ts": "2026-11-10T21:56:11Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected (no blockers): ARR band 10M contradicts the 20M ICP decision and the social card; scenario arithmetic wrong; three unshipped features stated as live. Findings on PR 91. Forced past cap 4: each active task has its own worktree."}
+{"ts": "2026-11-10T22:02:00Z", "event": "add", "task": "PK-92", "agent": "backend-engineer", "detail": "Contract-structure readout omits the floor sentence when frame attrs are missing"}
+{"ts": "2026-11-10T22:03:56Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:03:58Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42907767065"}
+{"ts": "2026-11-10T22:03:59Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:04:01Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:04:03Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:04:06Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42902655431"}
+{"ts": "2026-11-10T22:04:08Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:04:09Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:05:15Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree."}
+{"ts": "2026-11-10T22:10:13Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:10:14Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42911548787"}
+{"ts": "2026-11-10T22:10:28Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:10:30Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:12:45Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:12:46Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
+{"ts": "2026-11-10T22:16:13Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
+{"ts": "2026-11-10T22:18:51Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:18:53Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
+{"ts": "2026-11-10T22:23:16Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree."}
+{"ts": "2026-11-10T22:31:16Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:31:18Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
+{"ts": "2026-11-10T22:36:06Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-10T22:36:10Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42913387831"}
+{"ts": "2026-11-10T22:36:18Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:36:19Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #91"}
+{"ts": "2026-11-10T22:36:23Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:36:26Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:38:53Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:38:58Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42911471054"}
+{"ts": "2026-11-10T22:39:16Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:39:20Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "MERGED -> DONE"}

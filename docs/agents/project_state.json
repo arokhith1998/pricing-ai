@@ -1,0 +1,3887 @@
+{
+  "version": 1,
+  "objective": "Stand up the multi-agent engineering org and prove it on a real task",
+  "sprint": "2026-08-29 agent-org phase 1",
+  "updated": "2026-11-10T22:39:20Z",
+  "config": {
+    "max_concurrent": 4
+  },
+  "tasks": [
+    {
+      "id": "PK-1",
+      "title": "Split api/main.py into routers",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-1",
+      "worktree": ".claude/worktrees/PK-1",
+      "acceptance": [
+        "every existing route keeps its path, method, and response shape",
+        "tests/test_api_perimeter.py passes unchanged",
+        "each router file maps to one ownership component in OWNERSHIP.md"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_api_perimeter.py"
+        ],
+        "ci_run": "33271704443"
+      },
+      "pr": 63,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "6 rework items closed; lead re-verified OpenAPI byte-identity, defining modules, stale attrs, tests untouched",
+        "ts": "2026-08-29T19:47:40Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:41Z",
+      "updated": "2026-09-11T23:39:30Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T19:13:07Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-08-29T19:16:40Z",
+          "note": "PR #63"
+        },
+        {
+          "ts": "2026-08-29T19:31:36Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T19:31:37Z",
+          "note": "findings 1+2: perimeter split across module boundary, and main.py still owns two components which breaks AC4"
+        },
+        {
+          "ts": "2026-08-29T19:47:39Z",
+          "note": "PR #63"
+        },
+        {
+          "ts": "2026-08-29T19:47:40Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T21:32:32Z",
+          "note": "CI run 33271704443"
+        },
+        {
+          "ts": "2026-09-11T23:39:30Z",
+          "note": "merged as 8c52e7c, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
+        }
+      ],
+      "merge_commit": "8c52e7c",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:30Z"
+      }
+    },
+    {
+      "id": "PK-2",
+      "title": "agentctl creates and removes the git worktree on assign/done",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "tools/agentctl.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "assign --worktree creates the worktree and branch from origin/main",
+        "done removes the worktree, and refuses if it has uncommitted changes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_agentctl.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:42Z",
+      "updated": "2026-08-29T18:51:42Z",
+      "notes": []
+    },
+    {
+      "id": "PK-3",
+      "title": "agentctl approve fetches the CI verdict itself",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-2"
+      ],
+      "owns": [
+        "tools/agentctl.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "approve calls gh run list for the task branch instead of trusting a pasted id",
+        "a red or missing run refuses the transition"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_agentctl.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:43Z",
+      "updated": "2026-08-29T18:51:43Z",
+      "notes": []
+    },
+    {
+      "id": "PK-4",
+      "title": "Triage the six open PRs",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "docs/agents/TASKS.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "each of #36 #37 #38 #59 #60 #61 is rebased, closed, or entered as a task with a stated reason"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T18:51:43Z",
+      "updated": "2026-08-29T18:51:43Z",
+      "notes": []
+    },
+    {
+      "id": "PK-5",
+      "title": "Make Anthropic the only LLM provider in the product runtime",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-5",
+      "worktree": ".claude/worktrees/PK-5",
+      "acceptance": [
+        "LLM_PROVIDER and the OpenAI branch are gone; anthropic is the only path",
+        "json_mode produces valid JSON via structured outputs, not prose",
+        "small=True routes to a cheaper model tier, preserving the mapper cost saving",
+        "model ids are current and env-overridable; no temperature param (400 on current models)",
+        "text extraction tolerates non-text leading content blocks",
+        "LLMUnavailableError still maps timeouts and connection failures to 503",
+        "openai removed from requirements.txt"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_assist.py",
+          "tests/test_matching.py"
+        ],
+        "ci_run": "33274590015"
+      },
+      "pr": 64,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "round-3 nits closed and lead-verified: false rationale removed, LLMConfigError, confidence enum, nullable billed_annually",
+        "ts": "2026-08-29T20:53:30Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-29T20:02:03Z",
+      "updated": "2026-09-11T23:39:32Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T20:02:12Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-08-29T20:18:17Z",
+          "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:26:39Z",
+          "note": "review rejected: 2 blockers: nullable type-array rejected by the schema transform; permissive fallback canonicalizes to the empty object"
+        },
+        {
+          "ts": "2026-08-29T20:33:38Z",
+          "note": "unblocked"
+        },
+        {
+          "ts": "2026-08-29T20:39:38Z",
+          "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:47:26Z",
+          "note": "misattributed transform_schema rationale in load-bearing comments, plus ValueError contract, confidence enum, nullable billed_annually"
+        },
+        {
+          "ts": "2026-08-29T20:53:30Z",
+          "note": "PR #64"
+        },
+        {
+          "ts": "2026-08-29T20:53:30Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-08-29T21:32:33Z",
+          "note": "CI run 33274590015"
+        },
+        {
+          "ts": "2026-09-11T23:39:31Z",
+          "note": "merged as 95aa3d6, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
+        }
+      ],
+      "merge_commit": "95aa3d6",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:31Z"
+      }
+    },
+    {
+      "id": "PK-6",
+      "title": "Update trust, privacy and subprocessor disclosures to name Anthropic",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-5"
+      ],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-6",
+      "worktree": ".claude/worktrees/PK-6",
+      "acceptance": [
+        "no customer-facing page names OpenAI as the LLM subprocessor",
+        "subprocessor entry carries Anthropic's real DPA URL and is dated",
+        "licenses page reflects the actual dependency set",
+        "claims stay inside the evidence boundary; no new capability implied"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": "42711862393"
+      },
+      "pr": 77,
+      "review": {
+        "verdict": "approve",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:33:22Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-29T20:02:03Z",
+      "updated": "2026-11-09T22:43:36Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:37:54Z",
+          "note": "claimed 6 path(s)"
+        },
+        {
+          "ts": "2026-11-09T18:47:56Z",
+          "note": "PR #77"
+        },
+        {
+          "ts": "2026-11-09T19:04:43Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:18:11Z",
+          "note": "PR #77"
+        },
+        {
+          "ts": "2026-11-09T19:25:06Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:29:27Z",
+          "note": "PR #77"
+        },
+        {
+          "ts": "2026-11-09T19:33:22Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-09T22:33:15Z",
+          "note": "CI run 42711862393"
+        },
+        {
+          "ts": "2026-11-09T22:43:34Z",
+          "note": "merged as 168a7c3, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "168a7c3",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:43:34Z"
+      }
+    },
+    {
+      "id": "PK-7",
+      "title": "Declare openai as a dev-only dependency for the cross-model reviewer",
+      "agent": "ai-engineer",
+      "status": "READY",
+      "dependencies": [
+        "PK-5"
+      ],
+      "owns": [
+        "requirements-dev.txt",
+        ".env.example",
+        "tools/oai_panel.py",
+        "tools/oai_panel_pricing_os.py",
+        "tools/oai_launch_panel.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "requirements-dev.txt declares openai, so tools/oai_review.py works from a clean checkout",
+        "the shipped requirements.txt and the API container stay free of openai",
+        ".env.example documents the current ANTHROPIC_SUMMARY_MODEL and ANTHROPIC_MAP_MODEL, not the removed ANTHROPIC_MODEL",
+        "oai_panel docstrings no longer describe the removed LLM_PROVIDER switch"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:20:28Z",
+      "updated": "2026-09-11T23:40:36Z",
+      "notes": []
+    },
+    {
+      "id": "PK-8",
+      "title": "agentctl cannot expand a claim on an in-flight task",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "docs/agents/WORKFLOW.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "a command exists to add or remove owned paths on a task already past READY, with the same collision check assign applies",
+        "the expansion is recorded in the activity log with a reason, since a widened claim is a lead decision worth auditing"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-08-29T20:33:37Z",
+      "updated": "2026-08-29T20:33:37Z",
+      "notes": []
+    },
+    {
+      "id": "PK-9",
+      "title": "Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-9",
+      "worktree": ".claude/worktrees/PK-9",
+      "acceptance": [
+        "FounderCta.tsx deleted; nothing imports it; build and lint clean",
+        "founder role line reads M.S. Marketing Analytics (pricing), Simon Business School",
+        "no visible link text is a raw URL path; all seven read as prose",
+        "every href target is unchanged; only the anchor text changes",
+        "no em dashes; no new or altered product claims"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": "33274371933"
+      },
+      "pr": 65,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "AC1-5 verified: FounderCta deleted with no importers, retracted 626M/1200+ figures gone, credential line matches AC verbatim, seven path-as-link-text anchors fixed with hrefs byte-identical, no em dashes. Nits: competitor-watch:181 'operator's terms (see our Terms)' ambiguity; follow-ups outside owned paths: founder-action-checklist.md:97 stale, seed-deck-outline.md:98 credential mismatch",
+        "ts": "2026-09-11T23:12:20Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-29T20:43:12Z",
+      "updated": "2026-09-11T23:39:33Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T20:43:13Z",
+          "note": "claimed 6 path(s)"
+        },
+        {
+          "ts": "2026-08-29T20:47:25Z",
+          "note": "PR #65"
+        },
+        {
+          "ts": "2026-09-11T23:12:20Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-09-11T23:12:21Z",
+          "note": "CI run 33274371933"
+        },
+        {
+          "ts": "2026-09-11T23:39:32Z",
+          "note": "merged as 885aa46, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
+        }
+      ],
+      "merge_commit": "885aa46",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:32Z"
+      }
+    },
+    {
+      "id": "PK-10",
+      "title": "Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-10",
+      "worktree": ".claude/worktrees/PK-10",
+      "acceptance": [
+        "a success response that does not result in navigation still clears the loading state and shows a message",
+        "the honeypot no longer produces a 200 that the client treats as an unlock",
+        "the honeypot field is not autofillable by password managers or Chrome",
+        "bots still cannot distinguish rejection from success",
+        "a lead that saves but whose cookie does not stick surfaces an error instead of hanging"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": "33276328808"
+      },
+      "pr": 66,
+      "review": {
+        "verdict": "approve",
+        "by": "pk-lead",
+        "notes": "lead-verified: honeypot rename, watchdog cleanup, route byte-identical for bots",
+        "ts": "2026-08-29T23:46:19Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-29T21:18:00Z",
+      "updated": "2026-08-29T23:46:20Z",
+      "notes": [
+        {
+          "ts": "2026-08-29T21:18:02Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-08-29T21:32:32Z",
+          "note": "PR #66"
+        },
+        {
+          "ts": "2026-08-29T23:46:19Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-08-29T23:46:19Z",
+          "note": "CI run 33276328808"
+        },
+        {
+          "ts": "2026-08-29T23:46:20Z",
+          "note": "merged as ee43a6f, human-approved by adhithya (explicit: make it live)"
+        }
+      ],
+      "merge_commit": "ee43a6f",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: make it live)",
+        "ts": "2026-08-29T23:46:20Z"
+      }
+    },
+    {
+      "id": "PK-11",
+      "title": "Guidance asserts 'barely moves the odds of winning' without checking it",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-11",
+      "worktree": ".claude/worktrees/PK-11",
+      "acceptance": [
+        "the barely-moves clause is computed from win_prob_at_rec vs win_prob_at_current, not implied by recommended<current",
+        "when the win-probability change exceeds the threshold the copy states the actual change instead",
+        "the sentence never contradicts the win-probability stat tile rendered below it",
+        "an audit of guidance and diagnostic copy lists every other claim asserted without being computed"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": "34657865423"
+      },
+      "pr": 67,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "Rework ad130f3 closes all six findings: dWinPts derived from the tile's rounded integers (by construction equal), inclusive threshold on the integer, Number.isFinite guard with claim-free fallback, rise/0.344-0.318/missing-field tests, constant imported, header fixed, 9-row audit table in PR body. Nits: comment at :163 says 'Below' while code is <=; tests 3-4 hardcode 7; owns not widened for the test file (PK-13)",
+        "ts": "2026-09-11T23:28:40Z"
+      },
+      "blocked_by": null,
+      "created": "2026-08-30T18:20:07Z",
+      "updated": "2026-09-11T23:39:34Z",
+      "notes": [
+        {
+          "ts": "2026-08-30T18:20:10Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-08-30T18:28:43Z",
+          "note": "PR #67"
+        },
+        {
+          "ts": "2026-09-11T23:14:51Z",
+          "note": "review rejected: BLOCKER: dWinPts rounds the raw difference while the stat tile rounds each pct independently, so the headline disagrees with the tile in ~24% of cases (e.g. 0.344->0.318 says 3 pts, tile shows 34%->32%). MAJOR: AC4 audit lists no other uncomputed claims; three found (GuidanceClient:75 'won and lost', diagnostic/page.tsx:211 'climbs then flattens', GuidanceClient:286 'more in expected value' vs coral negative-uplift accent). MINOR: threshold applied pre-rounding; NaN falls into the optimistic branch; rise branch untested; test file outside owns; exported unused constant; imprecise test header."
+        },
+        {
+          "ts": "2026-09-11T23:24:44Z",
+          "note": "PR #67"
+        },
+        {
+          "ts": "2026-09-11T23:28:40Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-09-11T23:28:40Z",
+          "note": "CI run 34657865423"
+        },
+        {
+          "ts": "2026-09-11T23:39:34Z",
+          "note": "merged as ca47c67, human-approved by adhithya (explicit: yes I approve, 2026-09-11)"
+        }
+      ],
+      "merge_commit": "ca47c67",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yes I approve, 2026-09-11)",
+        "ts": "2026-09-11T23:39:34Z"
+      }
+    },
+    {
+      "id": "PK-12",
+      "title": "Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-9"
+      ],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-12",
+      "worktree": ".claude/worktrees/PK-12",
+      "acceptance": [
+        "competitor-watch/page.tsx:181 no longer reads as if the operator's terms are Pricekeel's",
+        "docs/reviews/founder-action-checklist.md:97 no longer claims FounderCta.tsx exists",
+        "vault/GTM/seed-deck-outline.md:98 credential matches the site: M.S. Marketing Analytics (pricing), Simon Business School",
+        "no em dashes in any changed line"
+      ],
+      "tests": {
+        "required": [
+          "web: npm test, npx eslint, npx tsc --noEmit, npm run build"
+        ],
+        "ci_run": "42711911539"
+      },
+      "pr": 85,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:44:18Z"
+      },
+      "blocked_by": null,
+      "created": "2026-09-11T23:12:34Z",
+      "updated": "2026-11-09T22:40:38Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:42:40Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:28Z",
+          "note": "PR #85"
+        },
+        {
+          "ts": "2026-11-09T21:44:18Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:42Z",
+          "note": "CI run 42711911539"
+        },
+        {
+          "ts": "2026-11-09T22:40:34Z",
+          "note": "merged as bdcc7fd, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "bdcc7fd",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:40:34Z"
+      }
+    },
+    {
+      "id": "PK-13",
+      "title": "Reconcile task owns claims with OWNERSHIP.md test-file carve-out",
+      "agent": "pk-lead",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "WORKFLOW.md or TASKS.md states whether an agent's own test file under web/test or tests/ must be listed in owns, and agentctl assign or check enforces the same rule",
+        "PK-11 style test-file-outside-owns is no longer a review finding by definition"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_agentctl.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-09-11T23:15:30Z",
+      "updated": "2026-09-11T23:15:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-14",
+      "title": "Close the asserted-not-computed claims found by the PK-11 audit",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-11"
+      ],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-14",
+      "worktree": ".claude/worktrees/PK-14",
+      "acceptance": [
+        "GuidanceClient.tsx comparables label says 'won and lost' only when the rendered set contains both outcomes, otherwise names what it contains",
+        "diagnostic/page.tsx win-rate-by-band subtitle is derived from the shape of d.win_rate_by_band or makes no shape claim",
+        "GuidanceClient.tsx expected-value headline says 'less' or is claim-free when rec.uplift is negative, matching the coral tile accent",
+        "no number in the changed copy is computed in the UI or by an LLM; every figure traces to an API field",
+        "no em dashes in any changed line"
+      ],
+      "tests": {
+        "required": [
+          "web: npm test, npx eslint, npx tsc --noEmit, npm run build"
+        ],
+        "ci_run": "42898065668"
+      },
+      "pr": 81,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T20:55:44Z"
+      },
+      "blocked_by": null,
+      "created": "2026-09-11T23:25:00Z",
+      "updated": "2026-11-10T21:17:05Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:35:52Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:58:21Z",
+          "note": "PR #81"
+        },
+        {
+          "ts": "2026-11-09T20:24:48Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T20:40:28Z",
+          "note": "PR #81"
+        },
+        {
+          "ts": "2026-11-09T20:55:44Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-10T21:16:34Z",
+          "note": "CI run 42898065668"
+        },
+        {
+          "ts": "2026-11-10T21:17:00Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T21:17:00Z"
+      }
+    },
+    {
+      "id": "PK-15",
+      "title": "Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-15",
+      "worktree": ".claude/worktrees/PK-15",
+      "acceptance": [
+        "pricing/model.py trains LightGBM with monotone_constraints=+1 on discount_pct (0 on all other features) and monotone_constraints_method=advanced",
+        "for every deal in data/synthetic/deals.csv the /recommend curve is non-decreasing in discount; a test asserts this on a 300-deal sample",
+        "zero recommendations on the sample lower the discount while raising win_prob_at_rec above win_prob_at_current by more than 2 points; a test asserts this",
+        "holdout AUC stays within 0.03 of the unconstrained model on the sample (baseline 0.640; measured 0.619 with the constraint on 2026-09-11) and the model docstring states the constraint and why: discount is endogenous, high discounts mark deals already in trouble, so an unconstrained tree reads the marker as the cause",
+        "tests/test_model.py and tests/test_defended_vs_investigate.py pass; the /sample figures the landing page quotes (67.1M, 11.2M, 81.4%, 60.8%) are unchanged because the diagnostic does not use the model"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_model.py",
+          "tests/test_api_perimeter.py"
+        ],
+        "ci_run": "34660616795"
+      },
+      "pr": 68,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "All 8 criteria verified by execution: constraint derived from X.columns, advanced method, 0/2000 declining curves, AUC 0.6186 within band, fixtures clean, no scope drift, no em dashes, landing figures unchanged. Nits: AUC floor 0.60 should be 0.61 to encode the 0.03 band; leakage_vs_model shifts 7.06M->7.74M (10.5%->11.5%) and feature importance reorders, add to PR body; idxmin used positionally at test_model.py:194; 151/300 cited vs 149 reproduced; ADR needed in DECISIONS.md (lead)",
+        "ts": "2026-09-12T00:05:42Z"
+      },
+      "blocked_by": null,
+      "created": "2026-09-11T23:37:29Z",
+      "updated": "2026-09-15T22:17:38Z",
+      "notes": [
+        {
+          "ts": "2026-09-11T23:53:23Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-09-11T23:59:15Z",
+          "note": "PR #68"
+        },
+        {
+          "ts": "2026-09-12T00:05:42Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-09-12T00:10:25Z",
+          "note": "CI run 34660616795"
+        },
+        {
+          "ts": "2026-09-15T22:17:38Z",
+          "note": "merged as a977dd0, human-approved by adhithya (explicit: yeah, 2026-09-15)"
+        }
+      ],
+      "merge_commit": "a977dd0",
+      "human_approval": {
+        "approved": true,
+        "approver": "adhithya (explicit: yeah, 2026-09-15)",
+        "ts": "2026-09-15T22:17:38Z"
+      }
+    },
+    {
+      "id": "PK-16",
+      "title": "Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "_opp_over_discounted_slices in pricing/copilot.py measures each slice against a reference consistent with the headline leakage figure (segment-aware, or the slice's own win point when it has >= 100 deals and >= 3 bands), and the evidence line names which reference was used",
+        "the whole-book, business-unit, and product-line opportunities no longer sum to more than the headline excess-vs-segment-reference figure, or the caveat states that slices overlap the whole-book figure and are not additive",
+        "the defended opportunity's revenue_impact_usd is not booked ACV; it is either 0 with the booked value in evidence, or the field is renamed so the UI cannot present defended value as upside",
+        "no em dashes in any user-facing string in pricing/copilot.py or pricing/diagnostic.py (repo rule); use commas, periods, colons",
+        "tests/test_copilot.py pins the slice reference choice and the non-additivity caveat"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-09-11T23:37:30Z",
+      "updated": "2026-09-11T23:37:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-17",
+      "title": "Publish a platform census of target accounts",
+      "agent": "market-sizing-analyst",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md"
+      ],
+      "branch": "agent/market-sizing-analyst/PK-17",
+      "worktree": null,
+      "acceptance": [
+        "at least 48 accounts, each with CRM, CPQ or quote tool, and billing platform, each cell carrying a public source URL and retrieval date or marked unknown",
+        "shares reported with n for each system; unknowns counted separately, never folded into a share",
+        "HubSpot share stated against the 30 percent preset threshold with an explicit yes or no",
+        "no retired sizing figure appears; Tier A stays 350 to 480 unless the note derives otherwise with sources",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:46Z",
+      "updated": "2026-11-07T16:07:37Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:14Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T16:07:37Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-18",
+      "title": "Add the pricing-surface interview module",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "vault/GTM/problem-interview-guide.md",
+        "docs/ops/funnel-tracker.csv",
+        "docs/ops/funnel-tracker-example.csv"
+      ],
+      "branch": "agent/customer-success/PK-18",
+      "worktree": null,
+      "acceptance": [
+        "the six questions from customer-success.md section 4 appear as an optional module after Q7, past tense only, no pitch language",
+        "funnel-tracker.csv and funnel-tracker-example.csv gain four columns: pricing_surface, cost_data_availability, commit_setting_method, reprice_event; the operating tracker stays header-only",
+        "the after-the-call logging section names the four new fields and the disqualifier line",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:15Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-19",
+      "title": "Write per-source data-readiness checklists",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "gtm/data-readiness-checklists.md"
+      ],
+      "branch": "agent/customer-success/PK-19",
+      "worktree": null,
+      "acceptance": [
+        "three sections: quote or CPQ tool, billing platform, other CRM; each is a column list, never a request for data",
+        "each section states the closed-lost gate (no win rate without closed-lost) and asks the shared-deal-ID question",
+        "export only; no API keys, OAuth tokens or event streams requested for pilot 1",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:15Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-20",
+      "title": "Create the data register",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "docs/ops/data-register.md"
+      ],
+      "branch": "agent/customer-success/PK-20",
+      "worktree": null,
+      "acceptance": [
+        "rows for deal rows (per customer), Salesforce refresh tokens, SALESFORCE_TOKEN_ENCRYPTION_KEY, decision log, mapping headers, and the per-tenant derived snapshot marked approved D1(a) not yet built",
+        "every row has location, retention, deletion owner, and a last-verified date",
+        "matches the SOP section 5 contract in docs/ops/data-handling-sop.md and is the scoping source incident-response.md already points to",
+        "no customer data, no secrets values, no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:47Z",
+      "updated": "2026-11-07T15:57:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:16Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:51Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-21",
+      "title": "Amend incident response for credentials and new data classes",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-20",
+        "PK-6"
+      ],
+      "owns": [
+        "docs/ops/incident-response.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "containment revokes customer integration credentials and rotates the token encryption key",
+        "scoping reads docs/ops/data-register.md and names cost and usage data as categories",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:48Z",
+      "updated": "2026-11-07T15:52:48Z",
+      "notes": []
+    },
+    {
+      "id": "PK-22",
+      "title": "Draft the NDA data-classes schedule for counsel",
+      "agent": "customer-success",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "docs/legal/one-page-mutual-nda-data-addendum.md"
+      ],
+      "branch": "agent/customer-success/PK-22",
+      "worktree": null,
+      "acceptance": [
+        "Classes 1 to 3 drafted as a schedule: deal and price data, usage data as aggregates or monthly rollups only, cost data as a customer-supplied percentage table by product family only",
+        "Class 3 excluded from section 9 benchmarking; no supplier names or part-level BOM accepted",
+        "section 4 gains a sentence on per-tenant aggregate retention per D1(a), rows deleted",
+        "every new block marked [DRAFT, for counsel]; nothing presented as executed; no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": 62,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:48Z",
+      "updated": "2026-11-07T15:57:52Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:16Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T15:57:52Z",
+          "note": "PR #62"
+        }
+      ]
+    },
+    {
+      "id": "PK-30",
+      "title": "Specify the contract-structure lens",
+      "agent": "pricing-strategist",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/pricing-strategist/PK-30",
+      "worktree": null,
+      "acceptance": [
+        "formulas, labels and thresholds for each lever: effective committed unit rate and realization, commit share, overage fence, ramp depth and ramp concession dollars, revenue-side pocket waterfall",
+        "every output labeled method: policy rule; each lever returns scored, insufficient_data or not_provided with the condition for each",
+        "no cost input anywhere; nothing labeled margin; levers reported separately, never blended",
+        "uses only fields already in pricing/schema.py, named exactly; lists decision-record concession fields",
+        "no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": "42673927453"
+      },
+      "pr": 62,
+      "review": {
+        "verdict": "approve",
+        "by": "founder",
+        "notes": "",
+        "ts": "2026-11-09T19:00:31Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T15:52:49Z",
+      "updated": "2026-11-09T19:00:34Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T15:55:14Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-07T16:07:38Z",
+          "note": "PR #62"
+        },
+        {
+          "ts": "2026-11-09T19:00:31Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-09T19:00:32Z",
+          "note": "CI run 42673927453"
+        },
+        {
+          "ts": "2026-11-09T19:00:33Z",
+          "note": "merged as 4c0dda8, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "4c0dda8",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T19:00:33Z"
+      }
+    },
+    {
+      "id": "PK-23",
+      "title": "Add source, provenance and contract-structure fields to the canonical deal",
+      "agent": "data-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/data-engineer/PK-23",
+      "worktree": ".claude/worktrees/PK-23",
+      "acceptance": [
+        "nine new optional Fields in schema.py: source_system (enum, default csv), source_record_id, source_account_id, source_quote_id, source_url, value_metric_unit (str), cost_basis (enum crm_proxy | declared_cost | erp_verified per ADR-006, default crm_proxy), list_unit_rate (float, money), credits_tcv (float, money); descriptions name units and the currency Field lists both money columns",
+        "every existing fixture under data/ and tests/ loads unchanged; data/synthetic/deals.csv is not modified and every test that pins it passes without re-pinning",
+        "ingest: list_unit_rate and credits_tcv in _NUMERIC and in the FX money columns; cost_basis and source_system filled with their defaults when absent; an unknown cost_basis value is rejected with a named error, never coerced",
+        "mapping.py SYNONYMS gains entries for both money fields (list unit price, rate card price, unit list price; credits, service credits, free months value); gtm/data-request.md lists all nine as optional",
+        "tests/test_schema_provenance.py covers defaults, the rejected enum value, a CSV with and without the new columns, and that no new field is required; nothing anywhere labels a value margin"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_provenance.py",
+          "tests/test_schema_ubp.py",
+          "tests/test_metrics.py",
+          "tests/test_model.py",
+          "tests/test_ingest.py"
+        ],
+        "ci_run": "42396015700"
+      },
+      "pr": 73,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-07T17:19:00Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-09T18:18:40Z",
+      "notes": [
+        {
+          "ts": "2026-11-07T16:32:20Z",
+          "note": "claimed 5 path(s)"
+        },
+        {
+          "ts": "2026-11-07T16:43:17Z",
+          "note": "PR #73"
+        },
+        {
+          "ts": "2026-11-07T16:50:44Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-07T17:02:46Z",
+          "note": "PR #73"
+        },
+        {
+          "ts": "2026-11-07T17:08:31Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-07T17:15:21Z",
+          "note": "PR #73"
+        },
+        {
+          "ts": "2026-11-07T17:19:00Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-07T17:30:11Z",
+          "note": "CI run 42396015700"
+        },
+        {
+          "ts": "2026-11-09T18:18:39Z",
+          "note": "merged as 0976558, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "0976558",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T18:18:39Z"
+      }
+    },
+    {
+      "id": "PK-24",
+      "title": "Add a migration for saved mappings and a decision-log source index",
+      "agent": "data-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [],
+      "branch": "agent/data-engineer/PK-24",
+      "worktree": ".claude/worktrees/PK-24",
+      "acceptance": [
+        "up and down migrations, with a row-count guard; QA pastes scratch up/down/up output",
+        "saved mappings hold header strings only, no deal rows; a schema comment says so",
+        "decision_log gains a source index; no existing row changes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_provenance.py"
+        ],
+        "ci_run": "42711872583"
+      },
+      "pr": 78,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:25:06Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-09T22:46:23Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:59:08Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:16:17Z",
+          "note": "PR #78"
+        },
+        {
+          "ts": "2026-11-09T19:25:06Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:24Z",
+          "note": "CI run 42711872583"
+        },
+        {
+          "ts": "2026-11-09T22:46:22Z",
+          "note": "merged as 23b821f, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "23b821f",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:22Z"
+      }
+    },
+    {
+      "id": "PK-25",
+      "title": "Make Salesforce the first adapter behind a neutral guardrail",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-25",
+      "worktree": ".claude/worktrees/PK-25",
+      "acceptance": [
+        "no Salesforce string remains in pricing/guardrail.py; the adapter protocol has exactly two implementations, Salesforce and CSV",
+        "legacy salesforce_crm and salesforce_crm_writeback source strings resolve as aliases so existing decision_log rows still load",
+        "a CSV-sourced exception appears in the decision-log source filter",
+        "tests/test_crm.py and the governance suites pass unchanged"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_guardrail.py",
+          "tests/test_crm.py",
+          "tests/test_governance.py"
+        ],
+        "ci_run": "42677170978"
+      },
+      "pr": 75,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T18:44:49Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:03Z",
+      "updated": "2026-11-09T19:51:20Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:18:45Z",
+          "note": "claimed 5 path(s)"
+        },
+        {
+          "ts": "2026-11-09T18:34:13Z",
+          "note": "PR #75"
+        },
+        {
+          "ts": "2026-11-09T18:44:49Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T19:38:42Z",
+          "note": "CI run 42677170978"
+        },
+        {
+          "ts": "2026-11-09T19:51:10Z",
+          "note": "merged as 2cd5358, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "2cd5358",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T19:51:10Z"
+      }
+    },
+    {
+      "id": "PK-26",
+      "title": "Rename the web canonical type to CanonicalDeal",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-25"
+      ],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-26",
+      "worktree": ".claude/worktrees/PK-26",
+      "acceptance": [
+        "CanonicalCrmDeal is renamed CanonicalDeal everywhere under web/src/lib, with source fields mirroring PK-23",
+        "tsc, web tests and the production build pass; /crm behavior unchanged"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": "42711923583"
+      },
+      "pr": 86,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:40:58Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:04Z",
+      "updated": "2026-11-09T22:42:10Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:42:26Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:32Z",
+          "note": "PR #86"
+        },
+        {
+          "ts": "2026-11-09T21:40:58Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:47Z",
+          "note": "CI run 42711923583"
+        },
+        {
+          "ts": "2026-11-09T22:42:08Z",
+          "note": "merged as 24639a7, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "24639a7",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:42:08Z"
+      }
+    },
+    {
+      "id": "PK-27",
+      "title": "Add source profiles and export presets to the mapper",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-27",
+      "worktree": ".claude/worktrees/PK-27",
+      "acceptance": [
+        "a deterministic layer-0 source profile detects crm_opportunity and cpq_line from headers; fixtures for each",
+        "quote lines roll up to one deal; unknown stage maps to ask-user, never to lost; the refuse path fires when an export cannot supply outcome",
+        "the LLM payload holds header strings only, no row values; a test asserts it",
+        "per the 2026-11-07 census (D4): no HubSpot preset; generic crm_opportunity and cpq_line profiles only, validated against the first real partner export when one exists"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_mapping_profiles.py",
+          "tests/test_mapping.py"
+        ],
+        "ci_run": "42711841198"
+      },
+      "pr": 74,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:25:07Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-09T22:45:31Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:18:45Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T18:33:29Z",
+          "note": "PR #74"
+        },
+        {
+          "ts": "2026-11-09T18:41:55Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T18:51:00Z",
+          "note": "PR #74"
+        },
+        {
+          "ts": "2026-11-09T19:02:05Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:19:42Z",
+          "note": "PR #74"
+        },
+        {
+          "ts": "2026-11-09T19:25:07Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:06Z",
+          "note": "CI run 42711841198"
+        },
+        {
+          "ts": "2026-11-09T22:45:30Z",
+          "note": "merged as 774ed82, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "774ed82",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:45:30Z"
+      }
+    },
+    {
+      "id": "PK-28",
+      "title": "Persist the confirmed mapping per tenant, headers only",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-24",
+        "PK-27"
+      ],
+      "owns": [
+        "pricing/mapping_store.py",
+        "api/routers/diagnostic.py#map_headers",
+        "tests/test_mapping_store.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "the same headers skip confirmation on the next upload for that tenant",
+        "a test asserts no row values persist, only header strings and the confirmed field names",
+        "tenant-scoped; one tenant cannot read another tenant's mapping"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_mapping_store.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-07T16:32:05Z",
+      "notes": []
+    },
+    {
+      "id": "PK-29",
+      "title": "Add numeric-fidelity and cost-basis label evals",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-23"
+      ],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-29",
+      "worktree": ".claude/worktrees/PK-29",
+      "acceptance": [
+        "every figure in narrated text appears in the source dict the narration was built from",
+        "the word margin never appears in any payload when cost_basis is crm_proxy (ADR-006); declared_cost renders as contribution margin, customer-supplied cost basis",
+        "evals run offline with a recorded provider response; no live LLM call in CI"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_numeric_fidelity.py",
+          "tests/test_cost_basis_label.py"
+        ],
+        "ci_run": "42714756585"
+      },
+      "pr": 76,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T19:44:27Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-07T16:32:05Z",
+      "updated": "2026-11-10T20:24:38Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:34:48Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T18:52:05Z",
+          "note": "PR #76"
+        },
+        {
+          "ts": "2026-11-09T19:02:05Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:17:36Z",
+          "note": "PR #76"
+        },
+        {
+          "ts": "2026-11-09T19:24:00Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:34:01Z",
+          "note": "PR #76"
+        },
+        {
+          "ts": "2026-11-09T19:44:27Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:59:49Z",
+          "note": "CI run 42714756585"
+        },
+        {
+          "ts": "2026-11-10T20:24:36Z",
+          "note": "merged as d076b3c, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "d076b3c",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T20:24:36Z"
+      }
+    },
+    {
+      "id": "PK-74",
+      "title": "Fix the copilot investigate opportunity reading a column the real book does not carry",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-74",
+      "worktree": ".claude/worktrees/PK-74",
+      "acceptance": [
+        "_opp_investigate sums excess_discount_dollars (the column metrics.py puts on top_leak_deals), not discount_amount; the fixture in tests/test_copilot.py uses the real column name",
+        "on the synthetic book, opportunities() fires the investigate type; the PK-29 test_synthetic_book_produces_all_seven_types xfail is removed and passes, or its expectation is corrected with a stated reason for any type that legitimately cannot fire on that book (raise_price thresholds)",
+        "numeric-fidelity and margin-word evals from PK-29 still pass; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py",
+          "tests/test_numeric_fidelity.py"
+        ],
+        "ci_run": "42711891057"
+      },
+      "pr": 80,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T20:25:56Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:45:44Z",
+      "updated": "2026-11-09T22:40:06Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:34:38Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:45:54Z",
+          "note": "PR #80"
+        },
+        {
+          "ts": "2026-11-09T19:53:44Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T20:01:49Z",
+          "note": "PR #80"
+        },
+        {
+          "ts": "2026-11-09T20:25:56Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:34Z",
+          "note": "CI run 42711891057"
+        },
+        {
+          "ts": "2026-11-09T22:40:04Z",
+          "note": "merged as c3c0959, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "c3c0959",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:40:04Z"
+      }
+    },
+    {
+      "id": "PK-31",
+      "title": "Plant contract-structure answers in the generator",
+      "agent": "data-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-23",
+        "PK-30"
+      ],
+      "owns": [],
+      "branch": "agent/data-engineer/PK-31",
+      "worktree": ".claude/worktrees/PK-31",
+      "acceptance": [
+        "New RNG stream; the pinned dataset is unchanged.",
+        "Known-answer key for overage-fence and ramp-concession cases."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_generate_contract.py"
+        ],
+        "ci_run": "42711879930"
+      },
+      "pr": 79,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T20:27:12Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:07Z",
+      "updated": "2026-11-09T22:45:49Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T18:59:09Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T19:28:23Z",
+          "note": "PR #79"
+        },
+        {
+          "ts": "2026-11-09T19:42:44Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T19:58:15Z",
+          "note": "PR #79"
+        },
+        {
+          "ts": "2026-11-09T20:27:12Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:32Z",
+          "note": "CI run 42711879930"
+        },
+        {
+          "ts": "2026-11-09T22:45:46Z",
+          "note": "merged as d372411, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "d372411",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:45:46Z"
+      }
+    },
+    {
+      "id": "PK-32",
+      "title": "Score commit, ramp, overage and unit-rate floors",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-31"
+      ],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-32",
+      "worktree": ".claude/worktrees/PK-32",
+      "acceptance": [
+        "Planted answers from PK-31 are recovered.",
+        "Each lever returns scored | insufficient_data | not_provided, with no global fallback.",
+        "A flat ramp equals a flat discount.",
+        "Nothing is labeled margin."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_contract_structure.py"
+        ],
+        "ci_run": "42902655431"
+      },
+      "pr": 88,
+      "review": {
+        "verdict": "approve",
+        "by": "code-reviewer",
+        "notes": "Re-review approved on PR 88",
+        "ts": "2026-11-10T22:04:03Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:07Z",
+      "updated": "2026-11-10T22:04:09Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:49:03Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:03:00Z",
+          "note": "PR #88"
+        },
+        {
+          "ts": "2026-11-09T23:20:43Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T23:33:45Z",
+          "note": "PR #88"
+        },
+        {
+          "ts": "2026-11-09T23:46:50Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-10T21:48:30Z",
+          "note": "PR #88"
+        },
+        {
+          "ts": "2026-11-10T22:04:03Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:04:06Z",
+          "note": "CI run 42902655431"
+        },
+        {
+          "ts": "2026-11-10T22:04:08Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:04:08Z"
+      }
+    },
+    {
+      "id": "PK-33",
+      "title": "Add the lens readout and concession fields to the decision record",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-32",
+        "PK-25"
+      ],
+      "owns": [
+        "pricing/diagnostic.py#readout",
+        "pricing/governance.py#concessions",
+        "api/routers/diagnostic.py#response"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "The readout lists the deals behind each flag.",
+        "Concession fields round-trip through the decision log."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:07Z",
+      "updated": "2026-11-09T18:56:07Z",
+      "notes": []
+    },
+    {
+      "id": "PK-39",
+      "title": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-27"
+      ],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-39",
+      "worktree": ".claude/worktrees/PK-39",
+      "acceptance": [
+        "A file detected as the cpq_line profile reaches pricing.mapping.rollup_quote_lines before _exclude_open runs; a known-answer fixture of 3 quotes and 7 lines loads as 3 deals with the summed list_acv and booked_acv.",
+        "Deals with outcome ask_user are not counted in report.excluded_open and are not dropped silently: LoadReport carries an ask_user section with each raw stage value, its deal count and its quote ids, and the diagnostic response includes it.",
+        "No ask_user deal is ever counted as closed_lost or enters win rate; a test asserts win rate is the same with and without the ask_user rows present.",
+        "A file whose deals are all ask_user raises SchemaError naming the unresolved stage values, not the generic 'no closed deals' message.",
+        "crm_opportunity and plain CSV files load exactly as before; existing ingest and mapping suites pass unchanged and the pinned dataset is byte-identical.",
+        "From the PR 74 review: one stage table, with ingest's OUTCOME_ALIASES replaced by mapping.normalize_stage so 'Accepted' and 'Declined' are not reported as open; quarantined lines (blank or missing quote id) surface in LoadReport with their count, never dropped silently; several quotes for one opportunity resolve to one deal by a stated rule (primary or latest, disclosed), never double-counted; /map-columns either goes through layer 0 or is documented as header-suggestion only, and bounds the header count."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_ingest_profiles.py",
+          "tests/test_ingest.py"
+        ],
+        "ci_run": "42907767065"
+      },
+      "pr": 90,
+      "review": {
+        "verdict": "approve",
+        "by": "code-reviewer",
+        "notes": "Re-review approved on PR 90",
+        "ts": "2026-11-10T22:03:56Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:08Z",
+      "updated": "2026-11-10T22:04:01Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:06:37Z",
+          "note": "claimed 5 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:37:53Z",
+          "note": "PR #90"
+        },
+        {
+          "ts": "2026-11-10T21:32:16Z",
+          "note": "review rejected: Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply."
+        },
+        {
+          "ts": "2026-11-10T21:48:33Z",
+          "note": "PR #90"
+        },
+        {
+          "ts": "2026-11-10T22:03:56Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:03:58Z",
+          "note": "CI run 42907767065"
+        },
+        {
+          "ts": "2026-11-10T22:03:59Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:03:59Z"
+      }
+    },
+    {
+      "id": "PK-40",
+      "title": "Annualise multi-year quote roll-ups from term_months",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-39"
+      ],
+      "owns": [
+        "pricing/ingest.py#profiles",
+        "tests/test_ingest_annualise.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Annualisation runs only when the caller states the amount basis: total_contract divides list_acv and booked_acv by term_months / 12; annual leaves them unchanged.",
+        "Basis unknown: no transform, plus a multi-year disclosure in LoadReport when 10 percent or more of deals have term_months of 24 or more (the Salesforce adapter's threshold).",
+        "Missing or non-positive term_months is never filled in or assumed to be 12; those deals are listed and left unannualised.",
+        "Ramp fields are not touched, and the steady-state convention in pricing/schema.py (year 3 is booked_acv) is unchanged; a test asserts it.",
+        "Known-answer test: a 36-month quote with total booked 360,000 and basis total_contract loads with booked_acv 120,000."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_ingest_annualise.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:08Z",
+      "updated": "2026-11-09T18:56:08Z",
+      "notes": []
+    },
+    {
+      "id": "PK-41",
+      "title": "Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref",
+      "agent": "data-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-24",
+        "PK-25"
+      ],
+      "owns": [],
+      "branch": "agent/data-engineer/PK-41",
+      "worktree": ".claude/worktrees/PK-41",
+      "acceptance": [
+        "source_connections has primary key (customer_ref, source_system), a check on salesforce | hubspot | stripe | chargebee, the columns in design section 2.1, and no column that can hold a plaintext credential or a deal value.",
+        "source_connection_config cascades on delete from source_connections.",
+        "The up migration copies every salesforce_connections and salesforce_mappings row idempotently (run twice, same counts) and leaves the legacy tables untouched.",
+        "access_codes.tenant_ref is added; existing rows backfill to their current code so no decision_log or connection row is rewritten; new codes get an opaque random value.",
+        "The down file refuses and aborts if any source_connections row has a source_system other than salesforce. QA pastes scratch up, down, up output.",
+        "neon/schema.sql matches the migrated state; neon/test_migrations.py passes."
+      ],
+      "tests": {
+        "required": [
+          "neon/test_migrations.py"
+        ],
+        "ci_run": "42911548787"
+      },
+      "pr": 89,
+      "review": {
+        "verdict": "approve",
+        "by": "code-reviewer",
+        "notes": "Third-round approve; DATABASE_URL fallback removed, loopback-only scratch test",
+        "ts": "2026-11-10T22:10:13Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:08Z",
+      "updated": "2026-11-10T22:10:30Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:49:00Z",
+          "note": "claimed 4 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:05:20Z",
+          "note": "PR #89"
+        },
+        {
+          "ts": "2026-11-09T23:24:41Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T23:41:49Z",
+          "note": "PR #89"
+        },
+        {
+          "ts": "2026-11-10T21:07:43Z",
+          "note": "review rejected: Rework round rejected: down migration still drops confirmed stage_map/list_price_set for Salesforce rows without a legacy match (blocker, reproduced on PG16); drift check misses competitor_context_sources; migration tests are string matches only; v2 key_id check incomplete. Findings on PR 89."
+        },
+        {
+          "ts": "2026-11-10T21:50:02Z",
+          "note": "PR #89"
+        },
+        {
+          "ts": "2026-11-10T22:10:13Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:10:14Z",
+          "note": "CI run 42911548787"
+        },
+        {
+          "ts": "2026-11-10T22:10:28Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:10:28Z"
+      }
+    },
+    {
+      "id": "PK-42",
+      "title": "Move connection storage and token crypto onto source_connections, with key ids",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-41"
+      ],
+      "owns": [
+        "web/src/lib/connector-store.ts",
+        "web/src/lib/connector-crypto.ts",
+        "web/src/lib/salesforce-store.ts",
+        "web/src/lib/salesforce-crypto.ts",
+        "web/test/connector-store.test.ts",
+        "web/test/connector-crypto.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Salesforce connect, refresh, disconnect and mapping read and write source_connections and source_connection_config only; every existing web/test/salesforce-*.test.ts passes unchanged.",
+        "New ciphertexts use a v2 format carrying a key id and AES-GCM additional data customer_ref|source_system|field; a ciphertext moved to another row or tenant fails to decrypt.",
+        "v1 ciphertexts still decrypt and are rewritten as v2 on the next token refresh.",
+        "A decrypt-only previous key decrypts old ciphertexts after rotation; a test rotates the key with a live connection and the connection survives.",
+        "Production still fails closed when the encryption key is missing; no token appears in any response, log line or error message (test scans them)."
+      ],
+      "tests": {
+        "required": [
+          "web/test/connector-store.test.ts",
+          "web/test/connector-crypto.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:08Z",
+      "updated": "2026-11-09T18:56:08Z",
+      "notes": []
+    },
+    {
+      "id": "PK-43",
+      "title": "Key tenants by opaque ref and revoke every credential for a tenant on request",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-42"
+      ],
+      "owns": [
+        "web/src/lib/gate.ts#customerRef",
+        "web/src/lib/store.ts#access_codes",
+        "web/scripts/revoke-tenant-connections.ts",
+        "web/test/tenant-key.test.ts",
+        "web/test/revoke-tenant.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "customerRef() returns access_codes.tenant_ref, not the access code; legacy codes resolve to the same value as before (no tenant changes identity).",
+        "The operator script, given a tenant ref and no session, revokes Salesforce and HubSpot tokens by API, deletes every source_connections row for the tenant, and prints which Stripe and Chargebee keys the customer must roll.",
+        "The script is not reachable over HTTP and refuses to run without an explicit tenant ref; it never prints a credential.",
+        "Revoking an access code before disconnect no longer leaves a connection row orphaned under default (test).",
+        "eslint, tsc, npm test and build pass."
+      ],
+      "tests": {
+        "required": [
+          "web/test/tenant-key.test.ts",
+          "web/test/revoke-tenant.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:09Z",
+      "updated": "2026-11-09T18:56:09Z",
+      "notes": []
+    },
+    {
+      "id": "PK-44",
+      "title": "Register the connector credential classes and their revoke paths in incident response",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-21"
+      ],
+      "owns": [
+        "docs/ops/data-register.md",
+        "docs/ops/incident-response.md",
+        "docs/ops/salesforce-integration-runbook.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: the founder approves the register and incident-response changes before merge.",
+        "Part A gains rows for HubSpot refresh tokens, Stripe restricted keys, Chargebee API keys and site names, the connector encryption key and its previous key, and the HubSpot app client secret, each with location, retention, and deletion or rotation owner.",
+        "A row states billing rows and invoice lines are processed in memory only, with nothing retained.",
+        "Incident containment lists: rotate the connector key, delete stored credentials, revoke HubSpot and Salesforce tokens by API, and notify each Stripe and Chargebee tenant to roll their key, stating Pricekeel cannot revoke those.",
+        "The Salesforce runbook's offboarding order is corrected to: run the operator revoke, then revoke the access code.",
+        "No secret values appear in any of the three files."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:09Z",
+      "updated": "2026-11-09T18:56:09Z",
+      "notes": []
+    },
+    {
+      "id": "PK-45",
+      "title": "Draft the per-customer credentials amendment and update the readiness access-method lines",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-22",
+        "PK-19"
+      ],
+      "owns": [
+        "docs/legal/one-page-mutual-nda-data-addendum.md",
+        "gtm/data-readiness-checklists.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: counsel reviews the amendment; it is marked for counsel, not executed.",
+        "A one-page amendment template names each credential (vendor, key type, permissions), the 24-hour revoke-on-request duty, and the customer's own duty to roll Stripe and Chargebee keys.",
+        "The readiness checklists keep 'export only' as the default and add the connector path as an option that requires the signed amendment.",
+        "Billing sections still say billing gives no win rate."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:09Z",
+      "updated": "2026-11-09T18:56:09Z",
+      "notes": []
+    },
+    {
+      "id": "PK-46",
+      "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-25"
+      ],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-46",
+      "worktree": ".claude/worktrees/PK-46",
+      "acceptance": [
+        "to_canonical is pure (no network, no input mutation) and sets source_system=hubspot, source_record_id, source_account_id and an absolute source_url on every deal.",
+        "Outcome comes only from the confirmed stage map: a stage absent from it, or present but unconfirmed, yields ask_user; no input produces closed_lost without a confirmed lost stage (property test). An open-stage deal with a past close date stays open.",
+        "Known-answer fixtures (2 pipelines, custom stage labels, one pipeline without line items) return the planted list, booked, outcome and currency per deal; the no-line-item pipeline yields list_source: none and the existing missing-list blocker (F6: no declared-list fallback in v1).",
+        "Adapter resolution: pricing/adapters/__init__.py holds a registry keyed by source_system that imports SalesforceAdapter from pricing.crm and CsvAdapter from pricing.csv_adapter without moving or editing either; api/routers/crm.py resolves the adapter and the decision-log source per request through it, replacing the module-level _SOURCE = crm_mod.ADAPTER.system binding, and a request without source_system resolves to salesforce.",
+        "POST /crm/analyze with source_system=hubspot uses the HubSpot adapter; Salesforce requests and tests/test_crm.py are unchanged.",
+        "No string 'Salesforce' appears in pricing/adapters/hubspot.py; no field is labelled margin."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_adapter_hubspot.py",
+          "tests/test_crm.py",
+          "tests/test_guardrail.py"
+        ],
+        "ci_run": "42913387831"
+      },
+      "pr": 83,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "Third-round approve; follow-ups recorded on PK-91",
+        "ts": "2026-11-10T22:36:06Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:09Z",
+      "updated": "2026-11-10T22:36:26Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:59:40Z",
+          "note": "claimed 7 path(s)"
+        },
+        {
+          "ts": "2026-11-09T20:39:08Z",
+          "note": "PR #83"
+        },
+        {
+          "ts": "2026-11-09T21:22:14Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-10T20:44:52Z",
+          "note": "PR #83"
+        },
+        {
+          "ts": "2026-11-10T21:40:17Z",
+          "note": "review rejected: Rework round rejected: line-item per-period net replaces annual deal amount as booked_acv (blocker); money bound off by one order; ask_user disclosure keyed on error text; scope nit on _records_hash. Findings on PR 83. Forced past cap 4: each active task has its own worktree."
+        },
+        {
+          "ts": "2026-11-10T22:18:53Z",
+          "note": "PR #83"
+        },
+        {
+          "ts": "2026-11-10T22:36:06Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-10T22:36:10Z",
+          "note": "CI run 42913387831"
+        },
+        {
+          "ts": "2026-11-10T22:36:23Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:36:23Z"
+      }
+    },
+    {
+      "id": "PK-47",
+      "title": "Connect, refresh and disconnect a HubSpot portal by OAuth",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-43",
+        "PK-44"
+      ],
+      "owns": [
+        "web/src/lib/hubspot-oauth.ts",
+        "web/src/lib/hubspot-client.ts",
+        "web/src/app/api/hubspot/oauth",
+        "web/src/app/api/hubspot/connection",
+        "web/test/hubspot-oauth.test.ts",
+        "web/test/hubspot-client.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: HubSpot developer account, an unlisted public app (client id, secret, redirect URI) and a test portal seeded per PK-50's spec; credentials reach the task only through the founder's environment.",
+        "Before code depends on them, the PR records the verified scope names (including what pipelines need), token lifetimes and rate limits from HubSpot's current docs, with links.",
+        "Requested scopes are read-only and include no contact scope and no write scope (F3: no writeback in v1).",
+        "Signed state plus a tenant-bound signed httpOnly cookie; mismatch, expiry or a replayed state fail closed and clear the cookie.",
+        "Tokens are stored only through PK-42's store; refresh runs ahead of expiry; a failed refresh sets reauth_required. Disconnect deletes the refresh token at HubSpot (best effort, result reported) and deletes the row.",
+        "The client accepts only https://api.hubapi.com with an allowlisted path prefix and refuses redirects (test). Connect returns 403 in production while HUBSPOT_CONNECT_ENABLED is unset."
+      ],
+      "tests": {
+        "required": [
+          "web/test/hubspot-oauth.test.ts",
+          "web/test/hubspot-client.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:10Z",
+      "updated": "2026-11-09T18:56:10Z",
+      "notes": []
+    },
+    {
+      "id": "PK-48",
+      "title": "Discover pipelines and properties and sync a bounded HubSpot book",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-47",
+        "PK-46",
+        "PK-26"
+      ],
+      "owns": [
+        "web/src/lib/hubspot-sync.ts",
+        "web/src/lib/connector-workspace.ts",
+        "web/src/lib/salesforce-workspace.ts",
+        "web/src/app/api/hubspot/metadata",
+        "web/src/app/api/hubspot/mapping",
+        "web/src/app/api/hubspot/workspace",
+        "web/src/app/api/hubspot/workflow",
+        "web/test/hubspot-sync.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: HubSpot developer account, an unlisted public app (client id, secret, redirect URI) and a test portal seeded per PK-50's spec; credentials reach the task only through the founder's environment.",
+        "Closed deals are fetched for 730 days plus all open deals, capped at 10,000, with the fetched count and any truncation disclosed in readiness.",
+        "The field whitelist drops everything not mapped before data leaves hubspot-sync.ts; a test asserts no contact, email or phone field reaches the API payload or a log.",
+        "Pipelines and stages are returned for confirmation with the proposed outcome per stage; the confirmed map is saved to source_connection_config and invalidated per pipeline when a stage is added. Analysis does not run while any pipeline in scope is unconfirmed.",
+        "Workflow events log with source.system = hubspot; outcome reconciliation is idempotent (running sync twice records one outcome_recorded per deal).",
+        "The Salesforce workspace still passes its suites after salesforce-workspace.ts is generalised."
+      ],
+      "tests": {
+        "required": [
+          "web/test/hubspot-sync.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:10Z",
+      "updated": "2026-11-09T18:56:10Z",
+      "notes": []
+    },
+    {
+      "id": "PK-49",
+      "title": "Give /crm a source switcher and a HubSpot stage-map confirmation screen",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-48"
+      ],
+      "owns": [
+        "web/src/app/crm/page.tsx",
+        "web/src/components/SalesforceWorkspace.tsx",
+        "web/src/components/ConnectorWorkspace.tsx",
+        "web/src/components/HubspotSetup.tsx",
+        "web/test/hubspot-workspace.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "/crm shows each connected source and switches between them; the Salesforce view is unchanged (existing tests pass).",
+        "The stage-map screen lists every stage with its proposed outcome and deal count; ask_user stages show their deals as excluded with the reason.",
+        "The decision loop (flag, accept or override, approve or reject) works on a HubSpot deal through the shared ConnectorWorkspace; the deal link opens the HubSpot record.",
+        "No writeback control appears for HubSpot (F3: no writeback in v1).",
+        "Brand rules: status colours carry a text label; no em dashes; eslint, tsc, build pass."
+      ],
+      "tests": {
+        "required": [
+          "web/test/hubspot-workspace.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:10Z",
+      "updated": "2026-11-09T18:56:10Z",
+      "notes": []
+    },
+    {
+      "id": "PK-50",
+      "title": "Verify HubSpot end to end against a planted test portal",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-49"
+      ],
+      "owns": [
+        "tests/connectors/test_hubspot_known_answer.py",
+        "tests/fixtures/connectors/hubspot_portal_seed.json"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: HubSpot developer account, an unlisted public app (client id, secret, redirect URI) and a test portal seeded per PK-50's spec; credentials reach the task only through the founder's environment.",
+        "The seed spec plants at least 40 closed and 10 open deals across 2 pipelines with known list, booked, outcome and band win rates; the run reproduces the planted band win rates.",
+        "An added unconfirmed stage blocks analysis and shows the affected deals.",
+        "After disconnect, the connection row is gone and the HubSpot token no longer works.",
+        "Neon holds no deal values after a full sync (query output pasted); server logs for the run contain no deal value, account name or token (grep output pasted).",
+        "Green CI run id recorded."
+      ],
+      "tests": {
+        "required": [
+          "tests/connectors/test_hubspot_known_answer.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:11Z",
+      "updated": "2026-11-09T18:56:11Z",
+      "notes": []
+    },
+    {
+      "id": "PK-51",
+      "title": "Write the HubSpot runbook and customer guide",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-48",
+        "PK-44"
+      ],
+      "owns": [
+        "docs/ops/hubspot-integration-runbook.md",
+        "docs/guides/customer-hubspot-workspace.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Covers app setup, scopes, install link, stage-map confirmation, disconnect, operator revoke and rotation; matches PK-44's register rows.",
+        "States that HubSpot without line items gives no list price and therefore no leakage figure."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:11Z",
+      "updated": "2026-11-09T18:56:11Z",
+      "notes": []
+    },
+    {
+      "id": "PK-52",
+      "title": "Name HubSpot on the privacy, trust and pricing pages",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-50",
+        "PK-6"
+      ],
+      "owns": [
+        "web/src/app/privacy",
+        "web/src/app/trust",
+        "web/src/app/pricing/page.tsx",
+        "web/test/claims-connectors.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Privacy names HubSpot as a data source with what is read, what is kept (connection metadata, encrypted token, config) and what is not (deal rows).",
+        "Pricing and trust say 'Salesforce and HubSpot live', read-only, and no other connector is implied.",
+        "If PK-35 has merged, the status comes from PLATFORM_STATUS and this task claims web/src/data/platform-status.ts instead of editing page text.",
+        "A claims test fails if any page names a connector that is not shipped. No em dashes."
+      ],
+      "tests": {
+        "required": [
+          "web/test/claims-connectors.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:11Z",
+      "updated": "2026-11-09T18:56:11Z",
+      "notes": []
+    },
+    {
+      "id": "PK-53",
+      "title": "Add the contract_period_actuals grain and stripe and chargebee source values",
+      "agent": "data-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-25"
+      ],
+      "owns": [],
+      "branch": "agent/data-engineer/PK-53",
+      "worktree": ".claude/worktrees/PK-53",
+      "acceptance": [
+        "SourceSystem gains stripe and chargebee; billing stays; existing files load unchanged and the pinned dataset is byte-identical.",
+        "A CONTRACT_PERIOD_FIELDS list defines the grain in design section 4, all money in one currency per row, tax excluded, with no field for contact data or end-customer identifiers.",
+        "pricing/generate_billing.py uses its own RNG stream and plants a known answer key: list versus contracted gaps, a 100-percent-off coupon, a ramp schedule, 6 and 5 billed-period accounts, and a tiered price.",
+        "Nothing in the grain is called margin, and cost_basis is not on it.",
+        "Treated as a schema decision: the PR links the connector design doc."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_billing.py"
+        ],
+        "ci_run": "42711903009"
+      },
+      "pr": 84,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T21:32:44Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:12Z",
+      "updated": "2026-11-09T22:46:06Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T20:03:02Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T20:41:25Z",
+          "note": "PR #84"
+        },
+        {
+          "ts": "2026-11-09T20:54:54Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T21:22:22Z",
+          "note": "PR #84"
+        },
+        {
+          "ts": "2026-11-09T21:32:44Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:33:39Z",
+          "note": "CI run 42711903009"
+        },
+        {
+          "ts": "2026-11-09T22:46:04Z",
+          "note": "merged as 8e5cdd1, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "8e5cdd1",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:04Z"
+      }
+    },
+    {
+      "id": "PK-54",
+      "title": "Compute realization, contracted versus billed and usage actuals from billing",
+      "agent": "backend-engineer",
+      "status": "DONE",
+      "dependencies": [
+        "PK-53"
+      ],
+      "owns": [],
+      "branch": "agent/backend-engineer/PK-54",
+      "worktree": ".claude/worktrees/PK-54",
+      "acceptance": [
+        "Each output carries a method name (billing_realization, contracted_vs_billed, usage_actuals) and per-lever status scored | insufficient_data | not_provided.",
+        "Win rate is always not_provided with the reason text from the design doc; the guardrail refuses rows whose source_system is stripe, chargebee or billing (test).",
+        "Accounts with fewer than 6 billed periods return insufficient_data for usage, never zero.",
+        "The planted answers from PK-53 are recovered exactly (Decimal or rounded to the cent, stated).",
+        "The word 'margin' never appears in any output (test scans payloads)."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_billing.py"
+        ],
+        "ci_run": "42911471054"
+      },
+      "pr": 93,
+      "review": {
+        "verdict": "approve",
+        "by": "code-reviewer",
+        "notes": "Third-round approve",
+        "ts": "2026-11-10T22:38:53Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:12Z",
+      "updated": "2026-11-10T22:39:20Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:43:23Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-10T20:44:25Z",
+          "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T21:13:12Z",
+          "note": "review rejected: Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93."
+        },
+        {
+          "ts": "2026-11-10T21:39:02Z",
+          "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T22:05:15Z",
+          "note": "review rejected: Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree."
+        },
+        {
+          "ts": "2026-11-10T22:12:46Z",
+          "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T22:38:53Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:38:58Z",
+          "note": "CI run 42911471054"
+        },
+        {
+          "ts": "2026-11-10T22:39:16Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:39:16Z"
+      }
+    },
+    {
+      "id": "PK-55",
+      "title": "Map Stripe subscriptions and invoices to canonical deals and period actuals",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-53",
+        "PK-46"
+      ],
+      "owns": [
+        "pricing/adapters/stripe.py",
+        "pricing/adapters/billing_common.py",
+        "tests/test_adapter_stripe.py",
+        "tests/fixtures/stripe"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "to_canonical is pure and sets source_system=stripe, subscription id, customer id and an absolute dashboard source_url (test-mode path in test mode).",
+        "Each derivation in design section 4 is implemented with its stated fallback; tiered prices give not_provided for overage_rate and list_unit_rate; unconfirmed list gives insufficient_data (F6: no declared-list fallback in v1).",
+        "committed_acv is filled only from the user-marked source, never guessed.",
+        "Invoice lines become contract_period_actuals; void invoices are excluded and counted; credit notes reduce invoiced_amount.",
+        "Known-answer fixtures reproduce PK-53's planted answers; cost_basis and cogs_acv are never set."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_adapter_stripe.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:12Z",
+      "updated": "2026-11-09T18:56:12Z",
+      "notes": []
+    },
+    {
+      "id": "PK-56",
+      "title": "Serve the billing readout from POST /billing/analyze",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-54",
+        "PK-55"
+      ],
+      "owns": [
+        "api/routers/billing.py",
+        "api/main.py#routers",
+        "tests/test_billing_api.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "POST /billing/analyze takes canonical billing deals plus period actuals, enforces the 10,000 cap, and returns PK-54's readout with method and status per lever.",
+        "Rate limiting and X-Pricekeel-Customer tenant scoping match /crm/*.",
+        "No request rows are retained; errors carry codes and counts, never values (test).",
+        "A request with billing rows and no CRM source is served (F5: billing-only tenant allowed).",
+        "Sequenced against PK-34 on api/main.py#routers."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_billing_api.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:13Z",
+      "updated": "2026-11-09T18:56:13Z",
+      "notes": []
+    },
+    {
+      "id": "PK-57",
+      "title": "Connect Stripe with a customer-created restricted key",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-43",
+        "PK-44"
+      ],
+      "owns": [
+        "web/src/lib/stripe-client.ts",
+        "web/src/lib/stripe-credentials.ts",
+        "web/src/app/api/stripe/connection",
+        "web/test/stripe-connection.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Stripe test-mode account and a restricted key, seeded per PK-60's spec; credentials reach the task only through the founder's environment.",
+        "The PR records the restricted-key permission list and rate limits from Stripe's current docs (F1: restricted key, no Stripe App OAuth).",
+        "Keys starting sk_ are refused with a message telling the user to create a restricted key; only rk_ keys are accepted; one read call validates the key.",
+        "The key is stored only through PK-42's store and is never returned to the browser after save. Disconnect deletes our copy and tells the user to roll the key in Stripe.",
+        "Connect does not require a CRM source (F5: billing-only tenant allowed).",
+        "The client accepts only https://api.stripe.com with an allowlisted path prefix, refuses redirects, and connect returns 403 in production while STRIPE_CONNECT_ENABLED is unset."
+      ],
+      "tests": {
+        "required": [
+          "web/test/stripe-connection.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:13Z",
+      "updated": "2026-11-09T18:56:13Z",
+      "notes": []
+    },
+    {
+      "id": "PK-58",
+      "title": "Sync a bounded Stripe book and confirm which prices are list",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-57",
+        "PK-55",
+        "PK-56"
+      ],
+      "owns": [
+        "web/src/lib/stripe-sync.ts",
+        "web/src/app/api/stripe/metadata",
+        "web/src/app/api/stripe/mapping",
+        "web/src/app/api/stripe/workspace",
+        "web/test/stripe-sync.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Stripe test-mode account and a restricted key, seeded per PK-60's spec; credentials reach the task only through the founder's environment.",
+        "Fetches subscriptions active in or canceled within 730 days, their invoices, credit notes, discounts, schedules and prices, capped at 10,000 subscriptions with the count disclosed.",
+        "The whitelist keeps customer id, name and metadata keys the user mapped; a test asserts no email, phone, address, payment method or tax id reaches the API payload or a log.",
+        "The user confirms which prices are list; the set saves to source_connection_config; analysis does not run before confirmation.",
+        "Meter event and usage-record endpoints are never called (test on the path allowlist)."
+      ],
+      "tests": {
+        "required": [
+          "web/test/stripe-sync.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:13Z",
+      "updated": "2026-11-09T18:56:13Z",
+      "notes": []
+    },
+    {
+      "id": "PK-59",
+      "title": "Show the billing readout and the no-win-rate line in the workspace",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-58",
+        "PK-49"
+      ],
+      "owns": [
+        "web/src/components/BillingReadout.tsx",
+        "web/src/components/StripeSetup.tsx",
+        "web/src/components/ConnectorWorkspace.tsx",
+        "web/test/billing-readout.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "The billing readout's first line states that billing gives no win rate and why.",
+        "Contracted versus billed, realization, concessions and usage actuals each show method, status and n; insufficient_data and not_provided render as labelled states, never blanks or zeros.",
+        "A billing-only tenant (no CRM source connected) sees the full billing readout with the no-win-rate first line (F5).",
+        "With a CRM source connected, both readouts appear side by side and no figure is joined across them (F4: no billing-to-CRM join in v1).",
+        "No 'margin' wording anywhere; no em dashes; eslint, tsc, build pass."
+      ],
+      "tests": {
+        "required": [
+          "web/test/billing-readout.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:14Z",
+      "updated": "2026-11-09T18:56:14Z",
+      "notes": []
+    },
+    {
+      "id": "PK-60",
+      "title": "Verify Stripe end to end against a planted test-mode account",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-59"
+      ],
+      "owns": [
+        "tests/connectors/test_stripe_known_answer.py",
+        "tests/fixtures/connectors/stripe_test_seed.json"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Stripe test-mode account and a restricted key, seeded per PK-60's spec; credentials reach the task only through the founder's environment.",
+        "The seed spec reproduces PK-53's planted cases in test mode; the run recovers each planted figure.",
+        "An sk_ key is refused in the live UI.",
+        "Neon holds no invoice or subscription values after sync; logs hold no values or keys (output pasted).",
+        "Green CI run id recorded."
+      ],
+      "tests": {
+        "required": [
+          "tests/connectors/test_stripe_known_answer.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:14Z",
+      "updated": "2026-11-09T18:56:14Z",
+      "notes": []
+    },
+    {
+      "id": "PK-61",
+      "title": "Write the Stripe runbook and key-creation guide",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-57",
+        "PK-44"
+      ],
+      "owns": [
+        "docs/ops/stripe-integration-runbook.md",
+        "docs/guides/customer-stripe-key.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gives the exact permission list for the restricted key, how to roll it, and that Pricekeel cannot revoke it; matches PK-44."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:15Z",
+      "updated": "2026-11-09T18:56:15Z",
+      "notes": []
+    },
+    {
+      "id": "PK-62",
+      "title": "Name Stripe on the privacy, trust and pricing pages",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-60",
+        "PK-52"
+      ],
+      "owns": [
+        "web/src/app/privacy",
+        "web/src/app/trust",
+        "web/src/app/pricing/page.tsx",
+        "web/test/claims-connectors.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Same rules as PK-52: privacy names what is read, kept and not kept; no connector that is not shipped is named; the claims test passes; no em dashes.",
+        "The pricing page line saying billing connectors are not in V1 is updated to name Stripe as read-only, with 'no win rate from billing alone'."
+      ],
+      "tests": {
+        "required": [
+          "web/test/claims-connectors.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:15Z",
+      "updated": "2026-11-09T18:56:15Z",
+      "notes": []
+    },
+    {
+      "id": "PK-63",
+      "title": "Map Chargebee subscriptions and invoices to canonical deals and period actuals",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-55",
+        "PK-56"
+      ],
+      "owns": [
+        "pricing/adapters/chargebee.py",
+        "api/routers/billing.py#adapters",
+        "tests/test_adapter_chargebee.py",
+        "tests/fixtures/chargebee"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Same purity, provenance and no-cost rules as PK-55, with source_system=chargebee.",
+        "unit_price overrides against the item price give list versus contracted; contract terms set term_months; ramps fill ramp fields; promotional credits fill credits_tcv.",
+        "Shared logic lives in billing_common.py; no Stripe-specific code is copied (reviewer checks).",
+        "Known-answer fixtures recover PK-53's planted cases; POST /billing/analyze dispatches chargebee rows to this adapter."
+      ],
+      "tests": {
+        "required": [
+          "tests/test_adapter_chargebee.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:16Z",
+      "updated": "2026-11-09T18:56:16Z",
+      "notes": []
+    },
+    {
+      "id": "PK-64",
+      "title": "Connect Chargebee with a site name and read-only key",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-57"
+      ],
+      "owns": [
+        "web/src/lib/chargebee-client.ts",
+        "web/src/app/api/chargebee/connection",
+        "web/test/chargebee-connection.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Chargebee test site (Product Catalog 2.0) and a read-only key, seeded per PK-67's spec; credentials reach the task only through the founder's environment.",
+        "The site name must match ^[a-z0-9-]{1,63}$; the host is built only as <site>.chargebee.com; any other input is refused (tests include evil.com#, a.b, and an IP literal).",
+        "The PR records rate limits and the Product Catalog 2.0 detection from Chargebee's current docs; a 1.0 site is refused with a clear message.",
+        "The setup screen states that Pricekeel cannot verify the key is read-only.",
+        "Storage, disconnect and the production connect flag follow PK-57; connect does not require a CRM source (F5)."
+      ],
+      "tests": {
+        "required": [
+          "web/test/chargebee-connection.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:16Z",
+      "updated": "2026-11-09T18:56:16Z",
+      "notes": []
+    },
+    {
+      "id": "PK-65",
+      "title": "Sync a bounded Chargebee book",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-64",
+        "PK-63"
+      ],
+      "owns": [
+        "web/src/lib/chargebee-sync.ts",
+        "web/src/app/api/chargebee/metadata",
+        "web/src/app/api/chargebee/mapping",
+        "web/src/app/api/chargebee/workspace",
+        "web/test/chargebee-sync.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Chargebee test site (Product Catalog 2.0) and a read-only key, seeded per PK-67's spec; credentials reach the task only through the founder's environment.",
+        "Same window, cap, whitelist and no-usage-events rules as PK-58; the usages API is never called.",
+        "List confirmation is not needed where item prices exist; overrides are shown for review."
+      ],
+      "tests": {
+        "required": [
+          "web/test/chargebee-sync.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:16Z",
+      "updated": "2026-11-09T18:56:16Z",
+      "notes": []
+    },
+    {
+      "id": "PK-66",
+      "title": "Add the Chargebee setup panel to the workspace",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-65",
+        "PK-59"
+      ],
+      "owns": [
+        "web/src/components/ChargebeeSetup.tsx",
+        "web/src/components/ConnectorWorkspace.tsx",
+        "web/test/chargebee-setup.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "The Chargebee panel reuses BillingReadout unchanged; Stripe and Salesforce views unchanged.",
+        "eslint, tsc, build pass; no em dashes."
+      ],
+      "tests": {
+        "required": [
+          "web/test/chargebee-setup.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:17Z",
+      "updated": "2026-11-09T18:56:17Z",
+      "notes": []
+    },
+    {
+      "id": "PK-67",
+      "title": "Verify Chargebee end to end against a planted test site",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-66"
+      ],
+      "owns": [
+        "tests/connectors/test_chargebee_known_answer.py",
+        "tests/fixtures/connectors/chargebee_test_seed.json"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder setup: Chargebee test site (Product Catalog 2.0) and a read-only key, seeded per PK-67's spec; credentials reach the task only through the founder's environment.",
+        "As PK-60, for a Chargebee test site: planted cases recovered, no invoice or subscription values in Neon, no values or keys in logs (output pasted), green CI run id recorded.",
+        "A malformed site name is refused in the live UI."
+      ],
+      "tests": {
+        "required": [
+          "tests/connectors/test_chargebee_known_answer.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:17Z",
+      "updated": "2026-11-09T18:56:17Z",
+      "notes": []
+    },
+    {
+      "id": "PK-68",
+      "title": "Write the Chargebee runbook and key-creation guide",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-64",
+        "PK-44"
+      ],
+      "owns": [
+        "docs/ops/chargebee-integration-runbook.md",
+        "docs/guides/customer-chargebee-key.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "As PK-61, for Chargebee: key permissions, how to roll it, that Pricekeel cannot revoke it, matching PK-44, including site name handling."
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:17Z",
+      "updated": "2026-11-09T18:56:17Z",
+      "notes": []
+    },
+    {
+      "id": "PK-69",
+      "title": "Name Chargebee on the privacy, trust and pricing pages",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-67",
+        "PK-62"
+      ],
+      "owns": [
+        "web/src/app/privacy",
+        "web/src/app/trust",
+        "web/src/app/pricing/page.tsx",
+        "web/test/claims-connectors.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Same rules as PK-62, for Chargebee: read-only, 'no win rate from billing alone', no unshipped connector named, claims test passes, no em dashes."
+      ],
+      "tests": {
+        "required": [
+          "web/test/claims-connectors.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:18Z",
+      "updated": "2026-11-09T18:56:18Z",
+      "notes": []
+    },
+    {
+      "id": "PK-70",
+      "title": "Drop the legacy salesforce_connections and salesforce_mappings tables",
+      "agent": "data-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-42",
+        "PK-41"
+      ],
+      "owns": [
+        "neon/schema.sql",
+        "neon/migrations/2027-01-drop-legacy-salesforce-tables.sql",
+        "neon/migrations/2027-01-drop-legacy-salesforce-tables.down.sql"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: the founder confirms 7 days on prod with no legacy reads before this task is readied.",
+        "The drop runs only if every legacy row exists in source_connections; otherwise it aborts.",
+        "The down file recreates both legacy tables and copies Salesforce rows back from source_connections; QA pastes scratch up, down, up output.",
+        "No application code references the legacy table names (grep in the PR)."
+      ],
+      "tests": {
+        "required": [
+          "neon/test_migrations.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T18:56:18Z",
+      "updated": "2026-11-09T18:56:18Z",
+      "notes": []
+    },
+    {
+      "id": "PK-75",
+      "title": "Build the design system, tokens, shared UI primitives and site chrome",
+      "agent": "web-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/web-engineer/PK-75",
+      "worktree": ".claude/worktrees/PK-75",
+      "acceptance": [
+        "common gates G1, G3, G4, G6, G9, G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "a baseline is in the PR description before any change: Lighthouse mobile and desktop for /, /pricing, /calculator, /sample, /trust, /login, and a 375px screenshot of every public route",
+        "globals.css defines the type scale (design doc 6.2), spacing steps (6.3) and surfaces (6.4) as @theme tokens or component classes; no hex value in @theme changes",
+        "web/src/components/ui exports Section, PageHeader, Card, Artifact, Button, Stat, StatusPill, Eyebrow, DataTable, SyntheticTag, each with a render test; Button primary is bg-teal with text-bg (10.29:1 computed in a test); StatusPill cannot render without a label and an icon (type-enforced and tested); Stat requires SyntheticTag when source=\"sample\"",
+        "form controls use the Slate #5B6B7B border on inset; its contrast against #0D1422 and #111A2B is computed in design-system.test.ts and is at least 3:1, or the PR says it is not and proposes a derived tint, not a new hue",
+        "chrome no longer applies the .pk-card-3d tilt, the .pk-upside-glow and .pk-headline-accent infinite animations, or the AuroraBackground scroll parallax (classes may stay defined until PK-84); the aurora is one static spotlight; ScrollProgress renders only on /blog/*, /methodology, /trust",
+        "Nav.tsx links Product, Sample, Calculator, Pricing, Trust, a quiet Customer login and a primary Talk to us to /contact; Blog is not in the header (D-R4 lead default, founder may override); Live sample is renamed Sample; mobile keeps the <details> menu with 48px rows and works with JavaScript disabled; aria-current is correct on every route",
+        "Footer.tsx has four labelled columns (Product, Company, Trust and legal, Customers) built from site-nav.ts, every existing link still present including Blog, the one global disclosure line \"Every figure on this site comes from a synthetic 2,000-deal sample, not customer data.\", and footer links at least 44px tall on mobile",
+        "pageMetadata({ title, description, path, noindex? }) exists and is unit-tested: it never appends the suffix and sets alternates.canonical, openGraph.url, openGraph.title and twitter",
+        "layout.tsx keeps title.template, title.default and the Vercel Analytics gate unchanged, and adds a skip-to-content link and a documented <main id> target contract for page tasks",
+        "brand/PALETTE.md gains exactly two clarifications (the control-border rule; white on #0D9488 is 3.74:1, large-text AA only, so action fills use dark text) and no hex changes",
+        "chrome adds no more than 15 KB gzipped first-load JS over the recorded baseline"
+      ],
+      "tests": {
+        "required": [
+          "web/test/design-system.test.ts",
+          "web/test/chrome.test.tsx",
+          "web/test/page-metadata.test.ts"
+        ],
+        "ci_run": "42711935159"
+      },
+      "pr": 87,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T22:09:49Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:28Z",
+      "updated": "2026-11-09T22:46:58Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:18:15Z",
+          "note": "claimed 16 path(s)"
+        },
+        {
+          "ts": "2026-11-09T21:22:36Z",
+          "note": "PR #87"
+        },
+        {
+          "ts": "2026-11-09T21:52:01Z",
+          "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-09T22:03:18Z",
+          "note": "PR #87"
+        },
+        {
+          "ts": "2026-11-09T22:09:49Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T22:35:52Z",
+          "note": "CI run 42711935159"
+        },
+        {
+          "ts": "2026-11-09T22:46:52Z",
+          "note": "merged as 780d9fa, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "780d9fa",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:46:52Z"
+      }
+    },
+    {
+      "id": "PK-76",
+      "title": "Redesign the landing page around the decision record and a scroll-driven walk",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/page.tsx",
+        "web/src/app/opengraph-image.tsx",
+        "web/src/components/HeroHeadline.tsx",
+        "web/src/components/DiagnosticPreview.tsx",
+        "web/src/components/WhatYouGet.tsx",
+        "web/src/components/TrustBoundaryStrip.tsx",
+        "web/src/components/landing",
+        "web/src/lib/landing-sample.ts",
+        "web/test/landing-page.test.ts",
+        "web/test/landing-walk.test.tsx"
+      ],
+      "branch": "agent/web-engineer/PK-76",
+      "worktree": ".claude/worktrees/PK-76",
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "landing keeps exactly five sections in the order hero, product, roles, boundary, close; landing-page.test.ts asserts five top-level <section> elements, one h1, no em dash, no \"system of record\", and a hero number equal to SAMPLE.leakage.excess_vs_segment_reference_won ($8,946,770 now, shown as $8.9M)",
+        "the hero number is no larger than the H1 or Display size, carries the label \"Gap to segment win point\" with a status icon, and its caption contains \"synthetic\"; \"nothing.\" is no longer coral and has no glow; no coral or amber on chrome or dots; no faux browser traffic-light dots remain",
+        "at 1280x720 the decision record Artifact is visible above the fold and the hero is no longer min-h-[100svh]",
+        "the decision record Artifact renders one deal chosen deterministically from sample-fallback.json (rule in landing-sample.ts, tested), shows opportunity id and segment and no account name, requested discount, segment reference band, band win rate with its confidence interval, method label and evidence_version, tagged \"Synthetic sample deal. Real engine output.\"",
+        "the walk has four steps (Request, Evidence, Decision, Outcome); Decision shows a human choosing and a log row and no copy says or implies the product sets or approves a price; Outcome says it is what the synthetic book recorded; below lg, with JavaScript off or under reduced motion the steps render stacked and fully visible (tested without the arming effect)",
+        "the band probe reads win_rate_by_band and reference_discount.band_win_rate_ci only, calls no API, and the route stays force-static",
+        "D-R5 (lead default, founder may override): the hero line \"Stop giving away price that wins you nothing.\" is softened to a claim the synthetic data supports (the 25%+ band still wins 42% against a 68% peak, so \"nothing\" overstates it); the task picks the exact copy, and the PR quotes the snapshot figures that support it and checks it against the evidence boundary in design doc section 3",
+        "D-R5 (lead default, founder may override): \"Design-partner cohort\" (page.tsx:106) is replaced by wording that implies no existing or forming cohort and no customers, pilots or partners; the PR quotes the before and after text and checks it against the evidence boundary",
+        "DiagnosticPreview.tsx:149 describes the synthetic book (\"In this synthetic book, win rate stops improving past the win point\") rather than asserting causation; opengraph-image.tsx text matches the chosen headline and adds no claim",
+        "Lighthouse mobile on the preview: performance at least 90, accessibility at least 95, LCP at most 2.5s, CLS at most 0.05"
+      ],
+      "tests": {
+        "required": [
+          "web/test/landing-page.test.ts",
+          "web/test/landing-walk.test.tsx"
+        ],
+        "ci_run": null
+      },
+      "pr": 94,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree.",
+        "ts": "2026-11-10T22:23:16Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:28Z",
+      "updated": "2026-11-10T22:31:18Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T22:48:56Z",
+          "note": "claimed 10 path(s)"
+        },
+        {
+          "ts": "2026-11-10T22:16:13Z",
+          "note": "PR #94"
+        },
+        {
+          "ts": "2026-11-10T22:23:16Z",
+          "note": "review rejected: Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree."
+        },
+        {
+          "ts": "2026-11-10T22:31:18Z",
+          "note": "PR #94"
+        }
+      ]
+    },
+    {
+      "id": "PK-77",
+      "title": "Redesign the pricing page and clear its claims that exceed the evidence",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/pricing/page.tsx",
+        "web/test/pricing-page.test.ts"
+      ],
+      "branch": "agent/web-engineer/PK-77",
+      "worktree": ".claude/worktrees/PK-77",
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "two tiers (Diagnostic, Operate) render side by side in a roomy layout; Data expansion is a roadmap line with no CTA button and no tier card styling; body copy is 16px",
+        "removed: \"Most subscribers will clear all three\" and \"Worth the subscription at the $50M ARR tier on its own\"; the Monday scenarios read figures from the snapshot with a SyntheticTag or carry an \"Illustrative, not customer data\" label; the three ROI thresholds are framed as the reader's own assumptions, labelled as such",
+        "D-R6a (lead default, founder may override): both instances of \"Engagements typically start in the low five figures\" (page.tsx:187 and :395) use \"We expect\" wording and no copy implies an engagement has happened; pricing-page.test.ts asserts \"typically start\" is absent",
+        "D-R6b (lead default, founder may override): the \"open code\" claim (page.tsx:301) is removed and no copy says or implies the diagnostic code is public or available to customers, because on 2026-11-09 the product repo arokhith1998/pricing-ai is private and no public repo holds the engine (adhi-pricing-ai is a portfolio site); the copy may point to /methodology instead; pricing-page.test.ts asserts \"open code\" is absent",
+        "D-R6c (lead default, founder may override): the one-business-day reply promise is kept verbatim",
+        "the title renders \"Pricing · Pricekeel\" exactly once and plain <a href=\"/contact\"> elements are Link"
+      ],
+      "tests": {
+        "required": [
+          "web/test/pricing-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": 91,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected (no blockers): ARR band 10M contradicts the 20M ICP decision and the social card; scenario arithmetic wrong; three unshipped features stated as live. Findings on PR 91. Forced past cap 4: each active task has its own worktree.",
+        "ts": "2026-11-10T21:56:11Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-10T22:36:19Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:03:46Z",
+          "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:40:47Z",
+          "note": "PR #91"
+        },
+        {
+          "ts": "2026-11-10T21:56:11Z",
+          "note": "review rejected: Rejected (no blockers): ARR band 10M contradicts the 20M ICP decision and the social card; scenario arithmetic wrong; three unshipped features stated as live. Findings on PR 91. Forced past cap 4: each active task has its own worktree."
+        },
+        {
+          "ts": "2026-11-10T22:36:19Z",
+          "note": "PR #91"
+        }
+      ]
+    },
+    {
+      "id": "PK-78",
+      "title": "Redesign methodology and contact, and show the method on the sample",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/methodology/page.tsx",
+        "web/src/app/contact/page.tsx",
+        "web/src/components/methodology",
+        "web/test/methodology-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "methodology leads with how the engine finds the win point, what the confidence band means and when it returns \"insufficient data\", rendered from reference_discount in the snapshot with a SyntheticTag; the bibliography follows",
+        "\"grounded in a published framework, not invented math\" is reworded to \"informed by\"; no source is added or removed and every link still resolves (link test or a manual list in the PR)",
+        "contact has one primary email action, the template inside a <details>, and \"what happens next\" as a three-step row; founder email and LinkedIn fallbacks unchanged; reply-time claims unchanged"
+      ],
+      "tests": {
+        "required": [
+          "web/test/methodology-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-79",
+      "title": "Restyle the calculator, blog, 404 and error pages and promote the calculator",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/calculator/page.tsx",
+        "web/src/components/LeakageCalculator.tsx",
+        "web/src/components/LeakageBars.tsx",
+        "web/src/app/blog",
+        "web/src/app/not-found.tsx",
+        "web/src/app/error.tsx",
+        "web/src/app/brand/page.tsx",
+        "web/test/calculator-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "the calculator stays force-static, its numbers and formulas are unchanged (existing leakage tests, if any, and a new known-answer test for three inputs pass), and the result card uses the Artifact surface",
+        "\"No data leaves your browser\" stays true: no network call added, verified in the PR",
+        "blog index and post use the shared prose and measure rules; the blog is linked from the footer only, not the header (D-R4 lead default, founder may override)",
+        "not-found.tsx and error.tsx use Button; error.tsx still resets"
+      ],
+      "tests": {
+        "required": [
+          "web/test/calculator-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-80",
+      "title": "Redesign the sample page, the lead gate and the login page",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75"
+      ],
+      "owns": [
+        "web/src/app/sample/page.tsx",
+        "web/src/app/login/page.tsx",
+        "web/src/app/login/layout.tsx",
+        "web/src/components/LeadForm.tsx",
+        "web/src/components/MagicLinkForm.tsx",
+        "web/src/components/Summary.tsx",
+        "web/test/lead-form.test.ts",
+        "web/test/login-page.test.tsx"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "/sample has its own title and description; the win-rate-by-band chart leads; the lead gate shows a real, blurred preview of the locked sections beside the form; the \"Cached sample\" disclosure is preserved verbatim",
+        "/login has a sibling layout.tsx exporting metadata with robots: { index: false }, exactly one h1, a two-panel layout at lg and one column below, and a short factual line on what the code unlocks (workspace, competitor context, upload) with no new claim",
+        "primary buttons in LeadForm, MagicLinkForm and login are bg-teal text-bg; no bg-navy text-white remains in owned files; input borders meet 3:1",
+        "lead-form.test.ts stays green; form behavior, field names, endpoints and error copy are unchanged (diffed in the PR)"
+      ],
+      "tests": {
+        "required": [
+          "web/test/lead-form.test.ts",
+          "web/test/login-page.test.tsx"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:29Z",
+      "updated": "2026-11-09T19:06:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-81",
+      "title": "Restyle diagnostic, guidance, upload and competitor-watch onto the shared system",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-80"
+      ],
+      "owns": [
+        "web/src/app/diagnostic/page.tsx",
+        "web/src/app/guidance/page.tsx",
+        "web/src/app/upload/page.tsx",
+        "web/src/app/competitor-watch/page.tsx",
+        "web/src/components/charts",
+        "web/src/components/GuidanceClient.tsx",
+        "web/src/components/DecisionLog.tsx",
+        "web/src/components/DecisionControl.tsx",
+        "web/src/components/UploadClient.tsx",
+        "web/src/components/UploadPrivacyCallout.tsx",
+        "web/src/components/PageGuide.tsx",
+        "web/src/components/NextStep.tsx",
+        "web/src/components/NextActionsBlock.tsx",
+        "web/src/components/ApiError.tsx",
+        "web/src/components/CompetitorContextPanel.tsx",
+        "web/src/components/app",
+        "web/test/diagnostic-mobile-overflow.test.ts",
+        "web/test/guidance-client.test.ts",
+        "web/test/decision-control.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true; G8 means noindex and a distinct title on all four routes; in scope under D-R1 (lead default, founder may override)",
+        "ChatPanel.tsx is not edited",
+        "every table uses DataTable with right-aligned numerics, a sticky first column and a scroll-edge fade inside the existing overflow-x-auto wrapper; diagnostic-mobile-overflow.test.ts (390px) stays green and a 375px assertion is added",
+        "one Recharts theme module reads colors from the tokens; no hex literal in a chart file",
+        "/diagnostic gets a section rail (sticky at lg, a select on mobile); /guidance shows the decision log above model quality; the builder-facing \"lead with this\" arrow text is removed from the user view; the optional-columns string on /upload becomes a list",
+        "guidance copy \"The model learns from your closed deals\" gains the limit that thin segments return \"insufficient data\"; no other copy changes; no bg-navy text-white remains in owned files",
+        "no behavior change in DecisionControl, GuidanceClient or UploadClient: existing tests unchanged and green"
+      ],
+      "tests": {
+        "required": [
+          "web/test/diagnostic-mobile-overflow.test.ts",
+          "web/test/guidance-client.test.ts",
+          "web/test/decision-control.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-82",
+      "title": "Give trust, privacy, terms, subprocessors and licenses one legal layout, wording unchanged",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-6"
+      ],
+      "owns": [
+        "web/src/app/trust/page.tsx",
+        "web/src/app/privacy/page.tsx",
+        "web/src/app/terms/page.tsx",
+        "web/src/app/subprocessors/page.tsx",
+        "web/src/app/licenses/page.tsx",
+        "web/src/components/legal",
+        "web/test/legal-text-frozen.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 and G3 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "legal-text-frozen.test.ts extracts the visible text of the five pages from the latest merged commit that touched them (the PK-6 merge commit unless a later task changed them first) and fails on any wording difference; headings may only gain ids; the layout may add a table of contents and the at-a-glance table",
+        "a shared LegalLayout gives a sticky table of contents at lg, max-w-3xl measure, 16px body and no motion chrome; the legal routes stay free of framer-motion (bundle check)",
+        "trust gets an at-a-glance table whose status pills (live, in progress, not yet) derive only from statements already on the page; no new status is invented",
+        "the placeholder [security@pricekeel.com] can no longer render: the fallback is the founder address used by /contact, or the production build fails when the env var is missing; the PR states which; trust/page.tsx fact text is untouched",
+        "the Updated date is whatever PK-6 left; titles render once with the suffix and each of the five pages has a description"
+      ],
+      "tests": {
+        "required": [
+          "web/test/legal-text-frozen.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-83",
+      "title": "Split and restyle the Salesforce workspace into readable components",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-75",
+        "PK-49"
+      ],
+      "owns": [
+        "web/src/app/crm/page.tsx",
+        "web/src/components/SalesforceWorkspace.tsx",
+        "web/src/components/workspace",
+        "web/test/salesforce-workspace.test.ts",
+        "web/test/salesforce-workspace-route.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true; crm is noindex; in scope after PK-49 under D-R1 and D-R2 (lead defaults, founder may override)",
+        "every render function in SalesforceWorkspace.tsx is split so no source line exceeds 140 characters; the file is under 250 lines and the pieces live in web/src/components/workspace",
+        "behavior unchanged: salesforce-workspace.test.ts and salesforce-workspace-route.test.ts pass untouched; accept, override, approve, reject, writeback and disconnect call the same endpoints with the same bodies (diffed); the insufficient-data branch still shows no recommended discount",
+        "raw amber-* classes become text-amber or border-amber tokens with a label or icon; the h1 uses PageHeader",
+        "the task starts from PK-49's merged version of crm/page.tsx and SalesforceWorkspace.tsx and keeps its source switcher"
+      ],
+      "tests": {
+        "required": [
+          "web/test/salesforce-workspace.test.ts",
+          "web/test/salesforce-workspace-route.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:30Z",
+      "updated": "2026-11-09T19:06:30Z",
+      "notes": []
+    },
+    {
+      "id": "PK-84",
+      "title": "Audit the whole site, remove dead styles, and pin the budgets in tests",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-76",
+        "PK-77",
+        "PK-78",
+        "PK-79",
+        "PK-80",
+        "PK-81",
+        "PK-82"
+      ],
+      "owns": [
+        "web/src/app/globals.css",
+        "web/scripts/lighthouse-budget.mjs",
+        "brand/PALETTE.md",
+        "web/test/site-audit.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
+        "site-audit.test.ts renders every static route and asserts: no doubled \" · Pricekeel\" suffix, unique titles and 70 to 160 character descriptions on public routes, noindex on gated routes, one h1, no skipped heading level, no em dash, no text-[10px] or text-[11px], no bg-navy, no raw Tailwind palette colors",
+        ".pk-card-3d, .pk-upside-glow, .pk-headline-accent, .pk-aurora-layer and the --color-navy alias are deleted from globals.css only after a grep shows zero uses; any remaining use is listed with its owner",
+        "the brand/PALETTE.md correction from PK-75 is complete and its dark-theme table matches globals.css (tested by comparing hex values)",
+        "web/scripts/lighthouse-budget.mjs runs Lighthouse via npx (not a dependency) against a URL and fails when a design doc 6.9 budget is missed; final numbers for all routes are pasted in the PR",
+        "a 375px screenshot of every route, public and gated (dev unlock), is attached; residual issues are listed as follow-ups with an owner; the PR records a line-by-line cross-check against vault/Competitive/2026-08-01-salesforce-market-need-assessment.md and design doc section 4"
+      ],
+      "tests": {
+        "required": [
+          "web/test/site-audit.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:06:31Z",
+      "updated": "2026-11-09T19:06:31Z",
+      "notes": []
+    },
+    {
+      "id": "PK-86",
+      "title": "Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7",
+      "agent": "ai-engineer",
+      "status": "DONE",
+      "dependencies": [],
+      "owns": [],
+      "branch": "agent/ai-engineer/PK-86",
+      "worktree": ".claude/worktrees/PK-86",
+      "acceptance": [
+        "requirements.txt pins anthropic to the range CI has proven green (>=0.77,<2.7, since run 42677339918 passed on 2.6.0 and run 42680793344 failed on 2.7.0) with a comment naming this task; CI resolves a pinned SDK and tests/test_matching.py passes",
+        "the schema handling in pricing/matching.py (or the test's expectation) is made robust to the 2.7 transform_schema output, a nullable enum rendered as anyOf enum plus null with no string branch, so the test passes with anthropic 2.7 installed locally as well; if that is not achievable in a day, the PR body states exactly what 2.7 changed and files the adaptation as a follow-up",
+        "no other test or behavior changes; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_matching.py"
+        ],
+        "ci_run": "42697114425"
+      },
+      "pr": 82,
+      "review": {
+        "verdict": "approve-with-nits",
+        "by": "code-reviewer",
+        "notes": "",
+        "ts": "2026-11-09T20:50:45Z"
+      },
+      "blocked_by": null,
+      "created": "2026-11-09T19:17:37Z",
+      "updated": "2026-11-09T22:25:12Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T19:17:42Z",
+          "note": "claimed 3 path(s)"
+        },
+        {
+          "ts": "2026-11-09T20:29:30Z",
+          "note": "PR #82"
+        },
+        {
+          "ts": "2026-11-09T20:50:45Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-09T21:41:32Z",
+          "note": "CI run 42697114425"
+        },
+        {
+          "ts": "2026-11-09T22:25:08Z",
+          "note": "merged as 90dcbdd, human-approved by product owner"
+        }
+      ],
+      "merge_commit": "90dcbdd",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-09T22:25:08Z"
+      }
+    },
+    {
+      "id": "PK-87",
+      "title": "Make the copilot raise-price opportunity fire on a real book by joining win rate into the segment table",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-74"
+      ],
+      "owns": [
+        "pricing/copilot.py",
+        "pricing/metrics.py#realization_by_segment",
+        "tests/test_copilot.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "_opp_raise_prices reads a win_rate that the real analysis carries: either realization_by_segment gains a win_rate column computed from closed outcomes per segment in metrics.py, or the extractor joins win_rate_by_segment from the analysis dict; the chosen path is stated and the fixture uses real column names",
+        "a test runs the real pipeline on a fixture book where one segment clears win rate 70 percent and realization 85 percent and asserts raise_price fires with the right segment; a second test asserts it does not fire on the synthetic book if no segment qualifies, with the thresholds printed",
+        "the PK-29 numeric-fidelity test for raise_price keeps passing; nothing labels a proxy as margin; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_copilot.py",
+          "tests/test_metrics.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T19:46:00Z",
+      "updated": "2026-11-09T19:46:00Z",
+      "notes": []
+    },
+    {
+      "id": "PK-88",
+      "title": "Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "web/test/diagnostic-mobile-overflow.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "the test no longer times out at the default 5000ms on a loaded Windows host: either the page import is hoisted into a beforeAll and the describe block carries an explicit timeout, or the assertion is made against the rendered markup of the table subtree without a full cold page render",
+        "the test still fails when a table is rendered outside an overflow-x-auto ancestor (prove by temporarily breaking the page in a scratch copy, not in the commit)",
+        "no other test or product file changes; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "web/test/diagnostic-mobile-overflow.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T21:44:23Z",
+      "updated": "2026-11-09T21:44:23Z",
+      "notes": []
+    },
+    {
+      "id": "PK-89",
+      "title": "Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green",
+      "agent": "web-engineer",
+      "status": "REVIEW",
+      "dependencies": [],
+      "owns": [
+        "web/src/lib/salesforce-adapter.ts"
+      ],
+      "branch": "agent/web-engineer/PK-89",
+      "worktree": ".claude/worktrees/PK-89",
+      "acceptance": [
+        "SOURCE_SYSTEMS in web/src/lib/salesforce-adapter.ts lists exactly the members of pricing/schema.py SourceSystem on main (csv, salesforce, hubspot, cpq, billing, stripe, chargebee, manual); the parity test in web/test/salesforce-canonical-deal.test.ts passes",
+        "no other change; eslint, tsc, npm test and build green; CI green on the branch; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "web/test/salesforce-canonical-deal.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": 92,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-09T23:19:10Z",
+      "updated": "2026-11-09T23:48:27Z",
+      "notes": [
+        {
+          "ts": "2026-11-09T23:19:23Z",
+          "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-09T23:48:27Z",
+          "note": "PR #92"
+        }
+      ]
+    },
+    {
+      "id": "PK-90",
+      "title": "Validate the policy threshold as a fraction on /diagnostic, /demo and /summary",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "policy outside [0,1] returns 422 with a message naming the unit; 0.15 and 15 are not silently both accepted; web client unchanged because it already sends a fraction; pinning test for 15 and -0.1"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_api_diagnostic.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T21:14:33Z",
+      "updated": "2026-11-10T21:14:33Z",
+      "notes": []
+    },
+    {
+      "id": "PK-91",
+      "title": "Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-54"
+      ],
+      "owns": [
+        "pricing/guardrail.py#source_partition,tests/test_guardrail.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "guardrail is source aware; rows with a billing SourceSystem never reach win rate or discount-band math; the refusal is disclosed in the load report as a count with the reason; partition_for_win_rate has a production caller; no silent drop"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_guardrail.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T21:14:39Z",
+      "updated": "2026-11-10T21:14:39Z",
+      "notes": []
+    },
+    {
+      "id": "PK-92",
+      "title": "Contract-structure readout omits the floor sentence when frame attrs are missing",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-32"
+      ],
+      "owns": [
+        "pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "when attrs carry no floor_frac the readout omits the floor sentence or raises, never states the 15% default as the floor used; pinning test; cap _pct at one decimal unless the spec says otherwise"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_contract_structure.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T22:02:00Z",
+      "updated": "2026-11-10T22:02:00Z",
+      "notes": []
+    }
+  ]
+}
