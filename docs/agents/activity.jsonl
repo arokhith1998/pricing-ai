@@ -379,3 +379,11 @@
 {"ts": "2026-11-10T21:50:02Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #89"}
 {"ts": "2026-11-10T21:56:11Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected (no blockers): ARR band 10M contradicts the 20M ICP decision and the social card; scenario arithmetic wrong; three unshipped features stated as live. Findings on PR 91. Forced past cap 4: each active task has its own worktree."}
 {"ts": "2026-11-10T22:02:00Z", "event": "add", "task": "PK-92", "agent": "backend-engineer", "detail": "Contract-structure readout omits the floor sentence when frame attrs are missing"}
+{"ts": "2026-11-10T22:03:56Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:03:58Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42907767065"}
+{"ts": "2026-11-10T22:03:59Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:04:01Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:04:03Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-10T22:04:06Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "QA -> APPROVED: CI run 42902655431"}
+{"ts": "2026-11-10T22:04:08Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:04:09Z", "event": "status", "task": "PK-32", "agent": "backend-engineer", "detail": "MERGED -> DONE"}

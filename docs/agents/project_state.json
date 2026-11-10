@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:02:00Z",
+  "updated": "2026-11-10T22:04:09Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1694,14 +1694,11 @@
       "id": "PK-32",
       "title": "Score commit, ramp, overage and unit-rate floors",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-31"
       ],
-      "owns": [
-        "pricing/contract_structure.py",
-        "tests/test_contract_structure.py"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-32",
       "worktree": ".claude/worktrees/PK-32",
       "acceptance": [
@@ -1714,18 +1711,18 @@
         "required": [
           "tests/test_contract_structure.py"
         ],
-        "ci_run": null
+        "ci_run": "42902655431"
       },
       "pr": 88,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve",
         "by": "code-reviewer",
-        "notes": "",
-        "ts": "2026-11-09T23:46:50Z"
+        "notes": "Re-review approved on PR 88",
+        "ts": "2026-11-10T22:04:03Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:07Z",
-      "updated": "2026-11-10T21:48:30Z",
+      "updated": "2026-11-10T22:04:09Z",
       "notes": [
         {
           "ts": "2026-11-09T22:49:03Z",
@@ -1750,8 +1747,26 @@
         {
           "ts": "2026-11-10T21:48:30Z",
           "note": "PR #88"
+        },
+        {
+          "ts": "2026-11-10T22:04:03Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:04:06Z",
+          "note": "CI run 42902655431"
+        },
+        {
+          "ts": "2026-11-10T22:04:08Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:04:08Z"
+      }
     },
     {
       "id": "PK-33",
@@ -1788,17 +1803,11 @@
       "id": "PK-39",
       "title": "Route cpq_line exports through the quote-line roll-up and surface ask_user deals",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-27"
       ],
-      "owns": [
-        "pricing/ingest.py#profiles",
-        "api/routers/diagnostic.py#load_report",
-        "api/routers/diagnostic.py#map_columns",
-        "api/shared.py#diagnostic_payload",
-        "tests/test_ingest_profiles.py"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-39",
       "worktree": ".claude/worktrees/PK-39",
       "acceptance": [
@@ -1814,18 +1823,18 @@
           "tests/test_ingest_profiles.py",
           "tests/test_ingest.py"
         ],
-        "ci_run": null
+        "ci_run": "42907767065"
       },
       "pr": 90,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve",
         "by": "code-reviewer",
-        "notes": "Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply.",
-        "ts": "2026-11-10T21:32:16Z"
+        "notes": "Re-review approved on PR 90",
+        "ts": "2026-11-10T22:03:56Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:08Z",
-      "updated": "2026-11-10T21:48:33Z",
+      "updated": "2026-11-10T22:04:01Z",
       "notes": [
         {
           "ts": "2026-11-09T23:06:37Z",
@@ -1842,8 +1851,26 @@
         {
           "ts": "2026-11-10T21:48:33Z",
           "note": "PR #90"
+        },
+        {
+          "ts": "2026-11-10T22:03:56Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:03:58Z",
+          "note": "CI run 42907767065"
+        },
+        {
+          "ts": "2026-11-10T22:03:59Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:03:59Z"
+      }
     },
     {
       "id": "PK-40",
