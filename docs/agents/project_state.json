@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T20:24:38Z",
+  "updated": "2026-11-10T20:44:52Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2059,7 +2059,7 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-25"
       ],
@@ -2099,7 +2099,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-09T21:22:14Z",
+      "updated": "2026-11-10T20:44:52Z",
       "notes": [
         {
           "ts": "2026-11-09T19:59:40Z",
@@ -2112,6 +2112,10 @@
         {
           "ts": "2026-11-09T21:22:14Z",
           "note": "review rejected: "
+        },
+        {
+          "ts": "2026-11-10T20:44:52Z",
+          "note": "PR #83"
         }
       ]
     },
@@ -2412,7 +2416,7 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [
         "PK-53"
       ],
@@ -2435,15 +2439,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 93,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-09T23:43:27Z",
+      "updated": "2026-11-10T20:44:25Z",
       "notes": [
         {
           "ts": "2026-11-09T23:43:23Z",
           "note": "claimed 2 path(s)"
+        },
+        {
+          "ts": "2026-11-10T20:44:25Z",
+          "note": "PR #93"
         }
       ]
     },
