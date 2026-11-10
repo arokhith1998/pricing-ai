@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:51:03Z",
+  "updated": "2026-11-10T23:10:29Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3940,6 +3940,607 @@
       "blocked_by": null,
       "created": "2026-11-10T22:51:03Z",
       "updated": "2026-11-10T22:51:03Z",
+      "notes": []
+    },
+    {
+      "id": "PK-94",
+      "title": "Seed the objection inventory with the audit-motion objections, marked predicted",
+      "agent": "sales-outreach",
+      "status": "READY",
+      "dependencies": [],
+      "owns": [
+        "gtm/objection-inventory.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "a new section scoped 'AI margin audit motion' is added; the existing ten objections and the ICP paragraph are byte-identical",
+        "each new objection is tagged predicted and names the Consumer Trends bottleneck number it comes from",
+        "covers at least: we will do it in a spreadsheet; our cost data is too sensitive; we cannot attribute inference cost per customer; too expensive for a seed company; you will tell us to throttle our best users",
+        "no answer cites a founder-sheet figure as fact or claims a customer or result; no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:15Z",
+      "updated": "2026-11-10T23:10:29Z",
+      "notes": []
+    },
+    {
+      "id": "PK-95",
+      "title": "Add audit-motion columns to the funnel tracker",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-18"
+      ],
+      "owns": [
+        "docs/ops/funnel-tracker.csv",
+        "docs/ops/funnel-tracker-example.csv"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "adds motion(diagnostic/audit), interview_date, audit_offer_sent, audit_fee_quoted, audit_paid_date, data_received_date, attribution_method(A/B/C/D), audit_delivered_date, audit_hours, converted_to_subscription",
+        "every existing column keeps its name and order; the header line of both files is identical",
+        "the example file shows one synthetic audit row and one synthetic interview row and no real company"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:17Z",
+      "updated": "2026-11-10T23:09:17Z",
+      "notes": []
+    },
+    {
+      "id": "PK-96",
+      "title": "Add the per-customer cost rollup data class to the addendum and the data register, for counsel",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-22",
+        "PK-20"
+      ],
+      "owns": [
+        "docs/legal/one-page-mutual-nda-data-addendum.md",
+        "docs/ops/data-register.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Schedule A gains a class for per-customer cost rollups keyed by a pseudonymous customer code, no names, emails or raw usage events, retention and deletion matching Class 2",
+        "existing class wording is unchanged",
+        "the data register gains rows for the audit workbook and the cost export with location, retention and deletion owner",
+        "Founder gate: marked for counsel, not executed; no real cost file is requested before counsel clears this class (F9)",
+        "Lead rule: serialized against PK-45 and PK-44 by assign; PK-96 goes first"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:21Z",
+      "updated": "2026-11-10T23:09:21Z",
+      "notes": []
+    },
+    {
+      "id": "PK-97",
+      "title": "Write the audit delivery template and the workbook spec mapped to the method log",
+      "agent": "customer-success",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "gtm/ai-margin-audit-delivery-template.md",
+        "gtm/ai-margin-audit-workbook-spec.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gate: starts only after the founder accepts gtm/ai-margin-audit-offer.md and gtm/ai-margin-audit-runbook.md",
+        "the template has the readout sections the runbook Day 11 names, and every figure slot carries its ADR-006 label from pricing/cost_basis.py verbatim",
+        "every workbook formula is over named ranges, cites a method-log field, and names the pricing/margin_health.py function it becomes",
+        "allocated and unallocated cost are separate lines; no customer data; no em dashes"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:25Z",
+      "updated": "2026-11-10T23:09:25Z",
+      "notes": []
+    },
+    {
+      "id": "PK-98",
+      "title": "Synthesise the AI-founder interviews and promote heard objections",
+      "agent": "pricing-strategist",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-94",
+        "PK-95"
+      ],
+      "owns": [
+        "vault/GTM/2026-11-ai-founder-interview-synthesis.md",
+        "gtm/objection-inventory.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gate: the founder has logged at least 8 interviews in the funnel tracker",
+        "cites each interview by tracker row only, no names",
+        "reports how many founders could attribute inference cost per customer, what they use today, and any price they named",
+        "objections heard in two or more interviews move from predicted to heard in gtm/objection-inventory.md with counts",
+        "states a recommendation on F3 (ICP) backed only by the logged counts"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:32Z",
+      "updated": "2026-11-10T23:09:32Z",
+      "notes": []
+    },
+    {
+      "id": "PK-99",
+      "title": "Add the customer cost-period grain and plant a cost answer key",
+      "agent": "data-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "pricing/schema.py#cost_period",
+        "pricing/generate_billing.py#cost_periods",
+        "tests/test_schema_cost_period.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: F1 (D2 answered) and F2 (ADR-007 accepted), and the backend margin-health design doc accepted",
+        "a cost-period grain beside CONTRACT_PERIOD_FIELDS carries cost key, period start and end, currency, cost amount, cost category (inference, hosting, storage, other) and attribution (direct, rolled_up, allocated), and no end-customer name or email field",
+        "the generator plants a cost book against the billing answer key with at least one negative-margin account, one unmatched cost key and one allocated row, and writes the expected per-account result",
+        "existing billing generator output and the PK-53 key are byte-identical"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_schema_cost_period.py",
+          "tests/test_billing.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:37Z",
+      "updated": "2026-11-10T23:09:37Z",
+      "notes": []
+    },
+    {
+      "id": "PK-100",
+      "title": "Recognise cost exports as a layer-0 source profile",
+      "agent": "ai-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-99"
+      ],
+      "owns": [
+        "pricing/mapping.py#profiles",
+        "tests/test_mapping_cost_profile.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "profile_source returns cost_export for a generic cost table and for at least two provider usage-export header sets cited from current public docs, links in the PR",
+        "no cost header set is ever profiled as crm_opportunity or cpq_line (test)",
+        "existing profile tests pass unchanged"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_mapping_cost_profile.py",
+          "tests/test_mapping_profiles.py",
+          "tests/test_mapping.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:43Z",
+      "updated": "2026-11-10T23:09:43Z",
+      "notes": []
+    },
+    {
+      "id": "PK-101",
+      "title": "Load a declared cost export with its key map and attribution flags",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-99",
+        "PK-100"
+      ],
+      "owns": [
+        "pricing/ingest.py#cost_export",
+        "tests/test_ingest_cost_export.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "an upload without the per-upload declaration loads as crm_proxy and yields no margin; with it, declared_cost (ADR-007)",
+        "any erp_verified value on upload raises SchemaError",
+        "the key map is required; every cost key absent from it is reported as unallocated with its count and share of cost",
+        "rows are rollups only; a file with event-level rows is refused",
+        "existing ingest suites pass unchanged"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_ingest_cost_export.py",
+          "tests/test_ingest.py",
+          "tests/test_ingest_profiles.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:48Z",
+      "updated": "2026-11-10T23:09:48Z",
+      "notes": []
+    },
+    {
+      "id": "PK-102",
+      "title": "Compute per-account contribution margin from billing and declared cost",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-99"
+      ],
+      "owns": [
+        "pricing/margin_health.py",
+        "tests/test_margin_health.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "per account and period, contribution margin equals invoiced amount minus attributed cost, Decimal to the cent",
+        "every figure carries cost_basis.label_for text; crm_proxy input is refused via refuse_margin_for_proxy, not computed and caveated",
+        "unallocated cost is its own line and is never spread silently; accounts whose sign flips between direct and allocated attribution are marked uncertain",
+        "the cost tail (share of cost by decile) is reported beside revenue rank",
+        "pure, no I/O, no LLM; no net margin for any basis"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_margin_health.py",
+          "tests/test_cost_basis_label.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:52Z",
+      "updated": "2026-11-10T23:09:52Z",
+      "notes": []
+    },
+    {
+      "id": "PK-103",
+      "title": "Verify margin health against the planted key and the cost-basis label evals",
+      "agent": "qa-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-101",
+        "PK-102"
+      ],
+      "owns": [
+        "tests/test_margin_health_known_answer.py",
+        "tests/test_cost_basis_margin_health.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "the PK-99 planted answer key is recovered exactly, not within a tolerance",
+        "margin_violations reports zero across every output string on declared_cost and the path refuses on crm_proxy",
+        "no output contains the phrase gross margin unless the basis is erp_verified (test)",
+        "the full Python suite passes; real output pasted with the CI run id"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_margin_health_known_answer.py",
+          "tests/test_cost_basis_margin_health.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:09:56Z",
+      "updated": "2026-11-10T23:09:56Z",
+      "notes": []
+    },
+    {
+      "id": "PK-104",
+      "title": "Serve margin health from POST /margin/analyze",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-101",
+        "PK-102"
+      ],
+      "owns": [
+        "api/routers/margin.py",
+        "api/main.py#routers",
+        "tests/test_margin_api.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "takes billing periods, a cost export and a key map in memory and stores no row (test asserts no database write)",
+        "a crm_proxy request returns 422 naming the basis, not a caveated figure",
+        "rate limit and perimeter match /diagnostic",
+        "Lead rule: api/main.py#routers is shared with PK-56; whichever is assigned first holds it"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_margin_api.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:00Z",
+      "updated": "2026-11-10T23:10:00Z",
+      "notes": []
+    },
+    {
+      "id": "PK-105",
+      "title": "Show the margin-health readout in the workspace",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-104"
+      ],
+      "owns": [
+        "web/src/app/margin/page.tsx",
+        "web/src/components/MarginHealthReadout.tsx",
+        "web/src/lib/api.ts#margin",
+        "web/test/margin-readout.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "C:/Program Files/Git/margin is gated the same way /upload is",
+        "every figure shows its ADR-006 label from the API response, never a label written in the component (test)",
+        "unallocated cost and uncertain accounts are shown, not hidden",
+        "an API error renders the existing error component, not a blank panel",
+        "eslint, tsc, npm test and build pass"
+      ],
+      "tests": {
+        "required": [
+          "web/test/margin-readout.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:04Z",
+      "updated": "2026-11-10T23:10:04Z",
+      "notes": []
+    },
+    {
+      "id": "PK-106",
+      "title": "Specify the first cost connector from what audit customers actually export",
+      "agent": "cto",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-101"
+      ],
+      "owns": [
+        "docs/design/2026-11-cost-connector.md"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gate: two audits delivered and their method-log learnings committed",
+        "names the provider to connect first and why, citing the method log attribution methods, not assumptions",
+        "states the basis the connector earns under ADR-006 and ADR-007 and how credentials follow PK-42 and PK-44",
+        "lists implementation tasks with owners and claims for entry"
+      ],
+      "tests": {
+        "required": [],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:08Z",
+      "updated": "2026-11-10T23:10:08Z",
+      "notes": []
+    },
+    {
+      "id": "PK-107",
+      "title": "Compute the calculator figures in a pure module with code-owned labels",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "web/src/lib/margin-audit.ts",
+        "web/test/margin-audit.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gate: the web-engineer calculator design doc is accepted by the founder",
+        "pure functions, no network call; known-answer tests for at least four input sets including zero cost and a negative-margin case",
+        "each component is shown with its formula; no single opaque score",
+        "label strings are pinned to pricing/cost_basis.py by a test, as SourceSystem is pinned",
+        "no statistic from the founder sheet appears in the module"
+      ],
+      "tests": {
+        "required": [
+          "web/test/margin-audit.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:12Z",
+      "updated": "2026-11-10T23:10:12Z",
+      "notes": []
+    },
+    {
+      "id": "PK-108",
+      "title": "Add a lead_magnet column to leads, with a down migration",
+      "agent": "data-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "neon/schema.sql",
+        "neon/migrations/2026-11-11-leads-lead-magnet.sql",
+        "neon/migrations/2026-11-11-leads-lead-magnet.down.sql",
+        "neon/MIGRATIONS.md",
+        "neon/test_migrations.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: F7 answered and the web design doc accepted",
+        "leads.lead_magnet text not null default empty string is added; the .down.sql drops only that column",
+        "neon/schema.sql matches the migrated state; neon/MIGRATIONS.md gains rows for this pair and the PK-24 and PK-41 pairs",
+        "QA pastes scratch up, down, up output; the founder applies it to production Neon, no agent does"
+      ],
+      "tests": {
+        "required": [
+          "neon/test_migrations.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:16Z",
+      "updated": "2026-11-10T23:10:16Z",
+      "notes": []
+    },
+    {
+      "id": "PK-109",
+      "title": "Tag calculator leads on /api/lead and in the lead form",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-108"
+      ],
+      "owns": [
+        "web/src/app/api/lead/route.ts",
+        "web/src/lib/store.ts#saveLead",
+        "web/src/components/LeadForm.tsx",
+        "web/test/lead-magnet.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Lead rule: not assigned until PK-80 is MERGED (shared LeadForm.tsx)",
+        "C:/Program Files/Git/api/lead accepts an optional lead_magnet from an allowlist and stores an empty string for anything else",
+        "every existing lead-route behaviour is unchanged, including the honeypot byte-identical 200; existing tests pass",
+        "LeadForm takes an optional prop and renders identically without it",
+        "no calculator input value is sent or stored"
+      ],
+      "tests": {
+        "required": [
+          "web/test/lead-magnet.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:18Z",
+      "updated": "2026-11-10T23:10:18Z",
+      "notes": []
+    },
+    {
+      "id": "PK-110",
+      "title": "Ship the AI pricing and margin audit calculator page",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-107",
+        "PK-109"
+      ],
+      "owns": [
+        "web/src/app/margin-audit",
+        "web/src/components/MarginAuditCalculator.tsx",
+        "web/src/app/sitemap.ts",
+        "web/test/margin-audit-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Founder gate: F6 and F8 answered",
+        "every number comes from PK-107 and capture goes through PK-109; inputs never leave the browser (test asserts the only request is the lead post)",
+        "copy names its basis as customer-supplied cost and passes the cost-basis guard",
+        "no founder-sheet figure, no customer claim, no em dashes; landing hero and nav untouched",
+        "added to the sitemap; eslint, tsc, npm test and build pass"
+      ],
+      "tests": {
+        "required": [
+          "web/test/margin-audit-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:22Z",
+      "updated": "2026-11-10T23:10:22Z",
+      "notes": []
+    },
+    {
+      "id": "PK-111",
+      "title": "Build the three-screen clickable audit prototype on synthetic data",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-97",
+        "PK-107"
+      ],
+      "owns": [
+        "web/src/app/prototype",
+        "web/test/prototype-audit.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "Gate: the first audit is delivered",
+        "three screens (input, diagnostic, recommendation) on synthetic data only; noindex; not in nav or sitemap",
+        "the diagnostic screen uses PK-107; the recommendation screen states the customer decides",
+        "no real customer value anywhere; eslint, tsc, npm test and build pass"
+      ],
+      "tests": {
+        "required": [
+          "web/test/prototype-audit.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T23:10:25Z",
+      "updated": "2026-11-10T23:10:25Z",
       "notes": []
     }
   ]

@@ -422,3 +422,22 @@
 {"ts": "2026-11-10T22:50:58Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T22:51:01Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-10T22:51:03Z", "event": "add", "task": "PK-93", "agent": "web-engineer", "detail": "Social card wording: 'checks' not 'prices', drop 'usage and hybrid'"}
+{"ts": "2026-11-10T23:09:15Z", "event": "add", "task": "PK-94", "agent": "sales-outreach", "detail": "Seed the objection inventory with the audit-motion objections, marked predicted"}
+{"ts": "2026-11-10T23:09:17Z", "event": "add", "task": "PK-95", "agent": "customer-success", "detail": "Add audit-motion columns to the funnel tracker"}
+{"ts": "2026-11-10T23:09:21Z", "event": "add", "task": "PK-96", "agent": "customer-success", "detail": "Add the per-customer cost rollup data class to the addendum and the data register, for counsel"}
+{"ts": "2026-11-10T23:09:25Z", "event": "add", "task": "PK-97", "agent": "customer-success", "detail": "Write the audit delivery template and the workbook spec mapped to the method log"}
+{"ts": "2026-11-10T23:09:32Z", "event": "add", "task": "PK-98", "agent": "pricing-strategist", "detail": "Synthesise the AI-founder interviews and promote heard objections"}
+{"ts": "2026-11-10T23:09:37Z", "event": "add", "task": "PK-99", "agent": "data-engineer", "detail": "Add the customer cost-period grain and plant a cost answer key"}
+{"ts": "2026-11-10T23:09:43Z", "event": "add", "task": "PK-100", "agent": "ai-engineer", "detail": "Recognise cost exports as a layer-0 source profile"}
+{"ts": "2026-11-10T23:09:48Z", "event": "add", "task": "PK-101", "agent": "backend-engineer", "detail": "Load a declared cost export with its key map and attribution flags"}
+{"ts": "2026-11-10T23:09:52Z", "event": "add", "task": "PK-102", "agent": "backend-engineer", "detail": "Compute per-account contribution margin from billing and declared cost"}
+{"ts": "2026-11-10T23:09:56Z", "event": "add", "task": "PK-103", "agent": "qa-engineer", "detail": "Verify margin health against the planted key and the cost-basis label evals"}
+{"ts": "2026-11-10T23:10:00Z", "event": "add", "task": "PK-104", "agent": "backend-engineer", "detail": "Serve margin health from POST /margin/analyze"}
+{"ts": "2026-11-10T23:10:04Z", "event": "add", "task": "PK-105", "agent": "web-engineer", "detail": "Show the margin-health readout in the workspace"}
+{"ts": "2026-11-10T23:10:08Z", "event": "add", "task": "PK-106", "agent": "cto", "detail": "Specify the first cost connector from what audit customers actually export"}
+{"ts": "2026-11-10T23:10:12Z", "event": "add", "task": "PK-107", "agent": "web-engineer", "detail": "Compute the calculator figures in a pure module with code-owned labels"}
+{"ts": "2026-11-10T23:10:16Z", "event": "add", "task": "PK-108", "agent": "data-engineer", "detail": "Add a lead_magnet column to leads, with a down migration"}
+{"ts": "2026-11-10T23:10:18Z", "event": "add", "task": "PK-109", "agent": "web-engineer", "detail": "Tag calculator leads on /api/lead and in the lead form"}
+{"ts": "2026-11-10T23:10:22Z", "event": "add", "task": "PK-110", "agent": "web-engineer", "detail": "Ship the AI pricing and margin audit calculator page"}
+{"ts": "2026-11-10T23:10:25Z", "event": "add", "task": "PK-111", "agent": "web-engineer", "detail": "Build the three-screen clickable audit prototype on synthetic data"}
+{"ts": "2026-11-10T23:10:29Z", "event": "status", "task": "PK-94", "agent": "sales-outreach", "detail": "BACKLOG -> READY"}

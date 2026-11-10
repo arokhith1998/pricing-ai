@@ -247,3 +247,19 @@ supply (added 2026-11-07 after the PR 73 review found a typed cell could earn th
 strongest label). The response builder and the PK-29 evals are the enforcement;
 until PK-29 lands, this is a rule in prose, which is the state this ADR exists
 to end.
+
+---
+
+## ADR-007 (proposed): a per-customer cost export earns `declared_cost` only by an explicit upload declaration, and is joined by a customer-declared key map
+
+**Date:** 2026-11-10 · **Status:** proposed, awaiting founder decision (F2 in `docs/reviews/2026-11-10-audit-first/TASKS-proposed.md`)
+
+**Decision (proposed).** A per-customer cost export (model-provider usage, hosting or storage cost, rolled up per customer code per period) uploaded by the customer earns `cost_basis = declared_cost` only when the upload carries one explicit declaration, made once per upload by the user, that the file is the customer's own cost of serving. Without the declaration it loads as `crm_proxy` and no margin figure is produced. `erp_verified` is never set on an upload; it stays reserved for a cost connector Pricekeel operates (PK-106 specifies the first one). Cost rows join billing accounts only through a customer-declared key map (cost key to `source_record_id`); unmatched cost is reported as an unallocated line with its share of total cost, never spread across accounts silently, and an allocated (driver-based) row carries an `allocated` attribution flag beside its basis.
+
+**Context.** ADR-006 files "any cost figure that arrived through a CRM or CSV export" under `crm_proxy` and defines `declared_cost` as "a cost rate or percentage table by product family". The 2026-11-10 decision record (`vault/Decisions/2026-11-10-audit-first-motion-and-ai-margin-wedge.md`) and the customer-success runbook draft (`gtm/ai-margin-audit-runbook.md`) both treat a founder-supplied cost export as `declared_cost`. Read literally, the two contradict: the margin-health module would either never be allowed to say margin, or would say it on a basis ADR-006 calls a proxy. Separately, `pricing/billing.py` states the billing grain carries no end-customer identifier by design (an account is one subscription), so a cost export keyed by API key, project or workspace has nothing to join on without a map.
+
+**Alternatives.** (1) Keep ADR-006 literal: every CSV cost is `crm_proxy`, so margin health is a connector-only feature. Honest, but it defers the wedge until a cost connector exists and contradicts the decision record. (2) Treat any cost CSV as `declared_cost` by header detection: no human statement behind the strongest label a file can earn, which is the PR 73 failure (a typed cell earning a label) in a new form. (3) Add a fourth enum value for exported actuals: needs a superseding ADR and splits a label readers already learned.
+
+**Reason.** The declaration is the "supplied in writing" act ADR-006 already accepts, made at the right grain (the upload, not the cell). The key map keeps the billing grain free of end-customer identifiers, matching NDA Class 2.
+
+**Consequences.** ADR-006's `declared_cost` definition is widened from a rate table to "a cost rate table, or a per-customer cost rollup, the customer declared in writing as its own cost of serving". PK-99 to PK-105 carry it. The per-customer cost rollup is a new data class that counsel must clear (PK-96) before any real file is received.
