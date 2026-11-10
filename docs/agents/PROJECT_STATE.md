@@ -6,8 +6,8 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 3/4
-Updated: 2026-11-10T21:07:43Z
+Active work: 4/4
+Updated: 2026-11-10T21:14:39Z
 
 ## IN_PROGRESS
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
@@ -18,6 +18,8 @@ Updated: 2026-11-10T21:07:43Z
   - owns: pricing/contract_structure.py, tests/test_contract_structure.py
 - **PK-41** Add a source-keyed connections table, backfill Salesforce, and an opaque tenant ref  (data-engineer, PR #89, deps PK-24,PK-25)
   - owns: neon/schema.sql, neon/migrations/2026-11-source-connections.sql, neon/migrations/2026-11-source-connections.down.sql, neon/test_migrations.py
+- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, PR #93, deps PK-53)
+  - owns: pricing/billing.py, tests/test_billing.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -34,8 +36,6 @@ Updated: 2026-11-10T21:07:43Z
   - owns: pricing/ingest.py#profiles, api/routers/diagnostic.py#load_report, api/routers/diagnostic.py#map_columns, api/shared.py#diagnostic_payload, tests/test_ingest_profiles.py
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
-- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, PR #93, deps PK-53)
-  - owns: pricing/billing.py, tests/test_billing.py
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
@@ -138,6 +138,10 @@ Updated: 2026-11-10T21:07:43Z
   - owns: pricing/copilot.py, pricing/metrics.py#realization_by_segment, tests/test_copilot.py
 - **PK-88** Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts  (qa-engineer)
   - owns: web/test/diagnostic-mobile-overflow.test.ts
+- **PK-90** Validate the policy threshold as a fraction on /diagnostic, /demo and /summary  (backend-engineer)
+  - owns: api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py
+- **PK-91** Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate  (backend-engineer, deps PK-54)
+  - owns: pricing/guardrail.py#source_partition,tests/test_guardrail.py
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T21:07:43Z",
+  "updated": "2026-11-10T21:14:39Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2420,7 +2420,7 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-53"
       ],
@@ -2444,10 +2444,15 @@
         "ci_run": null
       },
       "pr": 93,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93.",
+        "ts": "2026-11-10T21:13:12Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-10T20:44:25Z",
+      "updated": "2026-11-10T21:13:12Z",
       "notes": [
         {
           "ts": "2026-11-09T23:43:23Z",
@@ -2456,6 +2461,10 @@
         {
           "ts": "2026-11-10T20:44:25Z",
           "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T21:13:12Z",
+          "note": "review rejected: Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93."
         }
       ]
     },
@@ -3642,6 +3651,62 @@
           "note": "PR #92"
         }
       ]
+    },
+    {
+      "id": "PK-90",
+      "title": "Validate the policy threshold as a fraction on /diagnostic, /demo and /summary",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [],
+      "owns": [
+        "api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "policy outside [0,1] returns 422 with a message naming the unit; 0.15 and 15 are not silently both accepted; web client unchanged because it already sends a fraction; pinning test for 15 and -0.1"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_api_diagnostic.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T21:14:33Z",
+      "updated": "2026-11-10T21:14:33Z",
+      "notes": []
+    },
+    {
+      "id": "PK-91",
+      "title": "Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-54"
+      ],
+      "owns": [
+        "pricing/guardrail.py#source_partition,tests/test_guardrail.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "guardrail is source aware; rows with a billing SourceSystem never reach win rate or discount-band math; the refusal is disclosed in the load report as a count with the reason; partition_for_win_rate has a production caller; no silent drop"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_guardrail.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T21:14:39Z",
+      "updated": "2026-11-10T21:14:39Z",
+      "notes": []
     }
   ]
 }
