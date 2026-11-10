@@ -70,7 +70,8 @@ def _money(value: Any) -> Decimal | None:
         return None
     if not out.is_finite() or out < 0:
         return None
-    if out != 0 and out.adjusted() > _MAX_EXPONENT:
+    # adjusted() first: it never overflows on a crafted 1E+600000.
+    if out.adjusted() > _MAX_EXPONENT or abs(out) > Decimal(10) ** _MAX_EXPONENT:
         return None
     return out
 
@@ -96,9 +97,10 @@ def _bool(value: Any) -> bool:
 
 
 def _whole(value: Any) -> int | None:
-    """A whole number of months in 0..600, else None."""
+    """A whole number of months in 0..600, else None. A fractional value is
+    refused, never truncated (the caller discloses it)."""
     dec = _money(value)
-    if dec is None or dec > _MAX_TERM_MONTHS:
+    if dec is None or dec > _MAX_TERM_MONTHS or dec != dec.to_integral_value():
         return None
     return int(dec)
 
@@ -320,9 +322,11 @@ class HubSpotAdapter:
             currency = self._home_currency
             home, raw = _money(props.get("amount_in_home_currency")), _money(props.get("amount"))
             deal_amount = home
+            amount_raw = props.get("amount_in_home_currency")
             factor = home / raw if home is not None and raw is not None and raw > 0 else None
         else:
-            deal_amount = _money(self._prop("booked_acv", props, company, "amount"))
+            amount_raw = self._prop("booked_acv", props, company, "amount")
+            deal_amount = _money(amount_raw)
 
         list_total, net_total, line_qty, skipped = self._line_totals(record.get("line_items"))
         list_reason = ""
@@ -332,7 +336,10 @@ class HubSpotAdapter:
             # A mapped list property holds the amount in the deal's own
             # currency, so it takes the same scale as line items.
             list_value = mapped_list * factor if factor is not None else None
-            list_source = "mapped_field" if list_value is not None else "none"
+            if list_value is not None:
+                list_source = "mapped_field"
+            else:
+                list_source, list_reason = "rate_not_derivable", "rate_not_derivable"
         elif list_total is not None and factor is not None:
             list_value, list_source = list_total * factor, "line_items"
         else:
@@ -340,26 +347,42 @@ class HubSpotAdapter:
             list_reason = ("rate_not_derivable" if list_total is not None
                            else "no_list_source")
 
-        booked, booked_source = deal_amount, "deal_property"
-        if net_total is not None and factor is not None and "booked_acv" not in self._mapping:
-            booked, booked_source = net_total * factor, "line_items"
-        # List and booked must share a basis. A list built from line items is
-        # dropped, with a reason, when a line could not be priced, or when it
-        # falls below a booked value that came from the deal amount (the line
-        # items then cover only part of what was sold, or a recurring price is
-        # not the deal's term total). Never a list under the price paid.
-        if list_source == "line_items" and booked is not None:
-            if skipped:
-                list_value, list_source, list_reason = None, "none", "line_unpriced"
-            elif booked_source == "deal_property" and list_value < booked:
-                list_value, list_source, list_reason = None, "none", "list_below_booked"
-        # One basis for the mismatch flag in both branches: the line items' own
-        # net total against the deal amount, when both exist.
+        # booked_acv is the deal amount (or the user-mapped annualised
+        # property), never a line item's per-period net: a line net is a
+        # different basis and would enter the book as ACV beside annual deals.
+        # Line nets only feed the mismatch check below.
+        booked, booked_reason = deal_amount, ""
+        if deal_amount is not None:
+            booked_source = "deal_property"
+        elif _text(amount_raw):
+            booked_source, booked_reason = "unparseable", "amount_unparseable"
+        else:
+            booked_source, booked_reason = "none", "amount_missing"
+        # The line items' own net total against the deal amount, when both
+        # exist: one basis for the flag and for the list decision.
         amount_mismatch = bool(
             net_total is not None and factor is not None and deal_amount is not None
             and deal_amount > 0
             and abs(net_total * factor - deal_amount) / deal_amount > Decimal("0.01")
         )
+        # A list built from line items is dropped, with a reason, when a line
+        # could not be priced, when the line basis disagrees with the deal
+        # amount (a per-period or partial line set), or when it falls below the
+        # booked value. Never a list under the price paid; booked is kept.
+        if list_source == "line_items" and booked is not None:
+            if skipped:
+                list_value, list_source, list_reason = None, "none", "line_unpriced"
+            elif amount_mismatch:
+                list_value, list_source, list_reason = (
+                    None, "none", "list_dropped_basis_mismatch")
+            elif list_value < booked:
+                list_value, list_source, list_reason = None, "none", "list_below_booked"
+
+        term_raw = self._prop("term_months", props, company)
+        term_months = _whole(term_raw)
+        term_reason = ""
+        if term_months is None and _money(term_raw) is not None and                 _money(term_raw) != _money(term_raw).to_integral_value():
+            term_reason = "term_months_fractional"
 
         tier = (_text(self._prop("product_tier", props, company))
                 or self._pipeline_labels.get(pipeline_id) or pipeline_id or "Unknown")
@@ -393,9 +416,11 @@ class HubSpotAdapter:
             "list_source": list_source,
             "list_reason": list_reason,
             "booked_source": booked_source,
+            "booked_reason": booked_reason,
             "amount_mismatch": amount_mismatch,
             "quantity": float(qty) if qty is not None else None,
-            "term_months": _whole(self._prop("term_months", props, company)),
+            "term_months": term_months,
+            "term_reason": term_reason,
             "rep_id": _text(self._prop("rep_id", props, company, "hubspot_owner_id")),
             "approved_by": _text(self._prop("approved_by", props, company)),
             "competitor_present": _bool(self._prop("competitor_present", props, company)),

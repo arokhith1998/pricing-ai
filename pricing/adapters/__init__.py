@@ -12,7 +12,7 @@ from __future__ import annotations
 from pricing.adapters.hubspot import HubSpotAdapter
 from pricing.crm import ADAPTER as _SALESFORCE
 from pricing.csv_adapter import CsvAdapter
-from pricing.guardrail import DealSourceAdapter
+from pricing.guardrail import DealDataError, DealSourceAdapter
 from pricing.schema import SourceSystem
 
 DEFAULT_SOURCE = SourceSystem.SALESFORCE.value
@@ -20,6 +20,15 @@ DEFAULT_SOURCE = SourceSystem.SALESFORCE.value
 
 class UnknownSourceSystemError(ValueError):
     """source_system names a system with no registered adapter."""
+
+
+class ClosedFloorError(DealDataError):
+    """Too few usable closed deals for an analysis. Carries `code` so callers
+    branch on it, not on message text. Raised by the /crm route today because
+    pricing/guardrail.py (not in this task's claim) raises a plain
+    DealDataError; the guardrail should adopt this type in PK-91."""
+
+    code = "closed_floor"
 
 
 _CSV = CsvAdapter()

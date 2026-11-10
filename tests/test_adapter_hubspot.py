@@ -204,7 +204,11 @@ def test_amount_disagreeing_with_line_items_is_flagged_not_hidden(adapter):
     deal = copy.deepcopy(next(d for d in ALL_DEALS if d["id"] == "501"))
     deal["properties"]["amount"] = "70000"
     row = adapter.to_canonical(deal)
-    assert row["booked_acv"] == 98000.0 and row["amount_mismatch"] is True
+    # Booked is the deal amount; the line net only feeds the mismatch, and the
+    # list on the disagreeing line basis is dropped with its reason.
+    assert row["booked_acv"] == 70000.0 and row["booked_source"] == "deal_property"
+    assert row["amount_mismatch"] is True
+    assert row["list_acv"] is None and row["list_reason"] == "list_dropped_basis_mismatch"
 
 
 def test_company_association_shapes(adapter):
@@ -433,7 +437,7 @@ def test_readiness_surfaces_booked_sources_and_mismatch_counts(client):
     resp = client.post("/crm/analyze", json={
         "records": book, "source_system": "hubspot", "source_config": BOOK_CONFIG})
     readiness = resp.json()["readiness"]
-    assert readiness["booked_source_counts"] == {"line_items": 242}
+    assert readiness["booked_source_counts"] == {"deal_property": 242}
     assert readiness["amount_mismatch"] == 1
 
 
@@ -500,11 +504,13 @@ def test_recurring_line_below_the_deal_total_drops_the_list():
     row = _book_adapter().to_canonical(deal)
     assert row["list_acv"] is None and row["list_reason"] == "list_below_booked"
     assert row["booked_acv"] == 108000.0
-    # With a line amount the booked value is the line basis, and the typed
-    # amount's disagreement is flagged on the same basis.
+    # With a line amount that disagrees, booked stays the deal amount, the
+    # mismatch is flagged and the list is dropped with the basis reason.
     deal = _basis_deal([_line("1000", "10", "10000")], "108000")
     row = _book_adapter().to_canonical(deal)
-    assert (row["list_acv"], row["booked_acv"]) == (10000.0, 10000.0)
+    assert (row["list_acv"], row["booked_acv"]) == (None, 108000.0)
+    assert row["booked_source"] == "deal_property"
+    assert row["list_reason"] == "list_dropped_basis_mismatch"
     assert row["amount_mismatch"] is True
 
 
@@ -512,3 +518,83 @@ def test_consistent_line_basis_keeps_the_list_and_flags_nothing():
     deal = _basis_deal([_line("1000", "10", "9000")], "9000")
     row = _book_adapter().to_canonical(deal)
     assert (row["list_acv"], row["list_reason"], row["amount_mismatch"]) == (10000.0, "", False)
+
+
+# --- PK-46 second rework: booked basis, money bound, disclosure, nits -------
+
+
+def test_line_net_never_replaces_the_deal_amount_probe():
+    # Reviewer's probe: annual deal amount 120000, one monthly line priced
+    # 12000 with a net of 10000. Booked is the deal amount, never the line net.
+    row = _book_adapter().to_canonical(_basis_deal([_line("12000", "1", "10000")], "120000"))
+    assert row["booked_acv"] == 120000.0 and row["booked_source"] == "deal_property"
+    assert row["list_acv"] is None and row["list_source"] == "none"
+    assert row["list_reason"] == "list_dropped_basis_mismatch"
+    assert row["amount_mismatch"] is True
+
+
+@pytest.mark.parametrize("value,kept", [("1000000000000000", True), ("1000000000000001", False),
+                                        ("9000000000000000", False), ("9E+15", False)])
+def test_money_bound_is_exactly_1e15(value, kept):
+    row = _book_adapter().to_canonical(_basis_deal([], value))
+    assert (row["booked_acv"] is not None) is kept
+    if not kept:
+        assert row["booked_source"] == "unparseable"
+
+
+def test_ask_user_disclosure_does_not_depend_on_error_text(client, monkeypatch):
+    from pricing import guardrail
+    from pricing.adapters import ClosedFloorError
+    original = guardrail.analyze_deals
+
+    def reworded(*args, **kwargs):
+        try:
+            return original(*args, **kwargs)
+        except guardrail.DealDataError:
+            raise guardrail.DealDataError("Too few closed deals to proceed.") from None
+
+    monkeypatch.setattr(guardrail, "analyze_deals", reworded)
+    records = [_synthetic_record(i, won=True, stage="review") for i in range(40)]
+    resp = client.post("/crm/analyze", json={
+        "records": records, "source_system": "hubspot", "source_config": BOOK_CONFIG})
+    assert resp.status_code == 422
+    assert "40 deals" in resp.json()["detail"]
+    assert ClosedFloorError.code == "closed_floor"
+    assert issubclass(ClosedFloorError, guardrail.DealDataError)
+
+
+def test_mapped_list_without_a_derivable_rate_is_labelled():
+    cfg = {**BOOK_CONFIG, "use_home_currency": True, "home_currency": "USD",
+           "property_mapping": {"list_acv": "list_price"}}
+    adapter = HubSpotAdapter().configured(cfg)
+    deal = _basis_deal([], "5000")
+    deal["properties"].update({"list_price": "6000", "amount_in_home_currency": "",
+                               "deal_currency_code": "EUR"})
+    row = adapter.to_canonical(deal)
+    assert row["list_acv"] is None
+    assert row["list_source"] == "rate_not_derivable" and row["list_reason"] == "rate_not_derivable"
+
+
+def test_fractional_term_months_is_refused_with_a_reason():
+    adapter = HubSpotAdapter().configured({**BOOK_CONFIG, "property_mapping": {"term_months": "term"}})
+    deal = _basis_deal([], "5000")
+    deal["properties"]["term"] = "12.9"
+    row = adapter.to_canonical(deal)
+    assert row["term_months"] is None and row["term_reason"] == "term_months_fractional"
+    deal["properties"]["term"] = "12.0"
+    row = adapter.to_canonical(deal)
+    assert row["term_months"] == 12 and row["term_reason"] == ""
+
+
+def test_non_numeric_amount_is_unparseable_not_deal_property():
+    row = _book_adapter().to_canonical(_basis_deal([], "98,000"))
+    assert row["booked_acv"] is None
+    assert row["booked_source"] == "unparseable" and row["booked_reason"] == "amount_unparseable"
+    extras = HubSpotAdapter.readiness_extras([row])
+    assert extras["booked_source_counts"] == {"unparseable": 1}
+
+
+def test_records_hash_is_order_independent_for_raw_hubspot_records():
+    from api.routers.crm import _records_hash
+    records = [_synthetic_record(i, won=True) for i in range(5)]
+    assert _records_hash(records) == _records_hash(list(reversed(records)))

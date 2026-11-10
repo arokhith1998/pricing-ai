@@ -34,7 +34,7 @@ from pydantic import BaseModel, Field
 from pricing import crm as crm_mod
 from pricing import governance as governance_mod
 from pricing import guardrail
-from pricing.adapters import UnknownSourceSystemError, get_adapter
+from pricing.adapters import ClosedFloorError, UnknownSourceSystemError, get_adapter
 from pricing.adapters.hubspot import HubSpotConfigError
 from api.shared import analysis_payload
 
@@ -266,11 +266,16 @@ def _analyze(adapter, req: CRMAnalyzeReq) -> dict:
             max_records=guardrail.MAX_RECORDS,
         )
     except guardrail.DealDataError as exc:
-        if extras and str(exc).startswith("Only "):
-            # The floor refusal: say what was excluded and why, counts only, so
-            # a first run with an unconfirmed stage map explains itself.
+        usable_closed = sum(
+            1 for row in rows
+            if row.get("outcome") in {"closed_won", "closed_lost"} and guardrail._usable(row)
+        )
+        if extras and usable_closed < guardrail.MIN_CLOSED_DEALS:
+            # The floor refusal, decided from the data (not the error text):
+            # say what was excluded and why, counts only, so a first run with
+            # an unconfirmed stage map explains itself.
             info = extras(rows)
-            raise guardrail.DealDataError(
+            raise ClosedFloorError(
                 f"{exc} Excluded as ask_user (stage not confirmed or not in the "
                 f"map): {info['ask_user']['deals']} deals. List price source "
                 f"counts: {json.dumps(info['list_source_counts'], sort_keys=True)}."
