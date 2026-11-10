@@ -392,3 +392,5 @@
 {"ts": "2026-11-10T22:10:14Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "QA -> APPROVED: CI run 42911548787"}
 {"ts": "2026-11-10T22:10:28Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T22:10:30Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:12:45Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:12:46Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
