@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, Eyebrow, Section } from "@/components/ui";
+import { Button, Eyebrow, Section, StatusIcons, StatusPill } from "@/components/ui";
+import { moneyShort, pct } from "@/lib/format";
 import HeroHeadline from "@/components/HeroHeadline";
 import DiagnosticPreview, { type DiagnosticPreviewData } from "@/components/DiagnosticPreview";
 import WhatYouGet from "@/components/WhatYouGet";
@@ -7,7 +8,7 @@ import TrustBoundaryStrip from "@/components/TrustBoundaryStrip";
 import DecisionRecord from "@/components/landing/DecisionRecord";
 import DecisionWalk from "@/components/landing/DecisionWalk";
 import { pageMetadata } from "@/lib/page-metadata";
-import { OVERVIEW, PROBE_BANDS, RECORD, peakBandLabel } from "@/lib/landing-sample";
+import { HERO_EXCESS, HERO_EXCESS_PCT, OVERVIEW, PROBE_BANDS, RECORD, peakBandLabel } from "@/lib/landing-sample";
 
 // Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
@@ -47,6 +48,14 @@ export default function Landing() {
               Every discount exception is checked against the book before approval. The request
               stays as asked, the evidence is shown, and a person decides.
             </p>
+            <div className="mt-5" data-testid="hero-gap">
+              <StatusPill tone="leak" label="Gap to segment win point" icon={StatusIcons.leak} />
+              <p className="pk-figure m-0 mt-2 text-coral">{moneyShort(HERO_EXCESS)}</p>
+              <p className="pk-small m-0 mt-1 max-w-[52ch] text-muted">
+                discount given beyond each segment&rsquo;s win point ({pct(HERO_EXCESS_PCT)} of booked
+                value), across the synthetic 2,000-deal book
+              </p>
+            </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
               <Button href="/contact" size="lg">
                 Walk through one discount exception

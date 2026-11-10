@@ -20,7 +20,7 @@ const ROLES: { role: string; line: string; excerpt: string }[] = [
   },
   {
     role: "Finance",
-    line: "See who approved what, and where CRM discount data stops. CRM cost figures are a cost proxy, not margin; margin needs billing or ERP.",
+    line: "See who approved what, and where CRM discount data stops. CRM cost figures are a cost proxy, not margin, until billing or ERP cost is connected.",
     excerpt: `The record keeps the requested terms, this evidence and who decided.`,
   },
 ];

@@ -14,7 +14,7 @@ const WILL = [
 
 const WILL_NOT = [
   "Set or approve a price. A person decides.",
-  "Call a CRM figure margin. CRM cost figures are a cost proxy, not margin.",
+  "Relabel a CRM cost figure. It stays a cost proxy, never labeled margin.",
   "Score commit, ramp or overage yet. V1 governs the discount on committed ACV; those are captured, not scored.",
   "Keep row-level deal data. It is processed in memory and deleted.",
 ];

@@ -89,7 +89,7 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
       return (
         <PanelFrame step={step}>
           {[
-            { band: r.requestedBand, label: `Requested, ${r.requestedBand.label} band, all segments`, emphasis: false },
+            { band: r.requestedBand, label: `Requested, ${r.requestedBand.label} band`, emphasis: false },
             {
               band: r.referenceBand,
               label: `${r.segment} reference, ${r.referenceBandLabel} band`,
@@ -111,9 +111,6 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
           ))}
           <dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Method">{r.method}</Field>
-            <Field label="Page fingerprint" mono>
-              {r.pageFingerprint}
-            </Field>
           </dl>
           <SyntheticTag className="mt-4" />
         </PanelFrame>
@@ -144,8 +141,6 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
               <dd className="m-0 text-fg">override</dd>
               <dt className="text-muted">requested</dt>
               <dd className="m-0 text-fg">{pct(r.requestedDiscount)}</dd>
-              <dt className="text-muted">page_fingerprint</dt>
-              <dd className="m-0 break-all text-fg">{r.pageFingerprint}</dd>
             </dl>
           </div>
           <SyntheticTag variant="illustrative" className="mt-4" />

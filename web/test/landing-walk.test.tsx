@@ -59,7 +59,7 @@ describe("walk without the arming effect", () => {
     expect(html).not.toContain("sticky");
     expect((html.match(/data-step=/g) ?? []).length).toBe(4);
     expect(html).toContain(RECORD.opportunityId);
-    expect(html).toContain("Page fingerprint");
+    expect(html.toLowerCase()).not.toContain("fingerprint");
     expect(html).not.toContain("evidence_version");
     expect(html).not.toMatch(/trade/i);
     expect(html).toContain("all segments");

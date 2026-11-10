@@ -43,7 +43,7 @@ export default function DecisionRecord() {
           {pct(r.referenceBand.winRate)}
         </Field>
         <Field label="Method">{r.method}</Field>
-        <Field label="Page fingerprint" mono>
+        <Field label="Sample ID, this page only, not an audit hash" mono>
           {r.pageFingerprint}
         </Field>
       </dl>

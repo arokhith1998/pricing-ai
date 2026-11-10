@@ -14,6 +14,7 @@
 // Written as plain React.createElement calls (no JSX) so this file can stay
 // a .ts file and does not need to touch vitest.config.mts's test-file glob,
 // matching the pattern in lead-form.test.ts / guidance-client.test.ts.
+import { readdirSync, readFileSync } from "node:fs";
 import { createElement } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -60,6 +61,53 @@ describe("Landing page", () => {
     expect(String(metadata.description).toLowerCase()).not.toMatch(/usage (and|or) hybrid|prices every/);
   });
 
+  it("passes the ADR-006 margin guard on every landing string and on the rendered page", () => {
+    // Ported from pricing/cost_basis.py (keep in sync with its allowlist
+    // comment): exactly four negations, whole-phrase only, never followed by a
+    // figure; any other "margin" next to a CRM cost proxy is a violation.
+    const ALLOWED = ["not margin", "never labeled margin", "not bookable margin", "not cost-based margin"];
+    const LEAD_IN =
+      String.raw`(?:\.\.\.|\u2026|[:,(\u2013\u2014])\s*[-\u2212\u2013]?\s*` +
+      String.raw`(?:(?:about|roughly|around|nearly|over|under|approximately|circa|i\.e\.|e\.g\.)\s*,?\s*)?[\d$%]`;
+    const allowedRe = new RegExp(
+      String.raw`(?<![\w-])(?:` +
+        ALLOWED.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") +
+        String.raw`)(?=\s*$|\s*[^\w\s\-])(?!\s*` +
+        LEAD_IN +
+        ")",
+      "gi",
+    );
+    const violations = (text: string): string[] => {
+      const covered = [...text.matchAll(allowedRe)].map((m) => [m.index!, m.index! + m[0].length]);
+      return [...text.matchAll(/margin/gi)]
+        .filter((m) => !covered.some(([a, b]) => a <= m.index! && m.index! < b))
+        .map((m) => text.slice(Math.max(0, m.index! - 30), m.index! + 22));
+    };
+    // Self-check of the port against the Python rules.
+    expect(violations("a cost proxy, not margin, until ERP")).toEqual([]);
+    expect(violations("never labeled margin.")).toEqual([]);
+    expect(violations("True margin needs ERP")).not.toEqual([]);
+    expect(violations("not margin: 40%")).not.toEqual([]);
+    expect(violations("not marginal")).not.toEqual([]);
+
+    const files = [
+      "src/app/page.tsx",
+      "src/components/HeroHeadline.tsx",
+      "src/components/DiagnosticPreview.tsx",
+      "src/components/WhatYouGet.tsx",
+      "src/components/TrustBoundaryStrip.tsx",
+      ...readdirSync("src/components/landing").map((f) => "src/components/landing/" + f),
+    ];
+    const literalRe = /"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
+    for (const f of files) {
+      for (const lit of readFileSync(f, "utf8").match(literalRe) ?? []) {
+        expect(violations(lit), `${f}: ${lit}`).toEqual([]);
+      }
+    }
+    const { container } = render(createElement(Landing));
+    expect(violations(container.textContent ?? "")).toEqual([]);
+  });
+
   it("never claims to be a system of record", () => {
     const { container } = render(createElement(Landing));
     expect(container.textContent?.toLowerCase()).not.toContain("system of record");
@@ -67,9 +115,15 @@ describe("Landing page", () => {
 
   it("renders the hero number straight from the bundled sample snapshot", () => {
     const { container } = render(createElement(Landing));
-    // Recomputed from the snapshot, so a regenerated sample-fallback.json
-    // still passes. Today: 8,946,770 shown as $8.9M.
+    // Asserts the RENDERED text. Recomputed from the snapshot, so a regenerated
+    // sample-fallback.json still passes. Today: 8,946,770 shown as $8.9M.
+    const gap = container.querySelector('[data-testid="hero-gap"]');
+    expect(gap?.textContent).toContain("Gap to segment win point");
+    expect(gap?.textContent).toContain(moneyShort(HERO_EXCESS));
+    expect(gap?.textContent).toContain("synthetic 2,000-deal book");
+    expect(container.textContent).toContain("$8.9M");
     // The record shows this one deal's own excess, never the book total.
+    expect(container.querySelector('[data-testid="hero-gap"]')?.closest("figure")).toBeNull();
     expect(container.textContent).toContain(moneyShort(RECORD.excessDollars));
     expect(container.textContent).toContain("on this one synthetic deal");
     expect(container.textContent).not.toContain("booked above each segment");
@@ -86,8 +140,9 @@ describe("Landing page", () => {
 
   it("labels the hero number with a status icon and a synthetic caption", () => {
     const { container } = render(createElement(Landing));
+    const pills = [...container.querySelectorAll('[data-status="leak"]')].map((p) => p.textContent);
+    expect(pills.some((t) => t?.includes("Gap to segment win point"))).toBe(true);
     const pill = container.querySelector('[data-status="leak"]');
-    expect(pill?.textContent).toContain("gap to its win point");
     expect(pill?.querySelector("svg")).toBeTruthy();
     expect(container.textContent?.toLowerCase()).toContain("synthetic sample deal");
   });
@@ -101,7 +156,7 @@ describe("Landing page", () => {
       expect(container.innerHTML).not.toContain(bad);
     }
     // The only coral on the page: the leak pill and the hero number.
-    expect(container.querySelectorAll('[class*="coral"]').length).toBe(2);
+    expect(container.querySelectorAll('[class*="coral"]').length).toBe(4);
   });
 
   it("uses the softened headline, the synthetic-book wording and the no-cohort close", () => {
