@@ -360,3 +360,4 @@
 {"ts": "2026-11-10T20:44:25Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
 {"ts": "2026-11-10T20:44:51Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T20:44:52Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
+{"ts": "2026-11-10T21:07:43Z", "event": "status", "task": "PK-41", "agent": "data-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rework round rejected: down migration still drops confirmed stage_map/list_price_set for Salesforce rows without a legacy match (blocker, reproduced on PG16); drift check misses competitor_context_sources; migration tests are string matches only; v2 key_id check incomplete. Findings on PR 89."}
