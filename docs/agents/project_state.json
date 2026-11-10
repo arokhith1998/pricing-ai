@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:04:09Z",
+  "updated": "2026-11-10T22:05:15Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2482,7 +2482,7 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-53"
       ],
@@ -2509,12 +2509,12 @@
       "review": {
         "verdict": "reject",
         "by": "code-reviewer",
-        "notes": "Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93.",
-        "ts": "2026-11-10T21:13:12Z"
+        "notes": "Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree.",
+        "ts": "2026-11-10T22:05:15Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-10T21:39:02Z",
+      "updated": "2026-11-10T22:05:15Z",
       "notes": [
         {
           "ts": "2026-11-09T23:43:23Z",
@@ -2531,6 +2531,10 @@
         {
           "ts": "2026-11-10T21:39:02Z",
           "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T22:05:15Z",
+          "note": "review rejected: Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree."
         }
       ]
     },
