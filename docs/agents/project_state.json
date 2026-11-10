@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:47:12Z",
+  "updated": "2026-11-10T22:51:03Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3219,22 +3219,11 @@
       "id": "PK-76",
       "title": "Redesign the landing page around the decision record and a scroll-driven walk",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-75"
       ],
-      "owns": [
-        "web/src/app/page.tsx",
-        "web/src/app/opengraph-image.tsx",
-        "web/src/components/HeroHeadline.tsx",
-        "web/src/components/DiagnosticPreview.tsx",
-        "web/src/components/WhatYouGet.tsx",
-        "web/src/components/TrustBoundaryStrip.tsx",
-        "web/src/components/landing",
-        "web/src/lib/landing-sample.ts",
-        "web/test/landing-page.test.ts",
-        "web/test/landing-walk.test.tsx"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-76",
       "worktree": ".claude/worktrees/PK-76",
       "acceptance": [
@@ -3255,18 +3244,18 @@
           "web/test/landing-page.test.ts",
           "web/test/landing-walk.test.tsx"
         ],
-        "ci_run": null
+        "ci_run": "42917701326"
       },
       "pr": 94,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve-with-nits",
         "by": "code-reviewer",
-        "notes": "Round-two rejected: two strings fail the ADR-006 margin guard; hero excess figure removed against acceptance criteria; page_fingerprint still in the log row. Findings on PR 94. Forced past cap: own worktree.",
-        "ts": "2026-11-10T22:41:30Z"
+        "notes": "Third-round approve; OG card wording nit to PK-93",
+        "ts": "2026-11-10T22:50:35Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-10T22:47:12Z",
+      "updated": "2026-11-10T22:51:01Z",
       "notes": [
         {
           "ts": "2026-11-09T22:48:56Z",
@@ -3291,8 +3280,26 @@
         {
           "ts": "2026-11-10T22:47:12Z",
           "note": "PR #94"
+        },
+        {
+          "ts": "2026-11-10T22:50:35Z",
+          "note": "review approve-with-nits"
+        },
+        {
+          "ts": "2026-11-10T22:50:40Z",
+          "note": "CI run 42917701326"
+        },
+        {
+          "ts": "2026-11-10T22:50:58Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:50:58Z"
+      }
     },
     {
       "id": "PK-77",
@@ -3904,6 +3911,35 @@
       "blocked_by": null,
       "created": "2026-11-10T22:02:00Z",
       "updated": "2026-11-10T22:02:00Z",
+      "notes": []
+    },
+    {
+      "id": "PK-93",
+      "title": "Social card wording: 'checks' not 'prices', drop 'usage and hybrid'",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-76"
+      ],
+      "owns": [
+        "web/src/app/opengraph-image.tsx,web/test/landing-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "opengraph-image.tsx subtitle says the product checks discount exceptions before approval, never prices them; no 'usage and hybrid' or 'usage or hybrid'; a test renders the card text and bans both; ARR band stays $20M to $100M"
+      ],
+      "tests": {
+        "required": [
+          "web/test/landing-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T22:51:03Z",
+      "updated": "2026-11-10T22:51:03Z",
       "notes": []
     }
   ]

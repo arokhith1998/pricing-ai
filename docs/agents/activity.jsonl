@@ -417,3 +417,8 @@
 {"ts": "2026-11-10T22:41:30Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Round-two rejected: two strings fail the ADR-006 margin guard; hero excess figure removed against acceptance criteria; page_fingerprint still in the log row. Findings on PR 94. Forced past cap: own worktree."}
 {"ts": "2026-11-10T22:47:09Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T22:47:12Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
+{"ts": "2026-11-10T22:50:35Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve-with-nits"}
+{"ts": "2026-11-10T22:50:40Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 42917701326"}
+{"ts": "2026-11-10T22:50:58Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-10T22:51:01Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T22:51:03Z", "event": "add", "task": "PK-93", "agent": "web-engineer", "detail": "Social card wording: 'checks' not 'prices', drop 'usage and hybrid'"}

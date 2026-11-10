@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-10T22:47:12Z
+Updated: 2026-11-10T22:51:03Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -20,8 +20,6 @@ Updated: 2026-11-10T22:47:12Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
-  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
 
@@ -124,6 +122,8 @@ Updated: 2026-11-10T22:47:12Z
   - owns: pricing/guardrail.py#source_partition,tests/test_guardrail.py
 - **PK-92** Contract-structure readout omits the floor sentence when frame attrs are missing  (backend-engineer, deps PK-32)
   - owns: pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py
+- **PK-93** Social card wording: 'checks' not 'prices', drop 'usage and hybrid'  (web-engineer, deps PK-76)
+  - owns: web/src/app/opengraph-image.tsx,web/test/landing-page.test.ts
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
@@ -150,6 +150,7 @@ Updated: 2026-11-10T22:47:12Z
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)
+- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
