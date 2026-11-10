@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T21:32:16Z",
+  "updated": "2026-11-10T21:39:02Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2439,7 +2439,7 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-53"
       ],
@@ -2471,7 +2471,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-10T21:13:12Z",
+      "updated": "2026-11-10T21:39:02Z",
       "notes": [
         {
           "ts": "2026-11-09T23:43:23Z",
@@ -2484,6 +2484,10 @@
         {
           "ts": "2026-11-10T21:13:12Z",
           "note": "review rejected: Rejected: shortfall/overage netted across periods (blocker), sub-month periods annualised as months (blocker), overlap double-count, absent discount column read as 0, refunds scored, guardrail wiring out of claim. Findings on PR 93."
+        },
+        {
+          "ts": "2026-11-10T21:39:02Z",
+          "note": "PR #93"
         }
       ]
     },

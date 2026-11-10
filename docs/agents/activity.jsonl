@@ -368,3 +368,5 @@
 {"ts": "2026-11-10T21:17:00Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T21:17:05Z", "event": "status", "task": "PK-14", "agent": "web-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-10T21:32:16Z", "event": "status", "task": "PK-39", "agent": "backend-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected (no blockers): /map-columns swallows LLM failure as enabled+empty, deterministic matches returned as None, missing tests for conflicting-stage ask_user and LLM positive path. Findings on PR 90. Forced past cap 4: every active task runs in its own worktree (.claude/worktrees/PK-NN), so the shared-checkout hazard the cap guards against does not apply."}
+{"ts": "2026-11-10T21:39:01Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T21:39:02Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
