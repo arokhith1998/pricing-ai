@@ -48,7 +48,7 @@ describe("/pricing", () => {
       "operate",
     ]);
     for (const t of tiers) expect(t.querySelector("a[href='/contact']")).not.toBeNull();
-    const roadmap = container.querySelector("[data-roadmap]");
+    const roadmap = container.querySelector("[data-roadmap='data-expansion']");
     expect(roadmap).not.toBeNull();
     expect(roadmap?.querySelector("a, button")).toBeNull();
     expect(roadmap?.closest("[data-tier]")).toBeNull();
