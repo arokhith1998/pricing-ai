@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-10T22:36:26Z
+Updated: 2026-11-10T22:39:20Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -20,8 +20,6 @@ Updated: 2026-11-10T22:36:26Z
   - owns: docs/ops/data-register.md
 - **PK-22** Draft the NDA data-classes schedule for counsel  (customer-success, PR #62)
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
-- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, PR #93, deps PK-53)
-  - owns: pricing/billing.py, tests/test_billing.py
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
   - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
@@ -150,6 +148,7 @@ Updated: 2026-11-10T22:36:26Z
 - **PK-46** Map HubSpot deals, confirmed stage maps and properties to canonical deals  (backend-engineer, PR #83, deps PK-25)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)
 - **PK-53** Add the contract_period_actuals grain and stripe and chargebee source values  (data-engineer, PR #84, deps PK-25)
+- **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, PR #93, deps PK-53)
 - **PK-6** Update trust, privacy and subprocessor disclosures to name Anthropic  (web-engineer, PR #77, deps PK-5)
 - **PK-74** Fix the copilot investigate opportunity reading a column the real book does not carry  (ai-engineer, PR #80)
 - **PK-75** Build the design system, tokens, shared UI primitives and site chrome  (web-engineer, PR #87)

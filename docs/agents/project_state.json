@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:36:26Z",
+  "updated": "2026-11-10T22:39:20Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2509,14 +2509,11 @@
       "id": "PK-54",
       "title": "Compute realization, contracted versus billed and usage actuals from billing",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "DONE",
       "dependencies": [
         "PK-53"
       ],
-      "owns": [
-        "pricing/billing.py",
-        "tests/test_billing.py"
-      ],
+      "owns": [],
       "branch": "agent/backend-engineer/PK-54",
       "worktree": ".claude/worktrees/PK-54",
       "acceptance": [
@@ -2530,18 +2527,18 @@
         "required": [
           "tests/test_billing.py"
         ],
-        "ci_run": null
+        "ci_run": "42911471054"
       },
       "pr": 93,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve",
         "by": "code-reviewer",
-        "notes": "Re-review rejected: whole-month detection clamps from period start not billing day, drops real monthly periods for subs billed on the 29th to 31st; refund rows enter contracted_vs_billed. Findings on PR 93. Forced past cap 4: own worktree.",
-        "ts": "2026-11-10T22:05:15Z"
+        "notes": "Third-round approve",
+        "ts": "2026-11-10T22:38:53Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:12Z",
-      "updated": "2026-11-10T22:12:46Z",
+      "updated": "2026-11-10T22:39:20Z",
       "notes": [
         {
           "ts": "2026-11-09T23:43:23Z",
@@ -2566,8 +2563,26 @@
         {
           "ts": "2026-11-10T22:12:46Z",
           "note": "PR #93"
+        },
+        {
+          "ts": "2026-11-10T22:38:53Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-10T22:38:58Z",
+          "note": "CI run 42911471054"
+        },
+        {
+          "ts": "2026-11-10T22:39:16Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T22:39:16Z"
+      }
     },
     {
       "id": "PK-55",
