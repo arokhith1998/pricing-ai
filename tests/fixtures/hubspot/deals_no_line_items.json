@@ -1,0 +1,46 @@
+[
+  {
+    "id": "701",
+    "properties": {
+      "dealname": "Pebble Cove Software annual",
+      "amount": "12000",
+      "dealstage": "8000002",
+      "pipeline": "p_self",
+      "closedate": "2026-04-02T00:00:00Z",
+      "createdate": "2026-03-20T09:00:00.000Z",
+      "hubspot_owner_id": "77004",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9201", "type": "deal_to_company"}]}},
+    "company": {"id": "9201", "properties": {"name": "Pebble Cove Software", "segment": "SMB", "industry": "Software"}}
+  },
+  {
+    "id": "702",
+    "properties": {
+      "dealname": "Kestrel Lane Outfitters",
+      "amount": "6000",
+      "dealstage": "8000003",
+      "pipeline": "p_self",
+      "closedate": "2026-04-18T00:00:00Z",
+      "createdate": "2026-04-01T09:00:00.000Z",
+      "hubspot_owner_id": "77004",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9202", "type": "deal_to_company"}]}},
+    "company": {"id": "9202", "properties": {"name": "Kestrel Lane Outfitters", "segment": "SMB", "industry": "Retail"}},
+    "line_items": []
+  },
+  {
+    "id": "703",
+    "properties": {
+      "dealname": "Drift Harbor Co",
+      "amount": "8000",
+      "dealstage": "8000001",
+      "closedate": "2026-09-30T00:00:00Z",
+      "createdate": "2026-09-01T09:00:00.000Z",
+      "deal_currency_code": "USD"
+    },
+    "associations": {"companies": {"results": [{"id": "9203", "type": "deal_to_company"}]}},
+    "company": {"id": "9203", "properties": {"name": "Drift Harbor Co", "segment": "SMB", "industry": "Marine"}}
+  }
+]

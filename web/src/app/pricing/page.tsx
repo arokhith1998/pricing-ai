@@ -1,115 +1,102 @@
-import type { Metadata } from "next";
-import Reveal from "@/components/Reveal";
+import Link from "next/link";
+import { Button, Card, Eyebrow, PageHeader, Section, SyntheticTag } from "@/components/ui";
+import { pageMetadata } from "@/lib/page-metadata";
 
 export const dynamic = "force-static";
-export const metadata: Metadata = { title: "Pricing · Pricekeel" };
+export const metadata = pageMetadata({
+  title: "Pricing",
+  description:
+    "Two ways to work with Pricekeel: a one-time Diagnostic on your closed deals, and Operate, the Salesforce discount-exception loop. Scoped on a call.",
+  path: "/pricing",
+});
+
+type Feature = { text: string; roadmap?: boolean };
 
 type Tier = {
+  id: string;
   name: string;
   audience: string;
   body: string;
-  features: string[];
-  highlight?: boolean;
-  footer?: string;
+  features: Feature[];
+  footer: string;
+  primary?: boolean;
 };
 
-// Tier copy is intentionally written so Diagnostic feels like the door-opener
-// (free for design partners, one cycle) and Operate feels like the governance
-// loop (requests priced, decisions logged, digests sent). The "Why Operate is
-// a subscription" section below the cards makes the contrast visceral.
 const TIERS: Tier[] = [
   {
+    id: "diagnostic",
     name: "Diagnostic",
     audience: "First touch, pilot",
-    body:
-      "A one-time retrospective on your last four quarters of closed deals. Free for design partners. Designed to prove the methodology on your own book before any commercial conversation.",
+    body: "A one-time retrospective on your last four quarters of closed deals. Free for design partners. Designed to prove the methodology on your own book before any commercial conversation.",
     features: [
-      "CSV or Excel upload, mapping reviewed with you on the call",
-      "Win point, leakage lenses, packaging signal, trade-or-give",
-      "Per-deal discount Guidance with plain-language factors",
-      "Executive summary written from the figures, CFO-forwardable",
+      { text: "CSV or Excel upload, mapping reviewed with you on the call" },
+      { text: "Win point, leakage lenses, packaging signal, trade-or-give" },
+      { text: "Per-deal discount Guidance with plain-language factors" },
+      { text: "Executive summary written from the figures, CFO-forwardable" },
     ],
     footer: "One cycle. NDA on request.",
   },
   {
+    id: "operate",
     name: "Pricekeel Operate",
     audience: "The governance loop",
-    body:
-      "Not a report you read, a loop your deals run through. Every below-floor discount request is priced before it is approved, every decision lands in the log with its math, and the loop reports back to you on a weekly, monthly, and quarterly rhythm.",
+    body: "Not a report you read, a loop your deals run through. Every below-floor discount request is priced before it is approved, every decision lands in the log with its math, and the loop reports back to you every week. Monthly and quarterly readouts are on the roadmap.",
     features: [
-      "Every exception priced before it is approved: the floor, the win odds, the expected-value cost in dollars",
-      "Every decision logged with its math, the audit trail your CFO and your next diligence see",
-      "A weekly digest that comes to you: exceptions priced, below-floor count, realization, what moved",
-      "Monthly drift readout naming the segments where realization is slipping and the deals behind it",
-      "Quarterly policy re-simulation: floors re-fit against the deals you actually closed",
+      { text: "Every exception priced before it is approved: the floor, the win odds, the expected-value cost in dollars" },
+      { text: "Every decision logged with its math, the audit trail your CFO and your next diligence see" },
+      { text: "A weekly digest that comes to you: exceptions priced, below-floor count, realization, what moved" },
+      { text: "Monthly drift readout naming the segments where realization is slipping and the deals behind it", roadmap: true },
+      { text: "Quarterly policy re-simulation: floors re-fit against the deals you actually closed", roadmap: true },
     ],
-    highlight: true,
-    footer:
-      "Native Salesforce OAuth and live Opportunity analysis. Initial rollout remains founder-led.",
-  },
-  {
-    name: "Data expansion",
-    audience: "Explicitly deferred",
-    body:
-      "Billing/ERP cost data and product telemetry can eventually extend Pricekeel beyond CRM discount intelligence. They are separate data products and are not part of V1.",
-    features: [
-      "True margin only after a validated cost-data integration",
-      "Application-level recommendations only after usage telemetry",
-      "No blended CRM proxy presented as margin",
-      "No build until the Salesforce workflow is validated",
-    ],
-    footer: "Roadmap context, not a product claim or current sales tier.",
+    footer: "Native Salesforce OAuth and live Opportunity analysis. Initial rollout remains founder-led.",
+    primary: true,
   },
 ];
 
-function TierCard({ tier }: { tier: Tier }) {
+function RoadmapBadge() {
   return (
-    <div
-      className={`flex h-full flex-col rounded-2xl border p-6 shadow-sm ${
-        tier.highlight
-          ? "border-teal/50 bg-surface pk-upside-glow"
-          : "border-mist bg-surface"
-      }`}
+    <span
+      data-roadmap="feature"
+      className="pk-small ml-2 whitespace-nowrap rounded border border-control px-2 py-0.5 font-medium text-fg"
     >
-      <div className="text-xs font-semibold uppercase tracking-wider text-teal">
-        {tier.audience}
-      </div>
-      <h2 className="mt-1 text-2xl font-bold text-fg">{tier.name}</h2>
-      <p className="mt-2 text-sm text-muted">{tier.body}</p>
-      <ul className="mt-4 flex-1 space-y-2 text-sm text-ink">
-        {tier.features.map((f) => (
-          <li key={f} className="flex gap-2">
-            <span className="text-teal">✓</span>
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-      {tier.footer ? (
-        <p className="mt-4 text-xs italic text-muted">{tier.footer}</p>
-      ) : null}
-      <a
-        href="/contact"
-        className={`mt-6 block w-full rounded-lg px-4 py-3 text-center font-medium transition ${
-          tier.highlight
-            ? "bg-teal text-bg hover:scale-[1.01]"
-            : "border border-mist bg-surface-2 text-fg hover:border-teal"
-        }`}
-      >
-        Talk to us
-      </a>
-    </div>
+      Roadmap, not yet built
+    </span>
   );
 }
 
-// Monday-morning scenarios for Operate. Answers the "why is this not just a
-// repeat of the diagnostic" question by showing the concrete weekly artifacts
-// a subscriber actually receives.
-type Scenario = {
-  when: string;
-  who: string;
-  what: string;
-  detail: string;
-};
+function TierCard({ tier }: { tier: Tier }) {
+  return (
+    <li data-tier={tier.id} className="flex">
+      <Card as="article" className="flex w-full flex-col p-6 sm:p-8">
+        <Eyebrow>{tier.audience}</Eyebrow>
+        <h2 className="pk-h2 mt-2">{tier.name}</h2>
+        <p className="pk-body mt-3 text-muted">{tier.body}</p>
+        <ul className="pk-body mt-5 flex-1 list-disc space-y-3 pl-5 text-ink marker:text-teal">
+          {tier.features.map((f) => (
+            <li key={f.text}>
+              {f.text}
+              {f.roadmap ? <RoadmapBadge /> : null}
+            </li>
+          ))}
+        </ul>
+        <p className="pk-small mt-6 text-muted">{tier.footer}</p>
+        <Button
+          href="/contact"
+          variant={tier.primary ? "primary" : "secondary"}
+          size="lg"
+          className="mt-6 w-full"
+        >
+          Talk to us
+        </Button>
+      </Card>
+    </li>
+  );
+}
+
+// Monday-morning scenarios for Operate. The figures are hand-built, not read
+// from the snapshot, so each card carries the "Illustrative, not customer data"
+// label.
+type Scenario = { when: string; who: string; what: string; detail: string; roadmap?: boolean };
 const SCENARIOS: Scenario[] = [
   {
     when: "Monday, 8:30 AM",
@@ -135,273 +122,234 @@ const SCENARIOS: Scenario[] = [
   {
     when: "End of quarter",
     who: "CFO before the board prep",
-    what: "Defended-vs-investigate dashboard, updated weekly",
+    what: "Defended-vs-investigate dashboard",
     detail:
       "What discipline earned the quarter, what to investigate next, and every approval or rejection traceable to its historical evidence and actor.",
+    roadmap: true,
   },
 ];
 
-// The economic case for the monthly invoice. Any one threshold cleared = renewal.
-type Threshold = {
-  label: string;
-  math: string;
-  who: string;
-};
+// The reader's own assumptions, not results. Each row is a placeholder to
+// replace with the reader's numbers.
+type Threshold = { label: string; math: string; who: string };
 const THRESHOLDS: Threshold[] = [
   {
     label: "Deal-desk time recovered",
-    math: "1 analyst, 5 hours per week saved, $80 per hour = ~$20K per year",
+    math: "If 1 analyst saves 5 hours per week at $80 per hour, that is about $20K per year.",
     who: "RevOps",
   },
   {
-    label: "Caught underdiscounting",
-    math:
-      "1 to 2 deals per quarter where the rep would have given 3 to 5 extra points, at $250K ACV per deal = $30K to $50K per year saved",
+    label: "Over-discounting caught",
+    math: "If 4 to 8 deals a year (1 to 2 per quarter) would have had 3 to 5 fewer points given away, at $250K ACV per deal, that is $30K to $100K per year.",
     who: "Sales",
   },
   {
     label: "Board-defensible governance",
-    math:
-      "Decision log replaces a quarterly audit deck the VP of Pricing builds by hand. Worth the subscription at the $50M ARR tier on its own.",
+    math: "If the decision log replaces a quarterly audit deck the VP of Pricing builds by hand, count those hours at your own rate.",
     who: "Finance",
   },
 ];
 
 export default function PricingPage() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <Reveal>
-        <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-teal">
-            Pricing
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-fg sm:text-4xl">
-            Built for the conversation, not the credit card.
-          </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted">
-            We sell into pricing and RevOps teams at $20 to 100M ARR B2B SaaS. That means
-            an actual scoping call, not a self-serve checkout. Pick the closest
-            fit and we will reply within one business day.
-          </p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
-            Engagements typically start in the low five figures. We share the
-            structure on the first call.
-          </p>
-        </div>
-      </Reveal>
-
-      <Reveal delay={0.05}>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+    <main id="main" tabIndex={-1}>
+      <Section>
+        <PageHeader
+          eyebrow="Pricing"
+          title="Built for the conversation, not the credit card."
+          lead="We sell into pricing and RevOps teams at $20M to $100M ARR B2B SaaS. That means an actual scoping call, not a self-serve checkout. Pick the closest fit and we will reply within one business day."
+        />
+        <p className="pk-body mt-4 max-w-prose text-muted">
+          We expect pricing to start in the low five figures. We share the structure on the first
+          call.
+        </p>
+        <ul className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {TIERS.map((t) => (
-            <TierCard key={t.name} tier={t} />
+            <TierCard key={t.id} tier={t} />
           ))}
-        </div>
-      </Reveal>
+        </ul>
+        <p
+          data-roadmap="data-expansion"
+          className="pk-body mt-8 max-w-prose border-l-2 border-control pl-4 text-muted"
+        >
+          <span className="font-medium text-fg">On the roadmap, not for sale: data expansion.</span>{" "}
+          Billing/ERP cost data and product telemetry can eventually extend Pricekeel beyond CRM
+          discount intelligence. They are separate data products and are not part of V1. True margin
+          only after a validated cost-data integration; no blended CRM proxy is ever presented as
+          margin.
+        </p>
+      </Section>
 
-      {/* "Why monthly" answer block. The single most common pushback on a
-          retrospective tool is "is this not just a one-time scan?" The Monday
-          scenarios below answer it concretely. */}
-      <Reveal delay={0.05}>
-        <section className="mt-12 rounded-xl border border-teal/40 bg-surface p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-teal">
-            Why Operate is a subscription
-          </p>
-          <h2 className="mt-1 text-xl font-bold text-fg">
-            What a Monday looks like once you are on Operate.
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm text-muted">
-            The Diagnostic is a one-page narrative your CFO reads once. Operate
-            is the loop that runs after it: discount requests come through
-            Pricekeel, decisions land in the log with their math, and the log
-            reports back to you. Here is what that loop puts in your
-            team&apos;s tools every week.
-          </p>
-          <ol className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {SCENARIOS.map((s, i) => (
-              <li
-                key={s.when}
-                className="rounded-xl border border-mist bg-surface-2 p-5"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="text-xs font-bold tabular-nums text-teal">
+      <Section band="band" labelledBy="monday-title">
+        <Eyebrow>Why Operate is a subscription</Eyebrow>
+        <h2 id="monday-title" className="pk-h2 mt-2">
+          What a Monday looks like once you are on Operate.
+        </h2>
+        <p className="pk-body mt-3 max-w-prose text-muted">
+          The Diagnostic is a one-page narrative your CFO reads once. Operate is the loop that runs
+          after it: discount requests come through Pricekeel, decisions land in the log with their
+          math, and the log reports back to you. Here is what that loop puts in your team&apos;s
+          tools every week.
+        </p>
+        <ol className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {SCENARIOS.map((s, i) => (
+            <li key={s.when} data-scenario className="flex">
+              <Card tone="inset" className="w-full">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <span className="pk-small font-semibold tabular-nums text-teal">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate">
-                    {s.when} · {s.who}
-                  </div>
+                  <span className="pk-small text-muted">
+                    {s.when}, {s.who}
+                  </span>
+                  <SyntheticTag variant="illustrative" />
+                  {s.roadmap ? <RoadmapBadge /> : null}
                 </div>
-                <div className="mt-1 text-base font-semibold text-fg">
-                  {s.what}
-                </div>
-                <p className="mt-1 text-sm text-muted">{s.detail}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-5 text-xs italic text-muted">
-            None of these scenarios fire from a one-time CSV scan. They fire
-            because the loop is running: requests priced, decisions logged,
-            digests sent. That is what justifies the subscription, not the
-            diagnostic itself.
-          </p>
-        </section>
-      </Reveal>
+                <h3 className="pk-h3 mt-3">{s.what}</h3>
+                <p className="pk-body mt-2 text-muted">{s.detail}</p>
+              </Card>
+            </li>
+          ))}
+        </ol>
+        <p className="pk-body mt-6 max-w-prose text-muted">
+          None of these scenarios fire from a one-time CSV scan. They fire because the loop is
+          running: requests priced, decisions logged, digests sent.
+        </p>
+      </Section>
 
-      {/* The economic case. Any one of three thresholds clears the renewal. */}
-      <Reveal delay={0.05}>
-        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
-          <h2 className="text-lg font-semibold text-fg">
-            What justifies the monthly invoice
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            You only need to clear one of these three thresholds for Operate to
-            pay for itself. Most subscribers will clear all three. You only need
-            one to win the renewal conversation.
-          </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate">
-                  <th className="pb-2 pr-4 font-semibold">Threshold</th>
-                  <th className="pb-2 pr-4 font-semibold">Math</th>
-                  <th className="pb-2 font-semibold">Who feels it</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-mist">
-                {THRESHOLDS.map((t) => (
-                  <tr key={t.label}>
-                    <td className="py-3 pr-4 font-medium text-fg align-top">
-                      {t.label}
-                    </td>
-                    <td className="py-3 pr-4 text-muted align-top">{t.math}</td>
-                    <td className="py-3 text-slate align-top">{t.who}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Section labelledBy="roi-title">
+        <Eyebrow>Your numbers</Eyebrow>
+        <h2 id="roi-title" className="pk-h2 mt-2">
+          Test the monthly invoice against your own assumptions.
+        </h2>
+        <p className="pk-body mt-3 max-w-prose text-muted">
+          These three thresholds use placeholder assumptions. They are not results from any customer.
+          Replace each with your own figures; if none of them holds for your team, Operate is not
+          worth buying.
+        </p>
+        <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {THRESHOLDS.map((t) => (
+            <li key={t.label} data-threshold className="flex">
+              <Card className="w-full">
+                <SyntheticTag variant="illustrative" />
+                <p className="pk-small mt-3 text-muted">Placeholder assumption, replace with yours</p>
+                <h3 className="pk-h3 mt-1">{t.label}</h3>
+                <p className="pk-body mt-2 text-muted">{t.math}</p>
+                <p className="pk-small mt-3 text-slate">Who feels it: {t.who}</p>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section band="band" labelledBy="apart-title">
+        <h2 id="apart-title" className="pk-h2">
+          Why we are not a feature inside a bigger tool
+        </h2>
+        <p className="pk-body mt-3 max-w-prose text-muted">
+          A fair pushback in any first call. Three honest reasons we sit apart from RevOps,
+          sales-intel, and CPQ.
+        </p>
+        <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <li className="flex">
+            <Card tone="inset" className="w-full">
+              <h3 className="pk-h3">Every decision is logged with its math</h3>
+              <p className="pk-body mt-2 text-muted">
+                Defensible to finance. A CPQ field cannot tell a CFO why an approval went through.
+                Our method is documented, not a black box.
+              </p>
+            </Card>
+          </li>
+          <li className="flex">
+            <Card tone="inset" className="w-full">
+              <h3 className="pk-h3">Deterministic and auditable methodology</h3>
+              <p className="pk-body mt-2 text-muted">
+                Same data, same answer, every time. An LLM-driven RevOps tool cannot promise that,
+                and a CRO will not stake a deal-desk decision on output that drifts.
+              </p>
+            </Card>
+          </li>
+          <li className="flex">
+            <Card tone="inset" className="w-full">
+              <h3 className="pk-h3">CRM evidence has a hard boundary</h3>
+              <p className="pk-body mt-2 text-muted">
+                Salesforce supports discount and outcome evidence. Cost-based margin needs billing
+                or ERP; application guidance needs usage telemetry. We label those gaps instead of
+                manufacturing proxies.
+              </p>
+            </Card>
+          </li>
+        </ul>
+      </Section>
+
+      <Section labelledBy="faq-title">
+        <h2 id="faq-title" className="pk-h2">
+          What CFOs ask in the first ten minutes
+        </h2>
+        <div className="mt-8 max-w-prose space-y-8">
+          <div>
+            <h3 className="pk-h3">What is the proven ROI from existing customers?</h3>
+            <p className="pk-body mt-2 text-muted">
+              We are in design-partner mode. The first diagnostic is free and under NDA. Numbers come
+              from your own CSV. The methodology is grounded in published pricing literature
+              (Simon-Kucher discount governance, Nagle on reference price, Rivera on packaging
+              architecture) and the code behind every metric can be audited under NDA. Customer logos
+              and ROI cases follow design partner work, not the other way around.
+            </p>
           </div>
-        </section>
-      </Reveal>
-
-      <Reveal delay={0.05}>
-        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
-          <h2 className="text-lg font-semibold text-fg">
-            Why we are not a feature inside a bigger tool
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            A fair pushback in any first call. Three honest reasons we sit
-            apart from RevOps, sales-intel, and CPQ.
-          </p>
-          <ul className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
-            <li className="rounded-lg border border-mist bg-surface-2 p-4">
-              <div className="font-medium text-fg">
-                Every decision is logged with its math
-              </div>
-              <p className="mt-1 text-muted">
-                Defensible to finance. A CPQ field cannot tell a CFO why an
-                approval went through. Our diagnostic is open code, not a black
-                box.
-              </p>
-            </li>
-            <li className="rounded-lg border border-mist bg-surface-2 p-4">
-              <div className="font-medium text-fg">
-                Deterministic and auditable methodology
-              </div>
-              <p className="mt-1 text-muted">
-                Same data, same answer, every time. An LLM-driven RevOps tool
-                cannot promise that, and a CRO will not stake a deal-desk
-                decision on output that drifts.
-              </p>
-            </li>
-            <li className="rounded-lg border border-mist bg-surface-2 p-4">
-              <div className="font-medium text-fg">
-                CRM evidence has a hard boundary
-              </div>
-              <p className="mt-1 text-muted">
-                Salesforce supports discount and outcome evidence. Cost-based
-                margin needs billing or ERP; application guidance needs usage
-                telemetry. We label those gaps instead of manufacturing proxies.
-              </p>
-            </li>
-          </ul>
-        </section>
-      </Reveal>
-
-      <Reveal delay={0.05}>
-        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
-          <h2 className="text-lg font-semibold text-fg">
-            What CFOs ask in the first ten minutes
-          </h2>
-          <div className="mt-4 space-y-5 text-sm">
-            <div>
-              <div className="font-medium text-fg">
-                What is the proven ROI from existing customers?
-              </div>
-              <p className="mt-1 text-muted">
-                We are in design-partner mode. The first diagnostic is free and
-                under NDA. Numbers come from your own CSV. The methodology is
-                grounded in published pricing literature (Simon-Kucher discount
-                governance, Nagle on reference price, Rivera on packaging
-                architecture) and every metric is reproducible code you can
-                audit. Customer logos and ROI cases follow design partner work,
-                not the other way around.
-              </p>
-            </div>
-            <div>
-              <div className="font-medium text-fg">
-                How does this integrate with our existing systems?
-              </div>
-              <p className="mt-1 text-muted">
-                Salesforce connects through real OAuth. Pricekeel reads live
-                Opportunity history, discovers your fields, applies an explicit
-                mapping, and returns the executive, Pricing/RevOps, and deal-desk
-                views. CSV or Excel remains the diagnostic/onboarding path for
-                other CRMs; billing and telemetry connectors are not in V1.
-              </p>
-            </div>
-            <div>
-              <div className="font-medium text-fg">
-                What are the security and compliance measures?
-              </div>
-              <p className="mt-1 text-muted">
-                Salesforce tokens are server-side and encrypted at rest. Live
-                Opportunity rows are processed through the protected pricing
-                service and are not persisted in Pricekeel&apos;s database or sent
-                to a cloud LLM. Decision events and derived evidence are stored
-                so the audit trail survives. Full details on{" "}
-                <a href="/privacy" className="text-teal underline">
-                  our privacy page
-                </a>
-                .
-              </p>
-            </div>
+          <div>
+            <h3 className="pk-h3">How does this integrate with our existing systems?</h3>
+            <p className="pk-body mt-2 text-muted">
+              Salesforce connects through real OAuth. Pricekeel reads live Opportunity history,
+              discovers your fields, applies an explicit mapping, and returns the executive,
+              Pricing/RevOps, and deal-desk views. CSV or Excel remains the diagnostic/onboarding path
+              for other CRMs; billing and telemetry connectors are not in V1.
+            </p>
           </div>
-        </section>
-      </Reveal>
+          <div>
+            <h3 className="pk-h3">What are the security and compliance measures?</h3>
+            <p className="pk-body mt-2 text-muted">
+              Salesforce tokens are server-side and encrypted at rest. Live Opportunity rows are
+              processed through the protected pricing service and are not persisted in
+              Pricekeel&apos;s database or sent to a cloud LLM. Decision events and derived evidence
+              are stored so the audit trail survives. Full details on{" "}
+              <Link href="/privacy" className="text-teal underline underline-offset-4">
+                our privacy page
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      </Section>
 
-      <Reveal delay={0.05}>
-        <section className="mt-8 rounded-xl border border-mist bg-surface p-6">
-          <h2 className="text-lg font-semibold text-fg">How we scope it</h2>
-          <ul className="mt-3 space-y-2 text-sm text-muted">
-            <li>
-              <span className="font-medium text-fg">Diagnostic</span> is a
-              fixed one-time engagement. A few hours of your time to send the
-              export and review the read-out together. Free for design partners.
-            </li>
-            <li>
-              <span className="font-medium text-fg">Pricekeel Operate</span>{" "}
-              is a Salesforce-native exception loop: live Opportunity analysis,
-              field mapping, recommendations, accept/override, approval, audit
-              log, and optional Salesforce Task writeback. The initial rollout
-              is founder-led; engagements typically start in the low five figures.
-            </li>
-            <li>
-              <span className="font-medium text-fg">Data expansion</span> is not
-              sold as V1. Billing/ERP and product-telemetry work requires its own
-              validated data contract and design decision.
-            </li>
-          </ul>
-        </section>
-      </Reveal>
+      <Section band="band" labelledBy="scope-title">
+        <h2 id="scope-title" className="pk-h2">
+          How we scope it
+        </h2>
+        <ul className="pk-body mt-6 max-w-prose space-y-4 text-muted">
+          <li>
+            <span className="font-medium text-fg">Diagnostic</span> is a fixed one-time engagement. A
+            few hours of your time to send the export and review the read-out together. Free for
+            design partners.
+          </li>
+          <li>
+            <span className="font-medium text-fg">Pricekeel Operate</span> is a Salesforce-native
+            exception loop: live Opportunity analysis, field mapping, recommendations,
+            accept/override, approval, audit log, and optional Salesforce Task writeback. The initial
+            rollout is founder-led. We expect pricing to start in the low five figures.
+          </li>
+          <li>
+            <span className="font-medium text-fg">Data expansion</span> is not sold as V1.
+            Billing/ERP and product-telemetry work requires its own validated data contract and
+            design decision.
+          </li>
+        </ul>
+        <div className="mt-8">
+          <Button href="/contact" size="lg">
+            Talk to us
+          </Button>
+        </div>
+      </Section>
     </main>
   );
 }
