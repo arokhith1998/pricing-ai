@@ -415,3 +415,5 @@
 {"ts": "2026-11-10T22:41:04Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-10T22:41:06Z", "event": "status", "task": "PK-77", "agent": "web-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-10T22:41:30Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Round-two rejected: two strings fail the ADR-006 margin guard; hero excess figure removed against acceptance criteria; page_fingerprint still in the log row. Findings on PR 94. Forced past cap: own worktree."}
+{"ts": "2026-11-10T22:47:09Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:47:12Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:41:30Z",
+  "updated": "2026-11-10T22:47:12Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3219,7 +3219,7 @@
       "id": "PK-76",
       "title": "Redesign the landing page around the decision record and a scroll-driven walk",
       "agent": "web-engineer",
-      "status": "REWORK_REQUIRED",
+      "status": "REVIEW",
       "dependencies": [
         "PK-75"
       ],
@@ -3266,7 +3266,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-10T22:41:30Z",
+      "updated": "2026-11-10T22:47:12Z",
       "notes": [
         {
           "ts": "2026-11-09T22:48:56Z",
@@ -3287,6 +3287,10 @@
         {
           "ts": "2026-11-10T22:41:30Z",
           "note": "review rejected: Round-two rejected: two strings fail the ADR-006 margin guard; hero excess figure removed against acceptance criteria; page_fingerprint still in the log row. Findings on PR 94. Forced past cap: own worktree."
+        },
+        {
+          "ts": "2026-11-10T22:47:12Z",
+          "note": "PR #94"
         }
       ]
     },
