@@ -94,5 +94,3 @@ and `/` stay exempt so Render's probe is unaffected.
   copilot, preview).
 - Lead form sends sentinel values ("Not provided"/"Unknown") for blank optional fields to
   keep the API contract; clean up by making the route accept empties.
-- `web/src/components/FounderCta.tsx` still contains the removed $626M chip but is unused;
-  delete when convenient.

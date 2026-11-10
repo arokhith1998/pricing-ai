@@ -52,8 +52,13 @@ logo files, and any single-light-mode asset. Source of truth in code:
 | Alert (`--color-coral`) | `#FF6B54` | Leak Coral `#F0654E` brightened |
 | Positive (`--color-green`) | `#34D399` | Signal Green `#2BB673` brightened |
 | Warning (`--color-amber`) | `#F0B34A` | Caution Amber `#E8A33D` brightened |
-| Action fill (`--color-navy` alias) | `#0D9488` | a deep teal, not navy; white text passes AA |
+| Action fill (`--color-navy` alias) | `#0D9488` | a deep teal, not navy; white text on it is 3.74:1, large-text AA only, so action fills use dark text (see below) |
 
 Note: the legacy `--color-navy` alias is a deep teal used as an action-fill on
 dark, not the brand navy. When adding light-mode or export assets, use the
 canonical table above, never these dark values.
+
+### Dark-theme clarifications (PK-75)
+
+1. **Control borders.** The border of form controls (inputs, selects, toggles) is canonical Slate `#5B6B7B` (`--color-control`) on the inset `#0D1422` or card `#111A2B` surface: 3.36:1 and 3.18:1, meeting the 3:1 non-text rule (WCAG 1.4.11). The decorative border `#1F2C43` is 1.24:1 and is for card edges and dividers only, never for a control.
+2. **Action fills use dark text.** White on `#0D9488` is 3.74:1, which passes AA for large text only, so it is not used for normal-size text. The primary action is Waterline Teal `#2DD4BF` (`bg-teal`) with canvas `#0A0F1A` text (`text-bg`), 10.29:1. The `--color-navy` alias stays only until the last page that uses it is migrated.

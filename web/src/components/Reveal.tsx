@@ -27,7 +27,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const FALLBACK_MS = 800;
 
 const shown = { opacity: 1, y: 0 };
-const hidden = { opacity: 0, y: 12 };
+const hidden = { opacity: 0, y: 8 };
 
 function isOnScreen(el: HTMLElement) {
   const rect = el.getBoundingClientRect();
@@ -105,7 +105,7 @@ export default function Reveal({
   inView?: boolean;
 }) {
   const reduce = useReducedMotion();
-  const transition = { duration: reduce ? 0 : 0.5, delay: reduce ? 0 : delay, ease: EASE };
+  const transition = { duration: reduce ? 0 : 0.4, delay: reduce ? 0 : delay, ease: EASE };
   const { ref, active, onViewportEnter } = useArm(inView);
 
   if (!active) {
@@ -165,7 +165,7 @@ export function Stagger({
   const container: Variants = {
     hidden: {},
     show: {
-      transition: { staggerChildren: reduce ? 0 : 0.08, delayChildren: reduce ? 0 : 0.05 },
+      transition: { staggerChildren: reduce ? 0 : 0.06, delayChildren: reduce ? 0 : 0.05 },
     },
   };
 
@@ -206,8 +206,8 @@ export function StaggerItem({
   const reduce = useReducedMotion();
   const armed = useContext(StaggerArmedContext);
   const item: Variants = {
-    hidden: reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 },
-    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5, ease: EASE } },
+    hidden: reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.4, ease: EASE } },
   };
 
   if (!armed) {

@@ -1,0 +1,20 @@
+Quote ID,Line ID,Account Name,Product SKU,Quantity,List Unit Price,Unit Price,Quote Status,Created Date,Close Date,Owner
+Q-2001,L-001,Northwind Test Co,SKU-100,100,50,40.0,Accepted,2025-03-01,2025-04-10,rep_01
+Q-2001,L-002,Northwind Test Co,SKU-101,25,35,29.75,Accepted,2025-03-01,2025-04-10,rep_01
+Q-2001,L-003,Northwind Test Co,SKU-102,100,20,18.0,Accepted,2025-03-01,2025-04-10,rep_01
+Q-2002,L-004,Alder Labs,SKU-100,10,80,72.0,Declined,2025-03-02,2025-04-11,rep_02
+Q-2002,L-005,Alder Labs,SKU-101,10,50,45.0,Declined,2025-03-02,2025-04-11,rep_02
+Q-2002,L-006,Alder Labs,SKU-102,10,50,50.0,Declined,2025-03-02,2025-04-11,rep_02
+Q-2002,L-007,Alder Labs,SKU-103,100,50,40.0,Declined,2025-03-02,2025-04-11,rep_02
+Q-2003,L-008,Birchwood Metrics,SKU-100,50,35,35.0,Accepted,2025-03-03,2025-04-12,rep_03
+Q-2003,L-009,Birchwood Metrics,SKU-101,10,20,16.0,Accepted,2025-03-03,2025-04-12,rep_03
+Q-2003,L-010,Birchwood Metrics,SKU-102,50,35,31.5,Accepted,2025-03-03,2025-04-12,rep_03
+Q-2004,L-011,Cobalt Harbor,SKU-100,10,80,80.0,Sent,2025-03-04,2025-04-13,rep_01
+Q-2004,L-012,Cobalt Harbor,SKU-101,100,20,17.0,Sent,2025-03-04,2025-04-13,rep_01
+Q-2004,L-013,Cobalt Harbor,SKU-102,50,20,17.0,Sent,2025-03-04,2025-04-13,rep_01
+Q-2005,L-014,Delta Fern Systems,SKU-100,100,35,31.5,Accepted,2025-03-05,2025-04-14,rep_02
+Q-2005,L-015,Delta Fern Systems,SKU-101,100,20,18.0,Accepted,2025-03-05,2025-04-14,rep_02
+Q-2005,L-016,Delta Fern Systems,SKU-102,10,35,28.0,Accepted,2025-03-05,2025-04-14,rep_02
+Q-2006,L-017,Ember Grid,SKU-100,50,35,29.75,Expired,2025-03-06,2025-04-15,rep_03
+Q-2006,L-018,Ember Grid,SKU-101,100,80,64.0,Expired,2025-03-06,2025-04-15,rep_03
+Q-2006,L-019,Ember Grid,SKU-102,25,50,45.0,Expired,2025-03-06,2025-04-15,rep_03
