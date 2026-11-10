@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T21:56:11Z",
+  "updated": "2026-11-10T22:02:00Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3754,6 +3754,35 @@
       "blocked_by": null,
       "created": "2026-11-10T21:14:39Z",
       "updated": "2026-11-10T21:14:39Z",
+      "notes": []
+    },
+    {
+      "id": "PK-92",
+      "title": "Contract-structure readout omits the floor sentence when frame attrs are missing",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-32"
+      ],
+      "owns": [
+        "pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "when attrs carry no floor_frac the readout omits the floor sentence or raises, never states the 15% default as the floor used; pinning test; cap _pct at one decimal unless the spec says otherwise"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_contract_structure.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-10T22:02:00Z",
+      "updated": "2026-11-10T22:02:00Z",
       "notes": []
     }
   ]

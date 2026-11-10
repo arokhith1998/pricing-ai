@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 3/4
-Updated: 2026-11-10T21:56:11Z
+Updated: 2026-11-10T22:02:00Z
 
 ## IN_PROGRESS
 - **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, deps PK-75)
@@ -138,6 +138,8 @@ Updated: 2026-11-10T21:56:11Z
   - owns: api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py
 - **PK-91** Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate  (backend-engineer, deps PK-54)
   - owns: pricing/guardrail.py#source_partition,tests/test_guardrail.py
+- **PK-92** Contract-structure readout omits the floor sentence when frame attrs are missing  (backend-engineer, deps PK-32)
+  - owns: pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py
 
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
