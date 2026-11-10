@@ -6,8 +6,16 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/4
-Updated: 2026-11-10T23:42:30Z
+Active work: 3/4
+Updated: 2026-11-10T23:43:46Z
+
+## IN_PROGRESS
+- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
+  - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
+- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer)
+  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
+- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer)
+  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,18 +32,12 @@ Updated: 2026-11-10T23:42:30Z
   - owns: web/src/lib/salesforce-adapter.ts
 
 ## READY
-- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
-  - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
-- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer)
-  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-94** Seed the objection inventory with the audit-motion objections, marked predicted  (sales-outreach)
   - owns: gtm/objection-inventory.md
 - **PK-97** Write the audit delivery template and the workbook spec mapped to the method log  (customer-success)
   - owns: gtm/ai-margin-audit-delivery-template.md, gtm/ai-margin-audit-workbook-spec.md
-- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer)
-  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## BACKLOG
 - **PK-100** Recognise cost exports as a layer-0 source profile  (ai-engineer, deps PK-99)

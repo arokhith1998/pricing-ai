@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T23:42:30Z",
+  "updated": "2026-11-10T23:43:46Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4099,14 +4099,14 @@
       "id": "PK-99",
       "title": "Add the customer cost-period grain and plant a cost answer key",
       "agent": "data-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [],
       "owns": [
         "pricing/schema.py#cost_period",
         "pricing/generate_billing.py#cost_periods",
         "tests/test_schema_cost_period.py"
       ],
-      "branch": null,
+      "branch": "agent/data-engineer/PK-99",
       "worktree": null,
       "acceptance": [
         "Founder gate: F1 (D2 answered) and F2 (ADR-007 accepted), and the backend margin-health design doc accepted",
@@ -4125,8 +4125,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:09:37Z",
-      "updated": "2026-11-10T23:42:00Z",
-      "notes": []
+      "updated": "2026-11-10T23:43:26Z",
+      "notes": [
+        {
+          "ts": "2026-11-10T23:43:22Z",
+          "note": "claimed 3 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-100",
@@ -4374,13 +4379,13 @@
       "id": "PK-107",
       "title": "Compute the calculator figures in a pure module with code-owned labels",
       "agent": "web-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [],
       "owns": [
         "web/src/lib/margin-audit.ts",
         "web/test/margin-audit.test.ts"
       ],
-      "branch": null,
+      "branch": "agent/web-engineer/PK-107",
       "worktree": null,
       "acceptance": [
         "Gate: the web-engineer calculator design doc is accepted by the founder",
@@ -4399,14 +4404,19 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:10:12Z",
-      "updated": "2026-11-10T23:42:27Z",
-      "notes": []
+      "updated": "2026-11-10T23:43:36Z",
+      "notes": [
+        {
+          "ts": "2026-11-10T23:43:32Z",
+          "note": "claimed 2 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-108",
       "title": "Add a lead_magnet column to leads, with a down migration",
       "agent": "data-engineer",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "dependencies": [],
       "owns": [
         "neon/schema.sql",
@@ -4415,7 +4425,7 @@
         "neon/MIGRATIONS.md",
         "neon/test_migrations.py"
       ],
-      "branch": null,
+      "branch": "agent/data-engineer/PK-108",
       "worktree": null,
       "acceptance": [
         "Founder gate: F7 answered and the web design doc accepted",
@@ -4433,8 +4443,13 @@
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:10:16Z",
-      "updated": "2026-11-10T23:42:30Z",
-      "notes": []
+      "updated": "2026-11-10T23:43:46Z",
+      "notes": [
+        {
+          "ts": "2026-11-10T23:43:42Z",
+          "note": "claimed 5 path(s)"
+        }
+      ]
     },
     {
       "id": "PK-109",

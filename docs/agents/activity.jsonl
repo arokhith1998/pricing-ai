@@ -445,3 +445,9 @@
 {"ts": "2026-11-10T23:42:00Z", "event": "status", "task": "PK-99", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-10T23:42:27Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-10T23:42:30Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-10T23:43:22Z", "event": "status", "task": "PK-99", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 3 path(s)"}
+{"ts": "2026-11-10T23:43:26Z", "event": "status", "task": "PK-99", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-10T23:43:32Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 2 path(s)"}
+{"ts": "2026-11-10T23:43:36Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-10T23:43:42Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "READY -> ASSIGNED: claimed 5 path(s)"}
+{"ts": "2026-11-10T23:43:46Z", "event": "status", "task": "PK-108", "agent": "data-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
