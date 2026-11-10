@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T21:39:02Z",
+  "updated": "2026-11-10T21:40:17Z",
   "config": {
     "max_concurrent": 4
   },
@@ -2082,7 +2082,7 @@
       "id": "PK-46",
       "title": "Map HubSpot deals, confirmed stage maps and properties to canonical deals",
       "agent": "backend-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-25"
       ],
@@ -2117,12 +2117,12 @@
       "review": {
         "verdict": "reject",
         "by": "code-reviewer",
-        "notes": "",
-        "ts": "2026-11-09T21:22:14Z"
+        "notes": "Rework round rejected: line-item per-period net replaces annual deal amount as booked_acv (blocker); money bound off by one order; ask_user disclosure keyed on error text; scope nit on _records_hash. Findings on PR 83. Forced past cap 4: each active task has its own worktree.",
+        "ts": "2026-11-10T21:40:17Z"
       },
       "blocked_by": null,
       "created": "2026-11-09T18:56:09Z",
-      "updated": "2026-11-10T20:44:52Z",
+      "updated": "2026-11-10T21:40:17Z",
       "notes": [
         {
           "ts": "2026-11-09T19:59:40Z",
@@ -2139,6 +2139,10 @@
         {
           "ts": "2026-11-10T20:44:52Z",
           "note": "PR #83"
+        },
+        {
+          "ts": "2026-11-10T21:40:17Z",
+          "note": "review rejected: Rework round rejected: line-item per-period net replaces annual deal amount as booked_acv (blocker); money bound off by one order; ask_user disclosure keyed on error text; scope nit on _records_hash. Findings on PR 83. Forced past cap 4: each active task has its own worktree."
         }
       ]
     },
