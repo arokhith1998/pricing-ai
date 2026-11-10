@@ -149,10 +149,10 @@ def test_committed_totals_recover_the_key(cvb, book, sub):
 def test_committed_comparison_values(cvb):
     v = _v(cvb, "SUB-USAGE-6")
     assert v["committed_total"] == D("9000.00")
-    assert v["invoiced_total"] == D("6000.00") + D("67500.00") == D("73500.00") \
-        or v["invoiced_total"] > v["committed_total"]
+    assert v["invoiced_total"] == D("73500.00")
     assert v["shortfall_total"] == D("0.00")
-    assert v["overage_total"] == v["invoiced_total"] - v["committed_total"]
+    assert v["overage_total"] == D("64500.00")
+    assert v["net_vs_commit"] == D("64500.00")
     assert v["periods_below_commit"] == 0
 
 
@@ -240,6 +240,173 @@ def test_duplicate_and_unusable_rows_are_dropped_and_counted(book):
     assert out["skipped"]["duplicate_periods_dropped"] == 3
     assert out["skipped"]["rows_missing_key_fields"] == 1
     assert _v(out, "SUB-GAP-10")["list_total"] == book[1]["SUB-GAP-10"]["list_total"]
+
+
+# --- PK-54 rework: review findings pinned -------------------------------------
+
+def _row(acct="A", start="2025-01-01", end="2025-01-31", inv=100.0, **extra):
+    r = {"source_system": "stripe", "source_record_id": acct, "period_start": start,
+         "period_end": end, "currency": "USD", "invoiced_amount": inv}
+    r.update(extra)
+    return r
+
+
+def test_finding1_shortfall_and_overage_are_per_period_never_netted():
+    rows = [_row(start="2025-01-01", end="2025-01-31", inv=1500.0, committed_amount=1000.0),
+            _row(start="2025-02-01", end="2025-02-28", inv=600.0, committed_amount=1000.0),
+            _row(start="2025-03-01", end="2025-03-31", inv=800.0, committed_amount=1000.0)]
+    v = billing.contracted_vs_billed(rows)["accounts"]["A"]["values"]
+    assert v["overage_total"] == D("500.00")
+    assert v["shortfall_total"] == D("600.00")
+    assert v["net_vs_commit"] == D("-100.00")
+    assert v["periods_below_commit"] == 2
+    book = billing.contracted_vs_billed(rows)["book"]["by_currency"]["USD"]
+    assert book["shortfall_total"] == D("600.00") and book["overage_total"] == D("500.00")
+
+
+def test_finding2_weekly_periods_are_not_rounded_up_to_a_month():
+    rows = [_row(start=f"2025-01-{1 + 7 * i:02d}", end=f"2025-01-{7 + 7 * i:02d}",
+                 inv=100.0, usage_amount=100.0) for i in range(4)]
+    rows += [_row(start="2025-01-29", end="2025-02-04", inv=100.0, usage_amount=100.0),
+             _row(start="2025-02-05", end="2025-02-11", inv=100.0, usage_amount=100.0)]
+    lv = billing.usage_actuals(rows)["accounts"]["A"]
+    assert lv["status"] == "not_provided"
+    assert lv["values"]["usage_acv"] is None
+    assert "not whole calendar months" in lv["reasons"][0]
+    assert "1200" not in json.dumps(lv, default=str)
+
+
+def test_finding2_prorated_stub_is_left_out_not_rounded_to_a_month():
+    rows = []
+    for i in range(6):
+        rows.append(_row(start=f"2025-{i + 1:02d}-01",
+                         end=pd.Timestamp(f"2025-{i + 1:02d}-01").to_period("M")
+                         .end_time.date().isoformat(), inv=100.0, usage_amount=100.0))
+    rows.append(_row(start="2025-07-01", end="2025-07-10", inv=50.0, usage_amount=50.0))
+    lv = billing.usage_actuals(rows)["accounts"]["A"]
+    assert lv["status"] == "scored"
+    assert lv["values"]["window_months"] == 6
+    assert lv["values"]["usage_total"] == D("600.00")
+    assert lv["values"]["usage_acv"] == D("1200.00")
+    assert "1 period(s) are not whole calendar months" in lv["reasons"][0]
+
+
+def test_finding2_mid_month_anchored_months_still_annualise():
+    rows = [_row(start=f"2025-{i:02d}-15", end=f"2025-{i + 1:02d}-14", inv=10.0,
+                 usage_amount=10.0) for i in range(1, 7)]
+    v = billing.usage_actuals(rows)["accounts"]["A"]["values"]
+    assert v["window_months"] == 6 and v["usage_acv"] == D("120.00")
+
+
+def test_finding3_identical_duplicates_collapse():
+    r = _row(list_amount=200.0, discount_amount=0.0, credit_amount=0.0)
+    out = billing.billing_realization([r, dict(r), dict(r)])
+    assert out["skipped"]["duplicate_periods_dropped"] == 2
+    assert out["skipped"]["conflicting_period_rows"] == 0
+    assert _v(out, "A")["list_total"] == D("200.00")
+
+
+def test_finding3_differing_duplicate_is_a_conflict_not_first_row_wins():
+    rows = [_row(inv=100.0, list_amount=200.0, discount_amount=0.0, credit_amount=0.0),
+            _row(inv=150.0, list_amount=200.0, discount_amount=0.0, credit_amount=0.0),
+            _row(start="2025-02-01", end="2025-02-28", inv=100.0, list_amount=200.0,
+                 discount_amount=0.0, credit_amount=0.0)]
+    out = billing.billing_realization(rows)
+    lv = out["accounts"]["A"]
+    assert lv["values"]["periods"] == 1  # only February survives
+    assert lv["values"]["invoiced_total"] == D("100.00")
+    assert lv["data_quality"]["conflict_rows_excluded"] == 2
+    assert "disagree on amounts" in lv["data_quality"]["conflict_reasons"][0]
+    assert any("2 period row(s) in conflict" in r for r in lv["reasons"])
+    assert out["skipped"]["conflicting_period_rows"] == 2
+    assert out["skipped"]["accounts_with_conflicts"] == 1
+
+
+def test_finding3_overlapping_periods_are_conflicts_not_double_counted():
+    rows = [_row(start="2025-03-01", end="2025-03-15", inv=50.0, usage_amount=50.0,
+                 committed_amount=100.0),
+            _row(start="2025-03-01", end="2025-03-31", inv=100.0, usage_amount=100.0,
+                 committed_amount=100.0)]
+    out = billing.contracted_vs_billed(rows)
+    lv = out["accounts"]["A"]
+    assert lv["status"] == "not_provided"  # nothing left after the conflict
+    assert lv["data_quality"]["conflict_rows_excluded"] == 2
+    assert "overlap" in lv["data_quality"]["conflict_reasons"][0]
+    assert out["skipped"]["conflicting_period_rows"] == 2
+
+
+def test_finding3_adjacent_periods_are_not_overlaps():
+    rows = [_row(start="2025-01-01", end="2025-01-31"),
+            _row(start="2025-02-01", end="2025-02-28")]
+    out = billing.billing_realization(rows)
+    assert out["skipped"]["conflicting_period_rows"] == 0
+
+
+def test_finding4_absent_discount_and_credit_columns_are_not_in_the_file():
+    rows = [_row(inv=80.0, list_amount=100.0)]
+    lv = billing.billing_realization(rows)["accounts"]["A"]
+    v = lv["values"]
+    assert v["discount_total"] is None and v["credit_total"] is None
+    assert v["other_gap_total"] is None
+    assert v["realization"] == D("0.8000") and v["gap_total"] == D("20.00")
+    assert any("discount_amount column is not in the file" in r for r in lv["reasons"])
+    assert any("credit_amount column is not in the file" in r for r in lv["reasons"])
+    book = billing.billing_realization(rows)["book"]["by_currency"]["USD"]
+    assert book["other_gap_total"] is None
+    assert book["other_gap_total_accounts_missing"] == 1
+
+
+def test_finding4_blank_cells_in_a_present_column_are_excluded_per_row_with_a_count():
+    rows = [_row(start="2025-01-01", end="2025-01-31", inv=80.0, list_amount=100.0,
+                 discount_amount=20.0, credit_amount=0.0),
+            _row(start="2025-02-01", end="2025-02-28", inv=80.0, list_amount=100.0,
+                 discount_amount=None, credit_amount=0.0)]
+    lv = billing.billing_realization(rows)["accounts"]["A"]
+    v = lv["values"]
+    assert v["discount_total"] == D("20.00") and v["discount_blank_rows"] == 1
+    assert v["credit_total"] == D("0.00") and v["credit_blank_rows"] == 0
+    assert v["other_gap_total"] == D("0.00")  # only January is explained, and fully
+    assert v["realization"] == D("0.8000")
+    assert any("1 period(s) have a blank discount_amount" in r for r in lv["reasons"])
+
+
+def test_finding5_refund_row_is_invalid_and_never_scored_negative():
+    rows = [_row(start="2025-01-01", end="2025-01-31", inv=-20.0, list_amount=100.0,
+                 discount_amount=0.0, credit_amount=0.0),
+            _row(start="2025-02-01", end="2025-02-28", inv=90.0, list_amount=100.0,
+                 discount_amount=0.0, credit_amount=0.0)]
+    out = billing.billing_realization(rows)
+    v = _v(out, "A")
+    assert v["realization"] == D("0.9000")
+    assert v["invalid_money_value_rows"] == 1
+    assert out["skipped"]["invalid_money_value_rows"] == 1
+    assert any("invalid_money_value" in r for r in out["accounts"]["A"]["reasons"])
+
+
+def test_finding5_list_below_invoiced_plus_discount_plus_credit_is_invalid():
+    rows = [_row(inv=90.0, list_amount=100.0, discount_amount=10.0, credit_amount=5.0)]
+    lv = billing.billing_realization(rows)["accounts"]["A"]
+    assert lv["status"] == "not_provided"
+    assert lv["values"] == {"invalid_money_value_rows": 1}
+    assert "invalid_money_value" in lv["reasons"][0]
+
+
+def test_finding5_boundary_list_equal_to_the_sum_is_valid():
+    rows = [_row(inv=85.0, list_amount=100.0, discount_amount=10.0, credit_amount=5.0)]
+    v = billing.billing_realization(rows)["accounts"]["A"]["values"]
+    assert v["invalid_money_value_rows"] == 0 and v["realization"] == D("0.8500")
+
+
+def test_finding6_usage_column_absent_says_the_column_is_not_in_the_file():
+    lv = billing.usage_actuals([_row()])["accounts"]["A"]
+    assert lv["status"] == "not_provided"
+    assert lv["reasons"] == ["usage_amount column is not in the file"]
+
+
+def test_usage_column_present_but_blank_is_a_different_reason():
+    lv = billing.usage_actuals([_row(usage_amount=None)])["accounts"]["A"]
+    assert lv["status"] == "not_provided"
+    assert "blank on every period" in lv["reasons"][0]
 
 
 # --- win rate: not_provided, refusal by source --------------------------------

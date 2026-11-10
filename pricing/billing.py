@@ -13,6 +13,24 @@ module also owns the refusal by source (`partition_for_win_rate`): a deal row
 whose source_system is a billing source never reaches win rate, whatever its
 outcome says, and the exclusion is disclosed by count.
 
+Annualisation rule (usage_actuals): by whole calendar months only. A period
+that is exactly N calendar months (Jan 1 to Jan 31, Jan 15 to Feb 14) counts as
+N. A weekly period, a prorated stub or any other interval is NOT rounded up to a
+month and is not annualised: it is left out of the figure and counted in the
+reasons, and an account whose usage periods are all such intervals returns
+`not_provided` with that reason. Six weekly periods of 100 therefore give
+`not_provided`, never 1200. Day-based scaling was rejected because it would move
+the exact PK-53 key for monthly books (a 181-day half year is not 6 months).
+
+Shortfall and overage are summed per period and never netted across periods;
+`net_vs_commit` carries the net separately. Repeats of one period with the
+same amounts collapse; differing rows for a period, or overlapping periods,
+are conflicts excluded from the account and disclosed by count. A negative
+amount (refund) or list below invoiced plus discount plus credit is flagged
+invalid_money_value and left out of realization. An absent discount_amount or
+credit_amount column is "not in the file", never 0; a blank cell is excluded
+per row with a count.
+
 Money is Decimal, rounded half-up to the cent (ratios to 4 places), so the
 PK-53 planted answer key is recovered exactly, not within a tolerance. An
 "account" here is one subscription or contract (source_record_id): the grain
@@ -104,10 +122,21 @@ def _text(v: Any) -> str:
     return "" if _blank(v) else str(v).strip()
 
 
-def _months(start: date, end: date) -> int:
-    """Whole calendar months a period covers (end inclusive), at least 1."""
+def _add_months(d: date, n: int) -> date:
+    """d plus n calendar months, the day clamped to the target month's length."""
+    y, m0 = divmod(d.year * 12 + d.month - 1 + n, 12)
+    m = m0 + 1
+    first_next = date(y + (m == 12), m % 12 + 1, 1)
+    return date(y, m, min(d.day, (first_next - timedelta(days=1)).day))
+
+
+def _whole_months(start: date, end: date) -> int | None:
+    """N when the period is exactly N whole calendar months, end inclusive
+    (Jan 1 to Jan 31, Jan 15 to Feb 14), else None. A weekly period, a
+    prorated stub or an odd interval is None and is never rounded to a month."""
     nxt = end + timedelta(days=1)
-    return max(1, (nxt.year - start.year) * 12 + nxt.month - start.month)
+    n = (nxt.year - start.year) * 12 + nxt.month - start.month
+    return n if n >= 1 and _add_months(start, n) == nxt else None
 
 
 def _ratio(num: Decimal, den: Decimal) -> Decimal | None:
@@ -122,44 +151,94 @@ def _lever(method: str, status: str, reasons: list[str] | None = None,
 
 # --- grain cleaning ----------------------------------------------------------
 
-def _clean_periods(periods: Any) -> tuple[dict[str, list[dict]], dict]:
-    """Group usable period rows by account. A row missing a key field, from a
-    non-billing source, or duplicating an earlier (account, start, end) is
-    dropped and counted, never guessed or double counted."""
-    accounts: dict[str, list[dict]] = defaultdict(list)
-    seen: set[tuple] = set()
-    skipped = {"rows_missing_key_fields": 0, "rows_not_billing_source": 0,
-               "duplicate_periods_dropped": 0}
-    for raw in _rows(periods):
+def _columns(rows: list[dict]) -> set[str]:
+    return {k for r in rows for k in r}
+
+
+def _fingerprint(r: dict) -> tuple:
+    return tuple(r[k] for k in ("currency", "invoiced", "list", "discount", "credit",
+                                "units", "usage", "committed"))
+
+
+def _clean_periods(periods: Any) -> tuple[dict[str, dict], dict, set[str]]:
+    """Group usable period rows by account.
+
+    A row missing a key field or from a non-billing source is dropped and
+    counted. Identical repeats of a period (same account, dates and amounts)
+    collapse to one. Rows that differ on the same period, or whose periods
+    overlap without being identical, are conflicts: every row in the conflict
+    is excluded from the account's metrics and counted with a reason. Nothing
+    is first-row-wins and nothing is double counted.
+
+    Returns {account: {"rows", "dq"}}, the load report, and the file's columns.
+    """
+    raws = _rows(periods)
+    cols = _columns(raws)
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    report = {"rows_missing_key_fields": 0, "rows_not_billing_source": 0,
+              "duplicate_periods_dropped": 0, "conflicting_period_rows": 0,
+              "accounts_with_conflicts": 0}
+    for raw in raws:
         source = _text(raw.get("source_system")).lower()
         if source and source not in BILLING_SOURCES:
-            skipped["rows_not_billing_source"] += 1
+            report["rows_not_billing_source"] += 1
             continue
         acct = _text(raw.get("source_record_id"))
         start, end = _date(raw.get("period_start")), _date(raw.get("period_end"))
         cur = _text(raw.get("currency")).upper()
         invoiced = _money(raw.get("invoiced_amount"))
         if not (acct and start and end and end >= start and cur and invoiced is not None):
-            skipped["rows_missing_key_fields"] += 1
+            report["rows_missing_key_fields"] += 1
             continue
-        k = (acct, start, end)
-        if k in seen:
-            skipped["duplicate_periods_dropped"] += 1
-            continue
-        seen.add(k)
-        accounts[acct].append({
+        grouped[acct].append({
             "start": start, "end": end, "currency": cur,
-            "months": _months(start, end), "invoiced": invoiced,
+            "months": _whole_months(start, end), "invoiced": invoiced,
             "list": _money(raw.get("list_amount")),
-            "discount": _money(raw.get("discount_amount")) or _ZERO,
-            "credit": _money(raw.get("credit_amount")) or _ZERO,
+            "discount": _money(raw.get("discount_amount")),
+            "credit": _money(raw.get("credit_amount")),
             "units": _num(raw.get("usage_units")),
             "usage": _money(raw.get("usage_amount")),
             "committed": _money(raw.get("committed_amount")),
         })
-    for rows in accounts.values():
-        rows.sort(key=lambda r: r["start"])
-    return accounts, skipped
+    accounts: dict[str, dict] = {}
+    for acct, rows in grouped.items():
+        uniq: list[dict] = []
+        seen: set[tuple] = set()
+        dq = {"duplicate_rows_dropped": 0, "conflict_rows_excluded": 0,
+              "conflict_reasons": []}
+        for r in rows:
+            k = (r["start"], r["end"]) + _fingerprint(r)
+            if k in seen:
+                dq["duplicate_rows_dropped"] += 1
+                continue
+            seen.add(k)
+            uniq.append(r)
+        bad: set[int] = set()
+        same = overlap = 0
+        for i, a in enumerate(uniq):
+            for j in range(i + 1, len(uniq)):
+                b = uniq[j]
+                if a["start"] <= b["end"] and b["start"] <= a["end"]:
+                    bad.update((i, j))
+                    if (a["start"], a["end"]) == (b["start"], b["end"]):
+                        same += 1
+                    else:
+                        overlap += 1
+        if bad:
+            dq["conflict_rows_excluded"] = len(bad)
+            if same:
+                dq["conflict_reasons"].append(
+                    f"{same} pair(s) of rows for the same period disagree on amounts")
+            if overlap:
+                dq["conflict_reasons"].append(
+                    f"{overlap} pair(s) of non-identical periods overlap")
+            report["accounts_with_conflicts"] += 1
+        report["duplicate_periods_dropped"] += dq["duplicate_rows_dropped"]
+        report["conflicting_period_rows"] += len(bad)
+        kept = [r for i, r in enumerate(uniq) if i not in bad]
+        kept.sort(key=lambda r: r["start"])
+        accounts[acct] = {"rows": kept, "dq": dq}
+    return accounts, report, cols
 
 
 def _single_currency(rows: list[dict]) -> str | None:
@@ -174,39 +253,83 @@ def _sum(rows: list[dict], key: str) -> Decimal:
     return sum((r[key] for r in rows), _ZERO)
 
 
+def _invalid_money(r: dict) -> bool:
+    """A refund or credit-note row (negative amount), or one where list is
+    below invoiced plus discount plus credit. Such a row is not a price."""
+    parts = [r["invoiced"], r["discount"] or _ZERO, r["credit"] or _ZERO]
+    if any(p < 0 for p in parts) or (r["list"] is not None and r["list"] < 0):
+        return True
+    return r["list"] is not None and r["list"] < sum(parts, _ZERO)
+
+
 # --- the three levers, one account -------------------------------------------
 
-def _realization(rows: list[dict]) -> dict:
+def _realization(rows: list[dict], cols: set[str]) -> dict:
     m = "billing_realization"
     cur = _single_currency(rows)
     if cur is None:
         return _lever(m, NOT_PROVIDED, [_MIXED])
-    used = [r for r in rows if r["list"] is not None and r["list"] > 0]
-    if not used:
-        return _lever(m, NOT_PROVIDED, [
-            "list price is not confirmed or not derivable (for example a tiered "
-            "price), so invoiced against list cannot be computed"])
-    list_t, inv_t = _sum(used, "list"), _sum(used, "invoiced")
-    disc_t, cred_t = _sum(used, "discount"), _sum(used, "credit")
-    gap = list_t - inv_t
+    invalid = [r for r in rows if _invalid_money(r)]
+    valid = [r for r in rows if not _invalid_money(r)]
     reasons = []
-    if len(used) < len(rows):
-        reasons.append(f"{len(rows) - len(used)} period(s) without a list amount "
+    if invalid:
+        reasons.append(
+            f"{len(invalid)} period(s) flagged invalid_money_value (negative amount "
+            "such as a refund, or list below invoiced plus discount plus credit) "
+            "are excluded; a refund is never scored as negative realization")
+    used = [r for r in valid if r["list"] is not None and r["list"] > 0]
+    if not used:
+        return _lever(m, NOT_PROVIDED, reasons + [
+            "list price is not confirmed or not derivable (for example a tiered "
+            "price), so invoiced against list cannot be computed"],
+            {"invalid_money_value_rows": len(invalid)} if invalid else None)
+    list_t, inv_t = _sum(used, "list"), _sum(used, "invoiced")
+    gap = list_t - inv_t
+    if len(used) < len(valid):
+        reasons.append(f"{len(valid) - len(used)} period(s) without a list amount "
                        "are left out of this figure")
-    return _lever(m, SCORED, reasons, {
+    out = {
         "currency": cur, "periods": len(used),
         "list_total": list_t, "invoiced_total": inv_t,
         # list minus invoiced, whatever caused it: coupons, credits, custom price, ramp
         "gap_total": gap,
-        "discount_total": disc_t, "credit_total": cred_t,
-        # custom-price overrides and ramp phases: the gap no coupon or credit explains
-        "other_gap_total": gap - disc_t - cred_t,
+        "discount_total": None, "credit_total": None, "other_gap_total": None,
+        "invalid_money_value_rows": len(invalid),
         "realization": _ratio(inv_t, list_t),
         "basis": "invoiced against confirmed list, tax excluded; a price metric",
-    })
+    }
+    # An absent column is never read as 0; a blank cell in a present column
+    # leaves that row out of the explanation, counted.
+    has_d, has_c = "discount_amount" in cols, "credit_amount" in cols
+    d_rows = [r for r in used if r["discount"] is not None] if has_d else []
+    c_rows = [r for r in used if r["credit"] is not None] if has_c else []
+    if d_rows:
+        out["discount_total"] = _sum(d_rows, "discount")
+    if c_rows:
+        out["credit_total"] = _sum(c_rows, "credit")
+    for col, present, got in (("discount_amount", has_d, d_rows),
+                              ("credit_amount", has_c, c_rows)):
+        if not present:
+            reasons.append(f"{col} column is not in the file; the related figures "
+                           "are not provided, not zero")
+        elif len(got) < len(used):
+            reasons.append(f"{len(used) - len(got)} period(s) have a blank {col} "
+                           "and are excluded from the related figures, not read as 0")
+    out["discount_blank_rows"] = (len(used) - len(d_rows)) if has_d else None
+    out["credit_blank_rows"] = (len(used) - len(c_rows)) if has_c else None
+    if has_d and has_c:
+        both = [r for r in used if r["discount"] is not None and r["credit"] is not None]
+        if both:
+            # custom-price overrides and ramp phases: the gap no coupon or credit explains
+            out["other_gap_total"] = (_sum(both, "list") - _sum(both, "invoiced")
+                                      - _sum(both, "discount") - _sum(both, "credit"))
+            if len(both) < len(used):
+                reasons.append(f"other_gap_total covers {len(both)} of {len(used)} "
+                               "periods (the rest lack a discount or credit value)")
+    return _lever(m, SCORED, reasons, out)
 
 
-def _committed(rows: list[dict]) -> dict:
+def _committed(rows: list[dict], cols: set[str]) -> dict:
     m = "contracted_vs_billed"
     cur = _single_currency(rows)
     if cur is None:
@@ -217,34 +340,52 @@ def _committed(rows: list[dict]) -> dict:
             "no committed amount from a source the user marked; billing has no "
             "first-class commit"])
     com_t, inv_t = _sum(used, "committed"), _sum(used, "invoiced")
+    # Per period, never netted: an over period does not cancel an under one.
+    short = sum((max(r["committed"] - r["invoiced"], _ZERO) for r in used), _ZERO)
+    over = sum((max(r["invoiced"] - r["committed"], _ZERO) for r in used), _ZERO)
     return _lever(m, SCORED, [], {
         "currency": cur, "periods": len(used),
         "committed_total": com_t, "invoiced_total": inv_t,
         "billed_vs_committed": _ratio(inv_t, com_t),
-        "shortfall_total": max(com_t - inv_t, _ZERO),
-        "overage_total": max(inv_t - com_t, _ZERO),
+        "shortfall_total": short,
+        "overage_total": over,
+        # the whole-account net, kept apart on purpose: invoiced minus committed
+        "net_vs_commit": inv_t - com_t,
         "periods_below_commit": sum(1 for r in used if r["invoiced"] < r["committed"]),
     })
 
 
-def _usage(rows: list[dict]) -> dict:
+def _usage(rows: list[dict], cols: set[str]) -> dict:
     m = "usage_actuals"
     cur = _single_currency(rows)
     if cur is None:
         return _lever(m, NOT_PROVIDED, [_MIXED])
+    if "usage_amount" not in cols:
+        return _lever(m, NOT_PROVIDED, ["usage_amount column is not in the file"])
     used = [r for r in rows if r["usage"] is not None]
     if not used:
-        return _lever(m, NOT_PROVIDED, ["no metered usage billed on this account"])
-    if len(used) < MIN_USAGE_PERIODS:
-        return _lever(m, INSUFFICIENT, [
-            f"{len(used)} billed period(s); annualised usage needs at least "
+        return _lever(m, NOT_PROVIDED, [
+            "usage_amount is blank on every period of this account"])
+    regular = [r for r in used if r["months"] is not None]
+    odd = len(used) - len(regular)
+    note = ([f"{odd} period(s) are not whole calendar months (weekly, prorated "
+             "stub or odd interval) and are not annualised, never rounded up "
+             "to a month"] if odd else [])
+    if not regular:
+        return _lever(m, NOT_PROVIDED, note + [
+            "no period is a whole number of calendar months, so usage is not "
+            "annualised"], {"currency": cur, "billed_periods": len(used),
+                            "usage_acv": None})
+    if len(regular) < MIN_USAGE_PERIODS:
+        return _lever(m, INSUFFICIENT, note + [
+            f"{len(regular)} billed period(s); annualised usage needs at least "
             f"{MIN_USAGE_PERIODS}"], {
-            "currency": cur, "billed_periods": len(used),
+            "currency": cur, "billed_periods": len(regular),
             "required_periods": MIN_USAGE_PERIODS, "usage_acv": None})
-    # Trailing 12 months of periods, newest first, always at least one period.
+    # Trailing 12 months of whole-month periods, newest first, at least one.
     window: list[dict] = []
     months = 0
-    for r in sorted(used, key=lambda r: r["start"], reverse=True):
+    for r in sorted(regular, key=lambda r: r["start"], reverse=True):
         if window and months + r["months"] > 12:
             break
         window.append(r)
@@ -252,8 +393,8 @@ def _usage(rows: list[dict]) -> dict:
     total = _sum(window, "usage")
     units = [r["units"] for r in window if r["units"] is not None]
     units_total = sum(units, Decimal(0))
-    return _lever(m, SCORED, [], {
-        "currency": cur, "billed_periods": len(used),
+    return _lever(m, SCORED, note, {
+        "currency": cur, "billed_periods": len(regular),
         "window_periods": len(window), "window_months": months,
         "usage_total": total,
         # trailing billed usage scaled to 12 months, half-up to the cent
@@ -269,7 +410,9 @@ def _usage(rows: list[dict]) -> dict:
 def _book(levers: dict[str, dict], method: str, sum_keys: tuple[str, ...],
           ratio: tuple[str, str, str] | None) -> dict:
     """Roll account levers up by currency. Only `scored` accounts contribute;
-    insufficient or not provided accounts are counted, never added as zero."""
+    insufficient or not provided accounts are counted, never added as zero. A
+    figure an account does not provide (None) is skipped and the book figure
+    says how many accounts lacked it."""
     counts = {SCORED: 0, INSUFFICIENT: 0, NOT_PROVIDED: 0}
     by_cur: dict[str, dict] = {}
     for lv in levers.values():
@@ -277,10 +420,14 @@ def _book(levers: dict[str, dict], method: str, sum_keys: tuple[str, ...],
         if lv["status"] != SCORED:
             continue
         acc = by_cur.setdefault(lv["values"]["currency"],
-                                {"accounts": 0, **{k: _ZERO for k in sum_keys}})
+                                {"accounts": 0, **{k: None for k in sum_keys}})
         acc["accounts"] += 1
         for k in sum_keys:
-            acc[k] += lv["values"][k]
+            v = lv["values"][k]
+            if v is None:
+                acc[f"{k}_accounts_missing"] = acc.get(f"{k}_accounts_missing", 0) + 1
+            else:
+                acc[k] = (acc[k] or _ZERO) + v
     if ratio:
         name, num, den = ratio
         for acc in by_cur.values():
@@ -299,32 +446,58 @@ def _book(levers: dict[str, dict], method: str, sum_keys: tuple[str, ...],
 
 
 def _lever_output(periods: Any, fn, method: str, sum_keys, ratio) -> dict:
-    accounts, skipped = _clean_periods(periods)
-    levers = {a: fn(rows) for a, rows in sorted(accounts.items())}
-    return {"method": method, "accounts": levers,
-            "book": _book(levers, method, sum_keys, ratio), "skipped": skipped}
+    accounts, skipped, cols = _clean_periods(periods)
+    levers = {}
+    for a, info in sorted(accounts.items()):
+        dq = info["dq"]
+        if info["rows"]:
+            lv = fn(info["rows"], cols)
+        else:
+            lv = _lever(method, NOT_PROVIDED, [
+                "every period row of this account is in conflict and excluded"])
+        if dq["conflict_rows_excluded"]:
+            lv["reasons"].append(
+                f"{dq['conflict_rows_excluded']} period row(s) in conflict are "
+                "excluded from this account: " + "; ".join(dq["conflict_reasons"]))
+        lv["data_quality"] = dict(dq)
+        levers[a] = lv
+    book = _book(levers, method, sum_keys, ratio)
+    if skipped["conflicting_period_rows"]:
+        book["reasons"].append(
+            f"{skipped['conflicting_period_rows']} conflicting period row(s) across "
+            f"{skipped['accounts_with_conflicts']} account(s) are excluded")
+    return {"method": method, "accounts": levers, "book": book, "skipped": skipped}
 
 
 def billing_realization(periods: Any) -> dict:
     """Invoiced against list, per account and per book (by currency)."""
-    return _lever_output(
+    out = _lever_output(
         periods, _realization, "billing_realization",
         ("list_total", "invoiced_total", "gap_total", "discount_total",
          "credit_total", "other_gap_total"),
         ("realization", "invoiced_total", "list_total"))
+    bad = sum(lv["values"].get("invalid_money_value_rows", 0)
+              for lv in out["accounts"].values())
+    out["skipped"]["invalid_money_value_rows"] = bad
+    if bad:
+        out["book"]["reasons"].append(
+            f"{bad} period row(s) flagged invalid_money_value are excluded")
+    return out
 
 
 def contracted_vs_billed(periods: Any) -> dict:
-    """Committed against invoiced, per account and per book (by currency)."""
+    """Committed against invoiced, per account and per book (by currency).
+    Shortfall and overage are summed per period; net_vs_commit is the net."""
     return _lever_output(
         periods, _committed, "contracted_vs_billed",
-        ("committed_total", "invoiced_total", "shortfall_total", "overage_total"),
+        ("committed_total", "invoiced_total", "shortfall_total", "overage_total",
+         "net_vs_commit"),
         ("billed_vs_committed", "invoiced_total", "committed_total"))
 
 
 def usage_actuals(periods: Any) -> dict:
-    """Annualised usage; fewer than MIN_USAGE_PERIODS billed periods is
-    insufficient_data (never zero)."""
+    """Annualised usage over whole-month periods; fewer than MIN_USAGE_PERIODS
+    billed periods is insufficient_data (never zero)."""
     return _lever_output(periods, _usage, "usage_actuals", ("usage_acv",), None)
 
 
