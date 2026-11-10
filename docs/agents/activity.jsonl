@@ -397,3 +397,4 @@
 {"ts": "2026-11-10T22:16:13Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
 {"ts": "2026-11-10T22:18:51Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T22:18:53Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
+{"ts": "2026-11-10T22:23:16Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree."}

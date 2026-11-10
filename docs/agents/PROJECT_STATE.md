@@ -6,10 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/4
-Updated: 2026-11-10T22:18:53Z
+Active work: 2/4
+Updated: 2026-11-10T22:23:16Z
 
 ## REWORK_REQUIRED
+- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
+  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
   - owns: web/src/app/pricing/page.tsx, web/test/pricing-page.test.ts
 
@@ -28,8 +30,6 @@ Updated: 2026-11-10T22:18:53Z
   - owns: pricing/adapters, pricing/csv_adapter.py, pricing/crm.py#adapter_import, api/routers/crm.py#analyze, api/routers/crm.py#source, tests/test_adapter_hubspot.py, tests/fixtures/hubspot
 - **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, PR #93, deps PK-53)
   - owns: pricing/billing.py, tests/test_billing.py
-- **PK-76** Redesign the landing page around the decision record and a scroll-driven walk  (web-engineer, PR #94, deps PK-75)
-  - owns: web/src/app/page.tsx, web/src/app/opengraph-image.tsx, web/src/components/HeroHeadline.tsx, web/src/components/DiagnosticPreview.tsx, web/src/components/WhatYouGet.tsx, web/src/components/TrustBoundaryStrip.tsx, web/src/components/landing, web/src/lib/landing-sample.ts, web/test/landing-page.test.ts, web/test/landing-walk.test.tsx
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
 

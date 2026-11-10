@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-10T22:18:53Z",
+  "updated": "2026-11-10T22:23:16Z",
   "config": {
     "max_concurrent": 4
   },
@@ -3194,7 +3194,7 @@
       "id": "PK-76",
       "title": "Redesign the landing page around the decision record and a scroll-driven walk",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [
         "PK-75"
       ],
@@ -3233,10 +3233,15 @@
         "ci_run": null
       },
       "pr": 94,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree.",
+        "ts": "2026-11-10T22:23:16Z"
+      },
       "blocked_by": null,
       "created": "2026-11-09T19:06:28Z",
-      "updated": "2026-11-10T22:16:13Z",
+      "updated": "2026-11-10T22:23:16Z",
       "notes": [
         {
           "ts": "2026-11-09T22:48:56Z",
@@ -3245,6 +3250,10 @@
         {
           "ts": "2026-11-10T22:16:13Z",
           "note": "PR #94"
+        },
+        {
+          "ts": "2026-11-10T22:23:16Z",
+          "note": "review rejected: Rejected: page-computed FNV hash shown as the engine's evidence_version under 'Real engine output' (blocker); margin wording off the ADR-006 allowlist; unbuilt 'trade' decision stated as live; book-level figure inside one deal's record; 'prices every exception' implies price setting. Findings on PR 94. Forced past cap 4: own worktree."
         }
       ]
     },
