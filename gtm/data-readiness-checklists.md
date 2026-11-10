@@ -1,7 +1,7 @@
 ---
 title: Per-source data-readiness checklists (quote tool, billing platform, other CRM)
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-10
 tags: [gtm, data-readiness, pilot, intake, non-salesforce, checklist]
 status: draft
 source: docs/reviews/2026-11-06-product-direction/customer-success.md section 2 part (1); docs/reviews/2026-11-06-product-direction/BRIEF.md; pricing/schema.py; docs/design/richer-ingest.md; docs/ops/data-handling-sop.md
@@ -279,3 +279,15 @@ this pilot.
 
 `gtm/data-request.md` · `docs/ops/data-handling-sop.md` · `docs/design/richer-ingest.md` ·
 `pricing/schema.py` · `docs/reviews/2026-11-06-product-direction/customer-success.md`
+
+---
+
+## Appended 2026-11-10: AI margin audit (separate motion, draft)
+
+Added for the audit-first motion. It is an exception to the "What we will not ask for" list above,
+and only by written amendment (see `gtm/ai-margin-audit-data-request.md`, F-audit-data-class).
+Everything above is unchanged.
+
+| Source | Column you may have | Used for | Note |
+|---|---|---|---|
+| AI margin audit | Invoice lines per customer per month (period, invoiced amount tax excluded, discount, credit, metered units); subscriptions (plan, start, end, pilot flag); model-provider usage and cost export grouped by key, project or workspace, or an app-side per-customer monthly rollup; cloud and storage cost lines; customer list with plan and start date; pricing page and packaging history | Per-customer contribution margin on a customer-supplied cost basis (`declared_cost`), heavy-user tail, packaging review, pilot-to-ARR | Customer codes only, monthly rollups only, no keys, no content. Gates differ: 3 or more months of billing, about 10 or more billed customers, cost attributable per customer, discount policy owner. No usable data, no audit. |
