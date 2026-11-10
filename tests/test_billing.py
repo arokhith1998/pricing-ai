@@ -6,6 +6,7 @@ tolerance."""
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -530,3 +531,77 @@ def test_module_has_no_llm_or_io_imports():
     for banned in ("openai", "anthropic", "requests", "httpx", "open("):
         assert banned not in src
     assert chr(0x2014) not in src
+
+
+# --- PK-54 re-review ----------------------------------------------------------
+
+def _billed_on(day, months, year=2025, first=1):
+    """Monthly periods for a subscription billed on `day`, clamped to month length."""
+    import calendar
+    out = []
+    for i in range(months):
+        y, m = divmod(first - 1 + i, 12)
+        y, m = year + y, m + 1
+        y2, m2 = divmod(first + i, 12)
+        y2, m2 = year + y2, m2 + 1
+        s = date(y, m, min(day, calendar.monthrange(y, m)[1]))
+        nxt = date(y2, m2, min(day, calendar.monthrange(y2, m2)[1]))
+        out.append(_row(start=s.isoformat(), end=(nxt - timedelta(days=1)).isoformat(),
+                        inv=100.0, usage_amount=100.0))
+    return out
+
+
+def test_whole_months_accepts_a_subscription_billed_on_the_31st():
+    rows = _billed_on(31, 12)
+    # Feb 28 to Mar 30, Apr 30 to May 30, Jun 30 to Jul 30, Sep 30 to Oct 30, Nov 30 to Dec 30
+    assert any(r["period_start"] == "2025-02-28" and r["period_end"] == "2025-03-30"
+               for r in rows)
+    lv = billing.usage_actuals(rows)["accounts"]["A"]
+    assert lv["status"] == "scored"
+    assert lv["values"]["window_months"] == 12 and lv["values"]["billed_periods"] == 12
+    assert lv["values"]["usage_acv"] == D("1200.00")
+    assert lv["reasons"] == []
+
+
+def test_whole_months_accepts_a_subscription_billed_on_the_30th_across_february():
+    rows = _billed_on(30, 6)  # Jan 30 to Feb 27, Feb 28 to Mar 29, ...
+    lv = billing.usage_actuals(rows)["accounts"]["A"]
+    assert lv["status"] == "scored" and lv["values"]["window_months"] == 6
+    assert lv["reasons"] == []
+
+
+def test_whole_months_still_rejects_weekly_and_stubs():
+    assert billing._whole_months(date(2025, 1, 1), date(2025, 1, 7)) is None
+    assert billing._whole_months(date(2025, 1, 1), date(2025, 2, 7)) is None
+    assert billing._whole_months(date(2025, 1, 10), date(2025, 1, 31)) is None
+    assert billing._whole_months(date(2025, 1, 1), date(2025, 3, 31)) == 3
+
+
+def test_refund_row_is_excluded_from_contracted_vs_billed():
+    rows = [_row(inv=-50.0, committed_amount=100.0),
+            _row(start="2025-02-01", end="2025-02-28", inv=80.0, committed_amount=100.0)]
+    lv = billing.contracted_vs_billed(rows)["accounts"]["A"]
+    v = lv["values"]
+    assert v["periods"] == 1 and v["shortfall_total"] == D("20.00")
+    assert v["billed_vs_committed"] == D("0.8000")
+    assert any("invalid_money_value" in r for r in lv["reasons"])
+
+
+def test_unparseable_amount_is_counted_under_its_own_name():
+    rows = [_row(inv="1,200"), _row(start="2025-02-01", end="2025-02-28", inv=10.0,
+                                    list_amount="$100"), _row(start="2025-03-01",
+                                                              end="2025-03-31", inv=None)]
+    out = billing.billing_realization(rows)
+    assert out["skipped"]["rows_unparseable_amount"] == 2
+    assert out["skipped"]["rows_missing_key_fields"] == 1
+    assert out["accounts"] == {}
+
+
+def test_usage_units_acv_is_rounded_to_the_cent():
+    rows = [dict(r, usage_units=1) for r in _billed_on(1, 6)]
+    v = billing.usage_actuals(rows)["accounts"]["A"]["values"]
+    assert v["usage_units_acv"] == D("12.00")
+    rows = [dict(r, usage_units=D("0.333")) for r in _billed_on(1, 7)]
+    v = billing.usage_actuals(rows)["accounts"]["A"]["values"]
+    assert v["usage_units_acv"] == (D("0.333") * 7 * 12 / 7).quantize(D("0.01"))
+    assert v["usage_units_acv"].as_tuple().exponent == -2

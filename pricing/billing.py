@@ -64,6 +64,8 @@ MIN_USAGE_PERIODS = 6
 WIN_RATE_REASON = ("billing data holds paying customers only; win rate needs "
                    "closed-lost deals from a CRM")
 
+_AMOUNTS = ("invoiced_amount", "list_amount", "discount_amount", "credit_amount",
+            "usage_units", "usage_amount", "committed_amount")
 _CENT = Decimal("0.01")
 _RATIO = Decimal("0.0001")
 _ZERO = Decimal("0.00")
@@ -122,21 +124,30 @@ def _text(v: Any) -> str:
     return "" if _blank(v) else str(v).strip()
 
 
-def _add_months(d: date, n: int) -> date:
-    """d plus n calendar months, the day clamped to the target month's length."""
-    y, m0 = divmod(d.year * 12 + d.month - 1 + n, 12)
-    m = m0 + 1
-    first_next = date(y + (m == 12), m % 12 + 1, 1)
-    return date(y, m, min(d.day, (first_next - timedelta(days=1)).day))
-
-
 def _whole_months(start: date, end: date) -> int | None:
     """N when the period is exactly N whole calendar months, end inclusive
     (Jan 1 to Jan 31, Jan 15 to Feb 14), else None. A weekly period, a
-    prorated stub or an odd interval is None and is never rounded to a month."""
+    prorated stub or an odd interval is None and is never rounded to a month.
+
+    The subscription's billing day is not known, so a period counts when it is
+    a whole number of months for ANY billing day (anchor) from start.day to 31
+    that clamps to start: a sub billed on the 31st runs Jan 31 to Feb 27, Feb
+    28 to Mar 30, Mar 31 to Apr 29."""
     nxt = end + timedelta(days=1)
     n = (nxt.year - start.year) * 12 + nxt.month - start.month
-    return n if n >= 1 and _add_months(start, n) == nxt else None
+    if n < 1:
+        return None
+    for anchor in range(start.day, 32):
+        if (_clamp(start.year, start.month, anchor) == start.day
+                and _clamp(nxt.year, nxt.month, anchor) == nxt.day):
+            return n
+    return None
+
+
+def _clamp(year: int, month: int, day: int) -> int:
+    """day, or the last day of the month when the month is shorter."""
+    first_next = date(year + (month == 12), month % 12 + 1, 1)
+    return min(day, (first_next - timedelta(days=1)).day)
 
 
 def _ratio(num: Decimal, den: Decimal) -> Decimal | None:
@@ -175,7 +186,7 @@ def _clean_periods(periods: Any) -> tuple[dict[str, dict], dict, set[str]]:
     raws = _rows(periods)
     cols = _columns(raws)
     grouped: dict[str, list[dict]] = defaultdict(list)
-    report = {"rows_missing_key_fields": 0, "rows_not_billing_source": 0,
+    report = {"rows_missing_key_fields": 0, "rows_unparseable_amount": 0, "rows_not_billing_source": 0,
               "duplicate_periods_dropped": 0, "conflicting_period_rows": 0,
               "accounts_with_conflicts": 0}
     for raw in raws:
@@ -186,6 +197,10 @@ def _clean_periods(periods: Any) -> tuple[dict[str, dict], dict, set[str]]:
         acct = _text(raw.get("source_record_id"))
         start, end = _date(raw.get("period_start")), _date(raw.get("period_end"))
         cur = _text(raw.get("currency")).upper()
+        if any(not _blank(raw.get(f)) and _num(raw.get(f)) is None for f in _AMOUNTS):
+            # "1,200" or "$100": present but not a number, never read as blank
+            report["rows_unparseable_amount"] += 1
+            continue
         invoiced = _money(raw.get("invoiced_amount"))
         if not (acct and start and end and end >= start and cur and invoiced is not None):
             report["rows_missing_key_fields"] += 1
@@ -334,16 +349,19 @@ def _committed(rows: list[dict], cols: set[str]) -> dict:
     cur = _single_currency(rows)
     if cur is None:
         return _lever(m, NOT_PROVIDED, [_MIXED])
-    used = [r for r in rows if r["committed"] is not None]
+    invalid = [r for r in rows if _invalid_money(r)]
+    used = [r for r in rows if r["committed"] is not None and not _invalid_money(r)]
+    inv_note = ([f"{len(invalid)} period(s) flagged invalid_money_value (negative "
+                 "amount such as a refund) are excluded"] if invalid else [])
     if not used:
-        return _lever(m, NOT_PROVIDED, [
+        return _lever(m, NOT_PROVIDED, inv_note + [
             "no committed amount from a source the user marked; billing has no "
             "first-class commit"])
     com_t, inv_t = _sum(used, "committed"), _sum(used, "invoiced")
     # Per period, never netted: an over period does not cancel an under one.
     short = sum((max(r["committed"] - r["invoiced"], _ZERO) for r in used), _ZERO)
     over = sum((max(r["invoiced"] - r["committed"], _ZERO) for r in used), _ZERO)
-    return _lever(m, SCORED, [], {
+    return _lever(m, SCORED, inv_note, {
         "currency": cur, "periods": len(used),
         "committed_total": com_t, "invoiced_total": inv_t,
         "billed_vs_committed": _ratio(inv_t, com_t),
@@ -400,7 +418,8 @@ def _usage(rows: list[dict], cols: set[str]) -> dict:
         # trailing billed usage scaled to 12 months, half-up to the cent
         "usage_acv": (total * 12 / Decimal(months)).quantize(_CENT, rounding=ROUND_HALF_UP),
         "usage_units_total": units_total if units else None,
-        "usage_units_acv": (units_total * 12 / Decimal(months)
+        "usage_units_acv": ((units_total * 12 / Decimal(months)).quantize(
+                                _CENT, rounding=ROUND_HALF_UP)
                             if units and len(units) == len(window) else None),
     })
 
