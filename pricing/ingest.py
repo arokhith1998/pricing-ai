@@ -752,10 +752,12 @@ def _exclude_open(df: pd.DataFrame, report: LoadReport) -> pd.DataFrame:
     is_closed = df["outcome"].isin(_CLOSED)
     is_ask = df["outcome"].eq(mapping.OUTCOME_ASK_USER)
     is_open = ~is_closed & ~is_ask
+    # Casing rule for both sections below: keys are the ORIGINAL raw stage text
+    # (no lowercasing), so excluded_open and ask_user read the same way.
     if is_open.any():
         report.excluded_open = {
             str(k): int(v)
-            for k, v in raw[is_open].str.lower().value_counts().items()
+            for k, v in raw[is_open].value_counts().items()
         }
     if is_ask.any():
         kind = "quote_id" if "source_quote_id" in df.columns else "opportunity_id"

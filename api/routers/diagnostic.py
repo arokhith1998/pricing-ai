@@ -150,16 +150,25 @@ def map_columns(req: MapReq) -> dict:
     It reads no rows and rolls nothing up: for that, upload to /diagnostic.
     """
     headers = [str(h) for h in req.headers]
-    result = mapping.map_headers(headers, llm_fallback=assist.has_llm(),
+    enabled = assist.has_llm()
+    result = mapping.map_headers(headers, llm_fallback=enabled,
                                  use_embeddings=False)
-    suggested = {f: (h if h and result["used"].get(h) == "llm" else None)
-                 for f, h in result["mapping"].items()}
     return {
-        "enabled": assist.has_llm(),
+        "enabled": enabled,
         "scope": ("header suggestion only: no rows are read and quote lines "
                   "are not rolled up; upload the file to /diagnostic for that"),
-        "mapping": suggested if assist.has_llm() else {},
+        # The full mapping when enabled: deterministic matches keep their
+        # header and are listed in `used` with the layer that matched them
+        # (profile, synonym, fuzzy, ...); only "llm" entries are suggestions.
+        # A field is None only when no layer mapped it.
+        "mapping": result["mapping"] if enabled else {},
+        "used": result["used"] if enabled else {},
         "profile": result["profile"],
         "refusal": result["refusal"],
         "llm_rejected": result["llm_rejected"],
+        # "LLM down" (true, with a class-name note) is distinct from "LLM found
+        # nothing" (false, no note). Notes carry the exception class only,
+        # never its message, which may echo headers.
+        "llm_fallback_failed": result["llm_fallback_failed"],
+        "notes": result["notes"],
     }

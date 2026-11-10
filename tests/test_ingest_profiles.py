@@ -135,6 +135,35 @@ def test_ask_user_is_never_closed_lost_and_never_enters_win_rate(tmp_path):
     assert with_ask["load_report"].rows_kept == 40
 
 
+def test_quote_whose_lines_disagree_on_stage_lands_in_ask_user(tmp_path):
+    df = _lines(_book() + [{"qid": "Q-5005"}])
+    df.loc[df["Quote ID"].eq("Q-5005") & df["Line ID"].str.endswith("L1"),
+           "Quote Status"] = "Declined"
+    out, rep = ingest_verbose(_write(df, tmp_path))
+    assert len(out) == 40 and "Q-5005" not in set(out["source_quote_id"])
+    assert sum(v["deals"] for v in rep.ask_user.values()) == 1
+    (stage, v), = rep.ask_user.items()
+    assert v["ids"] == ["Q-5005"] and "Accepted" in stage and "Declined" in stage
+    assert rep.excluded_open == {}
+
+
+def test_zero_closed_some_open_some_ask_user_message(tmp_path):
+    book = ([{"qid": f"Q-{i}", "status": "Sent"} for i in range(5)]
+            + [{"qid": f"Q-{50 + i}", "status": "On Hold"} for i in range(3)])
+    with pytest.raises(SchemaError) as e:
+        ingest_verbose(_write(_lines(book), tmp_path))
+    msg = str(e.value)
+    assert "3 further deal(s) were set aside as ask_user" in msg and "On Hold" in msg
+    assert "do not recognise" not in msg.split("ask_user", 1)[0]
+
+
+def test_excluded_open_and_ask_user_keys_use_raw_casing(tmp_path):
+    book = _book() + [{"qid": "Q-8001", "status": "Sent"},
+                      {"qid": "Q-8002", "status": "On Hold"}]
+    _df, rep = ingest_verbose(_write(_lines(book), tmp_path))
+    assert rep.excluded_open == {"Sent": 1} and set(rep.ask_user) == {"On Hold"}
+
+
 def test_all_ask_user_raises_naming_the_stage_values(tmp_path):
     book = [{"qid": f"Q-{i}", "status": "Declined" if i % 2 else "On Hold"}
             for i in range(40)]
@@ -156,7 +185,7 @@ def test_ask_user_in_a_crm_file_and_accepted_declined_are_not_open():
               + ["Negotiation"] * 4 + ["Pending Legal Review"])
     frame = pd.DataFrame([deal(i, s) for i, s in enumerate(stages)])
     df, rep = ingest.ingest_frame_verbose(frame, source="crm")
-    assert rep.excluded_open == {"negotiation": 4}       # Declined is not open
+    assert rep.excluded_open == {"Negotiation": 4}       # raw casing, same rule as ask_user
     assert rep.ask_user["Declined"]["deals"] == 3
     assert rep.ask_user["Declined"]["id_kind"] == "opportunity_id"
     assert rep.ask_user["Pending Legal Review"]["ids"] == ["O42"]
@@ -334,7 +363,43 @@ def test_map_columns_reports_the_cpq_profile_and_never_an_llm_outcome(client, mo
     headers = HEAD + ["Tier Zone"]
     r = client.post("/map-columns", json={"headers": headers}).json()
     assert r["profile"]["profile"] == "cpq_line" and r["refusal"] is None
-    assert r["mapping"]["outcome"] is None
+    # Outcome is claimed by the deterministic profile layer, never by the LLM.
+    assert r["mapping"]["outcome"] == "Quote Status"
+    assert r["used"]["Quote Status"] == "profile"
+    assert r["llm_rejected"] == [{"field": "outcome", "header": "Quote Status"}]
+
+
+def test_map_columns_returns_deterministic_matches_and_merges_llm_suggestion(client, monkeypatch):
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+    monkeypatch.setattr(assist, "map_columns", lambda hs: {"region": "Tier Zone"})
+    headers = HEAD + ["Tier Zone"]
+    r = client.post("/map-columns", json={"headers": headers}).json()
+    assert r["llm_fallback_failed"] is False and r["notes"] == []
+    assert r["mapping"]["region"] == "Tier Zone" and r["used"]["Tier Zone"] == "llm"
+    # Deterministically matched headers are not blanked: mapped and in `used`.
+    assert r["mapping"]["outcome"] == "Quote Status"
+    assert r["mapping"]["close_date"] == "Close Date"
+    for h in ("Quote Status", "Close Date"):
+        assert h in r["used"] and r["used"][h] != "llm"
+
+
+def test_map_columns_llm_failure_is_flagged_not_swallowed(client, monkeypatch):
+    monkeypatch.setattr(assist, "has_llm", lambda: True)
+
+    def boom(_h):
+        raise RuntimeError("secret header text Tier Zone")
+
+    monkeypatch.setattr(assist, "map_columns", boom)
+    r = client.post("/map-columns", json={"headers": HEAD + ["Tier Zone"]}).json()
+    assert r["enabled"] is True and r["llm_fallback_failed"] is True
+    assert any("RuntimeError" in n for n in r["notes"])
+    assert "secret header text" not in json.dumps(r)
+    assert r["mapping"]["outcome"] == "Quote Status"      # deterministic kept
+    assert r["mapping"]["segment"] == "Segment"
+    # "LLM found nothing" is a different, clean response.
+    monkeypatch.setattr(assist, "map_columns", lambda hs: {})
+    ok = client.post("/map-columns", json={"headers": HEAD + ["Tier Zone"]}).json()
+    assert ok["llm_fallback_failed"] is False and ok["notes"] == []
 
 
 def test_diagnostic_route_returns_ask_user_and_all_ask_user_is_422(client, tmp_path):
