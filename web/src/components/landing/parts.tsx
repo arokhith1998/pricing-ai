@@ -24,10 +24,12 @@ export function Field({
   return (
     <div className="min-w-0">
       <dt className="pk-small text-muted">{label}</dt>
-      <dd className={`m-0 mt-0.5 font-semibold tabular-nums text-fg ${mono ? "pk-mono break-all" : "text-body"}`}>
-        {children}
+      <dd className="m-0 mt-0.5">
+        <span className={`font-semibold tabular-nums text-fg ${mono ? "pk-mono break-all" : "text-body"}`}>
+          {children}
+        </span>
+        {note ? <span className="pk-small block text-muted">{note}</span> : null}
       </dd>
-      {note ? <p className="pk-small m-0 text-muted">{note}</p> : null}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export default function Landing() {
   return (
     <main id="main" tabIndex={-1} className="outline-none">
       {/* 1. Hero: one claim, one action, the decision record above the fold. */}
-      <Section band="canvas" labelledBy="hero-h" className="py-8! md:py-10! lg:py-12!">
+      <Section band="canvas" labelledBy="hero-h" className="py-6! md:py-8! lg:py-8!">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-12">
           <div>
             <Eyebrow>Salesforce deal guidance for B2B SaaS</Eyebrow>

@@ -217,7 +217,7 @@ export function WalkView({
             }}
             className={
               armed
-                ? `flex min-h-[55vh] flex-col justify-center transition-opacity duration-200 ${i === active ? "opacity-100" : "opacity-50"}`
+                ? `flex min-h-[55vh] flex-col justify-center border-l-2 pl-6 transition-colors duration-200 ${i === active ? "border-teal" : "border-border"}`
                 : "grid gap-4 md:grid-cols-2 md:gap-8"
             }
           >

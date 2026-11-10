@@ -55,7 +55,7 @@ describe("walk without the arming effect", () => {
     for (const name of ["Request", "Evidence", "Decision", "Outcome"]) expect(html).toContain(name);
     expect(html).toContain('data-armed="false"');
     expect(html).not.toMatch(/opacity:\s*0/);
-    expect(html).not.toContain("opacity-50");
+    expect(html).not.toContain("opacity-");
     expect(html).not.toContain("sticky");
     expect((html.match(/data-step=/g) ?? []).length).toBe(4);
     expect(html).toContain(RECORD.opportunityId);
