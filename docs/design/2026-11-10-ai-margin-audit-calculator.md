@@ -170,6 +170,8 @@ This is true only if the formulas run in the browser. The module is imported by 
 
 ## 5. Lead capture
 
+> **Naming decision (lead, 2026-11-10, PK-108).** The column and the request field are `lead_magnet`, not `source`: `leads.lead_magnet text not null default ''`, where the empty string means the existing sample gate, and the calculator sends `lead_magnet: "margin_audit"`. The CHECK is a format rule (`^[a-z][a-z0-9_]{0,31}$` or empty), so a later lead magnet needs no migration. Everywhere this section says `source` or `'sample_gate'`, read `lead_magnet` and `''`. PK-108 (PR 95) ships the migration; PK-109 ships the write path and must not deploy before the migration is applied to production Neon.
+
 **Reuse `POST /api/lead` with `source: "margin_audit"`.** Absent `source` keeps today's behavior exactly (`sample_gate`). New branch:
 
 - Required: `email` and `consent`. Name, company, job title, function and revenue range are not asked. Stored values: `name = ""`, `company =` the email domain, `role_title = ""`, `role_function = ""`, `revenue_range = "Unknown"`, `pricing_model =` the model the visitor picked (`flat`, `per_seat`, `usage`, `hybrid`). `isCompanyEmail`, `rateLimit`, the honeypot (still byte-identical, per the comment at `route.ts:25`) and UTM capture apply unchanged. `source` is an allowlist of one value; anything else is treated as absent.
