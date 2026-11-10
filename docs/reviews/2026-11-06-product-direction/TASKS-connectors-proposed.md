@@ -526,3 +526,6 @@ PK-48 (HubSpot sync in the web tier) must loosen the web `CanonicalDeal` so `opp
 - `tenant_ref` for codes that existed at migration time equals the access code (a bearer secret) until PK-43 re-keys; PK-43's operator script and PK-44's register treat it as secret and never log it.
 - PK-42 returns empty strings for `user_id`, `token_type` and `issued_at`, which are display-only and were not copied; no extra neon claim. PK-42's token-scan acceptance covers `last_error`, `scope` and `external_account_id`, which are free text.
 - Migrations take `set local lock_timeout = '5s'` and lock `access_codes` in ACCESS EXCLUSIVE up front when they will ALTER it, to avoid the lock-upgrade window.
+
+- **PK-46 claim widened (lead decision, PR 83 second rework, 2026-11-10):** `api/routers/crm.py#_records_hash` is added to the PK-46 claim. `evidence_version` hashes the raw request records and raw HubSpot records carry `id`, not `opportunity_id`, so every sort key was empty and the fingerprint depended on payload order (0e101604 forward, b1eb08bd reversed on five synthetic deals). The `id` fallback makes the fingerprint order independent; a test pins it. `ClosedFloorError(DealDataError, code="closed_floor")` lives in `pricing/adapters/__init__.py` until PK-91 moves it into the guardrail.
+
