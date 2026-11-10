@@ -395,3 +395,5 @@
 {"ts": "2026-11-10T22:12:45Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-10T22:12:46Z", "event": "status", "task": "PK-54", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #93"}
 {"ts": "2026-11-10T22:16:13Z", "event": "status", "task": "PK-76", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #94"}
+{"ts": "2026-11-10T22:18:51Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-10T22:18:53Z", "event": "status", "task": "PK-46", "agent": "backend-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #83"}
