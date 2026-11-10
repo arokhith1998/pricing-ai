@@ -356,3 +356,4 @@
 {"ts": "2026-11-09T23:48:27Z", "event": "status", "task": "PK-89", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #92"}
 {"ts": "2026-11-10T20:24:36Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "APPROVED -> MERGED: merged as d076b3c, human-approved by product owner"}
 {"ts": "2026-11-10T20:24:38Z", "event": "status", "task": "PK-29", "agent": "ai-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-10T20:29:03Z", "event": "deploy", "task": null, "agent": "pk-lead", "detail": "Production redeployed by founder instruction: Vercel dpl_7oZZGj2H5wjwtmnzVau6oLh96zKN from main d076b3c (PK-29 merge), READY, aliased pricekeel.com and www.pricekeel.com; live site verified serving PK-75 design system (global disclosure, Customer login). Ends the stale-production window after the Hobby build-rate limit skipped ten builds."}
