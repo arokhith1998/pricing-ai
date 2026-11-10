@@ -15,7 +15,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = pageMetadata({
   title: "Salesforce deal guidance for B2B SaaS",
   description:
-    "Pricekeel prices every discount exception in Salesforce before approval and records the decision with evidence Finance can audit, for usage and hybrid B2B SaaS.",
+    "Pricekeel checks every discount exception in Salesforce against the book before approval and records the decision with its evidence, for B2B SaaS.",
   path: "/",
 });
 
@@ -44,7 +44,7 @@ export default function Landing() {
               <HeroHeadline />
             </div>
             <p className="pk-lead m-0 mt-4 max-w-[52ch]">
-              Every discount exception is priced against the book before approval. The request
+              Every discount exception is checked against the book before approval. The request
               stays as asked, the evidence is shown, and a person decides.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">

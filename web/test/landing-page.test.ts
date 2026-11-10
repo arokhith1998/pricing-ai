@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import sampleFallback from "@/data/sample-fallback.json";
 import { moneyShort } from "@/lib/format";
+import { RECORD } from "@/lib/landing-sample";
 import Landing, { dynamic, metadata } from "@/app/page";
 
 afterEach(cleanup);
@@ -39,6 +40,24 @@ describe("Landing page", () => {
   it("never claims usage-or-hybrid fit (dropped from the ICP line)", () => {
     const { container } = render(createElement(Landing));
     expect(container.textContent?.toLowerCase()).not.toContain("usage or hybrid");
+    expect(container.textContent?.toLowerCase()).not.toContain("usage and hybrid");
+  });
+
+  it("never says the product prices, and never claims true margin, trade or a real evidence_version", () => {
+    const { container } = render(createElement(Landing));
+    const t = (container.textContent ?? "").toLowerCase();
+    expect(t).not.toContain("true margin");
+    expect(t).not.toMatch(/prices every/);
+    expect(t).not.toMatch(/trade/);
+    expect(t).not.toContain("trade for terms");
+    expect(t).not.toContain("evidence_version");
+    expect(t).not.toContain("real engine output");
+    expect(t).toContain("cost proxy, not margin");
+  });
+
+  it("metadata description says checks, not prices", () => {
+    expect(String(metadata.description)).toContain("checks every discount exception");
+    expect(String(metadata.description).toLowerCase()).not.toMatch(/usage (and|or) hybrid|prices every/);
   });
 
   it("never claims to be a system of record", () => {
@@ -50,7 +69,10 @@ describe("Landing page", () => {
     const { container } = render(createElement(Landing));
     // Recomputed from the snapshot, so a regenerated sample-fallback.json
     // still passes. Today: 8,946,770 shown as $8.9M.
-    expect(container.textContent).toContain(moneyShort(HERO_EXCESS));
+    // The record shows this one deal's own excess, never the book total.
+    expect(container.textContent).toContain(moneyShort(RECORD.excessDollars));
+    expect(container.textContent).toContain("on this one synthetic deal");
+    expect(container.textContent).not.toContain("booked above each segment");
     expect(moneyShort(HERO_EXCESS)).toBe("$8.9M");
   });
 
@@ -65,9 +87,9 @@ describe("Landing page", () => {
   it("labels the hero number with a status icon and a synthetic caption", () => {
     const { container } = render(createElement(Landing));
     const pill = container.querySelector('[data-status="leak"]');
-    expect(pill?.textContent).toContain("Gap to segment win point");
+    expect(pill?.textContent).toContain("gap to its win point");
     expect(pill?.querySelector("svg")).toBeTruthy();
-    expect(container.textContent?.toLowerCase()).toContain("synthetic 2,000-deal book");
+    expect(container.textContent?.toLowerCase()).toContain("synthetic sample deal");
   });
 
   it("has no coral headline, glow, tilt, amber chrome or 100svh hero", () => {
@@ -94,7 +116,7 @@ describe("Landing page", () => {
 
   it("shows the synthetic deal tag and never an account name", () => {
     const { container } = render(createElement(Landing));
-    expect(container.textContent).toContain("Synthetic sample deal. Real engine output.");
+    expect(container.textContent).toContain("Synthetic sample deal. Figures from the bundled synthetic snapshot.");
     const deals = sampleFallback.top_leak_deals as { resolved_account_name: string }[];
     for (const d of deals) expect(container.textContent).not.toContain(d.resolved_account_name);
   });

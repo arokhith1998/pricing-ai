@@ -15,7 +15,7 @@ export const SAMPLE = sampleFallback as unknown as Diagnostic;
 export const HERO_EXCESS =
   SAMPLE.leakage.excess_vs_segment_reference_won ?? SAMPLE.leakage.excess_vs_reference_won;
 
-export const SYNTHETIC_DEAL_TAG = "Synthetic sample deal. Real engine output.";
+export const SYNTHETIC_DEAL_TAG = "Synthetic sample deal. Figures from the bundled synthetic snapshot.";
 
 // --- The deal rule ---------------------------------------------------------
 // DEAL RULE: of the deals in `top_leak_deals`, take the one with the largest
@@ -79,12 +79,12 @@ export function bandForDiscount(discount: number, labels: readonly string[]): st
   return found;
 }
 
-// --- Evidence fingerprint -----------------------------------------------------
-// The snapshot carries no engine evidence_version (the engine stamps one on a
-// live verdict: sha256 of book, policy, method and code, 16 hex). Here we
-// fingerprint the bundled evidence the same shape, 16 hex characters, from the
-// figures this page renders, so it changes whenever they do. Two FNV-1a lanes,
-// no crypto import, so it is safe in any bundle.
+// --- Page fingerprint ---------------------------------------------------------
+// NOT the engine's evidence_version. The engine stamps that on a live verdict
+// (sha256 of book, policy, method and code); the bundled snapshot carries none,
+// so this page never shows one. This is a fingerprint of the figures the page
+// renders, 16 hex characters, so a reader can see when they change. Two FNV-1a
+// lanes, no crypto import, so it is safe in any bundle.
 export function fingerprint(text: string): string {
   let a = 0x811c9dc5;
   let b = 0x01000193 ^ 0xdeadbeef;
@@ -111,6 +111,7 @@ export type DecisionRecord = {
   listAcv: number;
   bookedAcv: number;
   requestedDiscount: number;
+  excessDollars: number;
   priceRealization: number;
   quarterEnd: boolean;
   competitorPresent: boolean;
@@ -121,7 +122,7 @@ export type DecisionRecord = {
   peakBandLabel: string;
   peakWinRate: number;
   method: string;
-  evidenceVersion: string;
+  pageFingerprint: string;
 };
 
 // The record carries an opportunity id and a segment and never the account
@@ -151,6 +152,7 @@ export function buildDecisionRecord(sample: Diagnostic): DecisionRecord {
     listAcv: deal.list_acv,
     bookedAcv: deal.booked_acv,
     requestedDiscount: deal.discount_pct,
+    excessDollars: deal.excess_discount_dollars,
     priceRealization: deal.booked_acv / deal.list_acv,
     quarterEnd: deal.is_quarter_end,
     competitorPresent: deal.competitor_present,
@@ -161,7 +163,7 @@ export function buildDecisionRecord(sample: Diagnostic): DecisionRecord {
     peakBandLabel: peak.label,
     peakWinRate: peak.winRate,
     method,
-    evidenceVersion: fingerprint(
+    pageFingerprint: fingerprint(
       JSON.stringify([deal.opportunity_id, deal.discount_pct, method, bands]),
     ),
   };

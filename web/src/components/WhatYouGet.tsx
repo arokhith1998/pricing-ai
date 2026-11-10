@@ -10,7 +10,7 @@ const r = RECORD;
 const ROLES: { role: string; line: string; excerpt: string }[] = [
   {
     role: "Deal Desk",
-    line: "See the guardrail and the closest comparable deals. Accept, trade, or override.",
+    line: "See the guardrail and the closest comparable deals. Accept or override.",
     excerpt: `${r.opportunityId}: ${pct(r.requestedDiscount)} requested against a ${r.referenceBandLabel} reference band.`,
   },
   {
@@ -20,8 +20,8 @@ const ROLES: { role: string; line: string; excerpt: string }[] = [
   },
   {
     role: "Finance",
-    line: "See who approved what, and where CRM discount data stops and true margin needs billing or ERP.",
-    excerpt: `Evidence ${r.evidenceVersion} is stored with the decision.`,
+    line: "See who approved what, and where CRM discount data stops. CRM cost figures are a cost proxy, not margin; margin needs billing or ERP.",
+    excerpt: `The record keeps the requested terms, this evidence and who decided.`,
   },
 ];
 

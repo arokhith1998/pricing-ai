@@ -35,7 +35,7 @@ export function buildSteps(r: DecisionRecord): WalkStep[] {
       id: "decision",
       name: "Decision",
       title: "A person chooses.",
-      copy: "Accept the reference, trade for terms, or override with a written reason. The person decides. The product shows the evidence and writes down what was decided.",
+      copy: "Accept the reference or override it with a written reason. The person decides. The product shows the evidence and writes down what was decided.",
     },
     {
       id: "outcome",
@@ -57,7 +57,6 @@ function PanelFrame({ step, children }: { step: WalkStep; children: ReactNode })
 
 const CHOICES = [
   { label: "Accept the reference", picked: false },
-  { label: "Trade for terms", picked: false },
   { label: "Override, with a written reason", picked: true },
 ];
 
@@ -90,7 +89,7 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
       return (
         <PanelFrame step={step}>
           {[
-            { band: r.requestedBand, label: `Requested, ${r.requestedBand.label} band`, emphasis: false },
+            { band: r.requestedBand, label: `Requested, ${r.requestedBand.label} band, all segments`, emphasis: false },
             {
               band: r.referenceBand,
               label: `${r.segment} reference, ${r.referenceBandLabel} band`,
@@ -100,7 +99,7 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
             <div key={label} className="mb-4">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="pk-small m-0 text-muted">{label}</p>
-                <p className="m-0 font-semibold tabular-nums text-fg">{pct(band.winRate)} win rate</p>
+                <p className="m-0 font-semibold tabular-nums text-fg">{pct(band.winRate)} win rate, all segments</p>
               </div>
               <div className="mt-2">
                 <WinBar band={band} emphasis={emphasis} />
@@ -112,8 +111,8 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
           ))}
           <dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Method">{r.method}</Field>
-            <Field label="evidence_version" mono>
-              {r.evidenceVersion}
+            <Field label="Page fingerprint" mono>
+              {r.pageFingerprint}
             </Field>
           </dl>
           <SyntheticTag className="mt-4" />
@@ -145,8 +144,8 @@ export function StepPanel({ step, record: r }: { step: WalkStep; record: Decisio
               <dd className="m-0 text-fg">override</dd>
               <dt className="text-muted">requested</dt>
               <dd className="m-0 text-fg">{pct(r.requestedDiscount)}</dd>
-              <dt className="text-muted">evidence_version</dt>
-              <dd className="m-0 break-all text-fg">{r.evidenceVersion}</dd>
+              <dt className="text-muted">page_fingerprint</dt>
+              <dd className="m-0 break-all text-fg">{r.pageFingerprint}</dd>
             </dl>
           </div>
           <SyntheticTag variant="illustrative" className="mt-4" />
