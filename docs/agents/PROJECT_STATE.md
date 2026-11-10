@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 4/4
-Updated: 2026-11-09T23:48:27Z
+Updated: 2026-11-10T20:24:38Z
 
 ## IN_PROGRESS
 - **PK-54** Compute realization, contracted versus billed and usage actuals from billing  (backend-engineer, deps PK-53)
@@ -44,10 +44,6 @@ Updated: 2026-11-09T23:48:27Z
 ## QA
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
   - owns: web/src/components/GuidanceClient.tsx, web/src/app/diagnostic/page.tsx, web/test/guidance-copy.test.ts
-
-## APPROVED
-- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
-  - owns: tests/test_numeric_fidelity.py, tests/test_cost_basis_label.py, pricing/cost_basis.py
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
@@ -154,6 +150,7 @@ Updated: 2026-11-09T23:48:27Z
 - **PK-25** Make Salesforce the first adapter behind a neutral guardrail  (backend-engineer, PR #75, deps PK-23)
 - **PK-26** Rename the web canonical type to CanonicalDeal  (web-engineer, PR #86, deps PK-25)
 - **PK-27** Add source profiles and export presets to the mapper  (ai-engineer, PR #74, deps PK-23)
+- **PK-29** Add numeric-fidelity and cost-basis label evals  (ai-engineer, PR #76, deps PK-23)
 - **PK-30** Specify the contract-structure lens  (pricing-strategist, PR #62)
 - **PK-31** Plant contract-structure answers in the generator  (data-engineer, PR #79, deps PK-23,PK-30)
 - **PK-5** Make Anthropic the only LLM provider in the product runtime  (ai-engineer, PR #64)

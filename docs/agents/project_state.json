@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-09T23:48:27Z",
+  "updated": "2026-11-10T20:24:38Z",
   "config": {
     "max_concurrent": 4
   },
@@ -1469,15 +1469,11 @@
       "id": "PK-29",
       "title": "Add numeric-fidelity and cost-basis label evals",
       "agent": "ai-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [
         "PK-23"
       ],
-      "owns": [
-        "tests/test_numeric_fidelity.py",
-        "tests/test_cost_basis_label.py",
-        "pricing/cost_basis.py"
-      ],
+      "owns": [],
       "branch": "agent/ai-engineer/PK-29",
       "worktree": ".claude/worktrees/PK-29",
       "acceptance": [
@@ -1501,7 +1497,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-07T16:32:05Z",
-      "updated": "2026-11-09T22:59:49Z",
+      "updated": "2026-11-10T20:24:38Z",
       "notes": [
         {
           "ts": "2026-11-09T18:34:48Z",
@@ -1534,8 +1530,18 @@
         {
           "ts": "2026-11-09T22:59:49Z",
           "note": "CI run 42714756585"
+        },
+        {
+          "ts": "2026-11-10T20:24:36Z",
+          "note": "merged as d076b3c, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": "d076b3c",
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-10T20:24:36Z"
+      }
     },
     {
       "id": "PK-74",
