@@ -69,7 +69,7 @@ LEVER_LABELS: dict[str, str] = {
     "unit_rate": ("Effective committed unit rate: committed usage spend per committed unit, "
                   "compared with the list unit rate. Method: policy rule."),
     "commit_share": ("Commit share of booked: committed annual spend as a share of booked ACV. "
-                     "Method: policy rule. Below {commit_share_floor:.0%}, most of the booked "
+                     "Method: policy rule. Below {commit_share_floor}, most of the booked "
                      "value is uncommitted forecast."),
     "overage_fence": ("Overage fence: on-demand rate against the effective committed unit rate. "
                       "Method: policy rule. An overage rate at or below the committed rate "
@@ -391,7 +391,7 @@ def contract_structure_summary(deals: pd.DataFrame) -> dict:
         result[lever] = {
             "lever": lever,
             "method": METHOD,
-            "label": LEVER_LABELS[lever].format(commit_share_floor=cs_floor),
+            "label": LEVER_LABELS[lever].format(commit_share_floor=_pct(cs_floor)),
             "n_won": int(won.sum()),
             "n_scored": n_scored,
             "n_insufficient_data": int((won & (st == INSUFFICIENT)).sum()),
@@ -470,6 +470,11 @@ SHARE_INSUFFICIENT_SENTENCE = ("Fewer than 15 scored won deals on this lever, so
                                "reported. The deals are listed below.")
 
 
+def _pct(frac: float) -> str:
+    """Whole percent when exact, else the shortest faithful form (12.5%, never 12%)."""
+    return f"{round(float(frac) * 100, 6):g}%"
+
+
 def _py(v):
     """Plain python value; NaN and NA become None so rows serialize cleanly."""
     if v is None or v is pd.NA:
@@ -531,9 +536,11 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
     summary = contract_structure_summary(deals)
     won = _won_mask(deals)
     floor = float(params.get("floor_frac", DEFAULT_POLICY_THRESHOLD))
-    # without attrs, infer column presence from the data: a scored step means its column exists
-    ramp_in_file = bool(params["ramp_columns_in_file"]) if "ramp_columns_in_file" in params         else bool((deals["wf_ramp_step_status"] == SCORED).any())
-    credits_in_file = bool(params["credits_column_in_file"]) if "credits_column_in_file" in params         else bool((deals["wf_credits_step_status"] == SCORED).any())
+    # An exclusion sentence needs proof the column is absent from the file. Without attrs
+    # there is no proof, and a present-but-empty column must never read as absent (spec 7a.6),
+    # so the sentence is withheld rather than inferred from the data.
+    ramp_in_file = bool(params.get("ramp_columns_in_file", True))
+    credits_in_file = bool(params.get("credits_column_in_file", True))
 
     def col(name: str) -> pd.Series:
         return deals[name] if name in deals.columns else pd.Series(np.nan, index=deals.index)
@@ -573,7 +580,7 @@ def contract_structure_readout(deals: pd.DataFrame, *, n: int = 25,
         key, asc = sorts[flag]
         total, lst = rows(mask, cols, key, asc, flag)
         label = LEVER_LABELS[lever].format(
-            commit_share_floor=params.get("commit_share_floor", COMMIT_SHARE_FLOOR_DEFAULT))
+            commit_share_floor=_pct(params.get("commit_share_floor", COMMIT_SHARE_FLOOR_DEFAULT)))
         if flag == "unit_rate_below_floor":
             bases = set(deals.loc[mask, "list_unit_rate_basis"]) or {"supplied", "derived"}
             label += " " + _basis_clause(bases)
@@ -625,7 +632,7 @@ def _sentence(flag: str, summary: dict, deals: pd.DataFrame, mask: pd.Series,
     if flag == "unit_rate_below_floor":
         d = summary["unit_rate"]
         return (f"{total} of {d['n_scored']} scored won usage deals sit below the "
-                f"{floor:.0%} unit-rate floor, "
+                f"{_pct(floor)} unit-rate floor, "
                 f"${d['dollars']['unit_rate_gap_to_floor_acv']:,.0f} below floor in total. "
                 "Method: policy rule.")
     if flag == "overage_fence_breach":
@@ -633,7 +640,7 @@ def _sentence(flag: str, summary: dict, deals: pd.DataFrame, mask: pd.Series,
                 "unit rate. Method: policy rule.")
     if flag == "ramp_hidden_discount":
         unapproved = int((mask & deals["ramp_unapproved"].fillna(False).astype(bool)).sum())
-        return (f"{total} won deals pass the {floor:.0%} discount line at steady state "
+        return (f"{total} won deals pass the {_pct(floor)} discount line at steady state "
                 f"but exceed it once the ramp is counted; {unapproved} of them have no recorded "
                 "approver. Method: policy rule.")
     return None

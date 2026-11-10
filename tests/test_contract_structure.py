@@ -704,3 +704,64 @@ def test_readout_tie_break_with_identical_sort_keys_in_shuffled_order():
                  "off_invoice_below_floor", "trade_check"):
         ids = [d["opportunity_id"] for d in lists[flag]]
         assert len(ids) == 20 and ids == sorted(ids), flag
+
+
+# --- PK-32 rework 3: readout label and floor text -------------------------------------
+
+def _ramped_book(**extra) -> pd.DataFrame:
+    rows = [dict(opportunity_id=f"R{i:02d}", outcome="closed_won", value_metric="consumption",
+                 list_acv=100000.0, booked_acv=90000.0, committed_acv=90000.0, quantity=45000.0,
+                 overage_rate=3.0, term_months=24, ramp_year_1_acv=60000.0,
+                 ramp_year_2_acv=90000.0, approved_by="", **extra) for i in range(20)]
+    return pd.DataFrame(rows)
+
+
+def _waterfall_entry(ro: dict) -> dict:
+    return next(x for x in ro["flags"] if x["flag"] == "off_invoice_below_floor")
+
+
+def test_blank_credits_column_is_present_not_excluded_even_without_attrs():
+    # credits_tcv is in the file but empty: not_provided per deal, no exclusion sentence.
+    frame = _ramped_book(credits_tcv=np.nan)
+    out = contract_structure_deals(enrich(frame), columns_present=set(frame.columns))
+    assert out.attrs["contract_structure"]["credits_column_in_file"] is True
+    for strip_attrs in (False, True):
+        probe = out.copy()
+        if strip_attrs:
+            probe.attrs = {}  # a merge or filter upstream dropped the provenance
+        e = _waterfall_entry(contract_structure_readout(probe, n=1000))
+        assert e["total_flagged"] == 20
+        assert "Excludes" not in e["label"]
+        assert all("Excludes" not in d["label"] for d in e["deals"])
+
+
+def test_exclusion_sentence_appears_only_for_a_column_absent_from_the_file():
+    frame = _ramped_book()  # no credits_tcv column at all
+    out = contract_structure_deals(enrich(frame), columns_present=set(frame.columns))
+    e = _waterfall_entry(contract_structure_readout(out, n=1000))
+    assert "Excludes credits: not in the file." in e["label"]
+    assert "Excludes ramp" not in e["label"]
+    assert all("Excludes credits: not in the file." in d["label"] for d in e["deals"])
+
+
+@pytest.mark.parametrize("floor,text", [(0.125, "12.5%"), (0.15, "15%"), (0.2, "20%"),
+                                         (0.075, "7.5%")])
+def test_floor_text_keeps_a_fractional_floor(floor, text):
+    frame = _ramped_book()
+    out = contract_structure_deals(enrich(frame), floor_frac=floor,
+                                   columns_present=set(frame.columns))
+    ro = contract_structure_readout(out, n=1000)
+    by = {e["flag"]: e for e in ro["flags"]}
+    assert f"{text} unit-rate floor" in by["unit_rate_below_floor"]["sentence"]
+    assert f"{text} discount line" in by["ramp_hidden_discount"]["sentence"]
+
+
+def test_commit_share_floor_text_keeps_a_fractional_floor():
+    frame = _ramped_book()
+    out = contract_structure_deals(enrich(frame), commit_share_floor=0.525,
+                                   columns_present=set(frame.columns))
+    ro = contract_structure_readout(out, n=1000)
+    assert "Below 52.5%, most" in contract_structure_summary(out)["commit_share"]["label"]
+    low = next(e for e in ro["flags"] if e["flag"] == "low_commit_share")
+    assert "Below 52.5%, most" in low["label"]
+    _no_em_dash(ro)
