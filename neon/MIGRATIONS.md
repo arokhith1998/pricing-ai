@@ -250,3 +250,9 @@ supposed to be able to break ingestion.
 | `2026-08-01-salesforce-crm-workflow.down.sql` | AFTER the code that reads/writes these tables is rolled back. Running it first breaks the running app. |
 | `2026-09-26-tenant-scoped-indexes.sql` | No dependency: additive indexes only, safe before/during/after deploy. |
 | `2026-09-26-tenant-scoped-indexes.down.sql` | No dependency: dropping an index never breaks a query, only slows it. |
+| `2026-11-09-source-mappings.sql` (PK-24) | BEFORE the code that reads or writes `source_mappings` (PK-28). Additive: a new table and an index on `decision_log`; the running app references neither. |
+| `2026-11-09-source-mappings.down.sql` (PK-24) | AFTER rolling back the code that uses `source_mappings`. The index drop is safe at any time. |
+| `2026-11-10-source-connections.sql` (PK-41) | BEFORE the code that reads or writes `source_connections` (PK-42) or `tenant_ref` (PK-43). Additive; the running app reads only the legacy tables. After the PK-42 cutover never rerun it (the backfill would resurrect disconnected rows). |
+| `2026-11-10-source-connections.down.sql` (PK-41) | AFTER rolling back PK-42 and PK-43. Refuses when it would destroy credentials, confirmed config or keyed data it cannot restore. |
+| `2026-11-11-leads-lead-magnet.sql` (PK-108) | BEFORE the code that writes `leads.lead_magnet` (PK-109). Additive: one column with a default and one check; the running app inserts with an explicit column list, so old code keeps working. Production application needs founder authorisation. |
+| `2026-11-11-leads-lead-magnet.down.sql` (PK-108) | AFTER rolling back PK-109. Refuses when any lead has a non-empty `lead_magnet`, because the tag is stored nowhere else. |
