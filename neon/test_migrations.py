@@ -302,8 +302,41 @@ _CT = "v1.aGVsbG8.d29ybGQ"      # synthetic ciphertext shape, not a real secret
 _CT2 = "v2.k1.aGVsbG8.d29ybGQ"
 
 
+_LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
+
+
 def _test_url() -> str | None:
-    return os.environ.get("PRICEKEEL_TEST_DATABASE_URL") or os.environ.get("DATABASE_URL")
+    # Deliberately NOT DATABASE_URL: that is the variable the app reads for
+    # production, and this test creates and drops databases on the server.
+    return os.environ.get("PRICEKEEL_TEST_DATABASE_URL")
+
+
+def _skip_reason(url: str | None) -> str | None:
+    """None when the URL is safe to run against, else the reason to skip."""
+    if not url:
+        return "PRICEKEEL_TEST_DATABASE_URL not set: real-Postgres migration test skipped"
+    host = urlsplit(url).hostname or ""
+    if host not in _LOOPBACK_HOSTS:
+        return f"refusing non-loopback host {host!r}: point PRICEKEEL_TEST_DATABASE_URL at a local scratch Postgres"
+    return None
+
+
+def test_pk41_scratch_url_skip_logic():
+    assert "not set" in _skip_reason(None)
+    assert "not set" in _skip_reason("")
+    assert _skip_reason("postgresql://u:p@ep-x-123.us-east-2.aws.neon.tech/db") is not None
+    assert _skip_reason("postgresql://u:p@db.example.com:5432/db") is not None
+    assert _skip_reason("postgresql://u:p@10.0.0.5/db") is not None
+    for ok in ("postgresql://u@127.0.0.1:5432/postgres",
+               "postgresql://u@localhost/postgres",
+               "postgresql://u@[::1]:5432/postgres"):
+        assert _skip_reason(ok) is None
+
+
+def test_pk41_database_url_is_never_used(monkeypatch):
+    monkeypatch.delenv("PRICEKEEL_TEST_DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u@localhost/postgres")
+    assert _test_url() is None
 
 
 @pytest.fixture()
@@ -311,12 +344,11 @@ def scratch():
     """A throwaway database created on the configured server and dropped after.
     Refuses a Neon host so this can never touch production."""
     url = _test_url()
-    if not url:
-        pytest.skip("no PRICEKEEL_TEST_DATABASE_URL or DATABASE_URL set: real-Postgres migration test skipped")
+    reason = _skip_reason(url)
+    if reason:
+        pytest.skip(reason)
     psycopg = pytest.importorskip("psycopg")
     parts = urlsplit(url)
-    if "neon.tech" in (parts.hostname or ""):
-        pytest.skip("refusing to run migration tests against a Neon host; point at a local scratch Postgres")
     name = "pk41_" + uuid.uuid4().hex[:12]
     admin = psycopg.connect(url, autocommit=True)
     try:

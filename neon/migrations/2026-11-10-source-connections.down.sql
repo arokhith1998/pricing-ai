@@ -28,6 +28,12 @@
 --      (a routinely issued, unused code) does not block the rollback. Roll
 --      forward instead.
 -- A down that cannot restore data refuses. It never only warns.
+-- Even when none of the above applies, after cutover a down also LOSES edits
+-- to mapping, policy threshold and default value metric made in
+-- source_connection_config since the migration: the legacy
+-- salesforce_mappings table keeps only the values copied at migration time.
+-- This is not refused (the columns exist in both places), so review those edits
+-- first.
 -- Salesforce rows in source_connections are backfilled copies of the legacy
 -- table; after PK-42 has cut over they hold the newest tokens, so a down after
 -- cutover loses refreshes made since: roll back PK-42 first, and expect those
@@ -131,16 +137,14 @@ begin
          and t.table_type = 'BASE TABLE'
        order by c.table_name
     loop
-      begin
-        execute format(
-          'select count(*) from access_codes a where a.tenant_ref is distinct from a.code '
-          || 'and exists (select 1 from %I t where t.customer_ref = a.tenant_ref)', tbl)
-          into n_tbl;
-        n_drifted := n_drifted + n_tbl;
-        if n_tbl > 0 then
-          where_used := where_used || format(' %s(%s)', tbl, n_tbl);
-        end if;
-      end;
+      execute format(
+        'select count(*) from access_codes a where a.tenant_ref is distinct from a.code '
+        || 'and exists (select 1 from %I t where t.customer_ref = a.tenant_ref)', tbl)
+        into n_tbl;
+      n_drifted := n_drifted + n_tbl;
+      if n_tbl > 0 then
+        where_used := where_used || format(' %s(%s)', tbl, n_tbl);
+      end if;
     end loop;
     if n_drifted > 0 then
       raise exception using
