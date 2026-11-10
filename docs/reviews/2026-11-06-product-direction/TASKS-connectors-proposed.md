@@ -256,6 +256,7 @@ Acceptance:
   - Accounts with fewer than 6 billed periods return `insufficient_data` for usage, never zero.
   - The planted answers from PK-53 are recovered exactly (Decimal or rounded to the cent, stated).
   - The word "margin" never appears in any output (test scans payloads).
+- **PK-54 annualisation rule (lead decision, PR 93 rework, 2026-11-10):** usage and billed figures annualise over whole calendar months only. A period that spans exactly N calendar months counts as N; weekly periods, prorated stubs and odd intervals are never rounded up, they are excluded from the figure and counted in the reasons; an account whose usage periods are all such intervals is `not_provided`; the six-period minimum counts whole-month periods only. Day-based scaling was rejected because it shifts the PK-53 planted monthly key (a 181-day half year is not six months) and yields 5214.29 for six weekly periods rather than a disclosed exclusion. Shortfall and overage are summed per period with `net_vs_commit` reported separately; they are never netted.
 - **PK-55:**
   - `to_canonical` is pure and sets `source_system=stripe`, subscription id, customer id and an
     absolute dashboard `source_url` (test-mode path in test mode).

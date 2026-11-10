@@ -249,3 +249,9 @@ PK-6 could not reach `web/src/components/UploadPrivacyCallout.tsx` (outside its 
 - Page tasks PK-76 to PK-83 add id="main" to their <main> as a gate; the ChromeEffects shim is a bridge that PK-84 removes.
 - PK-84 note: the PALETTE.md action-fill row correction assigned to it was done in PK-75; PK-77 and PK-79 remove the static coral glow on the pricing tier and calculator result (status colour as decoration).
 - Lighthouse against the Vercel preview URL (design doc 6.9) is blocked by deployment protection (the preview 302s to vercel.com/sso-api). Lead decision 2026-11-09: local production-build Lighthouse numbers are accepted for PK-75 and the page tasks until the founder either grants a protection-bypass token for automation or runs the six routes on the preview; this is a founder setting, not an agent change.
+
+### Lead decision, PR 91 review (2026-11-10)
+
+- **PK-77 ARR band:** the pricing page states the ICP as "$20M to $100M ARR", matching vault/Decisions/2026-08-01-salesforce-first-crm-workflow.md and the social card in `web/src/app/opengraph-image.tsx`. CLAUDE.md's "$10M to $100M" is the product's broad market line, not the ICP. Any change to the band is a founder decision recorded in the vault first, then reflected on the site.
+- **Feature tense:** anything not implemented in `api/` or `pricing/` is labelled roadmap on every page; the illustrative tag covers figures only, never whether a feature exists.
+
