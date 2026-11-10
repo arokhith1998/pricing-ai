@@ -39,32 +39,65 @@ function Card({
 // as flat, matching the 2-point materiality cut used elsewhere in guidance.
 const WIN_RATE_STEP_TOL_PTS = 0.02;
 
-type WinRateShape = "insufficient" | "monotone" | "rising_then_flat" | "flat" | "noisy";
+type WinRateShape = "insufficient" | "monotone" | "rising_then_flat" | "flat" | "other";
 
 function classifyWinRateShape(bands: WinRateBand[]): WinRateShape {
   const rates = bands.filter((b) => b.deals > 0).map((b) => b.win_rate);
   if (rates.length < 3) return "insufficient";
   const steps = rates.slice(1).map((r, i) => r - rates[i]);
+  const isFlat = (s: number) => Math.abs(s) <= WIN_RATE_STEP_TOL_PTS;
   const hasDown = steps.some((s) => s < -WIN_RATE_STEP_TOL_PTS);
-  const hasUp = steps.some((s) => s > WIN_RATE_STEP_TOL_PTS);
-  if (hasDown) return "noisy";
-  if (hasUp) return steps.every((s) => s > WIN_RATE_STEP_TOL_PTS) ? "monotone" : "rising_then_flat";
-  return "flat";
+  if (hasDown) return "other";
+  // Small steps can still add up to a real drift, so "flat" also requires
+  // the whole range to stay inside twice the step tolerance.
+  const range = Math.max(...rates) - Math.min(...rates);
+  if (steps.every(isFlat)) return range <= 2 * WIN_RATE_STEP_TOL_PTS ? "flat" : "other";
+  if (steps.every((s) => s > WIN_RATE_STEP_TOL_PTS)) return "monotone";
+  // "Climbs, then flattens" only when every rise comes before the first flat
+  // step. A rise after a plateau is not a flattening.
+  const firstFlat = steps.findIndex(isFlat);
+  if (firstFlat > 0 && steps.slice(firstFlat).every(isFlat)) {
+    // Each plateau step is small, but they can still add up to a drift, so
+    // bound the plateau's own range too (the first plateau band is the last
+    // band of the climb, hence firstFlat, not firstFlat + 1).
+    const plateau = rates.slice(firstFlat);
+    const plateauRange = Math.max(...plateau) - Math.min(...plateau);
+    if (plateauRange <= 2 * WIN_RATE_STEP_TOL_PTS) return "rising_then_flat";
+  }
+  return "other";
 }
 
-function winRateSubtitle(bands: WinRateBand[], referenceThreshold: number): string {
+// The classifier checks the shape of the bands only. It does not check where
+// the flattening happens, so the copy must not place it at the reference win
+// point. The win point is stated separately, and only when the API says it
+// was estimable: pricing/metrics.py ships reference_threshold 0 with
+// excess_basis "insufficient data" when it was not, and "about 0%" would be
+// a fabricated number. A real 0 (win point in the lowest band, basis not
+// "insufficient data") is estimable and is shown, as WinPointWhy does.
+function winRateSubtitle(
+  bands: WinRateBand[],
+  referenceThreshold: number | null | undefined,
+  excessBasis: string | undefined,
+): string {
   const shape = classifyWinRateShape(bands);
-  const winPoint = `about ${pct(referenceThreshold, 0)}`;
+  const estimable =
+    excessBasis !== "insufficient data" &&
+    typeof referenceThreshold === "number" &&
+    Number.isFinite(referenceThreshold) &&
+    referenceThreshold >= 0;
+  const winPointSentence = estimable
+    ? ` The reference win point is about ${pct(referenceThreshold, 0)}.`
+    : " The win point is not estimable yet.";
   const confidenceNote = "The shaded band is the range we are confident about.";
   switch (shape) {
     case "rising_then_flat":
-      return `Win rate climbs with discount, then flattens. Past the win point (${winPoint}), extra discount buys almost no extra wins. ${confidenceNote}`;
+      return `Win rate climbs with discount, then flattens: past that flattening, extra discount buys almost no extra wins.${winPointSentence} ${confidenceNote}`;
     case "monotone":
       return `Win rate keeps climbing with discount across every band in this data; there is no point yet where extra discount stops buying extra wins. ${confidenceNote}`;
     case "flat":
-      return `Win rate stays roughly flat across discount bands in this data; discount is not the thing separating wins from losses here. ${confidenceNote}`;
-    case "noisy":
-      return `Win rate does not simply climb then flatten in this data; it moves both up and down across bands. Read the win point (${winPoint}) as approximate. ${confidenceNote}`;
+      return `Win rate stays roughly flat across discount bands in this data; discount level does not line up with win rate here. ${confidenceNote}`;
+    case "other":
+      return `Win rate does not follow a clean climb-then-flatten pattern in this data, so treat any win point as approximate.${winPointSentence} ${confidenceNote}`;
     case "insufficient":
     default:
       return `Not enough discount bands with deals yet to describe a shape. ${confidenceNote}`;
@@ -248,7 +281,7 @@ export default async function DiagnosticPage() {
       <Reveal inView>
         <Card
           title="Win rate vs discount"
-          subtitle={winRateSubtitle(d.win_rate_by_band, l.reference_threshold)}
+          subtitle={winRateSubtitle(d.win_rate_by_band, l.reference_threshold, l.excess_basis)}
         >
           <WinRateChart bands={d.win_rate_by_band} reference={d.reference_discount} />
         </Card>
