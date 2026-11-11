@@ -98,6 +98,14 @@ $\rho=-0.8$; within 0.016 of the naive curve at $\rho=-0.3$ and $\rho=0.5$.
 
 ### Corollary 2.1 (the constraint is decision-neutral)
 
+> **Tested 2026-11-11, see `2026-11-11-jair-paper-constraint-experiment.md`.**
+> On the generator's saturating curve this holds only once the recommendation
+> has collapsed to the floor. Under moderate rescue confounding the
+> constrained model is worse than the unconstrained one by 6 to 11 points of
+> regret on a full sweep, because the observed curve is a hump and the
+> constraint flattens its rising side. The corollary is correct for the
+> linear model below and should not be read as a general result.
+
 In this model the constrained and unconstrained models recommend the same
 discount for every $\rho$.
 
