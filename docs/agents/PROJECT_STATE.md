@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 3/4
-Updated: 2026-11-10T23:53:29Z
+Updated: 2026-11-11T03:25:23Z
 
 ## IN_PROGRESS
 - **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
@@ -18,8 +18,6 @@ Updated: 2026-11-10T23:53:29Z
   - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## REVIEW
-- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
-  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
@@ -32,6 +30,10 @@ Updated: 2026-11-10T23:53:29Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
+
+## QA
+- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
+  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
