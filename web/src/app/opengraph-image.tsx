@@ -5,7 +5,7 @@
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "Pricekeel: we stop AI companies from losing money on heavy users, with a 14-day pricing audit";
+  "Pricekeel: we stop AI companies from losing money on heavy users";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -71,7 +71,7 @@ export default function Image() {
             <span style={{ display: "flex" }}>money on heavy users.</span>
           </div>
           <div style={{ display: "flex", fontSize: 26, color: "#8ea3bd" }}>
-            A done-for-you 14-day pricing audit for B2B and AI SaaS moving to usage or outcome pricing.
+            For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.
           </div>
         </div>
 
