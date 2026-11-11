@@ -144,7 +144,9 @@ describe("Landing page", () => {
       "Pilot revenue versus true ARR",
       "Bundling",
     ]);
-    for (const i of items) expect(i.querySelector("p")?.textContent).not.toMatch(/\$|\d/);
+    for (const i of items) {
+      expect((i.querySelector("p")?.textContent ?? "").replace(/B2B/g, "")).not.toMatch(/\$|\d/);
+    }
   });
 
   it("captions the decision-record walk as the live deal-guidance product", () => {

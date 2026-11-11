@@ -73,10 +73,12 @@ describe("/pricing", () => {
     const walker = container.querySelectorAll("p, li, h2, h3");
     for (const el of walker) {
       if (labelled.some((b) => b.contains(el))) continue;
-      // The audit tier states its own fixed fee and clock (F4), not a result.
-      if (container.querySelector("[data-tier='audit']")?.contains(el)) continue;
       const own = el.textContent ?? "";
-      const stripped = own.replace(/\$10M to \$100M ARR/g, "");
+      let stripped = own.replace(/\$10M to \$100M ARR/g, "");
+      // The audit tier may state only its fixed fee and the 14-day clock (F4).
+      if (container.querySelector("[data-tier='audit']")?.contains(el)) {
+        stripped = stripped.replace(/\$7,500/g, "").replace(/\b14\b/g, "");
+      }
       if (el.querySelector("p, li")) continue; // container, children are checked
       expect(stripped, own).not.toMatch(/\$\d|\d%/);
     }

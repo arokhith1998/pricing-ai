@@ -75,18 +75,8 @@ export default function Image() {
           </div>
         </div>
 
-        {/* Footer row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: 24,
-          }}
-        >
-          <div style={{ display: "flex", color: "#8ea3bd" }}>
-            For usage and hybrid B2B SaaS, $10M to $100M ARR
-          </div>
+        {/* Footer row: the site only. No revenue band on the card (F14). */}
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 24 }}>
           <div style={{ display: "flex", fontWeight: 700, color: "#2dd4bf" }}>
             pricekeel.com
           </div>

@@ -7,7 +7,7 @@ export const PRIMARY_NAV: readonly NavLink[] = [
   { href: "/audit", label: "Audit" },
   { href: "/#workflow", label: "Product" },
   { href: "/sample", label: "Sample" },
-  { href: "/calculator", label: "Calculator" },
+  { href: "/calculator", label: "Discount leakage calculator" },
   { href: "/pricing", label: "Pricing" },
   { href: "/trust", label: "Trust" },
 ];
@@ -29,7 +29,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { href: "/audit", label: "Audit" },
       { href: "/sample", label: "Sample" },
-      { href: "/calculator", label: "Calculator" },
+      { href: "/calculator", label: "Discount leakage calculator" },
       { href: "/pricing", label: "Pricing" },
       { href: "/methodology", label: "Methodology" },
     ],

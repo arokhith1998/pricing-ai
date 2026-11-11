@@ -35,14 +35,14 @@ function currents(container: HTMLElement) {
 }
 
 describe("Nav", () => {
-  it("lists Audit, Product, Sample, Calculator, Pricing, Trust, a login and the primary CTA, and drops Blog and Live sample", () => {
+  it("lists Audit, Product, Sample, Discount leakage calculator, Pricing, Trust, a login and the primary CTA, and drops Blog and Live sample", () => {
     const c = nav("/");
     const desktop = c.querySelector('nav[aria-label="Primary"]')!;
     expect([...desktop.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
       "Audit",
       "Product",
       "Sample",
-      "Calculator",
+      "Discount leakage calculator",
       "Pricing",
       "Trust",
     ]);

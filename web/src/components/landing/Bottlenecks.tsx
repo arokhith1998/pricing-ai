@@ -23,7 +23,7 @@ export const BOTTLENECKS: readonly { id: string; name: string; text: string }[] 
   {
     id: "variance",
     name: "Variance and trust",
-    text: "Buyers will tolerate a tool that is slower or costs more. They will not tolerate output that is inconsistent, and the human effort that closes the trust gap is a cost too.",
+    text: "In B2B and regulated services, inconsistent output is an existential threat. Buyers will tolerate a tool that is slower or costs more, but not one whose output varies, and the human effort that closes the trust gap is a cost too.",
   },
   {
     id: "pilots",

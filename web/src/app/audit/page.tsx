@@ -209,12 +209,13 @@ export default function AuditPage() {
           </li>
           <li>
             <span className="font-medium text-fg">Your data is used only to deliver your audit.</span>{" "}
-            It is never used to train models or for another customer. Working files are deleted
-            within 30 days of the readout, sooner on request, with written certification.
+            It is not used to improve models that benefit other customers without your prior
+            written consent. It is deleted within 30 days of engagement end, with written
+            certification.
           </li>
           <li>
             <span className="font-medium text-fg">Benchmarking is opt-in and off by default.</span>{" "}
-            Your cost data is never part of a benchmark. The audit is identical either way.
+            The audit is identical either way.
           </li>
           <li>
             <span className="font-medium text-fg">We recommend, you decide.</span> Findings are

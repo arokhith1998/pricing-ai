@@ -9,7 +9,7 @@ import DecisionRecord from "@/components/landing/DecisionRecord";
 import DecisionWalk from "@/components/landing/DecisionWalk";
 import Bottlenecks from "@/components/landing/Bottlenecks";
 import { pageMetadata } from "@/lib/page-metadata";
-import { AUDIT_DAYS, AUDIT_PRICE } from "@/lib/audit-offer";
+import { AUDIT_DAYS, AUDIT_PRICE, COST_BASIS_LABEL } from "@/lib/audit-offer";
 import { HERO_EXCESS, HERO_EXCESS_PCT, OVERVIEW, PROBE_BANDS, RECORD, peakBandLabel } from "@/lib/landing-sample";
 
 // Static marketing landing. No API dependency, so it always loads fast.
@@ -113,8 +113,8 @@ export default function Landing() {
         </h2>
         <p className="pk-lead m-0 mt-3 max-w-[68ch]">
           From your billing and cost exports, we show which customers and plans your inference and
-          storage costs leave with thin or negative contribution margin, customer-supplied cost
-          basis. Then we recommend a packaging structure for you to decide on.
+          storage costs leave with thin or negative {COST_BASIS_LABEL}. Then we recommend a
+          packaging structure for you to decide on.
         </p>
         <ul className="pk-body m-0 mt-5 max-w-[68ch] list-disc space-y-2 pl-5 text-muted marker:text-teal">
           <li>{AUDIT_PRICE} fixed, paid upfront. No share of results.</li>
