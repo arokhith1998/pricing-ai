@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-11T16:53:34Z
+Updated: 2026-11-11T17:01:17Z
 
 ## REVIEW
 - **PK-113** Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry  (web-engineer, PR #99)
@@ -25,7 +25,7 @@ Updated: 2026-11-11T16:53:34Z
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
 
-## QA
+## APPROVED
 - **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer, PR #98)
   - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
 - **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
