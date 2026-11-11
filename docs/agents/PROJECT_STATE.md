@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/4
-Updated: 2026-11-11T06:48:38Z
+Active work: 1/4
+Updated: 2026-11-11T06:54:55Z
 
-## REVIEW
+## REWORK_REQUIRED
 - **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer, PR #98)
   - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
+
+## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
