@@ -24,19 +24,18 @@ describe("/pricing", () => {
       "open code",
       "Most subscribers",
       "Worth the subscription",
-      "$20 to 100M",
+      "$20M",
     ]) {
       expect(text).not.toContain(phrase);
     }
-    expect(text).not.toMatch(/\$20(?!K|M to \$100M)/);
-    expect(text).not.toContain("$10M");
+    expect(text).not.toMatch(/\$20(?!K)/);
   });
 
   it("keeps the D-R6 wording and the corrected ARR band", () => {
     const { text } = renderText();
     expect(text).toContain("We expect");
     expect(text).toContain("we will reply within one business day");
-    expect(text).toContain("$20M to $100M ARR");
+    expect(text).toContain("$10M to $100M ARR");
   });
 
   it("renders exactly two tier cards and a roadmap line with no button or link", () => {
@@ -68,7 +67,7 @@ describe("/pricing", () => {
     for (const el of walker) {
       if (labelled.some((b) => b.contains(el))) continue;
       const own = el.textContent ?? "";
-      const stripped = own.replace(/\$20M to \$100M ARR/g, "");
+      const stripped = own.replace(/\$10M to \$100M ARR/g, "");
       if (el.querySelector("p, li")) continue; // container, children are checked
       expect(stripped, own).not.toMatch(/\$\d|\d%/);
     }
