@@ -476,3 +476,5 @@
 {"ts": "2026-11-11T08:19:38Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-11T08:19:42Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #99"}
 {"ts": "2026-11-11T16:47:16Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Re-scoped by founder (F15, ADR-008): landing page reduced to headline, audience sentence, six bottlenecks, three-line offer with one CTA; everything else removed. Rework in progress on PR 99."}
+{"ts": "2026-11-11T16:53:29Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
+{"ts": "2026-11-11T16:53:34Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #99"}
