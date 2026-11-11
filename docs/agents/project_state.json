@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T07:58:43Z",
+  "updated": "2026-11-11T08:00:00Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4685,6 +4685,35 @@
           "note": "PR #99"
         }
       ]
+    },
+    {
+      "id": "PK-114",
+      "title": "Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers",
+      "agent": "web-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-112,PK-113"
+      ],
+      "owns": [
+        "web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "contact page leads with the 14-day audit and the sheet audience sentence, no 'design-partner mode ... discount exception' line; the $10M to $100M ARR gated-on-deal-volume line sits only on the deal-guidance tier footers, not above the audit tier; tests pin both; no em dashes; ADR-006 guard passes"
+      ],
+      "tests": {
+        "required": [
+          "web/test/contact-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-11T08:00:00Z",
+      "updated": "2026-11-11T08:00:00Z",
+      "notes": []
     }
   ]
 }
