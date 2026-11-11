@@ -20,8 +20,17 @@ create table if not exists leads (
   utm_medium     text not null default '',
   utm_campaign   text not null default '',
   consent       boolean not null default false,  -- agreed to the privacy policy
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  -- Which lead magnet the lead came from (2026-11-11-leads-lead-magnet.sql,
+  -- PK-108). Empty = the sample gate; margin_audit = the margin audit
+  -- calculator. A short snake_case tag only; typed inputs are never stored.
+  lead_magnet   text not null default ''
+    constraint leads_lead_magnet_format_chk
+    check (lead_magnet = '' or lead_magnet ~ '^[a-z][a-z0-9_]{0,31}$')
 );
+
+comment on column leads.lead_magnet is
+  'Which lead magnet the lead came from. Empty = the sample gate (the original path). margin_audit = the AI pricing and margin audit calculator. A short snake_case tag only (CHECK); never typed inputs, which are not stored in the database.';
 
 -- Case-insensitive lookup support on email. PLAIN index, not a uniqueness
 -- constraint: email was never unique on this table, and lead capture

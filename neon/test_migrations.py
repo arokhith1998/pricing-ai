@@ -466,3 +466,130 @@ def test_pk41_up_down_up_on_real_postgres(scratch):
     _run(conn, PK41_DOWN)  # rerunnable
     _run(conn, PK41_UP)
     assert _counts(conn) == [1, 1]
+
+
+# ---------------------------------------------------------------------------
+# PK-108: leads.lead_magnet
+# ---------------------------------------------------------------------------
+
+PK108_UP = MIGRATIONS_DIR / "2026-11-11-leads-lead-magnet.sql"
+PK108_DOWN = MIGRATIONS_DIR / "2026-11-11-leads-lead-magnet.down.sql"
+_PK108_CHECK = "check (lead_magnet = '' or lead_magnet ~ '^[a-z][a-z0-9_]{0,31}$')"
+
+
+def test_pk108_pair_exists_and_sorts_after_source_connections():
+    assert PK108_UP.exists() and PK108_DOWN.exists()
+    names = [p.name for p in _up_files()]
+    assert names == sorted(names)
+    assert names.index(PK108_UP.name) > names.index(PK41_UP.name)
+
+
+def test_pk108_up_adds_one_guarded_column_and_a_named_check():
+    code = _code(PK108_UP.read_text(encoding="utf-8").lower())
+    assert "add column if not exists lead_magnet text not null default ''" in code
+    assert "constraint leads_lead_magnet_format_chk" in code
+    assert "conname = 'leads_lead_magnet_format_chk'" in code  # guarded add
+    assert _PK108_CHECK in code
+    for verb in ("drop ", "truncate", "delete from", "update leads"):
+        assert verb not in code, f"up must not use {verb.strip()}"
+    assert code.count("add column") == 1
+
+
+def test_pk108_down_refuses_tagged_leads_before_dropping_exactly_the_up():
+    down = PK108_DOWN.read_text(encoding="utf-8").lower()
+    assert "down migration refused" in down
+    assert "lead_magnet <> ''''" in down
+    code = _code(down)
+    assert code.index("down migration refused") < code.index("drop constraint")
+    assert "alter table leads drop constraint if exists leads_lead_magnet_format_chk;" in code
+    assert "alter table leads drop column if exists lead_magnet;" in code
+    assert code.count("drop ") == 2
+    for forbidden in ("drop table", "truncate", "delete from", "update leads"):
+        assert forbidden not in code
+
+
+def test_pk108_lock_timeout_precedes_lock_and_headers_state_deploy_order():
+    for p in (PK108_UP, PK108_DOWN):
+        text = p.read_text(encoding="utf-8")
+        assert "DEPLOY ORDER" in text
+        code = _code(text.lower())
+        assert "set local lock_timeout = '5s';" in code
+        assert code.index("lock_timeout") < code.index("lock table leads in access exclusive mode;")
+    up = PK108_UP.read_text(encoding="utf-8")
+    assert "BEFORE the code deploy" in up and "FOUNDER AUTHORISATION" in up
+
+
+def test_pk108_schema_sql_matches_migration_ddl():
+    schema = SCHEMA_SQL.read_text(encoding="utf-8").lower()
+    body = _table_body(schema, "leads")
+    assert "lead_magnet   text not null default ''" in body
+    assert "constraint leads_lead_magnet_format_chk" in body
+    assert _PK108_CHECK in body
+    cols = _column_names(body)
+    # last column, so a migrated database and a fresh schema.sql dump agree
+    assert cols[-1] == "lead_magnet" and cols.count("lead_magnet") == 1
+    pat = r"comment on column leads\.lead_magnet is\s+('[^']*');"
+    up = PK108_UP.read_text(encoding="utf-8").lower()
+    assert re.search(pat, schema).group(1) == re.search(pat, up).group(1)
+
+
+def _pg_dump_schema(url: str, dbname: str) -> str | None:
+    import shutil
+    import subprocess
+    exe = shutil.which("pg_dump")
+    if not exe:
+        return None
+    target = urlunsplit(urlsplit(url)._replace(path="/" + dbname))
+    out = subprocess.run([exe, "--schema-only", "--no-owner", "--no-privileges", target],
+                         capture_output=True, text=True, check=True).stdout
+    return "\n".join(l for l in out.splitlines() if not l.startswith(("--", "\\")) and l.strip())
+
+
+def test_pk108_up_down_up_on_real_postgres(scratch):
+    conn = scratch
+    psycopg = pytest.importorskip("psycopg")
+    conn.execute(SCHEMA_SQL.read_text(encoding="utf-8"))
+    dbname = conn.execute("select current_database()").fetchone()[0]
+    fresh_dump = _pg_dump_schema(_test_url(), dbname)
+
+    _run(conn, PK108_DOWN)  # strip PK-108: baseline is the pre-PK-108 shape
+    cols = lambda: [r[0] for r in conn.execute(
+        "select column_name from information_schema.columns where table_name='leads' order by ordinal_position")]
+    assert "lead_magnet" not in cols()
+    cols_ins = "(name, company, email, role_title, role_function"
+    base = f"insert into leads {cols_ins}) values ('', 'acme.example', %s, '', '')"
+    tagged = f"insert into leads {cols_ins}, lead_magnet) values ('', 'x', 'bad@x.example', '', '', %s)"
+    conn.execute(base, ("old@acme.example",))
+
+    _run(conn, PK108_UP)
+    assert cols()[-1] == "lead_magnet"
+    _run(conn, PK108_UP)  # idempotent
+    assert cols().count("lead_magnet") == 1
+    assert conn.execute("select lead_magnet from leads").fetchall() == [("",)]  # existing row reads ''
+    conn.execute(base, ("new@acme.example",))  # old-style insert still works
+    conn.execute(tagged, ("margin_audit",))
+    assert conn.execute("select count(*) from pg_constraint where conname='leads_lead_magnet_format_chk'"
+                        ).fetchone()[0] == 1
+    for bad in ("Margin Audit", "a@b.co", "1abc", "x" * 33, "margin-audit"):
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute(tagged, (bad,))
+
+    if fresh_dump is not None:  # migrated shape == schema.sql shape, byte for byte
+        assert _pg_dump_schema(_test_url(), dbname) == fresh_dump
+
+    # refusal: a tagged lead exists, down must abort and drop nothing
+    with pytest.raises(psycopg.errors.RaiseException) as exc:
+        _run(conn, PK108_DOWN)
+    assert "DOWN MIGRATION REFUSED" in str(exc.value)
+    conn.execute("rollback")
+    assert "lead_magnet" in cols()
+    assert conn.execute("select count(*) from leads").fetchone()[0] == 3
+
+    # once the tag is cleared the down succeeds, loses no rows, and reruns
+    conn.execute("update leads set lead_magnet = '' where lead_magnet <> ''")
+    _run(conn, PK108_DOWN)
+    assert "lead_magnet" not in cols()
+    assert conn.execute("select count(*) from leads").fetchone()[0] == 3
+    _run(conn, PK108_DOWN)  # rerunnable
+    _run(conn, PK108_UP)
+    assert cols()[-1] == "lead_magnet"
