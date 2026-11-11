@@ -13,6 +13,7 @@ const BASE = "https://www.pricekeel.com";
 
 const STATIC_ROUTES: { path: string; priority: number }[] = [
   { path: "/", priority: 1 },
+  { path: "/audit", priority: 0.9 },
   { path: "/sample", priority: 0.9 },
   { path: "/calculator", priority: 0.8 },
   { path: "/pricing", priority: 0.8 },

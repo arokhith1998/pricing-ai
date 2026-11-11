@@ -38,15 +38,22 @@ describe("/pricing", () => {
     expect(text).toContain("$10M to $100M ARR");
   });
 
-  it("renders exactly two tier cards and a roadmap line with no button or link", () => {
+  it("renders exactly three tier cards, the audit first, and a roadmap line with no button or link", () => {
     const { container } = renderText();
     const tiers = container.querySelectorAll("[data-tier]");
-    expect(tiers).toHaveLength(2);
+    expect(tiers).toHaveLength(3);
     expect(Array.from(tiers).map((t) => t.getAttribute("data-tier"))).toEqual([
+      "audit",
       "diagnostic",
       "operate",
     ]);
     for (const t of tiers) expect(t.querySelector("a[href='/contact']")).not.toBeNull();
+    const audit = container.querySelector("[data-tier='audit']")!;
+    expect(audit.querySelector("[data-price]")?.textContent).toBe("$7,500 fixed, 14 days");
+    expect(audit.textContent).toContain("Paid upfront. The clock starts at validated intake.");
+    expect(audit.textContent).toContain("No guarantee of recovered revenue");
+    expect(audit.querySelector("a[href='/audit']")).not.toBeNull();
+    expect(audit.textContent?.toLowerCase()).not.toMatch(/gross margin|net margin|proven/);
     const roadmap = container.querySelector("[data-roadmap='data-expansion']");
     expect(roadmap).not.toBeNull();
     expect(roadmap?.querySelector("a, button")).toBeNull();
@@ -67,7 +74,11 @@ describe("/pricing", () => {
     for (const el of walker) {
       if (labelled.some((b) => b.contains(el))) continue;
       const own = el.textContent ?? "";
-      const stripped = own.replace(/\$10M to \$100M ARR/g, "");
+      let stripped = own.replace(/\$10M to \$100M ARR/g, "");
+      // The audit tier may state only its fixed fee and the 14-day clock (F4).
+      if (container.querySelector("[data-tier='audit']")?.contains(el)) {
+        stripped = stripped.replace(/\$7,500/g, "").replace(/\b14\b/g, "");
+      }
       if (el.querySelector("p, li")) continue; // container, children are checked
       expect(stripped, own).not.toMatch(/\$\d|\d%/);
     }
@@ -104,12 +115,10 @@ describe("/pricing", () => {
     expect(container.querySelectorAll("h1")).toHaveLength(1);
     expect(container.querySelectorAll("main")).toHaveLength(1);
     expect(container.querySelector(".pk-upside-glow")).toBeNull();
-    const links = container.querySelectorAll("[data-tier] a");
-    expect(links).toHaveLength(2);
-    for (const a of links) {
-      expect(a.getAttribute("href")).toBe("/contact");
-      expect(a.textContent).toContain("Talk to us");
-    }
+    const links = [...container.querySelectorAll("[data-tier] a")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/contact", "/audit", "/contact", "/contact"]);
+    expect(links[0].textContent).toContain("Request the audit");
+    for (const a of [links[2], links[3]]) expect(a.textContent).toContain("Talk to us");
   });
 
   it("has no em dash", () => {

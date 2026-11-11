@@ -4,9 +4,10 @@
 export type NavLink = { href: string; label: string };
 
 export const PRIMARY_NAV: readonly NavLink[] = [
+  { href: "/audit", label: "Audit" },
   { href: "/#workflow", label: "Product" },
   { href: "/sample", label: "Sample" },
-  { href: "/calculator", label: "Calculator" },
+  { href: "/calculator", label: "Discount leakage calculator" },
   { href: "/pricing", label: "Pricing" },
   { href: "/trust", label: "Trust" },
 ];
@@ -26,8 +27,9 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Product",
     links: [
+      { href: "/audit", label: "Audit" },
       { href: "/sample", label: "Sample" },
-      { href: "/calculator", label: "Calculator" },
+      { href: "/calculator", label: "Discount leakage calculator" },
       { href: "/pricing", label: "Pricing" },
       { href: "/methodology", label: "Methodology" },
     ],
@@ -55,7 +57,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       // One row for /crm: a separate "Login" row had the same destination, which
       // is a redundant link for screen-reader users and a duplicate React key.
-      { href: "/crm", label: "Salesforce workspace login" },
+      { href: "/crm", label: "CRM workspace login" },
       { href: "/upload", label: "Run it on your data" },
     ],
   },

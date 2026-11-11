@@ -43,10 +43,11 @@ describe("ICP ARR band", () => {
     expect(hits).toEqual([]);
   });
 
-  it("pricing lead and social card carry the decided band", () => {
+  it("pricing lead carries the decided band and the social card carries no ARR band (F14)", () => {
     const pricing = readFileSync(join(ROOT, "app/pricing/page.tsx"), "utf8");
     const og = readFileSync(join(ROOT, "app/opengraph-image.tsx"), "utf8");
     expect(pricing).toContain("$10M to $100M ARR B2B SaaS, gated on deal volume");
-    expect(og).toContain("$10M to $100M ARR");
+    expect(og).not.toMatch(/ARR/);
+    expect(og).not.toMatch(/\$\d+\s?M/);
   });
 });

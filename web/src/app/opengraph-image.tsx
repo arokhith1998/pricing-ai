@@ -5,7 +5,7 @@
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "Pricekeel: Salesforce deal guidance for discount exceptions in usage and hybrid B2B SaaS";
+  "Pricekeel: we stop AI companies from losing money on heavy users";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,26 +67,16 @@ export default function Image() {
               letterSpacing: -1,
             }}
           >
-            <span>Stop giving away price that</span>
-            <span style={{ display: "flex" }}>has stopped winning deals.</span>
+            <span>We stop AI companies from losing</span>
+            <span style={{ display: "flex" }}>money on heavy users.</span>
           </div>
           <div style={{ display: "flex", fontSize: 26, color: "#8ea3bd" }}>
-            Salesforce deal guidance: priced before approval, with evidence Finance can audit.
+            For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.
           </div>
         </div>
 
-        {/* Footer row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: 24,
-          }}
-        >
-          <div style={{ display: "flex", color: "#8ea3bd" }}>
-            For usage and hybrid B2B SaaS, $10M to $100M ARR
-          </div>
+        {/* Footer row: the site only. No revenue band on the card (F14). */}
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 24 }}>
           <div style={{ display: "flex", fontWeight: 700, color: "#2dd4bf" }}>
             pricekeel.com
           </div>

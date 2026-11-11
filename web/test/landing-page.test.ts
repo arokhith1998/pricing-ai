@@ -1,179 +1,130 @@
 // @vitest-environment jsdom
 //
-// The landing-page rewrite (five sections, immersive, honesty-checked) must
-// hold these invariants going forward:
-//   1. no em dash anywhere in the visible copy (founder calls them an AI-tell)
-//   2. two retired marketing claims never come back ("usage or hybrid" and
-//      "system of record")
-//   3. the hero's one headline number is read from the bundled sample
-//      snapshot, not hand-typed, so it moves when the snapshot is
-//      regenerated instead of silently going stale.
-//   4. five sections, one h1, a labelled and iconed hero number, no status
-//      colour on chrome, the softened headline, the no-cohort close.
+// F15 and ADR-008: the landing page is minimal and follows the two research
+// sheet tabs only. In order: the sheet's line as the h1, one audience
+// sentence, the six bottlenecks as one tight list, the offer in three lines
+// with one call to action to /audit. Nothing else. This file pins that
+// structure, keeps the ADR-006 guard over every string, and bans the phrases
+// that were removed.
 //
-// Written as plain React.createElement calls (no JSX) so this file can stay
-// a .ts file and does not need to touch vitest.config.mts's test-file glob,
-// matching the pattern in lead-form.test.ts / guidance-client.test.ts.
+// Plain React.createElement (no JSX) so this stays a .ts file.
 import { readdirSync, readFileSync } from "node:fs";
 import { createElement } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import sampleFallback from "@/data/sample-fallback.json";
-import { moneyShort } from "@/lib/format";
-import { RECORD } from "@/lib/landing-sample";
 import Landing, { dynamic, metadata } from "@/app/page";
+import { marginViolations, stringLiterals } from "./cost-basis-guard";
 
 afterEach(cleanup);
 
-const leakage = sampleFallback.leakage as {
-  excess_vs_segment_reference_won?: number;
-  excess_vs_reference_won: number;
-};
-const HERO_EXCESS = leakage.excess_vs_segment_reference_won ?? leakage.excess_vs_reference_won;
+const text = () => render(createElement(Landing)).container.textContent ?? "";
 
 describe("Landing page", () => {
-  it("never uses an em dash in its copy", () => {
+  it("has the sheet's line as the one h1, then the audience sentence", () => {
     const { container } = render(createElement(Landing));
-    expect(container.textContent).not.toContain("—");
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0].textContent).toBe("We stop AI companies from losing money on heavy users.");
+    expect(container.querySelector('[data-testid="audience"]')?.textContent).toBe(
+      "For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
+    );
+    // The h1 is the first thing in the main, and the audience sentence follows it.
+    const hero = container.querySelector("main > section");
+    expect(hero?.textContent).toBe(
+      "We stop AI companies from losing money on heavy users.For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
+    );
   });
 
-  it("never claims usage-or-hybrid fit (dropped from the ICP line)", () => {
+  it("lists the six bottlenecks in the sheet's order, one line each, no figures", () => {
     const { container } = render(createElement(Landing));
-    expect(container.textContent?.toLowerCase()).not.toContain("usage or hybrid");
-    expect(container.textContent?.toLowerCase()).not.toContain("usage and hybrid");
+    const items = [...container.querySelectorAll("[data-bottleneck]")];
+    expect(items.map((i) => i.getAttribute("data-bottleneck"))).toEqual([
+      "cost-floor", "packaging", "value-metric", "variance", "pilots", "bundling",
+    ]);
+    expect(items.map((i) => i.querySelector("span")?.textContent)).toEqual([
+      "The cost floor.",
+      "The packaging paradox.",
+      "Value metric and outcome pricing.",
+      "Variance and trust.",
+      "Pilot revenue versus true ARR.",
+      "Bundling.",
+    ]);
+    for (const i of items) {
+      expect((i.textContent ?? "").replace(/B2B/g, "")).not.toMatch(/\$|\d/);
+      expect(i.querySelectorAll("p, li, br")).toHaveLength(0);
+    }
   });
 
-  it("never says the product prices, and never claims true margin, trade or a real evidence_version", () => {
+  it("states the offer in three lines with one call to action to /audit", () => {
     const { container } = render(createElement(Landing));
-    const t = (container.textContent ?? "").toLowerCase();
-    expect(t).not.toContain("true margin");
-    expect(t).not.toMatch(/prices every/);
-    expect(t).not.toMatch(/trade/);
-    expect(t).not.toContain("trade for terms");
-    expect(t).not.toContain("evidence_version");
-    expect(t).not.toContain("real engine output");
-    expect(t).toContain("cost proxy, not margin");
+    const lines = [...container.querySelectorAll('[data-testid="offer"] > li')].map((l) => l.textContent);
+    expect(lines).toEqual([
+      "A done-for-you audit of your billing and cost exports: which customers and plans cost more to serve than they pay, on contribution margin, customer-supplied cost basis, and a packaging structure for you to decide on.",
+      "14 days from validated intake.",
+      "$7,500 fixed, paid upfront.",
+    ]);
+    const links = [...container.querySelectorAll("main a")];
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute("href")).toBe("/audit");
+    expect(links[0].textContent).toBe("See the 14-day audit");
   });
 
-  it("metadata description says checks, not prices", () => {
-    expect(String(metadata.description)).toContain("checks every discount exception");
-    expect(String(metadata.description).toLowerCase()).not.toMatch(/usage (and|or) hybrid|prices every/);
+  it("has exactly three sections and ordered h2s, nothing else", () => {
+    const { container } = render(createElement(Landing));
+    expect(container.querySelectorAll("main > section")).toHaveLength(3);
+    expect(container.querySelectorAll("section")).toHaveLength(3);
+    expect([...container.querySelectorAll("h2")].map((h) => h.id)).toEqual(["bottlenecks-h", "offer-h"]);
+    expect(container.querySelector("main")?.id).toBe("main");
+    const bands = [...container.querySelectorAll("main > section")].map((s) => s.getAttribute("data-band"));
+    for (let i = 1; i < bands.length; i++) expect(bands[i]).not.toBe(bands[i - 1]);
+    for (const tag of ["table", "svg", "figure", "img", "button", "input", "form"]) {
+      expect(container.querySelector(tag), tag).toBeNull();
+    }
+  });
+
+  it("carries no ARR number, no synthetic figure, no result, customer or product claim", () => {
+    const t = text();
+    const lower = t.toLowerCase();
+    // No ARR band or size anywhere. The word ARR appears only in a bottleneck name.
+    expect(t).not.toMatch(/\$\d+\s?M|\$20M|\$10M|500\+|ARR band/);
+    expect(t).not.toContain("—");
+    expect(lower).not.toMatch(
+      /proven|\bour customers|testimonial|case stud|synthetic|sample|decision record|what the product does today|deal guidance|salesforce|calculator|coming|cost proxy|win point|system of record|usage or hybrid|usage and hybrid|true margin|trade|evidence_version|cohort/,
+    );
+    expect(t).not.toMatch(/\$8\.9M|\$67\.1M|2,000/);
+    // The only dollar figure is the fee.
+    expect(new Set(t.match(/\$[\d,.]+[KMB]?/g) ?? [])).toEqual(new Set(["$7,500"]));
   });
 
   it("passes the ADR-006 margin guard on every landing string and on the rendered page", () => {
-    // Ported from pricing/cost_basis.py (keep in sync with its allowlist
-    // comment): exactly four negations, whole-phrase only, never followed by a
-    // figure; any other "margin" next to a CRM cost proxy is a violation.
-    const ALLOWED = ["not margin", "never labeled margin", "not bookable margin", "not cost-based margin"];
-    const LEAD_IN =
-      String.raw`(?:\.\.\.|\u2026|[:,(\u2013\u2014])\s*[-\u2212\u2013]?\s*` +
-      String.raw`(?:(?:about|roughly|around|nearly|over|under|approximately|circa|i\.e\.|e\.g\.)\s*,?\s*)?[\d$%]`;
-    const allowedRe = new RegExp(
-      String.raw`(?<![\w-])(?:` +
-        ALLOWED.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") +
-        String.raw`)(?=\s*$|\s*[^\w\s\-])(?!\s*` +
-        LEAD_IN +
-        ")",
-      "gi",
-    );
-    const violations = (text: string): string[] => {
-      const covered = [...text.matchAll(allowedRe)].map((m) => [m.index!, m.index! + m[0].length]);
-      return [...text.matchAll(/margin/gi)]
-        .filter((m) => !covered.some(([a, b]) => a <= m.index! && m.index! < b))
-        .map((m) => text.slice(Math.max(0, m.index! - 30), m.index! + 22));
-    };
-    // Self-check of the port against the Python rules.
-    expect(violations("a cost proxy, not margin, until ERP")).toEqual([]);
-    expect(violations("never labeled margin.")).toEqual([]);
-    expect(violations("True margin needs ERP")).not.toEqual([]);
-    expect(violations("not margin: 40%")).not.toEqual([]);
-    expect(violations("not marginal")).not.toEqual([]);
+    // Self-check of the shared guard.
+    expect(marginViolations("a cost proxy, not margin, until ERP")).toEqual([]);
+    expect(marginViolations("thin contribution margin, customer-supplied cost basis.")).toEqual([]);
+    expect(marginViolations("thin gross margin")).not.toEqual([]);
+    expect(marginViolations("not margin: 40%")).not.toEqual([]);
 
     const files = [
       "src/app/page.tsx",
       "src/components/HeroHeadline.tsx",
-      "src/components/DiagnosticPreview.tsx",
-      "src/components/WhatYouGet.tsx",
-      "src/components/TrustBoundaryStrip.tsx",
+      "src/lib/audit-offer.ts",
       ...readdirSync("src/components/landing").map((f) => "src/components/landing/" + f),
     ];
-    const literalRe = /"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
     for (const f of files) {
-      for (const lit of readFileSync(f, "utf8").match(literalRe) ?? []) {
-        expect(violations(lit), `${f}: ${lit}`).toEqual([]);
+      for (const lit of stringLiterals(readFileSync(f, "utf8"))) {
+        expect(marginViolations(lit), `${f}: ${lit}`).toEqual([]);
       }
     }
-    const { container } = render(createElement(Landing));
-    expect(violations(container.textContent ?? "")).toEqual([]);
+    expect(marginViolations(text())).toEqual([]);
+    expect(text()).toContain("contribution margin, customer-supplied cost basis");
   });
 
-  it("never claims to be a system of record", () => {
-    const { container } = render(createElement(Landing));
-    expect(container.textContent?.toLowerCase()).not.toContain("system of record");
-  });
-
-  it("renders the hero number straight from the bundled sample snapshot", () => {
-    const { container } = render(createElement(Landing));
-    // Asserts the RENDERED text. Recomputed from the snapshot, so a regenerated
-    // sample-fallback.json still passes. Today: 8,946,770 shown as $8.9M.
-    const gap = container.querySelector('[data-testid="hero-gap"]');
-    expect(gap?.textContent).toContain("Gap to segment win point");
-    expect(gap?.textContent).toContain(moneyShort(HERO_EXCESS));
-    expect(gap?.textContent).toContain("synthetic 2,000-deal book");
-    expect(container.textContent).toContain("$8.9M");
-    // The record shows this one deal's own excess, never the book total.
-    expect(container.querySelector('[data-testid="hero-gap"]')?.closest("figure")).toBeNull();
-    expect(container.textContent).toContain(moneyShort(RECORD.excessDollars));
-    expect(container.textContent).toContain("on this one synthetic deal");
-    expect(container.textContent).not.toContain("booked above each segment");
-    expect(moneyShort(HERO_EXCESS)).toBe("$8.9M");
-  });
-
-  it("keeps exactly five sections and one h1, inside a main with id=main", () => {
-    const { container } = render(createElement(Landing));
-    expect(container.querySelectorAll("section").length).toBe(5);
-    expect(container.querySelectorAll("main > section").length).toBe(5);
-    expect(container.querySelectorAll("h1").length).toBe(1);
-    expect(container.querySelector("main")?.id).toBe("main");
-  });
-
-  it("labels the hero number with a status icon and a synthetic caption", () => {
-    const { container } = render(createElement(Landing));
-    const pills = [...container.querySelectorAll('[data-status="leak"]')].map((p) => p.textContent);
-    expect(pills.some((t) => t?.includes("Gap to segment win point"))).toBe(true);
-    const pill = container.querySelector('[data-status="leak"]');
-    expect(pill?.querySelector("svg")).toBeTruthy();
-    expect(container.textContent?.toLowerCase()).toContain("synthetic sample deal");
-  });
-
-  it("has no coral headline, glow, tilt, amber chrome or 100svh hero", () => {
-    const { container } = render(createElement(Landing));
-    const h1 = container.querySelector("h1");
-    expect(h1?.outerHTML).not.toContain("coral");
-    expect(h1?.outerHTML).not.toContain("pk-headline-accent");
-    for (const bad of ["100svh", "pk-upside", "pk-card-3d", "amber", "rounded-full bg-coral"]) {
-      expect(container.innerHTML).not.toContain(bad);
+  it("left no dead landing components behind", () => {
+    expect(readdirSync("src/components/landing")).toEqual(["Bottlenecks.tsx"]);
+    const comps = readdirSync("src/components");
+    for (const gone of ["DiagnosticPreview.tsx", "WhatYouGet.tsx", "TrustBoundaryStrip.tsx"]) {
+      expect(comps).not.toContain(gone);
     }
-    // The only coral on the page: the leak pill and the hero number.
-    expect(container.querySelectorAll('[class*="coral"]').length).toBe(4);
-  });
-
-  it("uses the softened headline, the synthetic-book wording and the no-cohort close", () => {
-    const { container } = render(createElement(Landing));
-    const text = container.textContent ?? "";
-    expect(text).not.toContain("wins you nothing");
-    expect(text).toContain("Stop giving away price that has stopped winning deals.");
-    expect(text.toLowerCase()).not.toContain("cohort");
-    expect(text).toContain("In this synthetic book, win rate stops improving past the win point.");
-    expect(text).not.toContain("buy fewer wins, not more");
-  });
-
-  it("shows the synthetic deal tag and never an account name", () => {
-    const { container } = render(createElement(Landing));
-    expect(container.textContent).toContain("Synthetic sample deal. Figures from the bundled synthetic snapshot.");
-    const deals = sampleFallback.top_leak_deals as { resolved_account_name: string }[];
-    for (const d of deals) expect(container.textContent).not.toContain(d.resolved_account_name);
   });
 
   it("stays static and exports page metadata through pageMetadata()", () => {
@@ -181,8 +132,11 @@ describe("Landing page", () => {
     expect(String(metadata.title)).not.toContain("Pricekeel");
     expect(metadata.alternates?.canonical).toBe("/");
     const d = String(metadata.description);
+    expect(d).toContain("We stop AI companies from losing money on heavy users.");
     expect(d.length).toBeGreaterThanOrEqual(70);
     expect(d.length).toBeLessThanOrEqual(160);
+    expect(d.toLowerCase()).not.toMatch(/proven|customers/);
+    expect(marginViolations(d)).toEqual([]);
     expect(metadata.openGraph?.images).toBeTruthy();
   });
 });

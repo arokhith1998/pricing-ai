@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = {
   title: "Contact · Pricekeel",
   description:
-    "Request a Pricekeel Salesforce design-partner walkthrough with the founder.",
+    "Request a Pricekeel design-partner walkthrough with the founder.",
 };
 
 const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
@@ -26,7 +26,7 @@ export default function ContactPage() {
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           Pricekeel is in design-partner mode for $10M to $100M ARR B2B SaaS teams
-          running Salesforce. Every request goes directly to Adhithya. The
+          with deals in a CRM and billing system (Salesforce, HubSpot, Stripe, Chargebee). Every request goes directly to Adhithya. The
           first walkthrough uses a redacted or hypothetical deal, no credentials required.
         </p>
       </Reveal>
@@ -90,12 +90,12 @@ export default function ContactPage() {
             Optional template if a blank cursor is the only thing in the way.
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg border border-mist bg-surface-2 p-4 text-xs leading-relaxed text-ink">
-{`Subject: Pricekeel Salesforce pilot, [Your company]
+{`Subject: Pricekeel pilot, [Your company]
 
 Hi Adhithya,
 
 I'm [name], [title] at [company] ($XM ARR, [usage-based / hybrid]).
-We use Salesforce and want to improve how [Deal Desk / RevOps / Pricing]
+We use a CRM and billing system and want to improve how [Deal Desk / RevOps / Pricing]
 handles discount exceptions.
 
 A representative deal is about $[ACV], and our current approval flow is
@@ -139,7 +139,7 @@ Can we walk through that deal before discussing a connection?
 
       <Reveal delay={0.05}>
         <section className="mt-8 text-center text-sm text-muted">
-          <p>Already have a customer access code? <Link href="/crm" className="text-teal underline">Open the Salesforce workspace</Link>.</p>
+          <p>Already have a customer access code? <Link href="/crm" className="text-teal underline">Open the CRM workspace</Link>.</p>
         </section>
       </Reveal>
     </main>
