@@ -368,6 +368,134 @@ CONTRACT_PERIOD_KEY_FIELDS: list[str] = [
     "source_record_id", "period_start", "period_end", "currency",
     "invoiced_amount",
 ]
+
+# --- cost_period_actuals: the customer cost grain (PK-99) -------------------
+# One row per cost line per day or date range, from a founder-supplied cost
+# export (model-provider, hosting or storage cost rolled up per customer key).
+# It is a THIRD grain, separate from the deal and from contract_period_actuals:
+# it is not in FIELDS, ALL_COLUMNS, GENERATOR_COLUMNS or
+# CONTRACT_PERIOD_FIELDS, so deal files, ingest, the mapper's deal fields,
+# data/synthetic/deals.csv and gtm/data-request.md are unchanged. In memory
+# only. Spec: docs/design/2026-11-10-margin-health-analysis.md sections 2.2 to
+# 2.6. Binding decisions: ADR-006 (the basis enum, label text owned by code),
+# ADR-007 (declared_cost only by an explicit upload declaration, never
+# erp_verified on an upload; joined only through a customer-declared key map),
+# founder F1 (contribution margin only) and F12 (no allocation rule by default;
+# unattributable cost marks the readout upper_bound).
+#
+# Conventions: cost_end is INCLUSIVE, like period_end on the billing grain; a
+# daily row has cost_start equal to cost_end. cost_amount is in cost_currency,
+# at source precision, never converted. A cost_amount that is absent is NOT a
+# zero cost: a blank, a missing column and a missing period are each "not in
+# the file", counted by the consumer, never read as 0. The grain carries no
+# end-customer name, email or contact field: customer_key is an opaque
+# attribution key (api key, project, workspace, tag or subscription id) and it
+# reaches a billing account only through a customer-declared key map.
+class CostCategory(str, Enum):
+    """What the cost line is for. Blank is 'uncategorized', never guessed."""
+
+    INFERENCE = "inference"
+    COMPUTE = "compute"
+    STORAGE = "storage"
+    OTHER = "other"
+
+
+class CostKeyType(str, Enum):
+    """What kind of identifier customer_key holds."""
+
+    SOURCE_RECORD_ID = "source_record_id"
+    API_KEY_ID = "api_key_id"
+    PROJECT_ID = "project_id"
+    WORKSPACE_ID = "workspace_id"
+    CUSTOMER_TAG = "customer_tag"
+
+
+class CostAttribution(str, Enum):
+    """How a cost line reached an account (spec 2.3). Set by the loader from
+    the key map and the confirmed allocation rules; never read from a file.
+
+    direct: the key is a billing source_record_id, or is in the confirmed key
+    map. allocated: the line belongs to a pool the user confirmed a rule for.
+    not_attributable: everything else; never dropped, never spread.
+    """
+
+    DIRECT = "direct"
+    ALLOCATED = "allocated"
+    NOT_ATTRIBUTABLE = "not_attributable"
+
+
+COST_PERIOD_FIELDS: list[Field] = [
+    Field("cost_vendor", "str", False,
+          "Who billed the line: openai, anthropic, aws, free text. Display and "
+          "de-duplication only.", "anthropic"),
+    Field("cost_category", "enum", False,
+          "inference | compute | storage | other. Set from a user-confirmed "
+          "table; blank is uncategorized, never guessed.", "inference"),
+    Field("cost_line", "str", False,
+          "The dimension that makes a row unique within a day: model, "
+          "line_item, description or product code.", "claude-large"),
+    Field("customer_key", "str", False,
+          "Opaque attribution key as exported (api key, project, workspace, "
+          "tag, or a subscription id). Not a customer name or email. Blank "
+          "means shared cost.", "ws_acme_01"),
+    Field("customer_key_type", "enum", False,
+          "source_record_id | api_key_id | project_id | workspace_id | "
+          "customer_tag.", "workspace_id"),
+    Field("cost_start", "date", False,
+          "First day the line covers.", "2026-01-01"),
+    Field("cost_end", "date", False,
+          "Last day the line covers (inclusive). Equal to cost_start for a "
+          "daily row.", "2026-01-31"),
+    Field("cost_currency", "str", False,
+          "ISO 4217 code, upper-cased on read. One currency per row; never "
+          "converted.", "USD"),
+    Field("cost_amount", "str", False,
+          "Cost for the range in cost_currency, at source precision (fractions "
+          "of a cent kept). Held as text so a blank or an unparseable cell "
+          "stays visible and is never read as 0. Money. Units are the file's: "
+          "an Anthropic cost report is in cents.", "8000.00"),
+    Field("cost_basis", "enum", False,
+          "Exact-only. Absent, or declared_cost, in an upload. erp_verified "
+          "in an uploaded file is a 422; any other value makes the row "
+          "crm_proxy. The basis is set by code from the upload declaration, "
+          "not by this cell.", ""),
+    Field("attribution", "enum", False,
+          "direct | allocated | not_attributable. DERIVED by the loader, "
+          "never read from a file: an uploaded value is ignored.", ""),
+]
+COST_PERIOD_COLUMNS: list[str] = [f.name for f in COST_PERIOD_FIELDS]
+COST_PERIOD_MONEY_FIELDS: list[str] = ["cost_amount"]
+# Fields set by the loader. A file never supplies them, so the synthetic cost
+# export has COST_PERIOD_FILE_COLUMNS only.
+COST_PERIOD_DERIVED_FIELDS: list[str] = ["attribution"]
+COST_PERIOD_FILE_COLUMNS: list[str] = [
+    n for n in COST_PERIOD_COLUMNS if n not in COST_PERIOD_DERIVED_FIELDS]
+# The minimum a row needs to be usable; a row missing one is counted and
+# excluded by the consumer, never guessed.
+COST_PERIOD_KEY_FIELDS: list[str] = [
+    "cost_start", "cost_end", "cost_currency", "cost_amount",
+]
+# Mapping profile name for a cost export (spec 2.5). The fingerprint itself is
+# header-only and lives with the mapper; these are the exact-only fields it
+# must never fuzzy-match: bare words collide with real columns ("Customer",
+# "Account" and "Project" are different things, and mapping a provider project
+# to a customer is an attribution decision a person confirms; a bare "Amount"
+# is on every CRM opportunity export).
+COST_EXPORT_PROFILE = "cost_export"
+COST_EXACT_ONLY_FIELDS: frozenset[str] = frozenset({
+    "customer_key", "customer_key_type", "cost_amount", "cost_category",
+    "cost_basis", "source_record_id",
+})
+# The customer-declared key map: cost key to billing account. The only join
+# between the cost grain and the billing grain (ADR-007). One key mapping to
+# two accounts is rejected by the loader (that is an allocation, not an
+# attribution). Several keys may map to one account.
+COST_KEY_MAP_COLUMNS: list[str] = [
+    "customer_key_type", "customer_key", "source_record_id",
+]
+# A cost_basis cell may hold only this in an upload (ADR-007).
+COST_UPLOAD_BASIS_ALLOWED: frozenset[str] = frozenset({CostBasis.DECLARED_COST.value})
+
 # Every canonical field name.
 ALL_FIELD_NAMES: list[str] = [f.name for f in FIELDS]
 # Columns the synthetic generator emits. Explicit pre-PK-23 list: the new

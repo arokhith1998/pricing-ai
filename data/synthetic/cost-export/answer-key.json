@@ -1,0 +1,1388 @@
+{
+ "accounts": {
+  "sub_conflict": {
+   "conflict_periods": 1,
+   "conflict_reason": "period_billing_conflict",
+   "cost_total": "2200.00",
+   "id": "MA-10",
+   "near": false,
+   "negative": false,
+   "negative_periods": 0,
+   "persistent": false,
+   "result_by_period": [
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00",
+    "800.00"
+   ],
+   "result_pct_by_period": [
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000"
+   ],
+   "result_total": "8800.00",
+   "revenue_total": "11000.00",
+   "scored_periods": 11,
+   "status": "scored"
+  },
+  "sub_eur": {
+   "cost_currency": "USD",
+   "cost_total": "3600.00",
+   "excluded_periods": 12,
+   "id": "MA-08",
+   "reason": "period_currency_mismatch",
+   "revenue_currency": "EUR",
+   "revenue_total": "12000.00",
+   "status": "excluded"
+  },
+  "sub_free": {
+   "cost_total": "4800.00",
+   "id": "MA-06",
+   "near": false,
+   "negative": false,
+   "negative_periods": 3,
+   "persistent": false,
+   "result_by_period": [
+    "-400.00",
+    "-400.00",
+    "-400.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00",
+    "600.00"
+   ],
+   "result_pct_by_period": [
+    null,
+    null,
+    null,
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000",
+    "0.6000"
+   ],
+   "result_total": "4200.00",
+   "revenue_total": "9000.00",
+   "scored_periods": 12,
+   "status": "scored",
+   "zero_revenue_periods": 3
+  },
+  "sub_heavy_1": {
+   "break_even_units": 750000,
+   "cost_per_unit": "0.0040",
+   "cost_total": "96000.00",
+   "headroom": "0.3750",
+   "id": "MA-01",
+   "near": false,
+   "negative": true,
+   "negative_periods": 12,
+   "persistent": true,
+   "price_per_unit": "0.0000",
+   "result_by_period": [
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00",
+    "-5000.00"
+   ],
+   "result_pct_by_period": [
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667",
+    "-1.6667"
+   ],
+   "result_total": "-60000.00",
+   "revenue_total": "36000.00",
+   "scored_periods": 12,
+   "status": "scored"
+  },
+  "sub_heavy_2": {
+   "break_even_units": 1250000,
+   "cost_per_unit": "0.0040",
+   "cost_total": "72000.00",
+   "headroom": "0.8333",
+   "id": "MA-02",
+   "near": false,
+   "negative": true,
+   "negative_periods": 12,
+   "persistent": true,
+   "price_per_unit": "0.0000",
+   "result_by_period": [
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00",
+    "-1000.00"
+   ],
+   "result_pct_by_period": [
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000",
+    "-0.2000"
+   ],
+   "result_total": "-12000.00",
+   "revenue_total": "60000.00",
+   "scored_periods": 12,
+   "status": "scored"
+  },
+  "sub_hybrid_ok": {
+   "break_even_units": null,
+   "cost_per_unit": "0.0040",
+   "cost_total": "4800.00",
+   "headroom": null,
+   "id": "MA-05",
+   "near": false,
+   "negative": false,
+   "negative_periods": 0,
+   "persistent": false,
+   "price_above_cost": true,
+   "price_per_unit": "0.0100",
+   "result_by_period": [
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00",
+    "1600.00"
+   ],
+   "result_pct_by_period": [
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000",
+    "0.8000"
+   ],
+   "result_total": "19200.00",
+   "revenue_total": "24000.00",
+   "scored_periods": 12,
+   "status": "scored"
+  },
+  "sub_near": {
+   "break_even_units": 750000,
+   "cost_per_unit": "0.0040",
+   "cost_total": "33600.00",
+   "headroom": "1.0714",
+   "id": "MA-04",
+   "near": true,
+   "negative": false,
+   "negative_periods": 0,
+   "persistent": false,
+   "price_per_unit": "0.0000",
+   "result_by_period": [
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00"
+   ],
+   "result_pct_by_period": [
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667",
+    "0.0667"
+   ],
+   "result_total": "2400.00",
+   "revenue_total": "36000.00",
+   "scored_periods": 12,
+   "status": "scored"
+  },
+  "sub_nocost": {
+   "billed_periods": 12,
+   "id": "MA-07",
+   "reason": "cost_not_in_file",
+   "revenue_total": "12000.00",
+   "status": "not_provided"
+  },
+  "sub_thin": {
+   "break_even_units": 200000,
+   "cost_per_unit": "0.0080",
+   "cost_total": "9600.00",
+   "headroom": "2.0000",
+   "id": "MA-03",
+   "near": false,
+   "negative": false,
+   "negative_periods": 0,
+   "persistent": false,
+   "price_per_unit": "0.0060",
+   "result_by_period": [
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00",
+    "200.00"
+   ],
+   "result_pct_by_period": [
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000",
+    "0.2000"
+   ],
+   "result_total": "2400.00",
+   "revenue_total": "12000.00",
+   "scored_periods": 12,
+   "status": "scored"
+  },
+  "sub_weekly": {
+   "excluded_periods": 8,
+   "id": "MA-09",
+   "reason": "period_not_whole_months",
+   "revenue_total": "2000.00",
+   "status": "excluded"
+  },
+  "sub_zero_usage": {
+   "break_even_reason": "zero_usage_units",
+   "break_even_status": "insufficient_data",
+   "cost_per_unit": "not_given",
+   "cost_total": "450.00",
+   "id": "MA-11",
+   "near": false,
+   "negative": false,
+   "negative_periods": 0,
+   "persistent": false,
+   "result_by_period": [
+    "850.00",
+    "850.00",
+    "850.00"
+   ],
+   "result_pct_by_period": [
+    "0.8500",
+    "0.8500",
+    "0.8500"
+   ],
+   "result_total": "2550.00",
+   "revenue_total": "3000.00",
+   "scored_periods": 3,
+   "status": "scored"
+  }
+ },
+ "allocation_variant": {
+  "driver": "usage_units of aligned account-periods in the same month",
+  "months": [
+   {
+    "allocated_cents": {
+     "sub_conflict": 2403,
+     "sub_f000": 5760,
+     "sub_f001": 7021,
+     "sub_f002": 5480,
+     "sub_f003": 4403,
+     "sub_f004": 3485,
+     "sub_f005": 4659,
+     "sub_f006": 3644,
+     "sub_f007": 4978,
+     "sub_f008": 3709,
+     "sub_f009": 4235,
+     "sub_f010": 4782,
+     "sub_f011": 3083,
+     "sub_f012": 4807,
+     "sub_f013": 5844,
+     "sub_f014": 6209,
+     "sub_f015": 4211,
+     "sub_f016": 6944,
+     "sub_f017": 7172,
+     "sub_f018": 4149,
+     "sub_f019": 4549,
+     "sub_free": 4806,
+     "sub_heavy_1": 96114,
+     "sub_heavy_2": 72085,
+     "sub_hybrid_ok": 4806,
+     "sub_near": 33640,
+     "sub_thin": 4806,
+     "sub_zero_usage": 0
+    },
+    "driver_units_total": 6612649,
+    "month": "2026-01",
+    "pool_cents": 317784
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 3116,
+     "sub_f000": 6563,
+     "sub_f001": 9033,
+     "sub_f002": 4469,
+     "sub_f003": 8422,
+     "sub_f004": 6486,
+     "sub_f005": 3785,
+     "sub_f006": 5203,
+     "sub_f007": 3411,
+     "sub_f008": 4534,
+     "sub_f009": 4229,
+     "sub_f010": 9132,
+     "sub_f011": 5760,
+     "sub_f012": 7653,
+     "sub_f013": 5922,
+     "sub_f014": 7011,
+     "sub_f015": 8494,
+     "sub_f016": 4324,
+     "sub_f017": 5605,
+     "sub_f018": 5777,
+     "sub_f019": 8204,
+     "sub_free": 6232,
+     "sub_heavy_1": 124640,
+     "sub_heavy_2": 93480,
+     "sub_hybrid_ok": 6232,
+     "sub_near": 43624,
+     "sub_thin": 6232,
+     "sub_zero_usage": 0
+    },
+    "driver_units_total": 6540016,
+    "month": "2026-02",
+    "pool_cents": 407573
+   },
+   {
+    "allocated_cents": {
+     "sub_f000": 5565,
+     "sub_f001": 10012,
+     "sub_f002": 10515,
+     "sub_f003": 6729,
+     "sub_f004": 8623,
+     "sub_f005": 4122,
+     "sub_f006": 10518,
+     "sub_f007": 8959,
+     "sub_f008": 9921,
+     "sub_f009": 4783,
+     "sub_f010": 8473,
+     "sub_f011": 6893,
+     "sub_f012": 10042,
+     "sub_f013": 6081,
+     "sub_f014": 8538,
+     "sub_f015": 8402,
+     "sub_f016": 4267,
+     "sub_f017": 6019,
+     "sub_f018": 8929,
+     "sub_f019": 9173,
+     "sub_free": 7965,
+     "sub_heavy_1": 159295,
+     "sub_heavy_2": 119471,
+     "sub_hybrid_ok": 7965,
+     "sub_near": 55753,
+     "sub_thin": 7965,
+     "sub_zero_usage": 0
+    },
+    "driver_units_total": 6465710,
+    "month": "2026-03",
+    "pool_cents": 514978
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 4593,
+     "sub_f000": 9591,
+     "sub_f001": 7662,
+     "sub_f002": 9757,
+     "sub_f003": 6892,
+     "sub_f004": 7394,
+     "sub_f005": 8995,
+     "sub_f006": 11063,
+     "sub_f007": 7169,
+     "sub_f008": 7928,
+     "sub_f009": 11688,
+     "sub_f010": 6981,
+     "sub_f011": 5750,
+     "sub_f012": 12585,
+     "sub_f013": 6747,
+     "sub_f014": 7328,
+     "sub_f015": 8405,
+     "sub_f016": 8398,
+     "sub_f017": 5470,
+     "sub_f018": 11734,
+     "sub_f019": 13663,
+     "sub_free": 9185,
+     "sub_heavy_1": 183700,
+     "sub_heavy_2": 137775,
+     "sub_hybrid_ok": 9185,
+     "sub_near": 64295,
+     "sub_thin": 9185
+    },
+    "driver_units_total": 6457469,
+    "month": "2026-04",
+    "pool_cents": 593118
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 5450,
+     "sub_f000": 14244,
+     "sub_f001": 13442,
+     "sub_f002": 10935,
+     "sub_f003": 15536,
+     "sub_f004": 15283,
+     "sub_f005": 8473,
+     "sub_f006": 13433,
+     "sub_f007": 7367,
+     "sub_f008": 6475,
+     "sub_f009": 12744,
+     "sub_f010": 10082,
+     "sub_f011": 11450,
+     "sub_f012": 14993,
+     "sub_f013": 15079,
+     "sub_f014": 9712,
+     "sub_f015": 16172,
+     "sub_f016": 9377,
+     "sub_f017": 6634,
+     "sub_f018": 12908,
+     "sub_f019": 11876,
+     "sub_free": 10899,
+     "sub_heavy_1": 217983,
+     "sub_heavy_2": 163487,
+     "sub_hybrid_ok": 10899,
+     "sub_near": 76294,
+     "sub_thin": 10899
+    },
+    "driver_units_total": 6717274,
+    "month": "2026-05",
+    "pool_cents": 732126
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 6197,
+     "sub_f000": 16049,
+     "sub_f001": 17022,
+     "sub_f002": 15879,
+     "sub_f003": 7114,
+     "sub_f004": 7524,
+     "sub_f005": 13055,
+     "sub_f006": 16854,
+     "sub_f007": 6954,
+     "sub_f008": 9660,
+     "sub_f009": 18553,
+     "sub_f010": 12378,
+     "sub_f011": 13365,
+     "sub_f012": 13379,
+     "sub_f013": 17394,
+     "sub_f014": 10343,
+     "sub_f015": 11073,
+     "sub_f016": 13538,
+     "sub_f017": 14544,
+     "sub_f018": 10720,
+     "sub_f019": 10047,
+     "sub_free": 12393,
+     "sub_heavy_1": 247867,
+     "sub_heavy_2": 185900,
+     "sub_hybrid_ok": 12393,
+     "sub_near": 86753,
+     "sub_thin": 12393
+    },
+    "driver_units_total": 6611143,
+    "month": "2026-06",
+    "pool_cents": 819341
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 7133,
+     "sub_f000": 13559,
+     "sub_f001": 8573,
+     "sub_f002": 19337,
+     "sub_f003": 11543,
+     "sub_f004": 16476,
+     "sub_f005": 15576,
+     "sub_f006": 19520,
+     "sub_f007": 7965,
+     "sub_f008": 9347,
+     "sub_f009": 16754,
+     "sub_f010": 7373,
+     "sub_f011": 9729,
+     "sub_f012": 12917,
+     "sub_f013": 9747,
+     "sub_f014": 8569,
+     "sub_f015": 10679,
+     "sub_f016": 11885,
+     "sub_f017": 12570,
+     "sub_f018": 19007,
+     "sub_f019": 20013,
+     "sub_free": 14267,
+     "sub_heavy_1": 285331,
+     "sub_heavy_2": 213998,
+     "sub_hybrid_ok": 14267,
+     "sub_near": 99866,
+     "sub_thin": 14267
+    },
+    "driver_units_total": 6380434,
+    "month": "2026-07",
+    "pool_cents": 910268
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 8004,
+     "sub_f000": 22690,
+     "sub_f001": 12382,
+     "sub_f002": 16908,
+     "sub_f003": 8755,
+     "sub_f004": 23428,
+     "sub_f005": 8649,
+     "sub_f006": 14934,
+     "sub_f007": 21008,
+     "sub_f008": 22976,
+     "sub_f009": 21492,
+     "sub_f010": 14843,
+     "sub_f011": 18748,
+     "sub_f012": 23272,
+     "sub_f013": 15368,
+     "sub_f014": 11005,
+     "sub_f015": 12641,
+     "sub_f016": 12604,
+     "sub_f017": 20983,
+     "sub_f018": 8427,
+     "sub_f019": 8347,
+     "sub_free": 16009,
+     "sub_heavy_1": 320179,
+     "sub_heavy_2": 240134,
+     "sub_hybrid_ok": 16009,
+     "sub_near": 112062,
+     "sub_thin": 16009
+    },
+    "driver_units_total": 6545511,
+    "month": "2026-08",
+    "pool_cents": 1047866
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 8872,
+     "sub_f000": 24953,
+     "sub_f001": 20306,
+     "sub_f002": 16511,
+     "sub_f003": 23056,
+     "sub_f004": 10533,
+     "sub_f005": 16879,
+     "sub_f006": 20130,
+     "sub_f007": 23980,
+     "sub_f008": 25977,
+     "sub_f009": 18855,
+     "sub_f010": 23408,
+     "sub_f011": 26432,
+     "sub_f012": 14635,
+     "sub_f013": 11931,
+     "sub_f014": 12141,
+     "sub_f015": 11650,
+     "sub_f016": 21123,
+     "sub_f017": 22516,
+     "sub_f018": 24258,
+     "sub_f019": 25853,
+     "sub_free": 17744,
+     "sub_heavy_1": 354878,
+     "sub_heavy_2": 266158,
+     "sub_hybrid_ok": 17744,
+     "sub_near": 124207,
+     "sub_thin": 17744
+    },
+    "driver_units_total": 6776839,
+    "month": "2026-09",
+    "pool_cents": 1202474
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 10017,
+     "sub_f000": 12246,
+     "sub_f001": 19994,
+     "sub_f002": 17126,
+     "sub_f003": 20468,
+     "sub_f004": 20387,
+     "sub_f005": 17197,
+     "sub_f006": 23109,
+     "sub_f007": 13669,
+     "sub_f008": 27405,
+     "sub_f009": 21928,
+     "sub_f010": 11911,
+     "sub_f011": 25011,
+     "sub_f012": 21401,
+     "sub_f013": 24514,
+     "sub_f014": 27960,
+     "sub_f015": 15955,
+     "sub_f016": 21065,
+     "sub_f017": 19660,
+     "sub_f018": 11161,
+     "sub_f019": 23499,
+     "sub_free": 20035,
+     "sub_heavy_1": 400690,
+     "sub_heavy_2": 300518,
+     "sub_hybrid_ok": 20034,
+     "sub_near": 140242,
+     "sub_thin": 20034
+    },
+    "driver_units_total": 6524921,
+    "month": "2026-10",
+    "pool_cents": 1307236
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 11025,
+     "sub_f000": 20575,
+     "sub_f001": 16115,
+     "sub_f002": 26356,
+     "sub_f003": 18361,
+     "sub_f004": 22542,
+     "sub_f005": 31742,
+     "sub_f006": 12038,
+     "sub_f007": 32483,
+     "sub_f008": 30068,
+     "sub_f009": 12722,
+     "sub_f010": 20695,
+     "sub_f011": 22499,
+     "sub_f012": 32397,
+     "sub_f013": 15312,
+     "sub_f014": 27061,
+     "sub_f015": 31404,
+     "sub_f016": 11180,
+     "sub_f017": 17465,
+     "sub_f018": 31528,
+     "sub_f019": 31334,
+     "sub_free": 22049,
+     "sub_heavy_1": 440985,
+     "sub_heavy_2": 330739,
+     "sub_hybrid_ok": 22049,
+     "sub_near": 154345,
+     "sub_thin": 22049
+    },
+    "driver_units_total": 6653821,
+    "month": "2026-11",
+    "pool_cents": 1467118
+   },
+   {
+    "allocated_cents": {
+     "sub_conflict": 12261,
+     "sub_f000": 27054,
+     "sub_f001": 26830,
+     "sub_f002": 22205,
+     "sub_f003": 28508,
+     "sub_f004": 33801,
+     "sub_f005": 18346,
+     "sub_f006": 32939,
+     "sub_f007": 24493,
+     "sub_f008": 24530,
+     "sub_f009": 15600,
+     "sub_f010": 29541,
+     "sub_f011": 24038,
+     "sub_f012": 19217,
+     "sub_f013": 21038,
+     "sub_f014": 12283,
+     "sub_f015": 26960,
+     "sub_f016": 33088,
+     "sub_f017": 22342,
+     "sub_f018": 23215,
+     "sub_f019": 25471,
+     "sub_free": 24522,
+     "sub_heavy_1": 490437,
+     "sub_heavy_2": 367828,
+     "sub_hybrid_ok": 24522,
+     "sub_near": 171653,
+     "sub_thin": 24522
+    },
+    "driver_units_total": 6554337,
+    "month": "2026-12",
+    "pool_cents": 1607244
+   }
+  ],
+  "pool": {
+   "cost_category": "storage"
+  },
+  "rule": "proportional_to_usage_units",
+  "split": "floor shares, leftover cents to largest fractional remainders, ties by id ascending"
+ },
+ "attribution": {
+  "direct": {
+   "amount": "300952.24",
+   "rows": 696
+  },
+  "not_attributable": {
+   "amount": "124446.26",
+   "rows": 55,
+   "share": "0.2925"
+  },
+  "pools": {
+   "shared_compute": {
+    "amount": "14400.00",
+    "rows": 12
+   },
+   "shared_storage": {
+    "amount": "109271.26",
+    "rows": 12
+   },
+   "unmapped_project": {
+    "amount": "775.00",
+    "key": "proj_unmapped",
+    "rows": 31
+   }
+  },
+  "upper_bound": true
+ },
+ "book_cost": {
+  "amount": "425398.50",
+  "rows": 751
+ },
+ "exclusions": {
+  "account_periods": {
+   "period_billing_conflict": {
+    "count": 1,
+    "noun": "account_periods"
+   },
+   "period_currency_mismatch": {
+    "cost": "3600.00",
+    "cost_currency": "USD",
+    "count": 12,
+    "noun": "account_periods",
+    "revenue": "12000.00",
+    "revenue_currency": "EUR"
+   },
+   "period_not_whole_months": {
+    "count": 8,
+    "noun": "account_periods",
+    "revenue": "2000.00"
+   }
+  },
+  "accounts": {
+   "cost_not_in_file": {
+    "count": 1,
+    "noun": "accounts",
+    "revenue": "12000.00"
+   }
+  },
+  "cost_rows": {
+   "cost_blank_amount": {
+    "amount": null,
+    "count": 3,
+    "noun": "rows"
+   },
+   "cost_conflict": {
+    "amount": "95.00",
+    "count": 2,
+    "noun": "rows"
+   },
+   "cost_duplicate_collapsed": {
+    "amount": "2000.04",
+    "count": 7,
+    "noun": "rows"
+   },
+   "cost_negative_amount": {
+    "amount": "-75.00",
+    "count": 1,
+    "noun": "rows"
+   },
+   "cost_outside_billing_periods": {
+    "amount": "650.00",
+    "count": 4,
+    "noun": "rows"
+   },
+   "cost_straddles_periods": {
+    "amount": "500.00",
+    "count": 1,
+    "noun": "rows"
+   },
+   "cost_unparseable_amount": {
+    "amount": null,
+    "count": 2,
+    "noun": "rows"
+   }
+  },
+  "lowercase_currency_rows": 1
+ },
+ "filler_accounts": {
+  "sub_f000": {
+   "cost_plus": {
+    "cost_total": "3913.96",
+    "result_total": "17870.96",
+    "revenue_total": "21784.92"
+   },
+   "held": {
+    "cost_total": "3913.96",
+    "result_total": "21104.11",
+    "revenue_total": "25018.07"
+   }
+  },
+  "sub_f001": {
+   "cost_plus": {
+    "cost_total": "4002.55",
+    "result_total": "18003.85",
+    "revenue_total": "22006.40"
+   },
+   "held": {
+    "cost_total": "4002.55",
+    "result_total": "20947.88",
+    "revenue_total": "24950.43"
+   }
+  },
+  "sub_f002": {
+   "cost_plus": {
+    "cost_total": "3864.47",
+    "result_total": "17796.74",
+    "revenue_total": "21661.21"
+   },
+   "held": {
+    "cost_total": "3864.47",
+    "result_total": "20957.66",
+    "revenue_total": "24822.13"
+   }
+  },
+  "sub_f003": {
+   "cost_plus": {
+    "cost_total": "3463.73",
+    "result_total": "17195.60",
+    "revenue_total": "20659.33"
+   },
+   "held": {
+    "cost_total": "3463.73",
+    "result_total": "20070.72",
+    "revenue_total": "23534.45"
+   }
+  },
+  "sub_f004": {
+   "cost_plus": {
+    "cost_total": "3631.26",
+    "result_total": "17446.88",
+    "revenue_total": "21078.14"
+   },
+   "held": {
+    "cost_total": "3631.26",
+    "result_total": "20662.00",
+    "revenue_total": "24293.26"
+   }
+  },
+  "sub_f005": {
+   "cost_plus": {
+    "cost_total": "3099.98",
+    "result_total": "16649.96",
+    "revenue_total": "19749.94"
+   },
+   "held": {
+    "cost_total": "3099.98",
+    "result_total": "19433.96",
+    "revenue_total": "22533.94"
+   }
+  },
+  "sub_f006": {
+   "cost_plus": {
+    "cost_total": "3943.74",
+    "result_total": "17915.62",
+    "revenue_total": "21859.36"
+   },
+   "held": {
+    "cost_total": "3943.74",
+    "result_total": "21245.19",
+    "revenue_total": "25188.93"
+   }
+  },
+  "sub_f007": {
+   "cost_plus": {
+    "cost_total": "3243.29",
+    "result_total": "16864.93",
+    "revenue_total": "20108.22"
+   },
+   "held": {
+    "cost_total": "3243.29",
+    "result_total": "19858.41",
+    "revenue_total": "23101.70"
+   }
+  },
+  "sub_f008": {
+   "cost_plus": {
+    "cost_total": "3548.50",
+    "result_total": "17322.78",
+    "revenue_total": "20871.28"
+   },
+   "held": {
+    "cost_total": "3548.50",
+    "result_total": "20719.32",
+    "revenue_total": "24267.82"
+   }
+  },
+  "sub_f009": {
+   "cost_plus": {
+    "cost_total": "3605.11",
+    "result_total": "17407.68",
+    "revenue_total": "21012.79"
+   },
+   "held": {
+    "cost_total": "3605.11",
+    "result_total": "20381.37",
+    "revenue_total": "23986.48"
+   }
+  },
+  "sub_f010": {
+   "cost_plus": {
+    "cost_total": "3543.57",
+    "result_total": "17315.35",
+    "revenue_total": "20858.92"
+   },
+   "held": {
+    "cost_total": "3543.57",
+    "result_total": "20165.47",
+    "revenue_total": "23709.04"
+   }
+  },
+  "sub_f011": {
+   "cost_plus": {
+    "cost_total": "3428.33",
+    "result_total": "17142.51",
+    "revenue_total": "20570.84"
+   },
+   "held": {
+    "cost_total": "3428.33",
+    "result_total": "20349.67",
+    "revenue_total": "23778.00"
+   }
+  },
+  "sub_f012": {
+   "cost_plus": {
+    "cost_total": "4184.35",
+    "result_total": "18276.53",
+    "revenue_total": "22460.88"
+   },
+   "held": {
+    "cost_total": "4184.35",
+    "result_total": "21635.33",
+    "revenue_total": "25819.68"
+   }
+  },
+  "sub_f013": {
+   "cost_plus": {
+    "cost_total": "3511.19",
+    "result_total": "17266.85",
+    "revenue_total": "20778.04"
+   },
+   "held": {
+    "cost_total": "3511.19",
+    "result_total": "20031.48",
+    "revenue_total": "23542.67"
+   }
+  },
+  "sub_f014": {
+   "cost_plus": {
+    "cost_total": "3395.57",
+    "result_total": "17093.40",
+    "revenue_total": "20488.97"
+   },
+   "held": {
+    "cost_total": "3395.57",
+    "result_total": "19713.02",
+    "revenue_total": "23108.59"
+   }
+  },
+  "sub_f015": {
+   "cost_plus": {
+    "cost_total": "3651.51",
+    "result_total": "17477.28",
+    "revenue_total": "21128.79"
+   },
+   "held": {
+    "cost_total": "3651.51",
+    "result_total": "20449.71",
+    "revenue_total": "24101.22"
+   }
+  },
+  "sub_f016": {
+   "cost_plus": {
+    "cost_total": "3361.94",
+    "result_total": "17042.88",
+    "revenue_total": "20404.82"
+   },
+   "held": {
+    "cost_total": "3361.94",
+    "result_total": "19898.35",
+    "revenue_total": "23260.29"
+   }
+  },
+  "sub_f017": {
+   "cost_plus": {
+    "cost_total": "3506.59",
+    "result_total": "17259.87",
+    "revenue_total": "20766.46"
+   },
+   "held": {
+    "cost_total": "3506.59",
+    "result_total": "20163.99",
+    "revenue_total": "23670.58"
+   }
+  },
+  "sub_f018": {
+   "cost_plus": {
+    "cost_total": "3715.26",
+    "result_total": "17572.90",
+    "revenue_total": "21288.16"
+   },
+   "held": {
+    "cost_total": "3715.26",
+    "result_total": "20682.22",
+    "revenue_total": "24397.48"
+   }
+  },
+  "sub_f019": {
+   "cost_plus": {
+    "cost_total": "4137.34",
+    "result_total": "18205.99",
+    "revenue_total": "22343.33"
+   },
+   "held": {
+    "cost_total": "4137.34",
+    "result_total": "21679.14",
+    "revenue_total": "25816.48"
+   }
+  }
+ },
+ "key_map": [
+  {
+   "customer_key": "key_conflict",
+   "customer_key_type": "api_key_id",
+   "source_record_id": "sub_conflict"
+  },
+  {
+   "customer_key": "key_near",
+   "customer_key_type": "api_key_id",
+   "source_record_id": "sub_near"
+  },
+  {
+   "customer_key": "key_thin",
+   "customer_key_type": "api_key_id",
+   "source_record_id": "sub_thin"
+  },
+  {
+   "customer_key": "key_zero",
+   "customer_key_type": "api_key_id",
+   "source_record_id": "sub_zero_usage"
+  },
+  {
+   "customer_key": "tag_free",
+   "customer_key_type": "customer_tag",
+   "source_record_id": "sub_free"
+  },
+  {
+   "customer_key": "proj_ok",
+   "customer_key_type": "project_id",
+   "source_record_id": "sub_hybrid_ok"
+  },
+  {
+   "customer_key": "proj_weekly",
+   "customer_key_type": "project_id",
+   "source_record_id": "sub_weekly"
+  },
+  {
+   "customer_key": "ws_eur",
+   "customer_key_type": "workspace_id",
+   "source_record_id": "sub_eur"
+  },
+  {
+   "customer_key": "ws_heavy_1",
+   "customer_key_type": "workspace_id",
+   "source_record_id": "sub_heavy_1"
+  },
+  {
+   "customer_key": "ws_heavy_2",
+   "customer_key_type": "workspace_id",
+   "source_record_id": "sub_heavy_2"
+  }
+ ],
+ "meta": {
+  "calendar": "2026-01 to 2026-12",
+  "currency": "USD",
+  "design": "PK-99, cost-period design doc section 7.1",
+  "filler": 20,
+  "seed": 7,
+  "spawn_key": [
+   19784
+  ],
+  "value_metric_unit": "credit"
+ },
+ "near_break_even_accounts": [
+  "sub_near"
+ ],
+ "negative_accounts": [
+  "sub_heavy_1",
+  "sub_heavy_2"
+ ],
+ "price_policy": {
+  "cost_fall": "0.5",
+  "cost_per_credit_by_month": [
+   "0.004000",
+   "0.003818",
+   "0.003636",
+   "0.003455",
+   "0.003273",
+   "0.003091",
+   "0.002909",
+   "0.002727",
+   "0.002545",
+   "0.002364",
+   "0.002182",
+   "0.002000"
+  ],
+  "policies": {
+   "cost_plus": {
+    "expected_label": "cost_plus_pattern",
+    "filler_price_per_credit_by_month": [
+     "0.0100000",
+     "0.0095450",
+     "0.0090900",
+     "0.0086375",
+     "0.0081825",
+     "0.0077275",
+     "0.0072725",
+     "0.0068175",
+     "0.0063625",
+     "0.0059100",
+     "0.0054550",
+     "0.0050000"
+    ],
+    "pass_through": "1.0000"
+   },
+   "held": {
+    "expected_label": "markup_expanding",
+    "filler_price_per_credit_by_month": [
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000",
+     "0.0100000"
+    ],
+    "pass_through": null
+   }
+  },
+  "supplied_index": [
+   {
+    "index": "100.00",
+    "period": "2026-01"
+   },
+   {
+    "index": "95.45",
+    "period": "2026-02"
+   },
+   {
+    "index": "90.91",
+    "period": "2026-03"
+   },
+   {
+    "index": "86.36",
+    "period": "2026-04"
+   },
+   {
+    "index": "81.82",
+    "period": "2026-05"
+   },
+   {
+    "index": "77.27",
+    "period": "2026-06"
+   },
+   {
+    "index": "72.73",
+    "period": "2026-07"
+   },
+   {
+    "index": "68.18",
+    "period": "2026-08"
+   },
+   {
+    "index": "63.64",
+    "period": "2026-09"
+   },
+   {
+    "index": "59.09",
+    "period": "2026-10"
+   },
+   {
+    "index": "54.55",
+    "period": "2026-11"
+   },
+   {
+    "index": "50.00",
+    "period": "2026-12"
+   }
+  ]
+ },
+ "storage_trend": {
+  "basis": "non-storage rows that survive cost hygiene, by calendar month of cost_start",
+  "direction": "up",
+  "first_share": "0.1000",
+  "last_share": "0.4000",
+  "months": [
+   {
+    "month": "2026-01",
+    "non_storage_cents": 2860058,
+    "planted_share_percent": "10.00",
+    "realized_share": "0.1000",
+    "storage_cents": 317784
+   },
+   {
+    "month": "2026-02",
+    "non_storage_cents": 2794789,
+    "planted_share_percent": "12.73",
+    "realized_share": "0.1273",
+    "storage_cents": 407573
+   },
+   {
+    "month": "2026-03",
+    "non_storage_cents": 2817234,
+    "planted_share_percent": "15.45",
+    "realized_share": "0.1545",
+    "storage_cents": 514978
+   },
+   {
+    "month": "2026-04",
+    "non_storage_cents": 2669030,
+    "planted_share_percent": "18.18",
+    "realized_share": "0.1818",
+    "storage_cents": 593118
+   },
+   {
+    "month": "2026-05",
+    "non_storage_cents": 2769348,
+    "planted_share_percent": "20.91",
+    "realized_share": "0.2091",
+    "storage_cents": 732126
+   },
+   {
+    "month": "2026-06",
+    "non_storage_cents": 2647101,
+    "planted_share_percent": "23.64",
+    "realized_share": "0.2364",
+    "storage_cents": 819341
+   },
+   {
+    "month": "2026-07",
+    "non_storage_cents": 2542474,
+    "planted_share_percent": "26.36",
+    "realized_share": "0.2636",
+    "storage_cents": 910268
+   },
+   {
+    "month": "2026-08",
+    "non_storage_cents": 2554174,
+    "planted_share_percent": "29.09",
+    "realized_share": "0.2909",
+    "storage_cents": 1047866
+   },
+   {
+    "month": "2026-09",
+    "non_storage_cents": 2576730,
+    "planted_share_percent": "31.82",
+    "realized_share": "0.3182",
+    "storage_cents": 1202474
+   },
+   {
+    "month": "2026-10",
+    "non_storage_cents": 2476868,
+    "planted_share_percent": "34.55",
+    "realized_share": "0.3455",
+    "storage_cents": 1307236
+   },
+   {
+    "month": "2026-11",
+    "non_storage_cents": 2469052,
+    "planted_share_percent": "37.27",
+    "realized_share": "0.3727",
+    "storage_cents": 1467118
+   },
+   {
+    "month": "2026-12",
+    "non_storage_cents": 2410866,
+    "planted_share_percent": "40.00",
+    "realized_share": "0.4000",
+    "storage_cents": 1607244
+   }
+  ]
+ },
+ "unit_scale": {
+  "cents_file": "cost-anthropic-cents.csv",
+  "factor": 100,
+  "parseable_amount_total_dollars": "427418.54",
+  "parseable_rows": 761,
+  "scale": "0.01"
+ }
+}
