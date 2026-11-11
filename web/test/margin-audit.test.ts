@@ -426,7 +426,7 @@ describe("labels", () => {
       for (const text of allText(mustCompute(raw))) {
         const low = text.toLowerCase();
         for (const b of BANNED) expect(low.includes(b), `${name}: "${b}" in ${text}`).toBe(false);
-        expect(/[20132014]/.test(text), text).toBe(false);
+        expect([8211, 8212].some((c) => text.includes(String.fromCharCode(c))), text).toBe(false);
       }
     }
   });
