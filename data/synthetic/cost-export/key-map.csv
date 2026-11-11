@@ -1,0 +1,11 @@
+customer_key_type,customer_key,source_record_id
+api_key_id,key_conflict,sub_conflict
+api_key_id,key_near,sub_near
+api_key_id,key_thin,sub_thin
+api_key_id,key_zero,sub_zero_usage
+customer_tag,tag_free,sub_free
+project_id,proj_ok,sub_hybrid_ok
+project_id,proj_weekly,sub_weekly
+workspace_id,ws_eur,sub_eur
+workspace_id,ws_heavy_1,sub_heavy_1
+workspace_id,ws_heavy_2,sub_heavy_2
