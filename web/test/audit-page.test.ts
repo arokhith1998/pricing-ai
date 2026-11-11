@@ -112,4 +112,36 @@ describe("/audit", () => {
     expect(d.length).toBeLessThanOrEqual(160);
     expect(marginViolations(d)).toEqual([]);
   });
+
+  it("states the delivery guarantee and the follow-on sentence exactly (F16)", () => {
+    const { container, text } = renderText();
+    expect(container.querySelector('[data-testid="delivery-guarantee"]')?.textContent).toBe(
+      "If we do not deliver the 14-day readout, you pay nothing.",
+    );
+    expect(container.querySelector('[data-testid="follow-on"]')?.textContent).toBe(
+      "After the audit, an ongoing subscription is available; we price it with you once the readout shows the numbers.",
+    );
+    // The guarantee sits in the price block, before the clock list.
+    expect(container.querySelector("#price-h")?.closest("section")?.contains(
+      container.querySelector('[data-testid="delivery-guarantee"]'),
+    )).toBe(true);
+    expect(text).toContain("No guarantee of recovered revenue");
+  });
+
+  it("makes no outcome guarantee, no money-back, no subscription figure and no margin-increase promise", () => {
+    const { text } = renderText();
+    const sources = ["src/app/audit/page.tsx", "src/lib/audit-offer.ts"].map((f) => readFileSync(f, "utf8"));
+    for (const t of [text, ...sources]) {
+      const lower = t.toLowerCase();
+      expect(lower).not.toContain("money back");
+      expect(lower).not.toContain("money-back");
+      expect(t).not.toContain("$2,500");
+      expect(t).not.toMatch(/\$\s?2[.,]?5/);
+      expect(lower).not.toMatch(/guarante\w*[^.]{0,40}(margin|results)|(margin|results)[^.]{0,40}guarante/);
+      expect(lower).not.toMatch(/increas\w*[^.]{0,60}margin|margin[^.]{0,60}increas/);
+      expect(lower).not.toMatch(/improv\w*[^.]{0,40}margin|boost|autonomous/);
+    }
+    // The only dollar figure on the page is still the fee.
+    expect(new Set(text.match(/\$[\d,.]+[KMB]?/g) ?? [])).toEqual(new Set(["$7,500"]));
+  });
 });

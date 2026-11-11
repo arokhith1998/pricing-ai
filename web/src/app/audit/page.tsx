@@ -1,7 +1,7 @@
 import { Button, Card, Eyebrow, PageHeader, Section } from "@/components/ui";
 import { BOTTLENECKS } from "@/components/landing/Bottlenecks";
 import { pageMetadata } from "@/lib/page-metadata";
-import { AUDIT_DAYS, AUDIT_PRICE, COST_BASIS_LABEL } from "@/lib/audit-offer";
+import { AUDIT_DAYS, AUDIT_DELIVERY_GUARANTEE, AUDIT_FOLLOW_ON, AUDIT_PRICE, COST_BASIS_LABEL } from "@/lib/audit-offer";
 
 export const dynamic = "force-static";
 export const metadata = pageMetadata({
@@ -191,6 +191,12 @@ export default function AuditPage() {
         <h2 id="price-h" className="pk-h2 m-0 mt-2">
           {AUDIT_PRICE} fixed, paid upfront.
         </h2>
+        <p className="pk-body mt-3 max-w-prose font-medium text-fg" data-testid="delivery-guarantee">
+          {AUDIT_DELIVERY_GUARANTEE}
+        </p>
+        <p className="pk-body mt-2 max-w-prose text-muted" data-testid="follow-on">
+          {AUDIT_FOLLOW_ON}
+        </p>
         <ul className="pk-body mt-6 max-w-prose list-disc space-y-3 pl-5 text-muted marker:text-teal">
           <li>
             <span className="font-medium text-fg">The {AUDIT_DAYS}-day clock starts at validated
