@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 2/4
-Updated: 2026-11-11T03:36:51Z
+Updated: 2026-11-11T06:37:48Z
 
 ## IN_PROGRESS
 - **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer)
@@ -28,12 +28,12 @@ Updated: 2026-11-11T03:36:51Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
-- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer, PR #96)
-  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## QA
 - **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
   - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
+- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer, PR #96)
+  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
