@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T08:00:00Z",
+  "updated": "2026-11-11T08:07:52Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4654,7 +4654,7 @@
       "id": "PK-113",
       "title": "Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "REWORK_REQUIRED",
       "dependencies": [],
       "owns": [
         "web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit"
@@ -4671,10 +4671,15 @@
         "ci_run": null
       },
       "pr": 99,
-      "review": null,
+      "review": {
+        "verdict": "reject",
+        "by": "code-reviewer",
+        "notes": "Rejected: ARR band on the social card against F14; audit-page terms overstate the legal drafts. Findings on PR 99. Forced past cap: own worktree.",
+        "ts": "2026-11-11T08:07:52Z"
+      },
       "blocked_by": null,
       "created": "2026-11-11T07:01:22Z",
-      "updated": "2026-11-11T07:58:43Z",
+      "updated": "2026-11-11T08:07:52Z",
       "notes": [
         {
           "ts": "2026-11-11T07:01:30Z",
@@ -4683,6 +4688,10 @@
         {
           "ts": "2026-11-11T07:58:43Z",
           "note": "PR #99"
+        },
+        {
+          "ts": "2026-11-11T08:07:52Z",
+          "note": "review rejected: Rejected: ARR band on the social card against F14; audit-page terms overstate the legal drafts. Findings on PR 99. Forced past cap: own worktree."
         }
       ]
     },

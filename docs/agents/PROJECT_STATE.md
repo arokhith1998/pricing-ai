@@ -6,12 +6,14 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 0/4
-Updated: 2026-11-11T08:00:00Z
+Active work: 1/4
+Updated: 2026-11-11T08:07:52Z
 
-## REVIEW
+## REWORK_REQUIRED
 - **PK-113** Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry  (web-engineer, PR #99)
   - owns: web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit
+
+## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)

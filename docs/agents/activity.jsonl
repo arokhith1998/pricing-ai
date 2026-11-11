@@ -472,3 +472,4 @@
 {"ts": "2026-11-11T07:01:35Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
 {"ts": "2026-11-11T07:58:43Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #99"}
 {"ts": "2026-11-11T08:00:00Z", "event": "add", "task": "PK-114", "agent": "web-engineer", "detail": "Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers"}
+{"ts": "2026-11-11T08:07:52Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: ARR band on the social card against F14; audit-page terms overstate the legal drafts. Findings on PR 99. Forced past cap: own worktree."}
