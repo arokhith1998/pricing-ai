@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T06:37:48Z",
+  "updated": "2026-11-11T06:46:08Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4588,7 +4588,7 @@
       "id": "PK-112",
       "title": "Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide",
       "agent": "web-engineer",
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "dependencies": [],
       "owns": [
         "web/src/app/pricing/page.tsx#lead,web/src/app/opengraph-image.tsx#band,web/test/arr-band.test.ts"
@@ -4604,15 +4604,19 @@
         ],
         "ci_run": null
       },
-      "pr": null,
+      "pr": 97,
       "review": null,
       "blocked_by": null,
       "created": "2026-11-10T23:48:40Z",
-      "updated": "2026-11-10T23:49:08Z",
+      "updated": "2026-11-11T06:46:08Z",
       "notes": [
         {
           "ts": "2026-11-10T23:49:00Z",
           "note": "claimed 1 path(s)"
+        },
+        {
+          "ts": "2026-11-11T06:46:08Z",
+          "note": "PR #97"
         }
       ]
     }
