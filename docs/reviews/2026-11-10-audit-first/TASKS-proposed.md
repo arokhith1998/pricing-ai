@@ -240,3 +240,12 @@ met. Nothing is assigned or dispatched by this entry.
    Not scoped here; the backend design doc should say.
 3. Content follow-on after the social drafts is not entered; GTM content stays outside the task
    machine unless the founder wants it tracked.
+
+### Lead decisions, PK-99 (PR 96), 2026-11-10
+
+- Attribution vocabulary is `direct`, `allocated`, `not_attributable` (design doc 2.3 and ADR-007); the task text's "rolled_up" and the brief's "measured" are superseded. Cost category enum is `inference`, `compute`, `storage`, `other` ("hosting" folds into compute).
+- Fixture layout accepted: `data/synthetic/cost-export/` with `billing-cost-plus.csv`, `billing-held.csv`, `cost.csv`, `cost-anthropic-cents.csv`, `key-map.csv`, `answer-key.json`; the generator lives in `pricing/generate_billing.py` (`--cost-dir`), not a new module. The PK-99 claim is widened to `data/synthetic/cost-export/**`.
+- The `allocation_variant` in the answer key (storage pool `proportional_to_usage_units` over aligned account-periods) is a fixture convenience, not a ruling; PK-102 owns allocation semantics and may change the key with a re-pin.
+- PK-100 imports `COST_EXACT_ONLY_FIELDS` and `COST_EXPORT_PROFILE` from `pricing/schema.py` rather than redefining them. PK-101 enforces `COST_UPLOAD_BASIS_ALLOWED` (an `erp_verified` value in a file is a 422), rejects a cost key mapped to two accounts, and derives `attribution` itself.
+- Real Anthropic and OpenAI export headers remain unverified until the founder supplies a sample (MH-3).
+
