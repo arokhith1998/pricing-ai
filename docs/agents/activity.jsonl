@@ -466,3 +466,7 @@
 {"ts": "2026-11-11T06:58:48Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-11T06:58:54Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #98"}
 {"ts": "2026-11-11T06:59:51Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
+{"ts": "2026-11-11T07:01:22Z", "event": "add", "task": "PK-113", "agent": "web-engineer", "detail": "Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry"}
+{"ts": "2026-11-11T07:01:26Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-11T07:01:30Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-11T07:01:35Z", "event": "status", "task": "PK-113", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

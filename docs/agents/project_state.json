@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T06:59:51Z",
+  "updated": "2026-11-11T07:01:35Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4647,6 +4647,38 @@
         {
           "ts": "2026-11-11T06:47:16Z",
           "note": "review approve-with-nits"
+        }
+      ]
+    },
+    {
+      "id": "PK-113",
+      "title": "Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry",
+      "agent": "web-engineer",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit"
+      ],
+      "branch": "agent/web-engineer/PK-113",
+      "worktree": null,
+      "acceptance": [
+        "landing hero and walk restate the six bottlenecks and the sheet ICP without an ARR number; a new /audit page carries the one-page offer from gtm/ai-margin-audit-offer.md (7,500 fixed, 14 days from validated intake, deliverables, what we need, who it is for, legal gate) with a contact CTA; pricing page gains the audit as the first tier; nav links it; social card copy follows; every figure from the synthetic sample, the visitor's inputs or labelled illustrative; ADR-006 guard test passes over all new strings; no em dashes; no customers, logos, testimonials or results; builds green"
+      ],
+      "tests": {
+        "required": [
+          "web/test/audit-page.test.ts"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-11T07:01:22Z",
+      "updated": "2026-11-11T07:01:35Z",
+      "notes": [
+        {
+          "ts": "2026-11-11T07:01:30Z",
+          "note": "claimed 1 path(s)"
         }
       ]
     }
