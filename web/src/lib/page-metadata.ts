@@ -19,7 +19,7 @@ export const SOCIAL_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Pricekeel: Salesforce deal guidance for discount exceptions in usage and hybrid B2B SaaS",
+  alt: "Pricekeel: we stop AI companies from losing money on heavy users, with a 14-day pricing audit",
 } as const;
 
 export type PageMetadataInput = {

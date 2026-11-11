@@ -4,6 +4,7 @@
 export type NavLink = { href: string; label: string };
 
 export const PRIMARY_NAV: readonly NavLink[] = [
+  { href: "/audit", label: "Audit" },
   { href: "/#workflow", label: "Product" },
   { href: "/sample", label: "Sample" },
   { href: "/calculator", label: "Calculator" },
@@ -26,6 +27,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Product",
     links: [
+      { href: "/audit", label: "Audit" },
       { href: "/sample", label: "Sample" },
       { href: "/calculator", label: "Calculator" },
       { href: "/pricing", label: "Pricing" },

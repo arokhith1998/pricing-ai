@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Button, Card, Eyebrow, PageHeader, Section, SyntheticTag } from "@/components/ui";
 import { pageMetadata } from "@/lib/page-metadata";
+import { AUDIT_DAYS, AUDIT_PRICE } from "@/lib/audit-offer";
 
 export const dynamic = "force-static";
 export const metadata = pageMetadata({
   title: "Pricing",
   description:
-    "Two ways to work with Pricekeel: a one-time Diagnostic on your closed deals, and Operate, the Salesforce discount-exception loop. Scoped on a call.",
+    "Three ways to work with Pricekeel: a fixed-fee 14-day pricing audit, a one-time Diagnostic on closed deals, and Operate, the Salesforce discount loop.",
   path: "/pricing",
 });
 
@@ -20,9 +21,30 @@ type Tier = {
   features: Feature[];
   footer: string;
   primary?: boolean;
+  price?: string;
+  cta?: string;
+  ctaHref?: string;
+  more?: { href: string; label: string };
 };
 
 const TIERS: Tier[] = [
+  {
+    id: "audit",
+    name: "14-day pricing audit",
+    audience: "Start here, done for you",
+    price: `${AUDIT_PRICE} fixed, ${AUDIT_DAYS} days`,
+    body: "A person audits your billing and cost exports and shows which customers and plans cost more to serve than they pay, then recommends a packaging structure for you to decide on. No guarantee of recovered revenue.",
+    features: [
+      { text: "Six audit questions: cost floor, packaging, value metric, variance and trust, pilot revenue versus true ARR, bundling" },
+      { text: "A per-customer table on a customer-supplied cost basis, a plan-level cost floor and a heavy-user tail analysis" },
+      { text: "One recommended packaging structure and two alternatives, a 60-minute readout and a method appendix" },
+    ],
+    footer: "Paid upfront. The clock starts at validated intake. No customer cost file is accepted until the data addendum, entity, insurance and engagement letter are in place.",
+    primary: true,
+    cta: "Request the audit",
+    ctaHref: "/contact",
+    more: { href: "/audit", label: "What the audit covers" },
+  },
   {
     id: "diagnostic",
     name: "Diagnostic",
@@ -49,7 +71,6 @@ const TIERS: Tier[] = [
       { text: "Quarterly policy re-simulation: floors re-fit against the deals you actually closed", roadmap: true },
     ],
     footer: "Native Salesforce OAuth and live Opportunity analysis. Initial rollout remains founder-led.",
-    primary: true,
   },
 ];
 
@@ -66,10 +87,15 @@ function RoadmapBadge() {
 
 function TierCard({ tier }: { tier: Tier }) {
   return (
-    <li data-tier={tier.id} className="flex">
+    <li data-tier={tier.id} className={tier.id === "audit" ? "flex lg:col-span-2" : "flex"}>
       <Card as="article" className="flex w-full flex-col p-6 sm:p-8">
         <Eyebrow>{tier.audience}</Eyebrow>
         <h2 className="pk-h2 mt-2">{tier.name}</h2>
+        {tier.price ? (
+          <p data-price className="pk-h3 mt-1 text-fg">
+            {tier.price}
+          </p>
+        ) : null}
         <p className="pk-body mt-3 text-muted">{tier.body}</p>
         <ul className="pk-body mt-5 flex-1 list-disc space-y-3 pl-5 text-ink marker:text-teal">
           {tier.features.map((f) => (
@@ -81,13 +107,18 @@ function TierCard({ tier }: { tier: Tier }) {
         </ul>
         <p className="pk-small mt-6 text-muted">{tier.footer}</p>
         <Button
-          href="/contact"
+          href={tier.ctaHref ?? "/contact"}
           variant={tier.primary ? "primary" : "secondary"}
           size="lg"
           className="mt-6 w-full"
         >
-          Talk to us
+          {tier.cta ?? "Talk to us"}
         </Button>
+        {tier.more ? (
+          <Link href={tier.more.href} className="pk-small mt-3 text-center text-teal underline underline-offset-4">
+            {tier.more.label}
+          </Link>
+        ) : null}
       </Card>
     </li>
   );
@@ -327,6 +358,11 @@ export default function PricingPage() {
           How we scope it
         </h2>
         <ul className="pk-body mt-6 max-w-prose space-y-4 text-muted">
+          <li>
+            <span className="font-medium text-fg">14-day pricing audit</span> is a fixed-fee,
+            done-for-you engagement, paid upfront. The clock starts at validated intake, and the
+            audit is analytical and advisory.
+          </li>
           <li>
             <span className="font-medium text-fg">Diagnostic</span> is a fixed one-time engagement. A
             few hours of your time to send the export and review the read-out together. Free for
