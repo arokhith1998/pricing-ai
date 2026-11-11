@@ -29,11 +29,11 @@ A founder, co-founder, CEO or head of product or pricing at an AI-native company
 
 Variant P, they posted about pricing:
 
-> Hi {first}, your post on {topic} is the clearest thing I have read on AI pricing this month. I run a pricing diagnostic for B2B SaaS and I am collecting how founders decide what to charge per unit. Would value a short exchange.
+> Hi {first}, your post on {topic} is the clearest thing I have read on AI pricing this month. I run a pricing diagnostic for B2B and AI software companies and I am collecting how founders decide what to charge per unit. Would value a short exchange.
 
 Variant N, no post, pricing page signal only:
 
-> Hi {first}, {company}'s move to {credits / metered usage / per-outcome pricing} caught my eye. I run a pricing diagnostic for B2B SaaS and I am collecting how founders decide what to charge per unit. Would value a short exchange.
+> Hi {first}, {company}'s move to {credits / metered usage / per-outcome pricing} caught my eye. I run a pricing diagnostic for B2B and AI software companies and I am collecting how founders decide what to charge per unit. Would value a short exchange.
 
 Both are under 300 characters before placeholders are filled. Recount after filling.
 
@@ -59,4 +59,4 @@ LinkedIn's own invitation limit is roughly 100 a week per account, and messaging
 
 ## Founder inputs still needed
 
-The credibility clause is "I run a pricing diagnostic for B2B SaaS", which is true of the live product. Replace it only with something equally true. Geography and language: English only until told otherwise.
+The credibility clause is "I run a pricing diagnostic for B2B and AI software companies", which is true of the live product. Replace it only with something equally true. Geography and language: English only until told otherwise.
