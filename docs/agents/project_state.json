@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T17:52:10Z",
+  "updated": "2026-11-11T21:59:44Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4758,6 +4758,35 @@
       "blocked_by": null,
       "created": "2026-11-11T08:00:00Z",
       "updated": "2026-11-11T08:00:00Z",
+      "notes": []
+    },
+    {
+      "id": "PK-115",
+      "title": "Before-and-after readout: re-measure contribution margin per customer 60 to 90 days after the audit",
+      "agent": "backend-engineer",
+      "status": "BACKLOG",
+      "dependencies": [
+        "PK-99"
+      ],
+      "owns": [
+        "pricing/margin_compare.py,tests/test_margin_compare.py"
+      ],
+      "branch": null,
+      "worktree": null,
+      "acceptance": [
+        "takes two runs of the margin-health computation on the same customer key map (baseline and re-measure), aligns customers and whole-month periods, reports per-customer and book contribution margin change with the ADR-006 label; refuses when cost basis differs between runs, when input unit prices changed without the customer confirming constant-price comparison, or when fewer than three whole months exist in either window; never says 'increase' as a claim, only 'moved from X to Y'; planted-answer tests on the PK-99 fixture with a synthetic second window"
+      ],
+      "tests": {
+        "required": [
+          "tests/test_margin_compare.py"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-11T21:59:44Z",
+      "updated": "2026-11-11T21:59:44Z",
       "notes": []
     }
   ]

@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-11T17:52:10Z
+Updated: 2026-11-11T21:59:44Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -66,6 +66,8 @@ Updated: 2026-11-11T17:52:10Z
   - owns: web/src/app/prototype, web/test/prototype-audit.test.ts
 - **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)
   - owns: web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts
+- **PK-115** Before-and-after readout: re-measure contribution margin per customer 60 to 90 days after the audit  (backend-engineer, deps PK-99)
+  - owns: pricing/margin_compare.py,tests/test_margin_compare.py
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
 - **PK-16** Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference  (backend-engineer)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)

@@ -39,7 +39,7 @@ Closing line: "your pricing strategy is your ultimate product feature." Final qu
 
 ## Three points where the video differs from decisions already taken
 
-These are not applied. The site and the offer stay as decided until the founder rules on each.
+**Resolved 2026-11-11 (F16): the founder accepted all three lead recommendations below.** Audit $7,500 fixed; $2,500 a month only as the follow-on subscription; delivery guarantee, not an outcome guarantee; wording rules kept. The before-and-after re-measurement (PK-115) is what later lets the product state an outcome as a measurement.
 
 1. **The offer's price and term.** The video's example offer is "optimise your pricing strategy and increase margins in 30 days for $2,500 a month or your money back." The current decision (F4, F6) is a 14-day audit at $7,500 fixed, paid up front, with no subscription price published. The CFO priced a hand-run audit's break-even near $7,500 at the founder's time, and the strategist found $2,500 a month fails a seed founder's reference price but works for Series B and later. **Lead recommendation:** keep $7,500 fixed for the audit, and use "$2,500 a month" only as the follow-on subscription offered after an audit has shown the numbers, never as the opening price.
 2. **The money-back guarantee.** The video's offer includes one; every reviewer advised against guarantees on a historical audit, because the result depends on data the customer supplies and on decisions the customer makes. **Lead recommendation:** no outcome guarantee; a delivery guarantee instead ("if we do not deliver the 14-day readout, you pay nothing"), which is honest and fully within our control.
