@@ -85,7 +85,7 @@ export default function Image() {
           }}
         >
           <div style={{ display: "flex", color: "#8ea3bd" }}>
-            For usage and hybrid B2B SaaS, $20M to $100M ARR
+            For usage and hybrid B2B SaaS, $10M to $100M ARR
           </div>
           <div style={{ display: "flex", fontWeight: 700, color: "#2dd4bf" }}>
             pricekeel.com

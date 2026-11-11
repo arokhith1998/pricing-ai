@@ -188,7 +188,7 @@ export default function PricingPage() {
         <PageHeader
           eyebrow="Pricing"
           title="Built for the conversation, not the credit card."
-          lead="We sell into pricing and RevOps teams at $20M to $100M ARR B2B SaaS. That means an actual scoping call, not a self-serve checkout. Pick the closest fit and we will reply within one business day."
+          lead="We sell into pricing and RevOps teams at $10M to $100M ARR B2B SaaS, gated on deal volume. That means an actual scoping call, not a self-serve checkout. Pick the closest fit and we will reply within one business day."
         />
         <p className="pk-body mt-4 max-w-prose text-muted">
           We expect pricing to start in the low five figures. We share the structure on the first
