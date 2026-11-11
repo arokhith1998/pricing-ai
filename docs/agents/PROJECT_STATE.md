@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-11T22:28:23Z
+Updated: 2026-11-11T22:31:43Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -24,6 +24,8 @@ Updated: 2026-11-11T22:28:23Z
   - owns: web/src/lib/salesforce-adapter.ts
 
 ## READY
+- **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)
+  - owns: web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-94** Seed the objection inventory with the audit-motion objections, marked predicted  (sales-outreach)
@@ -52,8 +54,6 @@ Updated: 2026-11-11T22:28:23Z
   - owns: web/src/app/margin-audit, web/src/components/MarginAuditCalculator.tsx, web/src/app/sitemap.ts, web/test/margin-audit-page.test.ts
 - **PK-111** Build the three-screen clickable audit prototype on synthetic data  (web-engineer, deps PK-97,PK-107)
   - owns: web/src/app/prototype, web/test/prototype-audit.test.ts
-- **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)
-  - owns: web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts
 - **PK-115** Before-and-after readout: re-measure contribution margin per customer 60 to 90 days after the audit  (backend-engineer, deps PK-99)
   - owns: pricing/margin_compare.py,tests/test_margin_compare.py
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)

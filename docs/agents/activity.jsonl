@@ -495,3 +495,4 @@
 {"ts": "2026-11-11T22:28:14Z", "event": "status", "task": "PK-99", "agent": "data-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-11T22:28:19Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-11T22:28:24Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-11T22:31:43Z", "event": "status", "task": "PK-114", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
