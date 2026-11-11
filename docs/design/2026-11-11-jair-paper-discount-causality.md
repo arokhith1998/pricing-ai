@@ -21,6 +21,15 @@ narrowed to the sign-flip regime, the baseline list changes, and the
 real-covariate check must simulate rep identities because no public dataset
 has them.
 
+**Propositions (2026-11-11):** `2026-11-11-jair-paper-propositions.md` works
+out C1 and C2 in a linear-Gaussian model and corrects this doc in three
+places. The monotone constraint turns out to be decision-neutral (same
+recommendation, different curve). The direction of the decision error depends
+on where the optimum sits relative to the mean historical discount, so the
+"rescue recommends too little, whale too much" wording in sections 1 and 4 is
+wrong for mild confounding. Regret is a cliff in the rescue direction, not
+"quadratic then linear".
+
 ## 1. One-sentence claim
 
 When sales reps choose discounts based on information the model cannot see,
