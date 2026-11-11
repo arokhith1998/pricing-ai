@@ -234,7 +234,7 @@ describe("layout", () => {
   const src = readFileSync(resolve(process.cwd(), "src/app/layout.tsx"), "utf8");
   it("keeps the title template, default title and the analytics gate", () => {
     expect(src).toContain('template: "%s · Pricekeel"');
-    expect(src).toContain('const DEFAULT_TITLE = "Pricekeel · Salesforce deal guidance for B2B SaaS"');
+    expect(src).toContain('const DEFAULT_TITLE = "Pricekeel · Pricing for AI and B2B software companies"');
     expect(src).toContain('process.env.NEXT_PUBLIC_VERCEL_ANALYTICS_ENABLED === "true"');
   });
   it("renders a skip link to #main and documents the main contract", () => {

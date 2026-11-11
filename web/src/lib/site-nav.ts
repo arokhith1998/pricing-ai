@@ -57,7 +57,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       // One row for /crm: a separate "Login" row had the same destination, which
       // is a redundant link for screen-reader users and a duplicate React key.
-      { href: "/crm", label: "Salesforce workspace login" },
+      { href: "/crm", label: "CRM workspace login" },
       { href: "/upload", label: "Run it on your data" },
     ],
   },

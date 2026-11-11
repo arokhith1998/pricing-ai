@@ -7,7 +7,7 @@ export const dynamic = "force-static";
 export const metadata = pageMetadata({
   title: "Pricing",
   description:
-    "Three ways to work with Pricekeel: a fixed-fee 14-day pricing audit, a one-time Diagnostic on closed deals, and Operate, the Salesforce discount loop.",
+    "Three ways to work with Pricekeel: a fixed-fee 14-day pricing audit, a one-time Diagnostic on closed deals, and Operate, the deal guidance loop.",
   path: "/pricing",
 });
 
