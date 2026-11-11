@@ -19,7 +19,10 @@ In 14 days from validated intake of your billing and cost exports, we show you w
 and plans your inference and storage costs leave with thin or negative contribution margin,
 customer-supplied cost basis, and we recommend a packaging structure for you to decide on.
 
-No guarantee of recovered revenue. The audit is analytical and advisory, built on your
+The promise is to find which customers cost more to serve than they pay, and the packaging that
+fixes it. If we do not deliver the 14-day readout, you pay nothing. That is the only guarantee.
+We do not guarantee any outcome: no recovered revenue, no change in contribution margin, no
+result from any pricing decision. The audit is analytical and advisory, built on your
 historical data. Every pricing decision stays with you.
 
 ## Who this is for
@@ -123,8 +126,12 @@ the calculator, neither of which needs any of that. We will tell you when each i
 
 ## Price
 
-**$7,500, fixed, paid upfront.** No share of results, no success fee. There is no credit toward
-a later subscription on the first two audits.
+**$7,500, fixed, paid upfront, delivered 14 days from validated intake.** No share of results,
+no success fee. There is no credit toward a later subscription on the first two audits.
+
+**Delivery guarantee:** If we do not deliver the 14-day readout, you pay nothing. Nothing else
+is guaranteed: not recovered revenue, not any change in contribution margin, not any result
+from a pricing decision you make.
 
 ## Terms (summary)
 
@@ -141,8 +148,9 @@ a later subscription on the first two audits.
   language, only aggregated, anonymized, revenue-side statistics may ever join a cross-customer
   benchmark, and only above a minimum cohort size. Your cost data is never included, even if
   you opt in. The audit is identical either way.
-- **No guarantees.** Findings are historical and correlational. They do not promise recoverable
-  revenue.
+- **One guarantee, on delivery only.** If we do not deliver the 14-day readout, you pay nothing.
+  There is no outcome or margin guarantee. Findings are historical and correlational. They do
+  not promise recoverable revenue.
 - **Human in the loop.** We recommend; you decide. Everything in the readout traces back to a
   documented formula and your own rows.
 
@@ -151,7 +159,7 @@ a later subscription on the first two audits.
 - Companies with fewer than about 10 billed customers or under 3 months of billing history.
 - Companies that cannot attribute any model or hosting cost to customers and will not instrument
   it. We can run a plan-level view, but not the per-customer table (see the data request).
-- Anyone who wants a guaranteed margin recovery or a tool they can log into. This is a done-for-you
+- Anyone who wants a guaranteed result or a tool they can log into. This is a done-for-you
   analysis delivered by a person, not software.
 - Companies whose main cost is owned GPU capacity that cannot be allocated to customers.
 - Teams that want us to hold API keys or connect to their systems. We work from exports.
@@ -177,13 +185,18 @@ audit, when a subscription exists. Reasoning:
 - **Different from the $15K pilot.** The existing $15K, 90-day pilot is the Salesforce discount
   product. Do not stack or reuse it here. No product exists yet for the margin wedge, so the
   audit must not be priced as if software were included.
+- **F16 (2026-11-11): price unchanged, guarantee added.** $7,500 fixed stays. The only guarantee
+  is on delivery: "If we do not deliver the 14-day readout, you pay nothing." No outcome or
+  margin guarantee. The $2,500 a month follow-on exists only in the runbook's Day 14 close. It
+  never appears in this page's price line or on the site.
 - **Adjustment rule.** If three of the first five qualified prospects who hear the price decline
   on price, test $6,000 and record why they declined.
 - **Not offered.** No share of any improvement (F5: attribution on a historical audit is
   disputable). Revisit only after one audit has produced a finance-signed per-customer baseline
-  at constant input unit prices. No monthly retainer yet (no follow-on deliverable is defined).
-- **Open sub-decision:** whether a follow-on monthly re-run is offered (F-audit-followon, not
-  priced here).
+  at constant input unit prices. No monthly retainer in the offer itself.
+- **Follow-on settled (F16):** $2,500 a month, offered only in the Day 14 close, to keep the
+  per-customer contribution margin view current and re-measure at 60 to 90 days (see the
+  runbook's Re-measure step and PK-115).
 
 ### Blockers before this offer can go to a prospect
 

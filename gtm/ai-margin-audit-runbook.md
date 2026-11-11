@@ -20,7 +20,9 @@ Companion files: [[ai-margin-audit-offer]] Â· [[ai-margin-audit-data-request]] Â
 1. **Day 0 is validated intake**, not the call and not payment. The clock starts when the
    minimum viable set (see the data request) is received and passes the one-business-day
    readiness check. Day 14 is the written deliverable. The fee is $7,500 fixed, paid upfront,
-   with no credit toward a later subscription on the first two audits (F4).
+   with no credit toward a later subscription on the first two audits (F4). The delivery
+   guarantee applies (F16): "If we do not deliver the 14-day readout, you pay nothing." Nothing
+   else is guaranteed: no outcome and no change in contribution margin.
 2. **No LLM touches customer data.** No customer rows, codes, or amounts pasted into any cloud
    model, including for "thought partner" help. A model may help with generic formula syntax
    using synthetic values only (data register, deal rows class: never pasted into any LLM).
@@ -89,8 +91,10 @@ Agenda:
    names. Walk the NDA and the amendment. Benchmarking consent: opt-in, off by default, cost
    data never included. Do not push it.
 7. **Expectations (2 min).** $7,500 fixed, paid upfront. 14 days from validated intake. A
-   readout meeting on day 13. No guarantee of recovered revenue. No share of results is
-   offered. They decide.
+   readout meeting on day 13. One guarantee, on delivery: if we do not deliver the
+   14-day readout, they pay nothing. No outcome or margin guarantee, no guarantee of recovered
+   revenue. No share of results is offered. They decide. Do not mention the follow-on
+   subscription here; it is offered only in the Day 14 close.
 
 Two answers to have ready, because every CEO or CFO asks:
 
@@ -298,15 +302,41 @@ supplied, not a forecast, not a recovery promise, their decision.
   - Replace: the $15K, 90-day Salesforce pilot sentence and the 20-deals usage criterion do not
     apply. No product exists yet for the margin wedge. Contribution margin on a customer-supplied
     cost basis is the only computation (F1). No credit toward a subscription is offered on the
-    first two audits, and credit terms are set per deal after the third (F4). The next step offered is a founder decision
-    (F-audit-followon): for example a re-run on the next quarter's exports, help implementing
-    the packaging, or a seat on the design-partner list for the product. Do not price or promise
-    a product that has not been built.
+    first two audits, and credit terms are set per deal after the third (F4). Do not price or
+    promise a product that has not been built.
+  - **Follow-on offer (F16), made only here, in the close, never in the one-page offer's price
+    line or on the site.** Say: "If you want, we can keep going after today for $2,500 a month:
+    we keep your per-customer contribution margin view current on fresh exports, and we
+    re-measure at 60 to 90 days so you can see what moved on your own numbers. No credit
+    applies from the audit fee on the first two audits." Then stop talking. It is a
+    subscription for a hand-run service, not a software login. Other next steps (help
+    implementing the packaging, a seat on the design-partner list) remain founder choices.
   - Keep the honest sentence: "The audit is a rear-view mirror on your data. What it cannot tell
     you is how your customers react to a new price."
 - Log: decision, date of next step, and the willingness-to-pay data point (price tested,
   accept or decline, stated reason). Count qualified prospects who hear the price: if three of
   the first five decline on price, test $6,000 and record why (F4).
+
+## Re-measure (60 to 90 days after the readout)
+
+Run for any customer who took the follow-on, or who agrees to a re-measure. Same key map, fresh
+data, same method, so the two points are comparable.
+
+1. **Request fresh exports.** Billing and cost exports for the months since the readout, using
+   the same data request, the same customer codes, and the same key map (cost key to billing
+   account). A new upload declaration ("this file is our own cost of serving") comes with the
+   cost file. The F11 gate and the data register rules apply again.
+2. **Re-run the margin-health table** on the same method and the same band thresholds. Log any
+   change in method, key map, or input unit prices, because a change breaks the comparison.
+3. **Before and after, per customer.** Show contribution margin, customer-supplied cost basis,
+   for each customer at the audit and at the re-measure. Report it only as "moved from X to Y"
+   on the customer's own numbers.
+4. **Say what it is not.** It is a measurement, never a promise and never a claim of cause.
+   Pricing changes, usage shifts, model price changes and mix all move the figure, and we do not
+   attribute the movement to our recommendation unless the customer's own records support it.
+5. **Automation.** Board task PK-115 is the engine piece that will automate this before-and-after
+   comparison. Until it ships, the re-measure is done by hand in the workbook, and each step is
+   logged in the method log for PK-115.
 
 ## What to capture for the product
 

@@ -222,7 +222,15 @@ One row per billed customer, by code.
    as described under "Required declarations".
 
 The fee is $7,500 fixed, paid upfront. The 14-day clock starts at validated intake: this set
-received and passed our one-business-day readiness check.
+received and passed our one-business-day readiness check. If we do not deliver the 14-day
+readout, you pay nothing. Nothing else is guaranteed: no outcome and no change in contribution
+margin, customer-supplied cost basis.
+
+**If you want a re-measure later.** Sixty to ninety days after the readout we can repeat the
+analysis on fresh billing and cost exports, using the same customer codes and the same key map,
+so you can see each customer's contribution margin, customer-supplied cost basis, before and
+after. A new upload declaration comes with the new cost file. Keep your key map unchanged, or
+tell us what changed.
 
 **Nice-to-haves:** A3 and A4, B usage columns beyond cost, C1 to C4, D contract type and pilot
 fields, delivery effort, E2, E4 to E6. Each one sharpens a named analysis (below) and none stops
