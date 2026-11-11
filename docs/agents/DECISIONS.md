@@ -263,3 +263,16 @@ to end.
 **Reason.** The declaration is the "supplied in writing" act ADR-006 already accepts, made at the right grain (the upload, not the cell). The key map keeps the billing grain free of end-customer identifiers, matching NDA Class 2.
 
 **Consequences.** ADR-006's `declared_cost` definition is widened from a rate table to "a cost rate table, or a per-customer cost rollup, the customer declared in writing as its own cost of serving". PK-99 to PK-105 carry it. The per-customer cost rollup is a new data class that counsel must clear (PK-96) before any real file is received.
+
+---
+
+## ADR-008: the operating plan every agent follows
+
+**Date:** 2026-11-11 · **Status:** accepted (founder instruction)
+
+**Decision.** The company runs the founder's plan, recorded in `gtm/research/2026-11-10-founder-sheet-consumer-trends-and-opportunity.md` (the two filled sheet tabs plus the two plan images): Draft Offer, Pitch to 10 target prospects, Solve Manually in spreadsheets, Prototype (clickable), Launch MVP with core features only; and the three phases: manual with AI as thought partner, then automate workflows, then stack AI agents. Every task, review and piece of copy is checked against that file. The website says only what the two tabs say and only as much as a prospect reached by the outreach needs: the problem in the sheet's words, who it is for, the one-page offer, one call to action. Anything on the site that is not in the two tabs is removed, not reworded. Anything built that is not on the five steps is deferred.
+
+**Why.** The founder found the landing page carried too much, and some of it wrong. The outreach now sends prospects to the site, so the page must match the pitch exactly.
+
+**Consequences.** PK-113 is re-scoped to the minimal page (F15). Reviewers reject copy that adds claims, figures or features beyond the two tabs. Design docs cite the step they serve. The evidence boundary, ADR-006 and ADR-007 still apply to every sentence that remains.
+

@@ -76,3 +76,11 @@ Lead Magnet: Launch an interactive "AI Pricing & Margin Audit" calculator to cap
 ## Tab: Labelling/branding
 
 1. Not a software tool, it's supposed to be an autonomous outcome engine.
+
+## The operating plan (founder, 2026-11-11, two whiteboard images)
+
+**Five steps, in order.** 1. Draft Offer: draft the one-page offer. 2. Pitch: pitch to 10 target prospects. 3. Solve Manually: solve the problem using spreadsheets. 4. Prototype: build a clickable prototype. 5. Launch MVP: launch with core features only.
+
+**Three phases.** Phase 1: do everything manually and use AI as a thought partner (ruthless time segmentation; complexity shrinks). Phase 2: automate workflows and operations (AI as a central director). Phase 3: stack AI agents strategy (onboarding, data analysis, support; focus on top-level strategy; revenue grows).
+
+**Where we are.** Step 1 is done (gtm/ai-margin-audit-offer.md). Step 2 is running (Day 1 LinkedIn outreach sent 2026-11-11, Day 2 queued). Step 3 is the paid audit delivered in spreadsheets (gtm/ai-margin-audit-runbook.md). Step 4 is the calculator page (PK-107, PK-110, PK-111). Step 5 is the margin-health MVP (PK-99 to PK-105), core features only. We are in Phase 1.
