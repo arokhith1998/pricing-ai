@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T21:59:44Z",
+  "updated": "2026-11-11T22:28:23Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4099,13 +4099,9 @@
       "id": "PK-99",
       "title": "Add the customer cost-period grain and plant a cost answer key",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "pricing/schema.py#cost_period",
-        "pricing/generate_billing.py#cost_periods",
-        "tests/test_schema_cost_period.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-99",
       "worktree": null,
       "acceptance": [
@@ -4130,7 +4126,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-10T23:09:37Z",
-      "updated": "2026-11-11T17:01:12Z",
+      "updated": "2026-11-11T22:28:14Z",
       "notes": [
         {
           "ts": "2026-11-10T23:43:22Z",
@@ -4147,8 +4143,18 @@
         {
           "ts": "2026-11-11T17:01:12Z",
           "note": "CI run 42953905029"
+        },
+        {
+          "ts": "2026-11-11T22:28:10Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-11T22:28:10Z"
+      }
     },
     {
       "id": "PK-100",
@@ -4396,12 +4402,9 @@
       "id": "PK-107",
       "title": "Compute the calculator figures in a pure module with code-owned labels",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/lib/margin-audit.ts",
-        "web/test/margin-audit.test.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-107",
       "worktree": null,
       "acceptance": [
@@ -4426,7 +4429,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-10T23:10:12Z",
-      "updated": "2026-11-11T17:01:17Z",
+      "updated": "2026-11-11T22:28:23Z",
       "notes": [
         {
           "ts": "2026-11-10T23:43:32Z",
@@ -4451,22 +4454,26 @@
         {
           "ts": "2026-11-11T17:01:17Z",
           "note": "CI run 42976157324"
+        },
+        {
+          "ts": "2026-11-11T22:28:19Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-11T22:28:19Z"
+      }
     },
     {
       "id": "PK-108",
       "title": "Add a lead_magnet column to leads, with a down migration",
       "agent": "data-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "neon/schema.sql",
-        "neon/migrations/2026-11-11-leads-lead-magnet.sql",
-        "neon/migrations/2026-11-11-leads-lead-magnet.down.sql",
-        "neon/MIGRATIONS.md",
-        "neon/test_migrations.py"
-      ],
+      "owns": [],
       "branch": "agent/data-engineer/PK-108",
       "worktree": null,
       "acceptance": [
@@ -4490,7 +4497,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-10T23:10:16Z",
-      "updated": "2026-11-11T17:01:07Z",
+      "updated": "2026-11-11T22:28:04Z",
       "notes": [
         {
           "ts": "2026-11-10T23:43:42Z",
@@ -4507,8 +4514,18 @@
         {
           "ts": "2026-11-11T17:01:07Z",
           "note": "CI run 42926995074"
+        },
+        {
+          "ts": "2026-11-11T22:27:57Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-11T22:27:57Z"
+      }
     },
     {
       "id": "PK-109",
@@ -4621,11 +4638,9 @@
       "id": "PK-112",
       "title": "Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/app/pricing/page.tsx#lead,web/src/app/opengraph-image.tsx#band,web/test/arr-band.test.ts"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-112",
       "worktree": null,
       "acceptance": [
@@ -4646,7 +4661,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-10T23:48:40Z",
-      "updated": "2026-11-11T17:01:02Z",
+      "updated": "2026-11-11T22:27:41Z",
       "notes": [
         {
           "ts": "2026-11-10T23:49:00Z",
@@ -4663,18 +4678,26 @@
         {
           "ts": "2026-11-11T17:01:02Z",
           "note": "CI run 42974731395"
+        },
+        {
+          "ts": "2026-11-11T22:27:36Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-11T22:27:36Z"
+      }
     },
     {
       "id": "PK-113",
       "title": "Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-113",
       "worktree": null,
       "acceptance": [
@@ -4695,7 +4718,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-11T07:01:22Z",
-      "updated": "2026-11-11T17:52:10Z",
+      "updated": "2026-11-11T22:27:52Z",
       "notes": [
         {
           "ts": "2026-11-11T07:01:30Z",
@@ -4728,8 +4751,18 @@
         {
           "ts": "2026-11-11T17:52:10Z",
           "note": "CI run 43065526040"
+        },
+        {
+          "ts": "2026-11-11T22:27:47Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-11T22:27:47Z"
+      }
     },
     {
       "id": "PK-114",

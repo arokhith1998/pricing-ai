@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-11T21:59:44Z
+Updated: 2026-11-11T22:28:23Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -22,18 +22,6 @@ Updated: 2026-11-11T21:59:44Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
-
-## APPROVED
-- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer, PR #98)
-  - owns: web/src/lib/margin-audit.ts, web/test/margin-audit.test.ts
-- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
-  - owns: neon/schema.sql, neon/migrations/2026-11-11-leads-lead-magnet.sql, neon/migrations/2026-11-11-leads-lead-magnet.down.sql, neon/MIGRATIONS.md, neon/test_migrations.py
-- **PK-112** Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide  (web-engineer, PR #97)
-  - owns: web/src/app/pricing/page.tsx#lead,web/src/app/opengraph-image.tsx#band,web/test/arr-band.test.ts
-- **PK-113** Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry  (web-engineer, PR #99)
-  - owns: web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit
-- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer, PR #96)
-  - owns: pricing/schema.py#cost_period, pricing/generate_billing.py#cost_periods, tests/test_schema_cost_period.py
 
 ## READY
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
@@ -174,7 +162,11 @@ Updated: 2026-11-11T21:59:44Z
 ## DONE
 - **PK-1** Split api/main.py into routers  (backend-engineer, PR #63)
 - **PK-10** Lead form hangs on a spinner: honeypot returns ok without a cookie, client never clears busy  (web-engineer, PR #66)
+- **PK-107** Compute the calculator figures in a pure module with code-owned labels  (web-engineer, PR #98)
+- **PK-108** Add a lead_magnet column to leads, with a down migration  (data-engineer, PR #95)
 - **PK-11** Guidance asserts 'barely moves the odds of winning' without checking it  (web-engineer, PR #67)
+- **PK-112** Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide  (web-engineer, PR #97)
+- **PK-113** Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry  (web-engineer, PR #99)
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
@@ -200,3 +192,4 @@ Updated: 2026-11-11T21:59:44Z
 - **PK-77** Redesign the pricing page and clear its claims that exceed the evidence  (web-engineer, PR #91, deps PK-75)
 - **PK-86** Pin the Anthropic SDK to the range CI proved green and make the matching schema test hold on 2.7  (ai-engineer, PR #82)
 - **PK-9** Founder strip credential, delete dead FounderCta, and path-as-link-text cleanup  (web-engineer, PR #65)
+- **PK-99** Add the customer cost-period grain and plant a cost answer key  (data-engineer, PR #96)
