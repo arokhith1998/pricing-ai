@@ -259,10 +259,12 @@ covariate structure, not the instrument itself. Say so in the paper.
 3. **The instrument's own weak points become dials.** Rep skill that affects
    wins directly (Chan, Gentzkow, Yu), non-random assignment of reps to deals,
    and the mechanical bias in leave-one-out means with few reps.
-4. **Point mass at zero discount.** The generator clips discounts at zero, and
-   SMB deals start near 4%, so a real share of deals has no discount. A
-   control function needs a continuous first stage. Decide the handling
-   (a Tobit-style first stage, or modelling discounted deals only) before code.
+4. **Point mass at zero discount.** A control function needs a continuous
+   first stage. In the current generator the mass is small: 2.2% of deals
+   overall and 4.6% in SMB (measured 2026-11-11, default seed). Real books
+   may have far more undiscounted deals, so the share of zero-discount deals
+   becomes a dial, and the handling (a Tobit-style first stage, or modelling
+   discounted deals only) is decided before code.
 5. **Baselines revised.** Naive and monotone gradient boosting; linear IV with
    leave-one-out leniency and weak-instrument-robust intervals; Rivers-Vuong
    and Blundell-Powell control functions; Kallus-Zhou robust policy, with
