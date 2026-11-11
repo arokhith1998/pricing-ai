@@ -3319,7 +3319,7 @@
         "D-R6a (lead default, founder may override): both instances of \"Engagements typically start in the low five figures\" (page.tsx:187 and :395) use \"We expect\" wording and no copy implies an engagement has happened; pricing-page.test.ts asserts \"typically start\" is absent",
         "D-R6b (lead default, founder may override): the \"open code\" claim (page.tsx:301) is removed and no copy says or implies the diagnostic code is public or available to customers, because on 2026-11-09 the product repo arokhith1998/pricing-ai is private and no public repo holds the engine (adhi-pricing-ai is a portfolio site); the copy may point to /methodology instead; pricing-page.test.ts asserts \"open code\" is absent",
         "D-R6c (lead default, founder may override): the one-business-day reply promise is kept verbatim",
-        "the title renders \"Pricing · Pricekeel\" exactly once and plain <a href=\"/contact\"> elements are Link"
+        "the title renders \"Pricing \u00b7 Pricekeel\" exactly once and plain <a href=\"/contact\"> elements are Link"
       ],
       "tests": {
         "required": [
@@ -3650,7 +3650,7 @@
       "worktree": null,
       "acceptance": [
         "common gates G1 to G10 in docs/reviews/2026-11-06-product-direction/TASKS-redesign-proposed.md are true",
-        "site-audit.test.ts renders every static route and asserts: no doubled \" · Pricekeel\" suffix, unique titles and 70 to 160 character descriptions on public routes, noindex on gated routes, one h1, no skipped heading level, no em dash, no text-[10px] or text-[11px], no bg-navy, no raw Tailwind palette colors",
+        "site-audit.test.ts renders every static route and asserts: no doubled \" \u00b7 Pricekeel\" suffix, unique titles and 70 to 160 character descriptions on public routes, noindex on gated routes, one h1, no skipped heading level, no em dash, no text-[10px] or text-[11px], no bg-navy, no raw Tailwind palette colors",
         ".pk-card-3d, .pk-upside-glow, .pk-headline-accent, .pk-aurora-layer and the --color-navy alias are deleted from globals.css only after a grep shows zero uses; any remaining use is listed with its owner",
         "the brand/PALETTE.md correction from PK-75 is complete and its dark-theme table matches globals.css (tested by comparing hex values)",
         "web/scripts/lighthouse-budget.mjs runs Lighthouse via npx (not a dependency) against a URL and fails when a design doc 6.9 budget is missed; final numbers for all routes are pasted in the PR",
@@ -3835,7 +3835,8 @@
       "status": "BACKLOG",
       "dependencies": [],
       "owns": [
-        "api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py"
+        "api/routers/diagnostic.py#policy",
+        "tests/test_api_diagnostic.py"
       ],
       "branch": null,
       "worktree": null,
@@ -3864,7 +3865,8 @@
         "PK-54"
       ],
       "owns": [
-        "pricing/guardrail.py#source_partition,tests/test_guardrail.py"
+        "pricing/guardrail.py#source_partition",
+        "tests/test_guardrail.py"
       ],
       "branch": null,
       "worktree": null,
@@ -3893,7 +3895,8 @@
         "PK-32"
       ],
       "owns": [
-        "pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py"
+        "pricing/contract_structure.py#floor_sentence",
+        "tests/test_contract_structure.py"
       ],
       "branch": null,
       "worktree": null,
@@ -3922,7 +3925,8 @@
         "PK-76"
       ],
       "owns": [
-        "web/src/app/opengraph-image.tsx,web/test/landing-page.test.ts"
+        "web/src/app/opengraph-image.tsx",
+        "web/test/landing-page.test.ts"
       ],
       "branch": null,
       "worktree": null,
@@ -4774,13 +4778,15 @@
         "PK-113"
       ],
       "owns": [
-        "web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts"
+        "web/src/app/contact/page.tsx",
+        "web/src/app/pricing/page.tsx#tier_footers",
+        "web/test/contact-page.test.ts"
       ],
       "branch": null,
       "worktree": null,
       "acceptance": [
         "contact page leads with the 14-day audit and the sheet audience sentence, no 'design-partner mode ... discount exception' line; the $10M to $100M ARR gated-on-deal-volume line sits only on the deal-guidance tier footers, not above the audit tier; tests pin both; no em dashes; ADR-006 guard passes",
-        "contact page title renders 'Contact · Pricekeel' once (it currently doubles the brand: pass a bare title to pageMetadata)"
+        "contact page title renders 'Contact \u00b7 Pricekeel' once (it currently doubles the brand: pass a bare title to pageMetadata)"
       ],
       "tests": {
         "required": [
@@ -4793,8 +4799,7 @@
       "blocked_by": null,
       "created": "2026-11-11T08:00:00Z",
       "updated": "2026-11-11T22:31:43Z",
-      "notes": [],
-      "deps": []
+      "notes": []
     },
     {
       "id": "PK-115",
@@ -4805,7 +4810,8 @@
         "PK-99"
       ],
       "owns": [
-        "pricing/margin_compare.py,tests/test_margin_compare.py"
+        "pricing/margin_compare.py",
+        "tests/test_margin_compare.py"
       ],
       "branch": null,
       "worktree": null,

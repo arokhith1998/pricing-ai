@@ -25,7 +25,7 @@ Updated: 2026-11-11T22:31:43Z
 
 ## READY
 - **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)
-  - owns: web/src/app/contact/page.tsx,web/src/app/pricing/page.tsx#tier_footers,web/test/contact-page.test.ts
+  - owns: web/src/app/contact/page.tsx, web/src/app/pricing/page.tsx#tier_footers, web/test/contact-page.test.ts
 - **PK-7** Declare openai as a dev-only dependency for the cross-model reviewer  (ai-engineer, deps PK-5)
   - owns: requirements-dev.txt, .env.example, tools/oai_panel.py, tools/oai_panel_pricing_os.py, tools/oai_launch_panel.py
 - **PK-94** Seed the objection inventory with the audit-motion objections, marked predicted  (sales-outreach)
@@ -55,7 +55,7 @@ Updated: 2026-11-11T22:31:43Z
 - **PK-111** Build the three-screen clickable audit prototype on synthetic data  (web-engineer, deps PK-97,PK-107)
   - owns: web/src/app/prototype, web/test/prototype-audit.test.ts
 - **PK-115** Before-and-after readout: re-measure contribution margin per customer 60 to 90 days after the audit  (backend-engineer, deps PK-99)
-  - owns: pricing/margin_compare.py,tests/test_margin_compare.py
+  - owns: pricing/margin_compare.py, tests/test_margin_compare.py
 - **PK-13** Reconcile task owns claims with OWNERSHIP.md test-file carve-out  (pk-lead)
 - **PK-16** Copilot hierarchy slices compare every BU and product line to the global 5% fallback instead of the segment-aware reference  (backend-engineer)
 - **PK-2** agentctl creates and removes the git worktree on assign/done  (pk-lead)
@@ -145,13 +145,13 @@ Updated: 2026-11-11T22:31:43Z
 - **PK-88** Make web/test/diagnostic-mobile-overflow.test.ts deterministic on slow hosts  (qa-engineer)
   - owns: web/test/diagnostic-mobile-overflow.test.ts
 - **PK-90** Validate the policy threshold as a fraction on /diagnostic, /demo and /summary  (backend-engineer)
-  - owns: api/routers/diagnostic.py#policy,tests/test_api_diagnostic.py
+  - owns: api/routers/diagnostic.py#policy, tests/test_api_diagnostic.py
 - **PK-91** Wire partition_for_win_rate into the guardrail so billing rows are refused from win rate  (backend-engineer, deps PK-54)
-  - owns: pricing/guardrail.py#source_partition,tests/test_guardrail.py
+  - owns: pricing/guardrail.py#source_partition, tests/test_guardrail.py
 - **PK-92** Contract-structure readout omits the floor sentence when frame attrs are missing  (backend-engineer, deps PK-32)
-  - owns: pricing/contract_structure.py#floor_sentence,tests/test_contract_structure.py
+  - owns: pricing/contract_structure.py#floor_sentence, tests/test_contract_structure.py
 - **PK-93** Social card wording: 'checks' not 'prices', drop 'usage and hybrid'  (web-engineer, deps PK-76)
-  - owns: web/src/app/opengraph-image.tsx,web/test/landing-page.test.ts
+  - owns: web/src/app/opengraph-image.tsx, web/test/landing-page.test.ts
 - **PK-95** Add audit-motion columns to the funnel tracker  (customer-success, deps PK-18)
   - owns: docs/ops/funnel-tracker.csv, docs/ops/funnel-tracker-example.csv
 - **PK-96** Add the per-customer cost rollup data class to the addendum and the data register, for counsel  (customer-success, deps PK-22,PK-20)
