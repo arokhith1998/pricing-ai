@@ -465,3 +465,4 @@
 {"ts": "2026-11-11T06:54:55Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "REVIEW -> REWORK_REQUIRED: review rejected: Rejected: predictability note makes a bill claim the usage trigger does not support; Negative fixture missing; default cost bypasses the cap. Findings on PR 98. Forced past cap: own worktree."}
 {"ts": "2026-11-11T06:58:48Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "REWORK_REQUIRED -> IN_PROGRESS"}
 {"ts": "2026-11-11T06:58:54Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #98"}
+{"ts": "2026-11-11T06:59:51Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T06:58:54Z",
+  "updated": "2026-11-11T06:59:51Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4392,7 +4392,7 @@
       "id": "PK-107",
       "title": "Compute the calculator figures in a pure module with code-owned labels",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "QA",
       "dependencies": [],
       "owns": [
         "web/src/lib/margin-audit.ts",
@@ -4415,14 +4415,14 @@
       },
       "pr": 98,
       "review": {
-        "verdict": "reject",
-        "by": "code-reviewer",
-        "notes": "Rejected: predictability note makes a bill claim the usage trigger does not support; Negative fixture missing; default cost bypasses the cap. Findings on PR 98. Forced past cap: own worktree.",
-        "ts": "2026-11-11T06:54:55Z"
+        "verdict": "approve",
+        "by": "pk-lead",
+        "notes": "Rework approved on code; waiting for a green CI run (Actions billing hold)",
+        "ts": "2026-11-11T06:59:51Z"
       },
       "blocked_by": null,
       "created": "2026-11-10T23:10:12Z",
-      "updated": "2026-11-11T06:58:54Z",
+      "updated": "2026-11-11T06:59:51Z",
       "notes": [
         {
           "ts": "2026-11-10T23:43:32Z",
@@ -4439,6 +4439,10 @@
         {
           "ts": "2026-11-11T06:58:54Z",
           "note": "PR #98"
+        },
+        {
+          "ts": "2026-11-11T06:59:51Z",
+          "note": "review approve"
         }
       ]
     },
