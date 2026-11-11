@@ -9,8 +9,17 @@ source: https://www.jair.org/index.php/jair/about/submissions
 
 # JAIR paper: identification-aware discount guidance for negotiated B2B deals
 
-Status: draft for founder approval. Nothing is built yet. Target venue: JAIR,
-full-length article. Target submission: about 14 weeks from approval.
+Status: approved by the founder 2026-11-11. Nothing is built yet. Target
+venue: JAIR, full-length article. Target submission: about 14 weeks from
+approval.
+
+**Week 1 update (2026-11-11):** the literature review is in
+`2026-11-11-jair-paper-literature-review.md`. The kill criterion was not
+triggered. Its section 6 supersedes parts of sections 3 to 5 below: C3 is
+reframed around instrument diagnostics deciding when to abstain, C2 is
+narrowed to the sign-flip regime, the baseline list changes, and the
+real-covariate check must simulate rep identities because no public dataset
+has them.
 
 ## 1. One-sentence claim
 
@@ -53,7 +62,7 @@ direction of the disagreement depends on why the human chose the action.
 | Hartford et al. 2017 DeepIV; Singh et al. 2019 Kernel IV; Xu et al. 2021 DFIV | Nonparametric IV, with a simulated airline pricing demo in DeepIV | Baselines for us. They assume strong instruments and many clusters, judge on prediction error not decision regret, and never abstain |
 | Athey, Tibshirani, Wager 2019, generalized random forests (IV forest) | Local IV effects | Baseline |
 | Miao et al. 2023, arXiv 2302.12670, personalized pricing with invalid IVs | Identification under invalid instruments | Closest on the theory side; we must read it in full and either use or contrast its bounds |
-| Kamble et al., arXiv 2602.09969 | Multi-task demand learning under confounding | Posted-price retail, linear response |
+| Gupta and Kamble 2026, "Causal Multi-Task Demand Learning", arXiv 2602.09969 | Multi-task demand learning under confounding; shows a sign reversal driven by pricing behaviour | Posted-price retail, linear response, no instrument, no constraint analysis |
 | Chernozhukov et al. 2018, double ML | Debiased effects under no unobserved confounding | Baseline that fails by design here, which is part of the point |
 
 Open question for week 1: the JAIR submission form asks for the 1 to 3
