@@ -32,13 +32,13 @@ export const BREAK_EVEN_PROXIMITY = 0.5;
 export const SHORT_LIFETIME_MONTHS = 12;
 /** Usage price leaving less than this share after model cost is UNIT_PRICE_NEAR_COST. */
 export const NEAR_COST_SHARE = 0.4;
-/** u90 / u_avg at or above this adds the bill-predictability note. */
+/** u90 / u_avg (usage, not bill) at or above this adds the bill-predictability note. */
 export const PREDICTABILITY_RATIO = 3;
 /** Model-price deflation what-ifs, as fractions. */
 export const DEFLATION_STEPS = [0.25, 0.5] as const;
 /** Bounds on the heavy-user usage: u_avg <= u90 <= 10 * u_avg. */
 export const P90_MAX_MULTIPLE = 10;
-/** Relative tolerance so hand-typed boundary inputs (exactly 40%, 1/q = 12) behave as exact. */
+/** Absolute tolerance (ratios and shares are order 1) so hand-typed boundary inputs (exactly 40%, 1/q = 12) behave as exact. */
 const EPS = 1e-9;
 
 /** Default-price blend: 3 input tokens for every 1 output token. */
@@ -248,6 +248,7 @@ const RANGES: Partial<Record<FieldId, Range>> = {
   included: { min: 0, max: 1e12, label: "Units included" },
   customers: { min: 1, max: 100_000, integer: true, label: "Customers" },
   avgUsage: { min: Number.MIN_VALUE, max: 1e12, label: "Average usage" },
+  p90Usage: { min: Number.MIN_VALUE, max: 1e13, label: "Usage of a heavy customer" },
   costPerUnit: { min: Number.MIN_VALUE, max: 100_000, label: "Cost per unit" },
   otherCost: { min: 0, max: 1_000_000, label: "Storage and other cost" },
   churn: { min: 0.001, max: 0.5, label: "Monthly churn" },
@@ -274,6 +275,7 @@ function errorText(field: FieldId, code: FieldErrorCode): string {
       return `${field}: choose one of the listed options.`;
     case "not_integer":
     case "range":
+      if (r && r.min === Number.MIN_VALUE) return `${r.label}: enter a number above 0, up to ${r.max}.`;
       return `${r ? r.label : field}: enter a ${code === "not_integer" ? "whole " : ""}number from ${r ? r.min : ""} to ${r ? r.max : ""}.`;
   }
 }
@@ -353,16 +355,7 @@ export function validate(raw: RawInputs, options: ValidateOptions = {}): Validat
   // 7, 8, 9
   const customers = read("customers", raw.customers);
   const avgUsage = read("avgUsage", raw.avgUsage);
-  let p90Usage: number | null = null;
-  if (isBlank(raw.p90Usage)) needed.push("p90Usage");
-  else if (
-    typeof raw.p90Usage !== "number" ||
-    !Number.isFinite(raw.p90Usage) ||
-    raw.p90Usage <= 0 ||
-    raw.p90Usage > 1e13
-  )
-    errors.push({ field: "p90Usage", code: "range", message: "Heavy-customer usage: enter a number above 0." });
-  else p90Usage = raw.p90Usage;
+  let p90Usage = read("p90Usage", raw.p90Usage);
   if (avgUsage !== null && p90Usage !== null) {
     if (p90Usage < avgUsage) {
       fail("p90Usage", "p90_below_avg");
@@ -378,7 +371,7 @@ export function validate(raw: RawInputs, options: ValidateOptions = {}): Validat
   let defaultCostUsed = false;
   if (isBlank(raw.costPerUnit)) {
     const d = options.defaultCostPer1MTokens;
-    if (unitKind === "1M tokens" && typeof d === "number" && Number.isFinite(d) && d > 0) {
+    if (unitKind === "1M tokens" && typeof d === "number" && Number.isFinite(d) && d > 0 && d <= (RANGES.costPerUnit as Range).max) {
       costPerUnit = d;
       defaultCostUsed = true;
     } else needed.push("costPerUnit");
@@ -773,7 +766,7 @@ export function labels(
     deflation: `If your model cost per unit fell by 25%, contribution on these inputs would move from ${pctText(r.blendedPct)}% to ${pctText(d25.blendedPct)}%. If it fell by 50%, to ${pctText(d50.blendedPct)}%. Prices held. This is a what-if on your numbers, not a forecast of what providers will charge.`,
     signal,
     predictability: r.predictabilityNote
-      ? "A customer at the 90th percentile pays at least three times the average bill. Whether your buyers accept that is a question for them, not for this tool."
+      ? "A customer at the 90th percentile uses at least three times the average usage, so bills can vary widely under this structure. Whether your buyers accept that is a question for them, not for this tool."
       : null,
     bandLines: `Bands: Negative below 0%. At risk below ${Math.round(AT_RISK_BELOW * 100)}%. Watch below ${Math.round(WATCH_BELOW * 100)}%. These are our review lines, not industry benchmarks.`,
     otherCostEcho: notes.otherCostEnteredZero ? "You entered 0 for storage and other cost." : null,

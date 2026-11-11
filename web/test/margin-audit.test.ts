@@ -33,6 +33,9 @@ const B: RawInputs = { ...A, avgUsage: 20, p90Usage: 100, churn: 0.03 };
 const C: RawInputs = { model: "usage", unitPrice: 20, costPerUnit: 10, otherCost: 50, customers: 100, avgUsage: 10, p90Usage: 30, churn: 0.02 };
 const D: RawInputs = { model: "hybrid", fee: 300, unitPrice: 20, included: 10, costPerUnit: 10, otherCost: 50, customers: 50, avgUsage: 12, p90Usage: 30, churn: 0.02 };
 
+// Prototype Negative set: flat B 200, N 100, u_avg 20, u90 40, c 10, s 50.
+const NEG: RawInputs = { model: "flat", fee: 200, customers: 100, avgUsage: 20, p90Usage: 40, costPerUnit: 10, otherCost: 50, churn: 0.02 };
+
 describe("hand-computed reference cases", () => {
   it("A: flat, healthy", () => {
     const r = mustCompute(A);
@@ -108,6 +111,19 @@ describe("hand-computed reference cases", () => {
     expect(r.predictabilityNote).toBe(false); // 30 / 12 = 2.5
   });
 
+  it("prototype Negative set: flat, average customer underwater", () => {
+    const r = mustCompute(NEG);
+    expect(r.avg.contribution).toBe(-50); // 200 - (200 + 50)
+    expect(r.p90.contribution).toBe(-250); // 200 - (400 + 50)
+    expect(r.breakEven).toEqual({ kind: "at", usage: 15 });
+    expect(r.monthlyRevenue).toBeCloseTo(20000, 6);
+    expect(r.monthlyCost).toBeCloseTo(25000, 6);
+    expect(r.blendedPct).toBeCloseTo(-0.25, 9);
+    expect(r.revenueAtRiskShare).toBeCloseTo(0.1, 9);
+    expect(r.band).toBe("negative");
+    expect(r.signal).toBe("ADD_USAGE_COMPONENT");
+  });
+
   it("E: churn step lowers Healthy to Watch", () => {
     const r = mustCompute({ ...A, churn: 0.1 });
     expect(r.lifetimeMonths).toBeCloseTo(10, 9);
@@ -159,6 +175,15 @@ describe("heavy-user break-even", () => {
   it("usage floor is s / (p - c), and 0 only when s was typed 0", () => {
     expect(mustCompute({ ...C, otherCost: 0 }).usageFloor).toEqual({ ok: true, value: 0 });
     expect(mustCompute({ ...C, unitPrice: 15 }).usageFloor).toEqual({ ok: true, value: 10 });
+  });
+  it("predictability note states a usage ratio, true for a hybrid whose bills are 300 and 700", () => {
+    const r = mustCompute({ ...D, avgUsage: 10, p90Usage: 30 });
+    expect(r.avg.revenue).toBe(300);
+    expect(r.p90.revenue).toBe(700);
+    expect(r.predictabilityNote).toBe(true); // usage 30 / 10 = 3, bills 2.33x
+    const text = labels(r).predictability as string;
+    expect(text).toContain("uses at least three times the average usage");
+    expect(text).not.toContain("bill.");
   });
   it("usage model near cost raises UNIT_PRICE_NEAR_COST and the predictability note", () => {
     const r = mustCompute({ ...C, unitPrice: 15, avgUsage: 10, p90Usage: 30 });
@@ -264,6 +289,20 @@ describe("validation, blanks and the never-zero rule", () => {
     expect(v.ok && v.notes.defaultCostUsed).toBe(true);
     expect(v.ok && v.inputs.costPerUnit).toBe(DEFAULT_COST);
     expect(validate(raw, { defaultCostPer1MTokens: 0 }).ok).toBe(false);
+  });
+  it("the default cost goes through the same range check as a typed cost", () => {
+    const raw = { ...A, costPerUnit: null };
+    expect(validate(raw, { defaultCostPer1MTokens: 1e9 }).ok).toBe(false);
+    expect(validate(raw, { defaultCostPer1MTokens: 100_001 }).ok).toBe(false);
+    expect(validate(raw, { defaultCostPer1MTokens: 100_000 }).ok).toBe(true);
+    expect(validate(raw, { defaultCostPer1MTokens: NaN }).ok).toBe(false);
+  });
+  it("p90 shares the range rule and message shape", () => {
+    for (const bad of [0, -1, 1e14, NaN]) {
+      const v = validate({ ...A, p90Usage: bad });
+      expect(v.ok).toBe(false);
+      if (!v.ok) expect(v.errors[0].message).toContain("Usage of a heavy customer: enter a number above 0");
+    }
   });
   it("blank cost under Other is not enough even with a default", () => {
     const v = validate({ ...A, unit: "other", unitLabel: "image", costPerUnit: null }, { defaultCostPer1MTokens: DEFAULT_COST });
