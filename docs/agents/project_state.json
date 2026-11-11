@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-11T17:01:17Z",
+  "updated": "2026-11-11T17:52:10Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4670,7 +4670,7 @@
       "id": "PK-113",
       "title": "Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "web/src/app/page.tsx,web/src/components/HeroHeadline.tsx,web/src/components/landing,web/src/lib/landing-sample.ts,web/src/app/audit/page.tsx,web/src/app/pricing/page.tsx#audit_tier,web/src/components/Nav.tsx#audit_link,web/src/app/opengraph-image.tsx#copy,web/test/landing-page.test.ts,web/test/landing-walk.test.tsx,web/test/audit-page.test.ts,web/test/pricing-page.test.ts#audit"
@@ -4684,18 +4684,18 @@
         "required": [
           "web/test/audit-page.test.ts"
         ],
-        "ci_run": null
+        "ci_run": "43065526040"
       },
       "pr": 99,
       "review": {
-        "verdict": "reject",
+        "verdict": "approve",
         "by": "pk-lead",
-        "notes": "Re-scoped by founder (F15, ADR-008): landing page reduced to headline, audience sentence, six bottlenecks, three-line offer with one CTA; everything else removed. Rework in progress on PR 99.",
-        "ts": "2026-11-11T16:47:16Z"
+        "notes": "F15 minimal page and not-Salesforce-only wording approved; CI green",
+        "ts": "2026-11-11T17:52:06Z"
       },
       "blocked_by": null,
       "created": "2026-11-11T07:01:22Z",
-      "updated": "2026-11-11T16:53:34Z",
+      "updated": "2026-11-11T17:52:10Z",
       "notes": [
         {
           "ts": "2026-11-11T07:01:30Z",
@@ -4720,6 +4720,14 @@
         {
           "ts": "2026-11-11T16:53:34Z",
           "note": "PR #99"
+        },
+        {
+          "ts": "2026-11-11T17:52:06Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-11T17:52:10Z",
+          "note": "CI run 43065526040"
         }
       ]
     },
