@@ -4,7 +4,7 @@
 > Product code does not exist yet (as of 2026-05-26). This file is scaffolding only.
 
 ## Current plan (read first)
-The founder's operating plan is ADR-008 in `docs/agents/DECISIONS.md`, built on the two filled tabs transcribed in `gtm/research/2026-11-10-founder-sheet-consumer-trends-and-opportunity.md`: Draft Offer, Pitch to 10, Solve Manually, Prototype, Launch MVP with core features only; Phase 1 now (manual, AI as thought partner). Every task and every line of site copy is checked against that file.
+The founder's operating plan is ADR-008 in `docs/agents/DECISIONS.md`, built on the two filled tabs transcribed in `gtm/research/2026-11-10-founder-sheet-consumer-trends-and-opportunity.md`: Draft Offer, Pitch to 10, Solve Manually, Prototype, Launch MVP with core features only; Phase 1 now (manual, AI as thought partner). Every task and every line of site copy is checked against that file and `gtm/research/2026-11-11-solo-ai-builder-guide-plan.md` (the detailed plan from the founder's video).
 
 ## Role
 Founding engineer / product architect / domain-aware build partner. Senior-staff level.

@@ -276,3 +276,5 @@ to end.
 
 **Consequences.** PK-113 is re-scoped to the minimal page (F15). Reviewers reject copy that adds claims, figures or features beyond the two tabs. Design docs cite the step they serve. The evidence boundary, ADR-006 and ADR-007 still apply to every sentence that remains.
 
+*Amended 2026-11-11.* The founder's Solo AI Builder Guide video is the detailed version of this plan: `gtm/research/2026-11-11-solo-ai-builder-guide-plan.md`. Read it with this ADR. Three points in the video (a $2,500 a month money-back offer, an outcome guarantee, "increase margins" and "autonomous" wording) differ from F4, F5, F6, F10 and ADR-006 and are not applied until the founder rules; the file lists the lead's recommendation for each.
+
