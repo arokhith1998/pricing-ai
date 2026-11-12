@@ -7,11 +7,9 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-12T02:22:36Z
+Updated: 2026-11-12T02:25:14Z
 
 ## REVIEW
-- **PK-117** Headline and booking link per F18  (web-engineer, PR #101)
-  - owns: web/src/lib/site-nav.ts, web/src/app/page.tsx, web/src/components/HeroHeadline.tsx, web/src/app/layout.tsx, web/src/app/opengraph-image.tsx, web/src/lib/page-metadata.ts, web/test
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
@@ -24,6 +22,10 @@ Updated: 2026-11-12T02:22:36Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
+
+## APPROVED
+- **PK-117** Headline and booking link per F18  (web-engineer, PR #101)
+  - owns: web/src/lib/site-nav.ts, web/src/app/page.tsx, web/src/components/HeroHeadline.tsx, web/src/app/layout.tsx, web/src/app/opengraph-image.tsx, web/src/lib/page-metadata.ts, web/test
 
 ## READY
 - **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)

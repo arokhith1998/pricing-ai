@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-12T02:22:36Z",
+  "updated": "2026-11-12T02:25:14Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4892,7 +4892,7 @@
       "id": "PK-117",
       "title": "Headline and booking link per F18",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "web/src/lib/site-nav.ts",
@@ -4912,13 +4912,18 @@
         "required": [
           "web/test"
         ],
-        "ci_run": null
+        "ci_run": "43140955586"
       },
       "pr": 101,
-      "review": null,
+      "review": {
+        "verdict": "approve",
+        "by": "pk-lead",
+        "notes": "F18 headline and Calendly link; old headline banned by test",
+        "ts": "2026-11-12T02:25:12Z"
+      },
       "blocked_by": null,
       "created": "2026-11-12T02:16:39Z",
-      "updated": "2026-11-12T02:22:36Z",
+      "updated": "2026-11-12T02:25:14Z",
       "notes": [
         {
           "ts": "2026-11-12T02:16:47Z",
@@ -4927,6 +4932,14 @@
         {
           "ts": "2026-11-12T02:22:36Z",
           "note": "PR #101"
+        },
+        {
+          "ts": "2026-11-12T02:25:12Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-12T02:25:14Z",
+          "note": "CI run 43140955586"
         }
       ]
     }
