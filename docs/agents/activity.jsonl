@@ -503,3 +503,9 @@
 {"ts": "2026-11-12T01:54:02Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #100"}
 {"ts": "2026-11-12T01:56:16Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
 {"ts": "2026-11-12T01:56:21Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 43137634753"}
+{"ts": "2026-11-12T02:16:25Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-12T02:16:30Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "MERGED -> DONE"}
+{"ts": "2026-11-12T02:16:39Z", "event": "add", "task": "PK-117", "agent": "web-engineer", "detail": "Headline and booking link per F18"}
+{"ts": "2026-11-12T02:16:43Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-12T02:16:47Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 7 path(s)"}
+{"ts": "2026-11-12T02:16:51Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}

@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-12T01:56:21Z",
+  "updated": "2026-11-12T02:16:51Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4835,24 +4835,9 @@
       "id": "PK-116",
       "title": "Cut the site to one offer: two-item nav, /pricing to /audit, short /audit and /contact, consistent trust and legal pages",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/lib/site-nav.ts",
-        "web/src/components/Nav.tsx",
-        "web/src/components/Footer.tsx",
-        "web/src/app/audit/page.tsx",
-        "web/src/lib/audit-offer.ts",
-        "web/src/app/pricing/page.tsx",
-        "web/src/app/contact/page.tsx",
-        "web/src/app/trust/page.tsx",
-        "web/src/app/privacy/page.tsx",
-        "web/src/app/terms/page.tsx",
-        "web/src/app/sitemap.ts",
-        "web/src/app/robots.ts",
-        "web/next.config.ts",
-        "web/test"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-116",
       "worktree": null,
       "acceptance": [
@@ -4873,7 +4858,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-12T01:03:10Z",
-      "updated": "2026-11-12T01:56:21Z",
+      "updated": "2026-11-12T02:16:30Z",
       "notes": [
         {
           "ts": "2026-11-12T01:03:15Z",
@@ -4890,6 +4875,54 @@
         {
           "ts": "2026-11-12T01:56:21Z",
           "note": "CI run 43137634753"
+        },
+        {
+          "ts": "2026-11-12T02:16:25Z",
+          "note": "merged as unknown commit, human-approved by product owner"
+        }
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-12T02:16:25Z"
+      }
+    },
+    {
+      "id": "PK-117",
+      "title": "Headline and booking link per F18",
+      "agent": "web-engineer",
+      "status": "IN_PROGRESS",
+      "dependencies": [],
+      "owns": [
+        "web/src/lib/site-nav.ts",
+        "web/src/app/page.tsx",
+        "web/src/components/HeroHeadline.tsx",
+        "web/src/app/layout.tsx",
+        "web/src/app/opengraph-image.tsx",
+        "web/src/lib/page-metadata.ts",
+        "web/test"
+      ],
+      "branch": "agent/web-engineer/PK-117",
+      "worktree": null,
+      "acceptance": [
+        "BOOKING_URL is the Calendly link; hero h1, default description and social card use the F18 headline; the old headline appears nowhere in web/src; tests pin both; no em dashes"
+      ],
+      "tests": {
+        "required": [
+          "web/test"
+        ],
+        "ci_run": null
+      },
+      "pr": null,
+      "review": null,
+      "blocked_by": null,
+      "created": "2026-11-12T02:16:39Z",
+      "updated": "2026-11-12T02:16:51Z",
+      "notes": [
+        {
+          "ts": "2026-11-12T02:16:47Z",
+          "note": "claimed 7 path(s)"
         }
       ]
     }
