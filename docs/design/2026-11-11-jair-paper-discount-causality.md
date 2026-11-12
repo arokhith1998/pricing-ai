@@ -30,6 +30,14 @@ on where the optimum sits relative to the mean historical discount, so the
 wrong for mild confounding. Regret is a cliff in the rescue direction, not
 "quadratic then linear".
 
+**Experiments 1 to 3 (2026-11-11):** see the `constraint-experiment`,
+`leniency-experiment` and `exclusion-experiment` notes beside this file. C1
+holds in a sharper form, C4 has grown, and C3 mostly does not hold as planned:
+abstention is dominated by a robust choice, the key instrument failure cannot
+be detected, and nothing helps at 2,000 deals. The exclusion note recommends
+repositioning from a method paper to an analysis and benchmark paper. That
+decision is open.
+
 ## 1. One-sentence claim
 
 When sales reps choose discounts based on information the model cannot see,

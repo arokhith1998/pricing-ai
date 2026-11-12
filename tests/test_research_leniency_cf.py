@@ -39,3 +39,35 @@ def test_skill_dial_off_leaves_the_book_unchanged():
     c = make_book(500, seed=3, rho=0.3, skill_effect=0.3)
     assert np.allclose(a["discount_pct"], c["discount_pct"])
     assert not np.allclose(a["base_logit"], c["base_logit"])
+
+
+# --- exclusion guard (research/jair-discount-causality/exclusion.py) ---------
+import exclusion as ex  # noqa: E402
+
+
+def test_offset_logit_matches_a_known_model():
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal(20000)
+    off = 0.7 * rng.standard_normal(20000)
+    y = (rng.random(20000) < 1 / (1 + np.exp(-(0.4 + 1.2 * x + off)))).astype(float)
+    b = ex._fit_logit(np.column_stack([np.ones_like(x), x]), y, off)
+    assert abs(b[0] - 0.4) < 0.06 and abs(b[1] - 1.2) < 0.06
+
+
+def test_rep_test_sees_unaligned_skill_but_not_aligned_skill():
+    def tau(skill, corr):
+        book = make_book(20000, seed=4, rho=0.0, skill_effect=skill, skill_corr=corr)
+        return ex.SensitivityCF(book, lc.first_stage(book)).rep_heterogeneity()
+    assert tau(0.0, 1.0).tau < 0.08
+    unaligned = tau(0.3, 0.0)
+    assert unaligned.p_value < 0.01 and 0.2 < unaligned.tau < 0.4
+    # Skill that lines up exactly with leniency is invisible to the test.
+    assert tau(0.3, 1.0).tau < 0.08
+
+
+def test_robust_choice_picks_the_smallest_worst_case_regret():
+    grid = np.array([0.0, 0.1, 0.2])
+    # Two assumed worlds for one deal: one wants 0%, the other wants 20%.
+    curves = np.array([[[0.50, 0.50, 0.50]], [[0.20, 0.45, 0.60]]])
+    j, width = ex.robust_choice(curves, grid, np.ones((1, 3), bool))
+    assert grid[j[0]] == 0.1 and np.isclose(width[0], 0.2)

@@ -41,7 +41,8 @@ _GH_W = _GH_W / _GH_W.sum()
 
 def make_book(n: int, seed: int, rho: float,
               quality_effect: float = QUALITY_EFFECT,
-              skill_effect: float = 0.0) -> pd.DataFrame:
+              skill_effect: float = 0.0,
+              skill_corr: float = 1.0) -> pd.DataFrame:
     """Draw `n` closed deals. Returns model features, the outcome, and the
     hidden columns (`quality`, `base_logit`) needed to compute the truth.
 
@@ -49,7 +50,11 @@ def make_book(n: int, seed: int, rho: float,
     equal to minus their standardized discount bias (lenient reps are weaker
     sellers), and it enters the win logit with this weight. At 0 (default) a
     rep changes the discount and nothing else. It consumes no random draws,
-    so books with skill_effect=0 are unchanged."""
+    so books with skill_effect=0 are unchanged.
+    `skill_corr` is how closely skill tracks leniency: at 1.0 (default)
+    skill is exactly minus the standardized bias; below that, the rest is a
+    rep-level component unrelated to leniency, drawn from a separate random
+    stream so nothing else shifts."""
     if not -1.0 < rho < 1.0:
         raise ValueError("rho must be strictly between -1 and 1")
     rng = np.random.default_rng(seed)
@@ -86,7 +91,14 @@ def make_book(n: int, seed: int, rho: float,
                   + np.array([REGION_WIN_EFFECT[r] for r in region])
                   + np.array([INDUSTRY_WIN_EFFECT[i] for i in industry])
                   - 0.12 * (np.log(list_acv) - 10.8))
-    rep_skill = -(rep_bias - rep_bias.mean()) / rep_bias.std()
+    aligned = -(rep_bias - rep_bias.mean()) / rep_bias.std()
+    rep_skill = aligned
+    if skill_corr < 1.0:
+        e = np.random.default_rng(seed + 5).standard_normal(N_REPS)
+        e = e - e.mean()
+        e = e - (e @ aligned) / (aligned @ aligned) * aligned   # unrelated part
+        e = e / e.std()
+        rep_skill = skill_corr * aligned + np.sqrt(1.0 - skill_corr**2) * e
     base_logit = base_logit + skill_effect * rep_skill[rep]
     logit = base_logit + 1.3 * np.tanh(disc / 0.05) + quality_effect * quality
     won = rng.random(n) < 1.0 / (1.0 + np.exp(-logit))
