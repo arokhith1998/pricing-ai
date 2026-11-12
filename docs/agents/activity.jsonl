@@ -509,3 +509,4 @@
 {"ts": "2026-11-12T02:16:43Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-12T02:16:47Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 7 path(s)"}
 {"ts": "2026-11-12T02:16:51Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-12T02:22:36Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #101"}

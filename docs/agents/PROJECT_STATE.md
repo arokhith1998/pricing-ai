@@ -6,14 +6,12 @@
 
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
-Active work: 1/4
-Updated: 2026-11-12T02:16:51Z
-
-## IN_PROGRESS
-- **PK-117** Headline and booking link per F18  (web-engineer)
-  - owns: web/src/lib/site-nav.ts, web/src/app/page.tsx, web/src/components/HeroHeadline.tsx, web/src/app/layout.tsx, web/src/app/opengraph-image.tsx, web/src/lib/page-metadata.ts, web/test
+Active work: 0/4
+Updated: 2026-11-12T02:22:36Z
 
 ## REVIEW
+- **PK-117** Headline and booking link per F18  (web-engineer, PR #101)
+  - owns: web/src/lib/site-nav.ts, web/src/app/page.tsx, web/src/components/HeroHeadline.tsx, web/src/app/layout.tsx, web/src/app/opengraph-image.tsx, web/src/lib/page-metadata.ts, web/test
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
   - owns: vault/Competitive/2026-11-07-platform-census-and-ai-native-sizing.md
 - **PK-18** Add the pricing-surface interview module  (customer-success, PR #62)
