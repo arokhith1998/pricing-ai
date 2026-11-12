@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
     "/blog": ["./content/blog/**/*"],
     "/blog/[slug]": ["./content/blog/**/*"],
   },
+  // PK-116 (F17): the site sells one offer, so /pricing is a permanent redirect
+  // to /audit. Deleting the page would leave old links and search results dead.
+  async redirects() {
+    return [{ source: "/pricing", destination: "/audit", permanent: true }];
+  },
   async headers() {
     return [
       {

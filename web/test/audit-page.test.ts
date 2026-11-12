@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
 //
-// PK-113 invariants for /audit, the one-page offer from
-// gtm/ai-margin-audit-offer.md. The wording that protects the trust claim is
-// pinned here: the price, the clock, the gate, the cost-basis label (ADR-006,
-// ADR-007), and the absence of customers, proof or margin shorthand.
+// PK-116 (F17) invariants for /audit: the offer on one short page. Under 350
+// words, in a fixed order, one booking button, and the wording that protects
+// the trust claim (price, delivery guarantee, ADR-006 label, no proof, no
+// customers, no outcome promise).
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import AuditPage, { dynamic, metadata } from "@/app/audit/page";
+import { BOOKING_LABEL, BOOKING_URL } from "@/lib/site-nav";
 import { DECLARED_LABEL, marginViolations, stringLiterals } from "./cost-basis-guard";
 
 afterEach(cleanup);
@@ -19,56 +20,121 @@ function renderText() {
   return { container, text: container.textContent ?? "" };
 }
 
+// Visible words: text nodes joined with spaces so element boundaries do not fuse words.
+export function wordCount(container: HTMLElement): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const parts: string[] = [];
+  while (walker.nextNode()) parts.push(walker.currentNode.textContent ?? "");
+  return parts.join(" ").split(/\s+/).filter(Boolean).length;
+}
+
 describe("/audit", () => {
-  it("states the promise with the contribution-margin label and no recovery guarantee", () => {
-    const { text } = renderText();
-    expect(text).toContain(
-      "In 14 days from validated intake of your billing and cost exports, we show you which customers and plans your inference and storage costs leave with thin or negative contribution margin, customer-supplied cost basis, and we recommend a packaging structure for you to decide on.",
-    );
-    expect(text).toContain("No guarantee of recovered revenue");
-    expect(text).toContain("Every pricing decision stays with you");
-  });
-
-  it("pins the price and the clock wording", () => {
-    const { text } = renderText();
-    expect(text).toContain("$7,500 fixed, paid upfront");
-    expect(text).toContain("The 14-day clock starts at validated intake");
-    expect(text).toContain("one-business-day readiness check");
-    expect(text).toContain("the clock has not started");
-    expect(text).toContain("No share of results, no success fee");
-    // The only dollar figure on the page is the fee.
-    const dollars = text.match(/\$[\d,.]+[KMB]?/g) ?? [];
-    expect(new Set(dollars)).toEqual(new Set(["$7,500"]));
-  });
-
-  it("states the gate plainly, and the exports, declaration and key map", () => {
-    const { container, text } = renderText();
-    expect(text).toContain("Before we can accept any file");
-    expect(text).toContain("We do not receive any customer cost file until all four of these are in place");
-    for (const g of ["data-addendum amendment", "legal entity is formed", "insurance is bound", "engagement letter is signed"]) {
-      expect(text).toContain(g);
-    }
-    expect(text).toContain("Billing exports");
-    expect(text).toContain("upload declaration");
-    expect(text).toContain("key map");
-    expect(text).toContain("No API keys");
-    expect(container.querySelector("#gate-h")).not.toBeNull();
-  });
-
-  it("covers the six bottlenecks as audit questions, in order", () => {
+  it("is under 350 words", () => {
     const { container } = renderText();
-    const qs = [...container.querySelectorAll("[data-question]")];
-    expect(qs.map((q) => q.getAttribute("data-question"))).toEqual([
-      "cost-floor", "packaging", "value-metric", "variance", "pilots", "bundling",
-    ]);
-    for (const q of qs) expect(q.querySelectorAll("li").length).toBeGreaterThanOrEqual(2);
+    expect(wordCount(container)).toBeLessThan(350);
+    expect(wordCount(container)).toBeGreaterThan(150);
   });
 
-  it("states who it is for and not for", () => {
+  it("has one h1 with the promise, then the sections in the decided order", () => {
+    const { container } = renderText();
+    const h1 = container.querySelectorAll("h1");
+    expect(h1).toHaveLength(1);
+    expect(h1[0].textContent).toBe("Find which customers cost you more than they pay.");
+    expect(container.querySelectorAll("main")).toHaveLength(1);
+    expect(container.querySelector("main")?.id).toBe("main");
+    expect([...container.querySelectorAll("h2")].map((h) => h.id)).toEqual([
+      "get-h", "how-h", "need-h", "price-h", "who-h",
+    ]);
+    const eyebrows = [...container.querySelectorAll("h2")].map(
+      (h) => h.previousElementSibling?.textContent,
+    );
+    expect(eyebrows).toEqual(["What you get", "How it works", "What we need", "Price", "Who it is for"]);
+    const bands = [...container.querySelectorAll("main > section")].map((s) => s.getAttribute("data-band"));
+    for (let i = 1; i < bands.length; i++) expect(bands[i]).not.toBe(bands[i - 1]);
+  });
+
+  it("says what you get, with the cost-basis label", () => {
     const { text } = renderText();
-    expect(text).toContain("Who it is for, and who it is not for");
-    expect(text).toContain("moving from flat-rate or per-seat pricing to usage or outcome pricing");
-    expect(text).toContain("not software");
+    expect(text).toContain("14-day, done-for-you audit of your billing and cost exports");
+    expect(text).toContain(`Each customer and plan with its ${DECLARED_LABEL}.`);
+    expect(text).toContain("The usage level where each plan stops covering its cost.");
+    expect(text).toContain("One recommended packaging structure and two alternatives, for you to decide.");
+    expect(text).toContain("A 60-minute readout and a PDF your finance lead can forward.");
+  });
+
+  it("lists the three steps, with the clock starting when files check out", () => {
+    const { container, text } = renderText();
+    const steps = [...container.querySelectorAll("#how-h ~ ol > li")].map((l) => l.textContent);
+    expect(steps).toHaveLength(3);
+    expect(steps[0]).toContain("Talk to us.");
+    expect(steps[0]).toContain("No data, no access.");
+    expect(steps[1]).toContain("mutual NDA and data addendum");
+    expect(steps[1]).toContain("customers replaced by codes");
+    expect(steps[2]).toContain("Get the readout in 14 days.");
+    expect(text).toContain("from the day your files arrive and check out");
+    expect(text.toLowerCase()).not.toContain("validated intake");
+  });
+
+  it("lists what we need and what we do not take", () => {
+    const { container, text } = renderText();
+    const need = [...container.querySelectorAll("#need-h ~ ul > li")].map((l) => l.textContent);
+    expect(need).toEqual([
+      "Billing exports",
+      "Model-provider and cloud cost exports",
+      "A customer list with plan and start date",
+      "One person who owns pricing",
+    ]);
+    expect(text).toContain("No API keys, no prompts, no end-user data.");
+  });
+
+  it("pins the price, the delivery guarantee, the subscription line and the decision line", () => {
+    const { container, text } = renderText();
+    expect(text).toContain("$7,500 fixed, paid upfront.");
+    expect(container.querySelector('[data-testid="delivery-guarantee"]')?.textContent).toBe(
+      "If we do not deliver the 14-day readout, you pay nothing.",
+    );
+    expect(container.querySelector('[data-testid="follow-on"]')?.textContent).toBe(
+      "An ongoing subscription is available after the audit, priced with you.",
+    );
+    expect(text).toContain("We recommend, you decide; we do not promise recovered revenue.");
+    expect(
+      container
+        .querySelector("#price-h")
+        ?.closest("section")
+        ?.contains(container.querySelector('[data-testid="delivery-guarantee"]')),
+    ).toBe(true);
+    // The only dollar figure is the fee; the subscription has none.
+    expect(new Set(text.match(/\$[\d,.]+[KMB]?/g) ?? [])).toEqual(new Set(["$7,500"]));
+  });
+
+  it("states who it is for and the readiness line", () => {
+    const { container, text } = renderText();
+    expect(text).toContain(
+      "Companies moving from flat or per-seat pricing to usage or outcome pricing, with at least 10 billed customers and 3 months of billing history.",
+    );
+    expect(container.querySelector('[data-testid="readiness"]')?.textContent).toBe(
+      "We take no files until the paperwork is signed; a conversation needs none.",
+    );
+  });
+
+  it("has one button, the booking label and constant", () => {
+    const { container } = renderText();
+    const links = [...container.querySelectorAll("main a")];
+    expect(links).toHaveLength(1);
+    expect(links[0].textContent).toBe(BOOKING_LABEL);
+    expect(links[0].getAttribute("href")).toBe(BOOKING_URL);
+  });
+
+  it("dropped the six questions, twelve deliverables, gate, credit terms and Request the audit", () => {
+    const { text } = renderText();
+    const lower = text.toLowerCase();
+    for (const gone of [
+      "six questions", "deliverables", "the gate", "insurance", "engagement letter is signed",
+      "credit toward", "readiness check", "request the audit", "benchmarking", "key map", "declaration",
+      "not for", "software.",
+    ]) {
+      expect(lower, gone).not.toContain(gone);
+    }
   });
 
   it("bans gross margin, net margin and any margin outside the cost-basis label or a negation", () => {
@@ -80,27 +146,16 @@ describe("/audit", () => {
     for (const lit of stringLiterals(src)) expect(marginViolations(lit), lit).toEqual([]);
   });
 
-  it("has no em dash, no proof and no customer claims", () => {
+  it("has no em dash, no proof, no customer claims and no outcome promise", () => {
     const { text } = renderText();
-    expect(text).not.toContain("—");
-    expect(text.toLowerCase()).not.toMatch(
-      /proven|\b(our|existing|current|past|paying) customers|testimonial|case stud|logos|results from|saved|recovered \$/,
+    const src = readFileSync("src/app/audit/page.tsx", "utf8");
+    for (const t of [text, src]) expect(t).not.toContain("—");
+    const lower = text.toLowerCase();
+    expect(lower).not.toMatch(
+      /proven|\b(our|existing|current|past|paying) customers|testimonial|case stud|logos|results from|saved|recovered \$|money.back|boost|autonomous/,
     );
-    // No ARR band or result figure on this page.
-    expect(text).not.toMatch(/\$(10|20)M|ARR band/);
-  });
-
-  it("is one main, one h1, ordered h2s, with a CTA to /contact", () => {
-    const { container } = renderText();
-    expect(container.querySelectorAll("main")).toHaveLength(1);
-    expect(container.querySelector("main")?.id).toBe("main");
-    expect(container.querySelectorAll("h1")).toHaveLength(1);
-    expect([...container.querySelectorAll("h2")].map((h) => h.id)).toEqual([
-      "audited-h", "get-h", "need-h", "gate-h", "price-h", "who-h", "cta-h",
-    ]);
-    const cta = [...container.querySelectorAll('a[href="/contact"]')];
-    expect(cta.length).toBeGreaterThanOrEqual(1);
-    expect(cta[0].textContent).toContain("Request the audit");
+    expect(lower).not.toMatch(/increas\w*[^.]{0,60}margin|margin[^.]{0,60}increas|improv\w*[^.]{0,40}margin/);
+    expect(text).not.toMatch(/\$(10|20)M|ARR band|salesforce/i);
   });
 
   it("is static, with a bare title and a canonical path", () => {
@@ -111,37 +166,5 @@ describe("/audit", () => {
     expect(d.length).toBeGreaterThanOrEqual(70);
     expect(d.length).toBeLessThanOrEqual(160);
     expect(marginViolations(d)).toEqual([]);
-  });
-
-  it("states the delivery guarantee and the follow-on sentence exactly (F16)", () => {
-    const { container, text } = renderText();
-    expect(container.querySelector('[data-testid="delivery-guarantee"]')?.textContent).toBe(
-      "If we do not deliver the 14-day readout, you pay nothing.",
-    );
-    expect(container.querySelector('[data-testid="follow-on"]')?.textContent).toBe(
-      "After the audit, an ongoing subscription is available; we price it with you once the readout shows the numbers.",
-    );
-    // The guarantee sits in the price block, before the clock list.
-    expect(container.querySelector("#price-h")?.closest("section")?.contains(
-      container.querySelector('[data-testid="delivery-guarantee"]'),
-    )).toBe(true);
-    expect(text).toContain("No guarantee of recovered revenue");
-  });
-
-  it("makes no outcome guarantee, no money-back, no subscription figure and no margin-increase promise", () => {
-    const { text } = renderText();
-    const sources = ["src/app/audit/page.tsx", "src/lib/audit-offer.ts"].map((f) => readFileSync(f, "utf8"));
-    for (const t of [text, ...sources]) {
-      const lower = t.toLowerCase();
-      expect(lower).not.toContain("money back");
-      expect(lower).not.toContain("money-back");
-      expect(t).not.toContain("$2,500");
-      expect(t).not.toMatch(/\$\s?2[.,]?5/);
-      expect(lower).not.toMatch(/guarante\w*[^.]{0,40}(margin|results)|(margin|results)[^.]{0,40}guarante/);
-      expect(lower).not.toMatch(/increas\w*[^.]{0,60}margin|margin[^.]{0,60}increas/);
-      expect(lower).not.toMatch(/improv\w*[^.]{0,40}margin|boost|autonomous/);
-    }
-    // The only dollar figure on the page is still the fee.
-    expect(new Set(text.match(/\$[\d,.]+[KMB]?/g) ?? [])).toEqual(new Set(["$7,500"]));
   });
 });

@@ -4,13 +4,14 @@ import HeroHeadline from "@/components/HeroHeadline";
 import Bottlenecks from "@/components/landing/Bottlenecks";
 import { pageMetadata } from "@/lib/page-metadata";
 import { AUDIT_DAYS, AUDIT_PRICE, COST_BASIS_LABEL } from "@/lib/audit-offer";
+import { BOOKING_LABEL, BOOKING_URL } from "@/lib/site-nav";
 
 // Static marketing landing. No API dependency, so it always loads fast.
 export const dynamic = "force-static";
 
 // F15 and ADR-008: the page says only what the two research-sheet tabs say,
 // in this order: the line, who it is for, the six bottlenecks, the offer in
-// three lines with one call to action. Nothing else.
+// three lines. One call to action, in the hero. Nothing else.
 export const metadata: Metadata = pageMetadata({
   title: "A 14-day pricing audit for AI companies",
   description:
@@ -27,6 +28,14 @@ export default function Landing() {
           For B2B and AI software companies moving from flat or per-seat to usage or outcome
           pricing.
         </p>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <Button href={BOOKING_URL} size="lg">
+            {BOOKING_LABEL}
+          </Button>
+          <Button href="/audit" variant="quiet">
+            See the 14-day audit
+          </Button>
+        </div>
       </Section>
 
       <Section band="band" labelledBy="bottlenecks-h">
@@ -50,14 +59,9 @@ export default function Landing() {
             more to serve than they pay, on {COST_BASIS_LABEL}, and a packaging structure for you
             to decide on.
           </li>
-          <li>{AUDIT_DAYS} days from validated intake.</li>
+          <li>{AUDIT_DAYS} days from the day your files arrive and check out.</li>
           <li>{AUDIT_PRICE} fixed, paid upfront.</li>
         </ul>
-        <div className="mt-6">
-          <Button href="/audit" size="lg">
-            See the 14-day audit
-          </Button>
-        </div>
       </Section>
     </main>
   );

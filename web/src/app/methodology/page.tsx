@@ -4,7 +4,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Methodology · Pricekeel" };
+// PK-116 (F17): unlinked and noindexed. The route stays for old links.
+export const metadata: Metadata = { title: "Methodology", robots: { index: false } };
 export const dynamic = "force-static";
 
 type Source = {

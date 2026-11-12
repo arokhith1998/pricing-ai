@@ -1,11 +1,11 @@
-# Pricekeel — robots.txt
+# Pricekeel robots.txt
 # We welcome search engine indexing of marketing pages and explicitly
 # disallow indexing of customer-data routes and proxy endpoints.
 
 User-agent: *
 Allow: /
+# Unlinked routes stay crawlable so crawlers can read their noindex tag.
 Allow: /sample
-Allow: /pricing
 Allow: /blog
 Allow: /privacy
 Allow: /terms

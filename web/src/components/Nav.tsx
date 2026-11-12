@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { buttonClasses } from "@/components/ui/Button";
-import { CUSTOMER_LOGIN, PRIMARY_CTA, PRIMARY_NAV, isCurrent, isCustomerLoginCurrent } from "@/lib/site-nav";
+import { PRIMARY_CTA, PRIMARY_NAV, isCurrent } from "@/lib/site-nav";
 
 function KeelMark() {
   return (
@@ -40,30 +40,17 @@ function PrimaryLinks({ pathname, onNavigate, mobile }: LinkProps) {
   );
 }
 
-function AccountLinks({ pathname, onNavigate, mobile }: LinkProps) {
-  const login = isCustomerLoginCurrent(pathname);
-  const cta = isCurrent(pathname, PRIMARY_CTA.href);
+// The booking button. BOOKING_URL is a mailto: until a calendar link exists, so
+// it is a plain anchor, not a next/link.
+function BookingButton({ onNavigate, mobile }: Omit<LinkProps, "pathname">) {
   return (
-    <>
-      <Link
-        href={CUSTOMER_LOGIN.href}
-        onClick={onNavigate}
-        aria-current={login ? "page" : undefined}
-        className={`rounded-control text-small font-medium transition ${
-          mobile ? "flex min-h-12 items-center px-3" : "px-3 py-2"
-        } ${login ? "text-fg" : "text-muted hover:text-fg"}`}
-      >
-        {CUSTOMER_LOGIN.label}
-      </Link>
-      <Link
-        href={PRIMARY_CTA.href}
-        onClick={onNavigate}
-        aria-current={cta ? "page" : undefined}
-        className={buttonClasses("primary", "md", mobile ? "min-h-12 w-full" : undefined)}
-      >
-        {PRIMARY_CTA.label}
-      </Link>
-    </>
+    <a
+      href={PRIMARY_CTA.href}
+      onClick={onNavigate}
+      className={buttonClasses("primary", "md", mobile ? "min-h-12 w-full" : undefined)}
+    >
+      {PRIMARY_CTA.label}
+    </a>
   );
 }
 
@@ -97,7 +84,7 @@ export default function Nav() {
           <PrimaryLinks pathname={pathname} />
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
-          <AccountLinks pathname={pathname} />
+          <BookingButton />
         </div>
 
         {/* Mobile and tablet: a native <details> sheet, so it opens and closes
@@ -124,9 +111,8 @@ export default function Nav() {
               }}
             />
             <div className="mt-2 flex flex-col gap-1 border-t border-border pt-3">
-              <AccountLinks
+              <BookingButton
                 mobile
-                pathname={pathname}
                 onNavigate={() => {
                   window.setTimeout(() => mobileMenu.current?.removeAttribute("open"), 0);
                 }}

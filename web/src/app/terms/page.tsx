@@ -1,29 +1,15 @@
 import type { Metadata } from "next";
-import {
-  LEGAL_ENTITY,
-  LEGAL_JURISDICTION,
-  GOVERNING_LAW,
-  LEGAL_VENUE,
-  ENTITY_FILLED,
-} from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Terms of Use · Pricekeel" };
+// The layout title template adds "· Pricekeel", so the title here is bare.
+export const metadata: Metadata = { title: "Terms of Use" };
 
-// NOTE TO FOUNDER: this is a DRAFT Terms of Use written to provide working
-// language for counsel to mark up. It is NOT legal advice and is not a final
-// instrument. The entity/jurisdiction fields come from one source of truth in
-// @/lib/legal — fill them via Vercel env after incorporation (see that file).
-// Have a lawyer review before relying on it. The effective date is a placeholder.
+// NOTE TO FOUNDER: these are short website terms, not a final instrument and
+// not legal advice. We do not name a legal entity, a jurisdiction or a
+// governing law here; the engagement letter carries them. Have a lawyer review
+// before relying on this page.
 
-const EFFECTIVE = "30 May 2026";
+const EFFECTIVE = "11 November 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
-
-// Until incorporation completes, name Pricekeel plainly instead of rendering
-// "[legal entity], [jurisdiction]" placeholders to the public. Once the env
-// vars in @/lib/legal are filled, the registered entity renders instead.
-const ENTITY_DESCRIPTION = ENTITY_FILLED
-  ? `${LEGAL_ENTITY}, a ${LEGAL_JURISDICTION} company`
-  : "Pricekeel (US entity formation in progress; these Terms will be updated with the registered entity name and jurisdiction)";
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -36,195 +22,68 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-6 py-12 outline-none">
       <h1 className="text-3xl font-bold text-fg">Terms of Use</h1>
       <p className="mt-2 text-sm text-muted">
         Last updated {EFFECTIVE}. Under legal review. Questions:{" "}
-        <a className="text-teal underline" href="mailto:adhithya@pricekeel.com">
-          adhithya@pricekeel.com
+        <a className="text-teal underline" href={`mailto:${CONTACT}`}>
+          {CONTACT}
         </a>
       </p>
 
       <p className="mt-6 text-sm leading-relaxed text-muted">
-        These Terms of Use (the &ldquo;Terms&rdquo;) govern your access to and
-        use of the Pricekeel website at{" "}
-        <span className="text-fg">pricekeel.com</span> and the diagnostic,
-        guidance, copilot, and competitor-watch features made available there
-        (collectively, the &ldquo;Service&rdquo;). The Service is operated by{" "}
-        <span className="text-fg">{ENTITY_DESCRIPTION}</span>{" "}
-        (&ldquo;Pricekeel&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By
-        using the Service, you agree to these Terms. If you do not agree, do
-        not use the Service.
+        These terms cover your use of the Pricekeel website at{" "}
+        <span className="text-fg">pricekeel.com</span>. By using the website you agree to them. If you do not
+        agree, do not use it. A paid audit is governed by the engagement letter, a mutual NDA and a data
+        addendum, which you sign before any files are sent.
       </p>
 
-      <Section id="account" title="1. Acceptance and account">
+      <Section id="use" title="1. Using the website">
         <p>
-          You must be at least 16 years old to use the Service and authorized
-          to bind your employer if you are accessing the Service on behalf of
-          a company. By submitting the lead form, using a Pricekeel-issued
-          access code, or uploading data to the Service, you accept these
-          Terms.
+          You may read the website and contact us through it for your own business purposes. You agree not to
+          interfere with the website, probe it for vulnerabilities without our written permission, attempt
+          unauthorized access, or use it to break the law or harm a third party.
         </p>
       </Section>
 
-      <Section id="license" title="2. License grant">
+      <Section id="content" title="2. What the website says">
         <p>
-          Subject to your compliance with these Terms, Pricekeel grants you a
-          limited, non-exclusive, non-transferable, revocable license to use
-          the Service for your internal business purposes. You may not resell
-          the Service, sublicense it, or expose it as a service to third
-          parties without our prior written consent.
+          The website describes a service. It is not advice and it does not promise a result. Where the
+          website shows figures, it labels them as illustrative or from a synthetic sample. Pricing decisions
+          stay with you.
         </p>
       </Section>
 
-      <Section id="customer-data" title="3. Customer data">
+      <Section id="files" title="3. Files you send us">
         <p>
-          <span className="font-medium text-fg">You own your data.</span> The
-          deal data, documents, pricing URLs, and other inputs you provide
-          (&ldquo;Customer Data&rdquo;) remain your property. You grant
-          Pricekeel a non-exclusive, worldwide license to process the Customer
-          Data solely to provide the Service to you, to generate the analyses
-          you request, and to maintain and improve the Service in
-          aggregate-only form (for example, performance metrics).
-        </p>
-        <p>
-          Pricekeel does not use Customer Data to train any model and does not
-          sell or share Customer Data with third parties for their own
-          purposes, except subprocessors necessary to provide the Service
-          (listed on our <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>).
-        </p>
-        <p>
-          Row-level deal data uploaded to the diagnostic is processed in
-          memory and not persisted after the analysis completes.
-        </p>
-        <p>
-          If you authorize Salesforce, you represent that you have authority to
-          grant the requested access. Pricekeel may read Opportunity data and,
-          only when you explicitly request writeback, create a completed Task
-          related to the selected Opportunity. Live Opportunity rows are not
-          persisted in the Pricekeel database; encrypted OAuth tokens,
-          connection/mapping metadata, and the decision audit trail are retained
-          as described in the Privacy Policy.
+          You send files only after the NDA and data addendum are signed. You own your files. We use them only
+          to deliver your audit, and we delete them within 30 days of the engagement ending and confirm it in
+          writing. The privacy policy and the trust page say more.
         </p>
       </Section>
 
-      <Section id="ai-outputs" title="4. AI outputs">
+      <Section id="warranty" title="4. Disclaimers">
         <p>
-          The Service uses third-party AI providers to generate written
-          narratives, column-mapping suggestions, structured plan extractions,
-          and copilot answers. As between you and Pricekeel, you own the
-          outputs derived from your Customer Data. AI outputs are
-          probabilistic and may contain errors or omissions; you remain
-          responsible for any business decision you make based on them.
+          THE WEBSITE IS PROVIDED &ldquo;AS IS&rdquo; WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. TO THE
+          MAXIMUM EXTENT PERMITTED BY LAW, WE ARE NOT LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL
+          OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE WEBSITE.
         </p>
       </Section>
 
-      <Section id="prohibited" title="5. Prohibited uses">
-        <p>You agree not to:</p>
-        <ul className="list-disc space-y-1 pl-6">
-          <li>upload Customer Data you do not own or are not authorized to share;</li>
-          <li>
-            use the Competitor Watch feature against URLs you do not have the
-            right to query under the operator&rsquo;s terms (you warrant you
-            have such right for any URL you submit);
-          </li>
-          <li>
-            attempt to reverse-engineer the Service, decompile its models, or
-            scrape the Service&rsquo;s outputs to train a competing model;
-          </li>
-          <li>
-            use the Service to violate any law, infringe intellectual
-            property, or harm a third party;
-          </li>
-          <li>
-            interfere with the Service&rsquo;s operation, probe for
-            vulnerabilities without prior written permission, or attempt
-            unauthorized access;
-          </li>
-          <li>resell or sublicense the Service.</li>
-        </ul>
-      </Section>
-
-      <Section id="confidentiality" title="6. Confidentiality">
+      <Section id="engagement" title="5. Engagement terms">
         <p>
-          Each party will protect the other&rsquo;s non-public information
-          received under these Terms with the same care it uses for its own
-          confidential information, and at least reasonable care. Customer
-          Data is your confidential information.
+          Terms for a paid engagement, including the contracting entity and governing law, will be provided
+          with the engagement letter.
         </p>
       </Section>
 
-      <Section id="warranty" title="7. Disclaimers (AS-IS)">
+      <Section id="changes" title="6. Changes and contact">
         <p>
-          THE FREE TIER OF THE SERVICE (INCLUDING THE BUNDLED SAMPLE
-          DIAGNOSTIC, THE DEMO COPILOT, AND THE COMPETITOR WATCH PREVIEW) IS
-          PROVIDED &ldquo;AS IS&rdquo; WITHOUT WARRANTIES OF ANY KIND,
-          EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF
-          MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, OR
-          NON-INFRINGEMENT. PAID ENGAGEMENTS ARE GOVERNED BY THE
-          ADDITIONAL TERMS IN A SIGNED ORDER FORM OR MSA.
-        </p>
-      </Section>
-
-      <Section id="liability" title="8. Limitation of liability">
-        <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, PRICEKEEL&rsquo;S TOTAL
-          AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS WILL
-          NOT EXCEED, IN AGGREGATE, THE FEES YOU PAID TO PRICEKEEL IN THE
-          TWELVE (12) MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM, OR,
-          FOR FREE-TIER USE, ONE HUNDRED U.S. DOLLARS ($100). NEITHER PARTY
-          WILL BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
-          PUNITIVE DAMAGES.
-        </p>
-      </Section>
-
-      <Section id="indemnity" title="9. Indemnification">
-        <p>
-          You will indemnify and hold Pricekeel harmless from any third-party
-          claim arising out of (a) your Customer Data, including any claim
-          that the upload, use, or content of Customer Data infringes
-          third-party rights, and (b) your use of the Service in violation of
-          these Terms.
-        </p>
-      </Section>
-
-      <Section id="termination" title="10. Termination">
-        <p>
-          Either party may terminate these Terms at any time on notice.
-          Pricekeel may suspend or terminate access immediately for any
-          material violation of these Terms or for any conduct that risks
-          harm to Pricekeel or other users. Sections that by their nature
-          should survive termination (data ownership, disclaimers,
-          limitation of liability, indemnification) survive.
-        </p>
-      </Section>
-
-      <Section id="governing-law" title="11. Governing law and venue">
-        <p>
-          These Terms are governed by the laws of{" "}
-          <span className="text-fg">{GOVERNING_LAW}</span> (or such other
-          jurisdiction named in a signed order form). The parties submit to
-          the exclusive jurisdiction of the courts located in{" "}
-          <span className="text-fg">{LEGAL_VENUE}</span>,
-          subject to either party&rsquo;s right to seek injunctive relief in
-          any court of competent jurisdiction.
-        </p>
-      </Section>
-
-      <Section id="changes" title="12. Changes to the Terms">
-        <p>
-          We may update these Terms from time to time. Material changes will
-          be posted here with an updated effective date; for paid customers,
-          we will also provide notice in-product or by email. Your continued
-          use of the Service after a change becomes effective constitutes
-          acceptance of the change.
-        </p>
-      </Section>
-
-      <Section id="contact" title="13. Contact">
-        <p>
-          Questions about these Terms? Email{" "}
-          <a className="text-teal underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+          We may update these terms and will post the new version here with an updated date. Questions? Email{" "}
+          <a className="text-teal underline" href={`mailto:${CONTACT}`}>
+            {CONTACT}
+          </a>
+          .
         </p>
       </Section>
     </main>

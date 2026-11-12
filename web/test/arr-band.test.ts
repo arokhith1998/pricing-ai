@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -43,10 +43,9 @@ describe("ICP ARR band", () => {
     expect(hits).toEqual([]);
   });
 
-  it("pricing lead carries the decided band and the social card carries no ARR band (F14)", () => {
-    const pricing = readFileSync(join(ROOT, "app/pricing/page.tsx"), "utf8");
+  it("the social card carries no ARR band (F14), and the pricing page is gone (F17)", () => {
     const og = readFileSync(join(ROOT, "app/opengraph-image.tsx"), "utf8");
-    expect(pricing).toContain("$10M to $100M ARR B2B SaaS, gated on deal volume");
+    expect(existsSync(join(ROOT, "app/pricing/page.tsx"))).toBe(false);
     expect(og).not.toMatch(/ARR/);
     expect(og).not.toMatch(/\$\d+\s?M/);
   });

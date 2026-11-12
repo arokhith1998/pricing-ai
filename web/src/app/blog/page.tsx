@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description:
     "Notes on pricing, discounting, and margin for usage-based B2B SaaS.",
   alternates: { canonical: "/blog" },
+  // PK-116 (F17): unlinked and noindexed.
+  robots: { index: false },
 };
 
 export default function BlogIndex() {
