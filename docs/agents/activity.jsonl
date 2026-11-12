@@ -500,3 +500,4 @@
 {"ts": "2026-11-12T01:03:12Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
 {"ts": "2026-11-12T01:03:15Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
 {"ts": "2026-11-12T01:03:16Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
+{"ts": "2026-11-12T01:54:02Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #100"}
