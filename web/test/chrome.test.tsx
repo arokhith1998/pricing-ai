@@ -63,7 +63,7 @@ describe("Nav", () => {
     const c = nav("/");
     const cta = [...c.querySelectorAll("a")].find((a) => a.textContent === "Book a 20-minute call")!;
     expect(BOOKING_LABEL).toBe("Book a 20-minute call");
-    expect(BOOKING_URL).toBe("mailto:adhithya@pricekeel.com?subject=20%20minutes%20on%20pricing");
+    expect(BOOKING_URL).toBe("https://calendly.com/adhithya-pricekeel/30min");
     expect(cta.getAttribute("href")).toBe(BOOKING_URL);
     expect(cta.className).toContain("bg-teal");
     expect(cta.className).toContain("text-bg");

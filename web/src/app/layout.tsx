@@ -10,7 +10,7 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 const DEFAULT_TITLE = "Pricekeel · Pricing for AI and B2B software companies";
 const DEFAULT_DESCRIPTION =
-  "We stop AI companies from losing money on heavy users. For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.";
+  "See which customers cost more to serve than they pay. For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.pricekeel.com"),

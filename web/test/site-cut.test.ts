@@ -77,7 +77,7 @@ describe("/contact", () => {
 describe("single call to action", () => {
   it("is one label and one constant, defaulting to a mailto", () => {
     expect(BOOKING_LABEL).toBe("Book a 20-minute call");
-    expect(BOOKING_URL).toBe("mailto:adhithya@pricekeel.com?subject=20%20minutes%20on%20pricing");
+    expect(BOOKING_URL).toBe("https://calendly.com/adhithya-pricekeel/30min");
     for (const route of ["/", "/audit", "/contact"]) {
       const { container } = pages[route]();
       const buttons = [...container.querySelectorAll("main a")].filter((a) => a.className.includes("bg-teal"));
@@ -209,5 +209,46 @@ describe("banned wording on every linked page", () => {
   it("nav and footer sources never mention the removed tiers or Salesforce", () => {
     const nav = read("src/lib/site-nav.ts");
     expect(nav).not.toMatch(/Salesforce|low five figures|design partner|Operate|Diagnostic tier/i);
+  });
+});
+
+describe("PK-117 (F18): headline and calendar link", () => {
+  const NEW = "See which customers cost more to serve than they pay.";
+  const OLD = "We stop AI companies from losing money on heavy users";
+
+  it("pins the new headline on the hero, the default description, the social card and its alt", () => {
+    const { container } = pages["/"]();
+    expect(container.querySelector("h1")?.textContent).toBe(NEW);
+    const layout = read("src/app/layout.tsx");
+    const d = layout.match(/DEFAULT_DESCRIPTION =\s*"([^"]+)"/)?.[1] ?? "";
+    expect(d.startsWith(NEW)).toBe(true);
+    expect(d).toContain("For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.");
+    expect(d.length).toBeLessThan(160);
+    const og = read("src/app/opengraph-image.tsx");
+    expect(og).toContain("See which customers cost more");
+    expect(og).toContain("to serve than they pay.");
+    expect(read("src/lib/page-metadata.ts")).toContain("see which customers cost more to serve than they pay");
+  });
+
+  it("keeps the /audit h1 as is", () => {
+    const { container } = pages["/audit"]();
+    expect(container.querySelector("h1")?.textContent).toBe("Find which customers cost you more than they pay.");
+  });
+
+  it("bans the old headline anywhere in web/src", async () => {
+    const { readdirSync, statSync } = await import("node:fs");
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((n) => {
+        const p = `${dir}/${n}`;
+        return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|css|md)$/.test(p) ? [p] : [];
+      });
+    for (const f of walk("src")) {
+      expect(read(f).replace(/\s+/g, " ").toLowerCase(), f).not.toContain(OLD.toLowerCase());
+    }
+  });
+
+  it("points the booking constant at the Calendly page with the same label", () => {
+    expect(BOOKING_URL).toBe("https://calendly.com/adhithya-pricekeel/30min");
+    expect(BOOKING_LABEL).toBe("Book a 20-minute call");
   });
 });

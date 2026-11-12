@@ -5,10 +5,9 @@ export type NavLink = { href: string; label: string };
 
 // PK-116 (F17): one offer, one call to action. The header is the logo, two
 // links and the booking button. Every page's primary button reads from
-// BOOKING_LABEL and BOOKING_URL, so the founder swaps in a calendar link in
-// one place. Until a calendar link exists the button opens a pre-filled email.
+// BOOKING_LABEL and BOOKING_URL, so the calendar link is changed in one place (PK-117, F18).
 export const BOOKING_LABEL = "Book a 20-minute call";
-export const BOOKING_URL = "mailto:adhithya@pricekeel.com?subject=20%20minutes%20on%20pricing";
+export const BOOKING_URL = "https://calendly.com/adhithya-pricekeel/30min";
 
 export const PRIMARY_NAV: readonly NavLink[] = [
   { href: "/audit", label: "Audit" },
