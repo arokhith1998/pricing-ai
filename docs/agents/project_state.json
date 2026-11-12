@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-12T01:54:02Z",
+  "updated": "2026-11-12T01:56:21Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4835,7 +4835,7 @@
       "id": "PK-116",
       "title": "Cut the site to one offer: two-item nav, /pricing to /audit, short /audit and /contact, consistent trust and legal pages",
       "agent": "web-engineer",
-      "status": "REVIEW",
+      "status": "APPROVED",
       "dependencies": [],
       "owns": [
         "web/src/lib/site-nav.ts",
@@ -4862,13 +4862,18 @@
         "required": [
           "web/test"
         ],
-        "ci_run": null
+        "ci_run": "43137634753"
       },
       "pr": 100,
-      "review": null,
+      "review": {
+        "verdict": "approve",
+        "by": "pk-lead",
+        "notes": "F17 cut approved; privacy items 6, 7, 9 for founder confirmation",
+        "ts": "2026-11-12T01:56:16Z"
+      },
       "blocked_by": null,
       "created": "2026-11-12T01:03:10Z",
-      "updated": "2026-11-12T01:54:02Z",
+      "updated": "2026-11-12T01:56:21Z",
       "notes": [
         {
           "ts": "2026-11-12T01:03:15Z",
@@ -4877,6 +4882,14 @@
         {
           "ts": "2026-11-12T01:54:02Z",
           "note": "PR #100"
+        },
+        {
+          "ts": "2026-11-12T01:56:16Z",
+          "note": "review approve"
+        },
+        {
+          "ts": "2026-11-12T01:56:21Z",
+          "note": "CI run 43137634753"
         }
       ]
     }
