@@ -15,7 +15,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = pageMetadata({
   title: "A 14-day pricing audit for AI companies",
   description:
-    "We stop AI companies from losing money on heavy users. For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
+    "See which customers cost more to serve than they pay. For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
   path: "/",
 });
 

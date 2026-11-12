@@ -40,7 +40,7 @@ function PrimaryLinks({ pathname, onNavigate, mobile }: LinkProps) {
   );
 }
 
-// The booking button. BOOKING_URL is a mailto: until a calendar link exists, so
+// The booking button. BOOKING_URL is an external calendar link, so
 // it is a plain anchor, not a next/link.
 function BookingButton({ onNavigate, mobile }: Omit<LinkProps, "pathname">) {
   return (

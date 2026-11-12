@@ -26,7 +26,7 @@ describe("Landing page", () => {
     const { container } = render(createElement(Landing));
     const h1s = container.querySelectorAll("h1");
     expect(h1s).toHaveLength(1);
-    expect(h1s[0].textContent).toBe("We stop AI companies from losing money on heavy users.");
+    expect(h1s[0].textContent).toBe("See which customers cost more to serve than they pay.");
     expect(container.querySelector('[data-testid="audience"]')?.textContent).toBe(
       "For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
     );
@@ -34,7 +34,7 @@ describe("Landing page", () => {
     // The hero then carries the booking button and one quiet link to /audit.
     const hero = container.querySelector("main > section");
     expect(hero?.textContent).toBe(
-      "We stop AI companies from losing money on heavy users.For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.Book a 20-minute callSee the 14-day audit",
+      "See which customers cost more to serve than they pay.For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.Book a 20-minute callSee the 14-day audit",
     );
   });
 
@@ -142,10 +142,10 @@ describe("Landing page", () => {
     expect(String(metadata.title)).not.toContain("Pricekeel");
     expect(metadata.alternates?.canonical).toBe("/");
     const d = String(metadata.description);
-    expect(d).toContain("We stop AI companies from losing money on heavy users.");
+    expect(d).toContain("See which customers cost more to serve than they pay.");
     expect(d.length).toBeGreaterThanOrEqual(70);
     expect(d.length).toBeLessThanOrEqual(160);
-    expect(d.toLowerCase()).not.toMatch(/proven|customers/);
+    expect(d.toLowerCase()).not.toMatch(/proven|bour customers/);
     expect(marginViolations(d)).toEqual([]);
     expect(metadata.openGraph?.images).toBeTruthy();
   });

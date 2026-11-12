@@ -19,7 +19,7 @@ export const SOCIAL_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Pricekeel: we stop AI companies from losing money on heavy users",
+  alt: "Pricekeel: see which customers cost more to serve than they pay",
 } as const;
 
 export type PageMetadataInput = {

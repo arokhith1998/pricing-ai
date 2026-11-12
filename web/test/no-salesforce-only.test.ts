@@ -28,7 +28,7 @@ describe("positioning is not Salesforce-only", () => {
     const src = readFileSync("src/app/layout.tsx", "utf8");
     expect(src).toContain('"Pricekeel · Pricing for AI and B2B software companies"');
     const d = src.match(/DEFAULT_DESCRIPTION =\s*"([^"]+)"/)?.[1] ?? "";
-    expect(d).toContain("We stop AI companies from losing money on heavy users.");
+    expect(d).toContain("See which customers cost more to serve than they pay.");
     expect(d).toContain("B2B and AI software companies moving from flat or per-seat to usage or outcome pricing");
     expect(d.length).toBeLessThan(160);
     expect(d).not.toMatch(/Salesforce|usage and hybrid/);
