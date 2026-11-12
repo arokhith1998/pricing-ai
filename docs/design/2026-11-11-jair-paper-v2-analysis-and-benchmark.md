@@ -55,7 +55,14 @@ Scored by revenue regret against the truth, always reported next to the
 zero-confounding baseline at the same sample size. Still to add: number of
 reps, non-random rep assignment, response shape, share of zero-discount deals.
 
-**C. Empirical findings** (experiments 1 to 3; all need more seeds):
+**C. Empirical findings.** Re-run at 30 seeds on 2026-11-11; see
+`2026-11-11-jair-paper-results-full-scale.md`, which supersedes the wording
+below where they differ. All six survive. C1 now depends on capacity, C3 is
+traced to too few boosting rounds, the number of reps turns out not to
+matter under random assignment, and the constraint also costs regret under
+whale confounding at high capacity.
+
+Original list:
 1. The monotone constraint removes every falling curve and costs 6 to 11
    points of regret under rescue confounding on an unrestricted sweep.
 2. Restricting recommendations to the cohort's observed range does most of
@@ -115,7 +122,8 @@ Appendix: proofs, reproducibility checklist, extra tables.
 - A human checks every proof. The sketches were machine-drafted.
 
 **Experiments**
-- Raise to 30 seeds per cell, with confidence intervals on every table.
+- Done 2026-11-11: 30 seeds per cell, the rep-count dial, the capacity sweep.
+- Still open: 30 seeds and cohort-clipped scoring for the capacity sweep.
 - Dials not yet run: number of reps (8, 12, 25, 50); non-random assignment;
   response shape (linear, threshold); zero-discount share.
 - Capacity sweep for the tree model: is the under-reading capacity, or trees?

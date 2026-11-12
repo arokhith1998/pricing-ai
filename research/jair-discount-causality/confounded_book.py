@@ -42,7 +42,8 @@ _GH_W = _GH_W / _GH_W.sum()
 def make_book(n: int, seed: int, rho: float,
               quality_effect: float = QUALITY_EFFECT,
               skill_effect: float = 0.0,
-              skill_corr: float = 1.0) -> pd.DataFrame:
+              skill_corr: float = 1.0,
+              n_reps: int = N_REPS) -> pd.DataFrame:
     """Draw `n` closed deals. Returns model features, the outcome, and the
     hidden columns (`quality`, `base_logit`) needed to compute the truth.
 
@@ -54,7 +55,11 @@ def make_book(n: int, seed: int, rho: float,
     `skill_corr` is how closely skill tracks leniency: at 1.0 (default)
     skill is exactly minus the standardized bias; below that, the rest is a
     rep-level component unrelated to leniency, drawn from a separate random
-    stream so nothing else shifts."""
+    stream so nothing else shifts.
+    `n_reps` is the number of reps. At the default (12) the three named
+    reps of the product generator keep their offsets. At any other count
+    rep biases are drawn with the same overall spread (sd 0.045) and no
+    named offsets."""
     if not -1.0 < rho < 1.0:
         raise ValueError("rho must be strictly between -1 and 1")
     rng = np.random.default_rng(seed)
@@ -74,11 +79,14 @@ def make_book(n: int, seed: int, rho: float,
     region = rng.choice(REGIONS, size=n, p=[0.55, 0.30, 0.15])
     industry = rng.choice(INDUSTRIES, size=n)
 
-    rep_bias = rng.normal(0.0, 0.035, size=N_REPS)
-    rep_bias[1] += 0.06
-    rep_bias[7] += 0.05
-    rep_bias[4] -= 0.03
-    rep = rng.integers(0, N_REPS, size=n)
+    if n_reps == N_REPS:
+        rep_bias = rng.normal(0.0, 0.035, size=N_REPS)
+        rep_bias[1] += 0.06
+        rep_bias[7] += 0.05
+        rep_bias[4] -= 0.03
+    else:
+        rep_bias = rng.normal(0.0, 0.045, size=n_reps)
+    rep = rng.integers(0, n_reps, size=n)
 
     quality = rng.standard_normal(n)
     resid = RESID_SD * (rho * quality
@@ -94,7 +102,7 @@ def make_book(n: int, seed: int, rho: float,
     aligned = -(rep_bias - rep_bias.mean()) / rep_bias.std()
     rep_skill = aligned
     if skill_corr < 1.0:
-        e = np.random.default_rng(seed + 5).standard_normal(N_REPS)
+        e = np.random.default_rng(seed + 5).standard_normal(n_reps)
         e = e - e.mean()
         e = e - (e @ aligned) / (aligned @ aligned) * aligned   # unrelated part
         e = e / e.std()
