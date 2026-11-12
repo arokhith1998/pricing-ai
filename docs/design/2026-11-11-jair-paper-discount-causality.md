@@ -3,11 +3,15 @@ title: JAIR paper design doc, discount causality in negotiated B2B pricing
 created: 2026-11-11
 updated: 2026-11-11
 tags: [research, jair, causal-ml, win-model, design-doc]
-status: draft
+status: archived
 source: https://www.jair.org/index.php/jair/about/submissions
 ---
 
 # JAIR paper: identification-aware discount guidance for negotiated B2B deals
+
+> **Superseded 2026-11-11** by `2026-11-11-jair-paper-v2-analysis-and-benchmark.md`.
+> The founder repositioned the paper from a new method to an analysis and
+> benchmark paper after experiments 1 to 3. Kept for the record.
 
 Status: approved by the founder 2026-11-11. Nothing is built yet. Target
 venue: JAIR, full-length article. Target submission: about 14 weeks from
