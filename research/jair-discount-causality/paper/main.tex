@@ -97,28 +97,27 @@ information the model cannot see, a model that predicts outcomes well can
 still recommend badly, because the action and the outcome share a hidden
 cause.
 
-Negotiated pricing is a clean instance. In business-to-business sales a
+We study this problem in negotiated pricing. In business-to-business sales a
 representative (rep) chooses a discount for each deal. Vendors of pricing
 software fit a model of the probability of winning as a function of deal
 attributes and the discount, and recommend the discount that maximizes
 expected revenue. Reps discount with the deal in front of them in mind: a
 struggling deal may get a deeper discount to rescue it, or a strategically
-important one may get a deeper discount to make sure of it. Either way the
+important one may get a deeper discount to make sure of it. In both cases the
 discount carries information about the deal's prospects that is not recorded.
 
-Practitioners know this. A common response is to constrain the win model to
+Practitioners are aware of the problem, and a common response is to constrain the win model to
 be non-decreasing in discount, on the argument that a larger discount can
 never hurt the chance of winning, so a fitted curve that slopes down must be
 an artefact of confounding. The constraint is cheap, it is supported by
 standard gradient-boosting libraries, and it produces curves that are easy to
-defend to a customer. This paper started from a simple question about that
-practice: does forcing the curve to have the right sign fix the
-recommendation?
-
-It does not. We show three things.
+defend to a customer. We ask whether forcing the curve to have the right sign
+also corrects the recommendation. We find that it does not, and we make
+three contributions.
 
 \begin{enumerate}
-\item \textbf{The constraint repairs the picture, not the decision.} In a
+\item \textbf{A monotone constraint changes the fitted curve and leaves the
+decision uncorrected.} In a
 linear-index model the monotone-constrained and unconstrained models recommend
 the same discount for every strength and direction of confounding
 (Corollary~\ref{cor:neutral}). When the true response saturates, the
@@ -134,7 +133,8 @@ flips between a model that under-fits the response and one that fits it well.
 At realistic sample sizes, the capacity of the win model moves regret by more
 than confounding does.
 \item \textbf{An instrument from rep leniency works under conditions that
-sales organizations rarely guarantee, and its failures are silent.} A control
+sales organizations rarely guarantee, and its failures cannot be seen in the
+data.} A control
 function built on leave-one-out rep leniency is within a point of an oracle
 on books of 20{,}000 deals with randomly assigned reps. If lenient reps are
 also weaker or stronger sellers, the corrected model is worse than the
@@ -144,8 +144,8 @@ unrecorded deal quality, the same happens, and the balance test and
 first-stage diagnostics that the examiner-design literature recommends pass.
 \end{enumerate}
 
-The contribution is an analysis and a benchmark, not a new estimator. The
-analysis says when correction changes the decision. The benchmark, which we
+We contribute an analysis and a benchmark and do not propose a new estimator.
+The analysis says when correction changes the decision. The benchmark, which we
 release, lets methods for decision-focused learning and causal policy learning
 be tested under controlled violations of their assumptions, with regret
 measured against a known truth. Pricing is the worked setting; the questions
@@ -366,8 +366,8 @@ strictly decreasing and both recommend $\dlo$.
 
 So in the linear model the constraint changes what the user is shown, from a
 curve on which discounts hurt to one on which they do nothing, and leaves the
-recommendation and the regret unchanged. With a saturating response it does
-worse.
+recommendation and the regret unchanged. With a saturating response it
+increases regret.
 
 \begin{proposition}[Saturating response]
 \label{prop:saturating}
@@ -423,9 +423,9 @@ confounding can push $d_u$ above $d^*$, and then a lower recommendation may
 help. Part 3 is specific to a single-peaked curve; with a dip between two high
 regions the constrained recommendation can be the higher one.
 Figure~\ref{fig:curves} illustrates the mechanism: the constrained model
-recommends the point at which its curve goes flat. The constraint converts
-``the data say discount stops helping here'' into a hard stop, and under
-rescue confounding the data say so too early.
+recommends the point at which its curve goes flat. It treats the discount at
+which the observed curve stops rising as the largest discount worth giving,
+and under rescue confounding that discount is below the true optimum.
 
 \begin{figure}[t]
 \centering
@@ -515,13 +515,13 @@ which has the sign of $\partial F/\partial\hat b$, and $(1-d)r(z)>0$.
 When the optimum is at or below the mean historical discount, a flatter curve
 lowers the recommendation and a steeper one raises it. When the optimum is
 well above the mean the directions reverse: a steeper curve makes the model
-believe the deal is already won just past the pivot. So ``rescue confounding
-causes under-discounting'' is not a general statement. Together with
+believe the deal is already won just past the pivot. The claim that rescue
+confounding causes under-discounting therefore does not hold in general. Together with
 Proposition~\ref{prop:regret} this gives the practical picture: modest biases
 in the slope cost little, and the damage is concentrated where the
 recommendation is pushed to a boundary.
 
-\section{Correcting with Rep Leniency, and Why It Can Fail Silently}
+\section{Correcting with Rep Leniency and an Undetectable Failure}
 \label{sec:instrument}
 
 Suppose deals are handled by reps who differ in how much they discount for
@@ -661,8 +661,8 @@ introduced for: the unconstrained model produces a visibly decreasing curve
 for most deals under rescue confounding and the constrained model for none.
 Clipping recommendations to the observed range reduces the worst-case regret
 of the constrained model from 30.5\% to 5.2\% and the cost of the constraint
-to under a point. In this configuration it is the clip, not the constraint,
-that protects the decision. Results at 2{,}000 deals are similar
+to under a point. In this configuration the clip protects the decision and
+the constraint does not. Results at 2{,}000 deals are similar
 (Appendix~\ref{app:tables}).
 
 \subsection{Model capacity}
@@ -679,7 +679,7 @@ discount is 8.6\%.}
 \input{tables/capacity}
 \end{table}
 
-Three things stand out. First, with no confounding at all the production
+We note three results. First, with no confounding at all the production
 configuration loses 9.0\% of revenue, because fifty boosting rounds at a small
 learning rate under-read the steep initial part of the response; two hundred
 rounds lose 1.8\%. Second, added capacity moves the exposure from one
@@ -747,8 +747,8 @@ tree model.
 At 2{,}000 deals the corrected model again tracks the oracle, and both lose 3
 to 8\%. Under rescue confounding the naive model does better than either,
 because its bias offsets a small-sample tendency of the spline model to
-over-discount. The correction is doing its job; at this sample size the job is
-not worth doing in that direction.
+over-discount. The correction removes the bias as intended, but at this sample
+size removing it does not improve the decision under rescue confounding.
 
 Table~\ref{tab:reps} varies the number of reps. Six reps do about as well as
 fifty: with random assignment the number of deals, not the number of reps,
@@ -806,7 +806,7 @@ the segment median, was worse than the robust recommendation it replaced by
 
 \subsection{Non-random assignment}
 
-Finally we let assignment depend on the deal (Table~\ref{tab:assignment}).
+We then let assignment depend on the deal (Table~\ref{tab:assignment}).
 
 \begin{table}[t]
 \centering\small
@@ -849,7 +849,8 @@ evidence against the instrument.
 \item When assignment is doubtful, prefer a recommendation that is robust over
 a stated range of direct effects to either trusting the correction or falling
 back to historical practice.
-\item On small books, do not correct.
+\item On books of a few thousand deals the correction did not improve on
+the uncorrected model in our experiments.
 \end{itemize}
 
 \section{Limitations}
