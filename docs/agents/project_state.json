@@ -2,7 +2,7 @@
   "version": 1,
   "objective": "Stand up the multi-agent engineering org and prove it on a real task",
   "sprint": "2026-08-29 agent-org phase 1",
-  "updated": "2026-11-12T02:25:14Z",
+  "updated": "2026-11-12T02:40:15Z",
   "config": {
     "max_concurrent": 4
   },
@@ -4892,17 +4892,9 @@
       "id": "PK-117",
       "title": "Headline and booking link per F18",
       "agent": "web-engineer",
-      "status": "APPROVED",
+      "status": "DONE",
       "dependencies": [],
-      "owns": [
-        "web/src/lib/site-nav.ts",
-        "web/src/app/page.tsx",
-        "web/src/components/HeroHeadline.tsx",
-        "web/src/app/layout.tsx",
-        "web/src/app/opengraph-image.tsx",
-        "web/src/lib/page-metadata.ts",
-        "web/test"
-      ],
+      "owns": [],
       "branch": "agent/web-engineer/PK-117",
       "worktree": null,
       "acceptance": [
@@ -4923,7 +4915,7 @@
       },
       "blocked_by": null,
       "created": "2026-11-12T02:16:39Z",
-      "updated": "2026-11-12T02:25:14Z",
+      "updated": "2026-11-12T02:40:15Z",
       "notes": [
         {
           "ts": "2026-11-12T02:16:47Z",
@@ -4940,8 +4932,18 @@
         {
           "ts": "2026-11-12T02:25:14Z",
           "note": "CI run 43140955586"
+        },
+        {
+          "ts": "2026-11-12T02:40:11Z",
+          "note": "merged as unknown commit, human-approved by product owner"
         }
-      ]
+      ],
+      "merge_commit": null,
+      "human_approval": {
+        "approved": true,
+        "approver": "product owner",
+        "ts": "2026-11-12T02:40:11Z"
+      }
     }
   ]
 }

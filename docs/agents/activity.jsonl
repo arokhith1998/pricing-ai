@@ -512,3 +512,5 @@
 {"ts": "2026-11-12T02:22:36Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "IN_PROGRESS -> REVIEW: PR #101"}
 {"ts": "2026-11-12T02:25:12Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "REVIEW -> QA: review approve"}
 {"ts": "2026-11-12T02:25:14Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "QA -> APPROVED: CI run 43140955586"}
+{"ts": "2026-11-12T02:40:11Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
+{"ts": "2026-11-12T02:40:15Z", "event": "status", "task": "PK-117", "agent": "web-engineer", "detail": "MERGED -> DONE"}

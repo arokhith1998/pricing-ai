@@ -7,7 +7,7 @@
 Objective: Stand up the multi-agent engineering org and prove it on a real task
 Sprint: 2026-08-29 agent-org phase 1
 Active work: 0/4
-Updated: 2026-11-12T02:25:14Z
+Updated: 2026-11-12T02:40:15Z
 
 ## REVIEW
 - **PK-17** Publish a platform census of target accounts  (market-sizing-analyst, PR #62)
@@ -22,10 +22,6 @@ Updated: 2026-11-12T02:25:14Z
   - owns: docs/legal/one-page-mutual-nda-data-addendum.md
 - **PK-89** Hotfix: add stripe and chargebee to the web SOURCE_SYSTEMS union so main's web CI is green  (web-engineer, PR #92)
   - owns: web/src/lib/salesforce-adapter.ts
-
-## APPROVED
-- **PK-117** Headline and booking link per F18  (web-engineer, PR #101)
-  - owns: web/src/lib/site-nav.ts, web/src/app/page.tsx, web/src/components/HeroHeadline.tsx, web/src/app/layout.tsx, web/src/app/opengraph-image.tsx, web/src/lib/page-metadata.ts, web/test
 
 ## READY
 - **PK-114** Contact page and pricing footers follow the two sheet tabs: audit-first wording, band only on deal-guidance tiers  (web-engineer, deps PK-112,PK-113)
@@ -172,6 +168,7 @@ Updated: 2026-11-12T02:25:14Z
 - **PK-112** Restore the $10M to $100M ARR band on the pricing page and social card and pin it site-wide  (web-engineer, PR #97)
 - **PK-113** Website follows the two sheet tabs: AI pricing bottleneck positioning, 14-day audit offer, calculator entry  (web-engineer, PR #99)
 - **PK-116** Cut the site to one offer: two-item nav, /pricing to /audit, short /audit and /contact, consistent trust and legal pages  (web-engineer, PR #100)
+- **PK-117** Headline and booking link per F18  (web-engineer, PR #101)
 - **PK-12** Close the PK-9 review nits: competitor-watch Terms anchor, stale checklist line, seed-deck credential  (web-engineer, PR #85, deps PK-9)
 - **PK-14** Close the asserted-not-computed claims found by the PK-11 audit  (web-engineer, PR #81, deps PK-11)
 - **PK-15** Win model: constrain P(win) to be non-decreasing in discount so guidance never says a smaller discount wins more  (ai-engineer, PR #68)
