@@ -40,9 +40,16 @@ _GH_W = _GH_W / _GH_W.sum()
 
 
 def make_book(n: int, seed: int, rho: float,
-              quality_effect: float = QUALITY_EFFECT) -> pd.DataFrame:
+              quality_effect: float = QUALITY_EFFECT,
+              skill_effect: float = 0.0) -> pd.DataFrame:
     """Draw `n` closed deals. Returns model features, the outcome, and the
-    hidden columns (`quality`, `base_logit`) needed to compute the truth."""
+    hidden columns (`quality`, `base_logit`) needed to compute the truth.
+
+    `skill_effect` breaks the instrument on purpose: each rep gets a skill
+    equal to minus their standardized discount bias (lenient reps are weaker
+    sellers), and it enters the win logit with this weight. At 0 (default) a
+    rep changes the discount and nothing else. It consumes no random draws,
+    so books with skill_effect=0 are unchanged."""
     if not -1.0 < rho < 1.0:
         raise ValueError("rho must be strictly between -1 and 1")
     rng = np.random.default_rng(seed)
@@ -79,6 +86,8 @@ def make_book(n: int, seed: int, rho: float,
                   + np.array([REGION_WIN_EFFECT[r] for r in region])
                   + np.array([INDUSTRY_WIN_EFFECT[i] for i in industry])
                   - 0.12 * (np.log(list_acv) - 10.8))
+    rep_skill = -(rep_bias - rep_bias.mean()) / rep_bias.std()
+    base_logit = base_logit + skill_effect * rep_skill[rep]
     logit = base_logit + 1.3 * np.tanh(disc / 0.05) + quality_effect * quality
     won = rng.random(n) < 1.0 / (1.0 + np.exp(-logit))
 
