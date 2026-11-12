@@ -496,3 +496,7 @@
 {"ts": "2026-11-11T22:28:19Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "APPROVED -> MERGED: merged as unknown commit, human-approved by product owner"}
 {"ts": "2026-11-11T22:28:24Z", "event": "status", "task": "PK-107", "agent": "web-engineer", "detail": "MERGED -> DONE"}
 {"ts": "2026-11-11T22:31:43Z", "event": "status", "task": "PK-114", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-12T01:03:10Z", "event": "add", "task": "PK-116", "agent": "web-engineer", "detail": "Cut the site to one offer: two-item nav, /pricing to /audit, short /audit and /contact, consistent trust and legal pages"}
+{"ts": "2026-11-12T01:03:12Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "BACKLOG -> READY"}
+{"ts": "2026-11-12T01:03:15Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "READY -> ASSIGNED: claimed 1 path(s)"}
+{"ts": "2026-11-12T01:03:16Z", "event": "status", "task": "PK-116", "agent": "web-engineer", "detail": "ASSIGNED -> IN_PROGRESS"}
