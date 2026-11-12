@@ -43,10 +43,10 @@ most cases but not that one.
 |---|---|---|
 | A1 | Observational win curve under rep-driven confounding: closed form, pivot at the mean discount, sign-flip threshold | Proposition 1, sketched and simulated |
 | A2 | A monotone constraint is inactive when the naive slope is positive and flat when it is negative; decision-neutral in the linear model | Proposition 2 and Corollary 2.1, sketched and simulated |
-| A3 | Under a saturating response and rescue confounding, the constrained recommendation is weakly lower than the unconstrained one, so the constraint costs regret | **To write.** Seen in experiment 1; needs a statement and proof |
+| A3 | Under a saturating response and rescue confounding, the constrained recommendation is weakly lower than the unconstrained one, so the constraint costs regret | Proposition 4, sketched and simulated. Holds for a concave response; the regret part needs the unconstrained pick to be at or below the optimum |
 | A4 | The direction of the decision error depends on the optimum's position relative to the mean historical discount | Lemma 3.1, sketched and simulated |
 | A5 | Regret is bounded, quadratic near zero error, and constant once the floor binds, which happens before the slope changes sign | Proposition 3, sketched and simulated |
-| A6 | Leniency-aligned rep skill is observationally equivalent to a different discount effect: no test on (covariates, rep, discount, outcome) can detect it | **To write.** Argued informally in `exclusion.py`; needs a formal statement |
+| A6 | Leniency-aligned rep skill is observationally equivalent to a different discount effect: no test on (covariates, rep, discount, outcome) can detect it | Proposition 5, sketched and simulated. Exact in the additive model; a monotonicity belief gives partial leverage when lenient reps are weaker |
 
 **B. Benchmark.** An open, seeded, semi-synthetic generator with a known
 causal curve and these dials: confounding direction and strength, hidden
@@ -110,7 +110,8 @@ Appendix: proofs, reproducibility checklist, extra tables.
 ## 5. Work remaining
 
 **Theory**
-- State and prove A3 and A6.
+- A3 and A6 are now stated with proof sketches (Propositions 4 and 5).
+  Turn all six sketches into full proofs.
 - A human checks every proof. The sketches were machine-drafted.
 
 **Experiments**

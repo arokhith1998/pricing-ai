@@ -223,3 +223,143 @@ If Corollary 2.1 holds up on the synthetic book, the monotone constraint in
 `pricing/model.py` is making the win curve look defensible without changing
 what is recommended. That is worth a board ticket once the benchmark exists.
 It is not a reason to change the model today.
+
+---
+
+# Propositions 4 and 5 (added 2026-11-11, after experiments 1 to 3)
+
+These are results A3 and A6 of the v2 design. Checked numerically by
+`research/jair-discount-causality/verify_propositions_2.py` (all assertions
+pass). Proof sketches only; a human check is still required.
+
+## Proposition 4 (a saturating response: the constraint lowers the recommendation)
+
+Keep the setup above, but let the discount effect be any increasing concave
+function $g$ in place of $\theta d$:
+$Y = 1\{\alpha + g(d) + \beta q + \varepsilon > 0\}$. Let $\pi(d)$ be the
+observational win curve on $[d_{lo}, d_{hi}]$, $\tilde\pi$ its monotone
+(non-decreasing) fit, and $d_u$, $d_c$ the discounts that maximize
+$(1-d)\pi(d)$ and $(1-d)\tilde\pi(d)$ (smallest maximizer if tied).
+
+1. **The observational curve is single-peaked.**
+   $\pi(d) = \Phi\big((\alpha + g(d) + \beta\rho(d-m)/\sigma_d)/\sqrt{1+\beta^2(1-\rho^2)}\big)$.
+   Under whale confounding it is increasing. Under rescue confounding it rises
+   while $g'(d) > \beta|\rho|/\sigma_d$ and falls afterwards: a hump whenever
+   that threshold is crossed inside the range.
+2. **The constrained fit follows the curve, then goes flat.** There is a point
+   $t$, at or before the peak, with $\tilde\pi = \pi$ on $[d_{lo}, t]$ and
+   $\tilde\pi$ constant on $(t, d_{hi}]$. If $t > d_{lo}$ the constant is
+   $\pi(t)$. If the falling side is heavy enough, $t = d_{lo}$ and the whole
+   fit is flat.
+3. **The constraint never raises the recommendation:** $d_c \le d_u$, and
+   $d_c \le t$. Under whale confounding $d_c = d_u$.
+4. **It cannot reduce regret when the unconstrained model already
+   under-discounts.** If $d_u \le d^*$ then
+   regret$(d_c) \ge$ regret$(d_u)$, strictly when $d_c < d_u$.
+
+*Sketch.* (1) $q \mid d$ is normal with mean linear in $d$ whatever $g$ is, so
+the index is $g(d)$ plus a linear term with slope $\beta\rho/\sigma_d$;
+concavity of $g$ makes its derivative cross zero at most once, from above.
+(2) The monotone fit of a function that rises then falls pools the falling
+side together with enough of the rising side to make the pooled average equal
+the value of the curve at the pooling point (the pool-adjacent-violators
+solution; Barlow et al. 1972, citation from memory, to confirm). (3) On the
+flat part $(1-d)\tilde\pi(d)$ strictly falls, so $d_c \le t$. Left of $t$ the
+two objectives are the same function. If $d_u \le t$ the two picks coincide;
+if $d_u > t$ then $d_c \le t < d_u$. (4) True revenue is single-peaked
+(Proposition 3), hence increasing below $d^*$.
+
+*What is not claimed.* Part 4 needs $d_u \le d^*$. Lemma 3.1 shows mild rescue
+confounding can push $d_u$ above $d^*$, and then a lower $d_c$ may help. Part 3
+is specific to a single-peaked curve: with a dip between two high regions the
+constrained pick can be higher (the script has a counterexample).
+
+*Check.* 48 parameter settings; 27 produce a hump; in 22 the constrained pick
+is strictly lower. With $\alpha=-0.5$, $\beta=0.55$, mean discount 12%:
+
+| $\rho$ | Flat from | Unconstrained pick | Constrained pick | True best | Regret, unconstrained | Regret, constrained |
+|---|---|---|---|---|---|---|
+| -0.9 | 0% | 4.1% | 0% | 8.9% | 10.5% | 50.8% |
+| -0.7 | 1.5% | 4.9% | 1.5% | 8.9% | 6.5% | 33.0% |
+| -0.5 | 3.1% | 5.7% | 3.1% | 8.9% | 3.6% | 17.1% |
+| -0.3 | 5.0% | 6.7% | 5.1% | 8.9% | 1.5% | 5.7% |
+| -0.1 | 8.6% | 8.0% | 8.0% | 8.9% | 0.2% | 0.2% |
+| +0.5 | never | 19.8% | 19.8% | 8.9% | 9.6% | 9.6% |
+
+These are population values. They are larger than the tree-model gaps in
+experiment 1 (6 to 11 points), as expected: a shallow tree ensemble
+approximates both curves coarsely.
+
+**Reading.** In every strict case the constrained model recommends the point
+where its curve goes flat. The constraint turns "the data say discount stops
+helping here" into a hard stop, and under rescue confounding the data say
+that too early.
+
+## Proposition 5 (leniency-aligned rep skill cannot be detected)
+
+Let reps differ in leniency $b_r$ and in skill $s_r$:
+
+$$d = f(x) + b_r + v, \qquad
+Y = 1\{h(x) + g(d) + \delta s_r + \beta q + \varepsilon > 0\},$$
+
+with $(v, q, \varepsilon)$ independent of the covariates and of the rep.
+Exclusion holds when $\delta = 0$.
+
+1. **Linear case.** If $s_r = \kappa b_r$, the data are generated identically,
+   deal by deal, by a model with no rep skill:
+   $$Y = 1\{\tilde h(x) + \tilde g(d) + \tilde u > 0\},\quad
+   \tilde g(d) = g(d) + \delta\kappa d,\ \
+   \tilde h(x) = h(x) - \delta\kappa f(x),\ \
+   \tilde u = \beta q - \delta\kappa v + \varepsilon.$$
+   Here $\tilde u$ is independent of the covariates and the rep, so this
+   second model satisfies every assumption of the instrument. No test on
+   (covariates, rep, discount, outcome) can distinguish the two.
+2. **They disagree about the discount.** The causal effect of discount on the
+   index is $g'(d)$ in the first model and $g'(d) + \delta\kappa$ in the
+   second. A control function fitted to the data recovers the second.
+3. **General case.** If skill is any function of leniency, $s_r = s(b_r)$,
+   then because $b_r = d - f(x) - v$, the outcome is independent of the
+   identity of the rep given $(x, d, v)$. Tests of whether reps differ beyond
+   what discount explains have power equal to their size.
+4. **What is detectable.** Write $s_r = \kappa b_r + e_r$ with $e_r$ unrelated
+   to leniency. The $e_r$ part breaks the conditional independence in 3 and is
+   visible as unexplained rep differences. The $\kappa b_r$ part is not.
+
+*Sketch.* Substitute $b_r = d - f(x) - v$ into $\delta\kappa b_r$ and collect
+terms. For 3, $b_r$ is a deterministic function of $(x, d, v)$, so conditioning
+on them fixes the skill.
+
+*Check.* 200,000 simulated deals, 12 reps, skill worth 0.3 logit per standard
+deviation of leniency (lenient reps weaker): the two models produce the same
+outcome for every deal. The true best discount is 8.8%. The no-skill model
+that fits the same data says 3.9%, and acting on it loses 11.0%. Experiment 3
+confirms the test side: the rep test flagged aligned skill no more often than
+it flagged a valid instrument.
+
+**One piece of leverage.** In that example the causal curve of the no-skill
+model peaks at a 5.1% discount and then falls: it says larger discounts reduce
+the chance of winning. An analyst who believes discounts never hurt can reject
+it on that ground. This only works when lenient reps are weaker
+($\delta\kappa < 0$) and the response saturates. When lenient reps are
+stronger, the alternative curve is steeper and still monotone, and nothing
+rules it out.
+
+**Consequences.**
+- Abstention cannot be triggered by a test for this failure. It needs outside
+  information (an outcome discounts cannot affect, such as progression before
+  a quote is issued) or a stated sensitivity range.
+- A monotonicity belief about the causal curve, the same belief the product
+  constraint encodes, is useful here as a falsification check on the
+  corrected curve even though it is harmful as a constraint on the
+  uncorrected one. That contrast may be the cleanest single message of the
+  paper.
+
+## What is still not shown (updated)
+
+- Propositions 4 and 5 are population statements for one cohort. Covariates
+  enter only through "conditional on x".
+- Proposition 4 assumes normal quality and a linear first stage. The
+  single-peaked shape may fail otherwise.
+- The linear case of Proposition 5 needs an additive first stage. Clipping
+  discounts at zero breaks it slightly.
+- Nothing here addresses finite samples or few reps.
