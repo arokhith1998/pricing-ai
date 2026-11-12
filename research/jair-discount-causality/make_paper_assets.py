@@ -25,7 +25,8 @@ def cell(mean: float, se: float) -> str:
 
 
 def signed(mean: float, se: float) -> str:
-    return f"${mean:+.1f}$ ({se:.1f})"
+    m = round(mean, 1) + 0.0          # no "-0.0"
+    return ("$0.0$" if m == 0 else f"${m:+.1f}$") + f" ({se:.1f})"
 
 
 def stats(df: pd.DataFrame, keys: list[str], col: str, value: str = "regret_pct"):
