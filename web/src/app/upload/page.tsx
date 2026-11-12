@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import UploadClient from "@/components/UploadClient";
 import PageGuide from "@/components/PageGuide";
 import UploadPrivacyCallout from "@/components/UploadPrivacyCallout";
 
 export const dynamic = "force-dynamic";
+// PK-116 (F17): reachable by direct URL only, behind the gate; never indexed.
+export const metadata: Metadata = { title: "Run it on your data", robots: { index: false } };
 
 const REQUIRED = [
   ["opportunity_id", "Unique opportunity id (one row per opportunity)"],

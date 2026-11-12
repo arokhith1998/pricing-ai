@@ -175,12 +175,6 @@ export default function LeakageCalculator() {
             >
               See the real diagnostic
             </a>
-            <a
-              href="/crm"
-              className="rounded-lg border border-mist bg-surface px-4 py-2 text-sm font-medium text-fg transition hover:border-teal"
-            >
-              Connect Salesforce
-            </a>
           </div>
         </div>
       </div>

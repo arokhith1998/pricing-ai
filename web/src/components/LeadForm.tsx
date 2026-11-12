@@ -197,7 +197,7 @@ export default function LeadForm({ next }: { next?: string } = {}) {
         if (!mountedRef.current) return;
         setBusy(false);
         setError(
-          "That did not unlock. Please check that your browser allows cookies and try again.",
+          "That did not open. Please check that your browser allows cookies and try again.",
         );
       }, UNLOCK_TIMEOUT_MS);
     } else {
@@ -325,7 +325,7 @@ export default function LeadForm({ next }: { next?: string } = {}) {
         disabled={busy || !ready}
         className="w-full rounded-lg bg-navy px-4 py-2.5 font-medium text-white transition hover:bg-navy/90 disabled:opacity-50"
       >
-        {busy ? "Unlocking…" : "Unlock the full diagnostic"}
+        {busy ? "Opening…" : "See the full sample diagnostic"}
       </button>
       {!ready && !busy && missingHint ? (
         <p className="text-center text-xs text-slate">{missingHint}</p>

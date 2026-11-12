@@ -1,240 +1,69 @@
-import type { Metadata } from "next";
+import Link from "next/link";
+import { PageHeader, Section } from "@/components/ui";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = { title: "Trust & Security · Pricekeel" };
+// PK-116 (F17): this page says what is true today and nothing more. Update it
+// when a control lands, a vendor changes, or the engagement terms change.
+export const dynamic = "force-static";
+export const metadata = pageMetadata({
+  title: "Trust",
+  description:
+    "How Pricekeel handles your files: a mutual NDA first, exports only, used only for your audit, deleted within 30 days, and not SOC 2 certified.",
+  path: "/trust",
+});
 
-// NOTE TO FOUNDER: this page describes Pricekeel's security posture as of
-// today. Update when SOC 2 readiness moves, when a new control lands, when
-// you change a vendor, or when an incident happens. Honesty beats marketing
-// here: pricing teams' IT reviewers will read this carefully.
-
-const EFFECTIVE = "9 November 2026";
+const EFFECTIVE = "11 November 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold text-fg">{title}</h2>
-      <div className="mt-2 space-y-3 text-sm leading-relaxed text-muted">{children}</div>
-    </section>
-  );
-}
+const TRUST_STATEMENTS: string[] = [
+  "Pricekeel is run by one founder. We accept no customer files until a mutual NDA and data addendum are signed.",
+  "We work only from exports you send: no API keys, no system connections, no end-user personal data.",
+  "Files are used only to deliver your audit. They are not used to improve models that benefit other customers without your written consent.",
+  "We delete them within 30 days of the engagement ending and confirm it in writing.",
+  "We are not SOC 2 certified.",
+];
 
 export default function TrustPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold text-fg">Trust &amp; Security</h1>
-      <p className="mt-2 text-sm text-muted">
-        Updated {EFFECTIVE} ·{" "}
-        <span className="inline-block rounded border border-mist px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Pre-SOC&nbsp;2 · controls live
-        </span>
-      </p>
-
-      <p className="mt-6 text-sm leading-relaxed text-muted">
-        Pricekeel handles pricing-strategy data, the kind a CFO and a Head
-        of Pricing both have opinions about. This page describes how we
-        keep it safe, with no marketing-grade hedging. If anything here
-        does not match what you need for your IT review, email{" "}
-        <a className="text-teal underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>{" "}
-        and we will tell you straight.
-      </p>
-
-      <Section title="Where the data lives">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            <span className="font-medium text-fg">Web (pricekeel.com).</span>{" "}
-            Vercel, United States (us-east-1) with global edge.
-          </li>
-          <li>
-            <span className="font-medium text-fg">API (api.pricekeel.com).</span>{" "}
-            Render, United States (Virginia).
-          </li>
-          <li>
-            <span className="font-medium text-fg">Database (leads, access codes, encrypted CRM tokens, mappings, and decision log).</span>{" "}
-            Neon Postgres, United States (AWS us-east).
-          </li>
+    <main id="main" tabIndex={-1} className="outline-none">
+      <Section width="prose">
+        <PageHeader title="Trust" lead={`Updated ${EFFECTIVE}.`} />
+        <ul className="pk-body m-0 mt-6 list-disc space-y-3 pl-5 text-muted marker:text-teal">
+          {TRUST_STATEMENTS.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
         </ul>
-        <p>
-          The complete subprocessor list with DPA links is on our{" "}
-          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>.
+        <p className="pk-body mt-4 text-muted">
+          Ask{" "}
+          <a className="text-teal underline" href={`mailto:${CONTACT}`}>
+            {CONTACT}
+          </a>{" "}
+          anything specific.
         </p>
-      </Section>
 
-      <Section title="What we do NOT store">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            Row-level deal data uploaded for diagnostics is processed in
-            memory and not persisted after the analysis completes.
-          </li>
-          <li>
-            Live Salesforce Opportunity rows are fetched server-to-server and
-            are not persisted in the Pricekeel database. Only connection and
-            mapping metadata, sync health, and the decision log are retained.
-          </li>
-          <li>
-            Documents you upload to the copilot are chunked + embedded in
-            memory; raw documents are not written to disk on the API
-            server.
-          </li>
-          <li>
-            Competitor pricing pages are cached for a maximum of one hour
-            in memory only, never persisted.
-          </li>
-          <li>
-            We do not use Customer Data to train any model. Our LLM
-            provider, Anthropic, is bound by its Commercial Terms, which
-            state that it may not train models on customer content, and by
-            its data-processing addendum. Deal rows from CSV uploads and live
-            Salesforce rows are never sent; documents you upload to the
-            copilot are sent in chunks, so do not upload deal exports as
-            documents.
-          </li>
-        </ul>
-      </Section>
+        <h2 className="pk-h3 m-0 mt-10">Where the website runs</h2>
+        <p className="pk-body mt-3 text-muted">
+          This website is hosted on Vercel in the United States. If you send a message through a form
+          on the site, it is stored in a Neon Postgres database in the United States. Connections use
+          TLS, and Neon encrypts the database at rest. Our vendors are listed on the{" "}
+          <Link className="text-teal underline" href="/subprocessors">
+            subprocessors page
+          </Link>
+          . How we handle personal data on this website is in the{" "}
+          <Link className="text-teal underline" href="/privacy">
+            privacy policy
+          </Link>
+          .
+        </p>
 
-      <Section title="Encryption">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            <span className="font-medium text-fg">In transit:</span> TLS 1.2+
-            enforced everywhere (HSTS preload-eligible, no plaintext
-            endpoints).
-          </li>
-          <li>
-            <span className="font-medium text-fg">At rest:</span> Neon
-            encrypts the database at rest by default (AES-256). Render and
-            Vercel encrypt their storage volumes at rest.
-          </li>
-          <li>
-            Secrets (API keys, database connection string, app signing
-            secret) are stored in Vercel/Render encrypted environment
-            variable stores and never appear in the codebase.
-          </li>
-          <li>
-            Salesforce access and refresh tokens are encrypted with AES-256-GCM
-            before Neon storage and are never exposed to browser JavaScript.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="Access control">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            Only the founder has admin access to production infrastructure
-            (Vercel, Render, Neon, GoDaddy DNS). MFA enforced on every
-            account.
-          </li>
-          <li>
-            The Neon database is reached server-side only with a connection
-            string held in encrypted environment variables. No public client
-            has direct database access.
-          </li>
-          <li>
-            Two-tier funnel gate: the captured-lead cookie unlocks the
-            sample diagnostic; the access-code cookie unlocks customer
-            data upload and CRM workspace. Access codes are issued only after a signed NDA.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="AI handling">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            The cloud LLM sees only aggregate analysis figures, column
-            header names, the document chunks you upload, your question
-            text, and (for competitor watch) the public pricing-page text
-            you submit. <strong>Deal rows from CSV uploads and live
-            Salesforce rows are never sent to the cloud LLM.</strong> Documents you upload to the copilot for
-            Q&amp;A are sent in chunks, so do not upload deal exports as
-            documents. Anthropic is the only LLM provider that narrates or
-            maps your analysis; the optional web search (Perplexity Sonar,
-            Tavily) receives question text only. See the{" "}
-            <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
-            for the data-processing terms and link status.
-          </li>
-          <li>
-            Recommendations are generated by deterministic Python code; the
-            LLM only narrates them and never computes a figure. Every
-            dollar figure traces to a key in the analysis dict, and the LLM
-            is forbidden in its system prompt from inventing numbers. This
-            is for explainability: a reviewer can trace each number to the
-            code that produced it.
-          </li>
-          <li>
-            Every decision the copilot surfaces is logged with its
-            supporting math, so a CFO can audit any recommendation back to
-            the source signal.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="Operational controls">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            <span className="font-medium text-fg">Change management:</span>{" "}
-            every production change ships through a GitHub pull request
-            with a CI build. The main branch deploys automatically; preview
-            branches deploy to isolated URLs.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Backups:</span> Neon
-            retains point-in-time restore history for the database. Code is
-            mirrored on GitHub.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Monitoring:</span> Render
-            health-check probes /health every minute. Error tracking is in
-            implementation; this page will be updated when it lands.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Incident response:</span>{" "}
-            we will notify affected customers within 72 hours of becoming
-            aware of a confirmed breach involving their data. Notification
-            goes to the email address on file.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="Compliance posture">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>
-            <span className="font-medium text-fg">GDPR + UK GDPR:</span>{" "}
-            data subject rights honored; Standard Contractual Clauses in
-            place via subprocessor DPAs; lawful basis for lead-form data is
-            consent.
-          </li>
-          <li>
-            <span className="font-medium text-fg">CCPA / CPRA:</span> we do
-            not sell or share personal information.
-          </li>
-          <li>
-            <span className="font-medium text-fg">EU AI Act:</span> the
-            Pricekeel diagnostic and copilot are informational systems with
-            human-in-the-loop decision-making; we treat them as
-            &ldquo;limited risk&rdquo; under the Act and disclose AI
-            involvement everywhere it appears.
-          </li>
-          <li>
-            <span className="font-medium text-fg">SOC 2:</span> not yet
-            certified. The controls described above are implemented;
-            external Type I audit is planned once the customer base
-            supports the spend.
-          </li>
-          <li>
-            <span className="font-medium text-fg">HIPAA / PCI / FedRAMP:</span>{" "}
-            not in scope. We do not process protected health information,
-            cardholder data, or U.S. government data.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="Vulnerability disclosure">
-        <p>
-          If you believe you have found a security vulnerability in
-          Pricekeel, please email{" "}
-          <a className="text-teal underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>{" "}
-          rather than disclosing it publicly. We will acknowledge within
-          two business days and work with you on a coordinated disclosure.
-          We do not yet offer a paid bug bounty.
+        <h2 className="pk-h3 m-0 mt-10">Reporting a vulnerability</h2>
+        <p className="pk-body mt-3 text-muted">
+          If you believe you have found a security problem, email{" "}
+          <a className="text-teal underline" href={`mailto:${CONTACT}`}>
+            {CONTACT}
+          </a>{" "}
+          rather than disclosing it publicly. We will acknowledge within two business days. We do not
+          offer a paid bug bounty.
         </p>
       </Section>
     </main>

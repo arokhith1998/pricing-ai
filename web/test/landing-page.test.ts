@@ -14,6 +14,7 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import Landing, { dynamic, metadata } from "@/app/page";
+import { BOOKING_LABEL, BOOKING_URL } from "@/lib/site-nav";
 import { marginViolations, stringLiterals } from "./cost-basis-guard";
 
 afterEach(cleanup);
@@ -30,9 +31,10 @@ describe("Landing page", () => {
       "For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
     );
     // The h1 is the first thing in the main, and the audience sentence follows it.
+    // The hero then carries the booking button and one quiet link to /audit.
     const hero = container.querySelector("main > section");
     expect(hero?.textContent).toBe(
-      "We stop AI companies from losing money on heavy users.For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.",
+      "We stop AI companies from losing money on heavy users.For B2B and AI software companies moving from flat or per-seat to usage or outcome pricing.Book a 20-minute callSee the 14-day audit",
     );
   });
 
@@ -56,18 +58,26 @@ describe("Landing page", () => {
     }
   });
 
-  it("states the offer in three lines with one call to action to /audit", () => {
+  it("states the offer in three lines, with no validated-intake wording", () => {
     const { container } = render(createElement(Landing));
     const lines = [...container.querySelectorAll('[data-testid="offer"] > li')].map((l) => l.textContent);
     expect(lines).toEqual([
       "A done-for-you audit of your billing and cost exports: which customers and plans cost more to serve than they pay, on contribution margin, customer-supplied cost basis, and a packaging structure for you to decide on.",
-      "14 days from validated intake.",
+      "14 days from the day your files arrive and check out.",
       "$7,500 fixed, paid upfront.",
     ]);
+    expect(text().toLowerCase()).not.toContain("validated intake");
+  });
+
+  it("has one booking button using the constant, and a quiet link to /audit", () => {
+    const { container } = render(createElement(Landing));
     const links = [...container.querySelectorAll("main a")];
-    expect(links).toHaveLength(1);
-    expect(links[0].getAttribute("href")).toBe("/audit");
-    expect(links[0].textContent).toBe("See the 14-day audit");
+    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      [BOOKING_LABEL, BOOKING_URL],
+      ["See the 14-day audit", "/audit"],
+    ]);
+    expect(links[0].className).toContain("bg-teal");
+    expect(links[1].className).not.toContain("bg-teal");
   });
 
   it("has exactly three sections and ordered h2s, nothing else", () => {

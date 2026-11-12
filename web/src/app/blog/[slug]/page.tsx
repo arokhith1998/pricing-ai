@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPost, renderMarkdown } from "@/lib/blog";
 import { fmtDate } from "@/lib/format";
+import { Button } from "@/components/ui";
+import { BOOKING_LABEL, BOOKING_URL } from "@/lib/site-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +15,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = getPost(slug);
-  if (!post) return { title: "Post not found" };
+  if (!post) return { title: "Post not found", robots: { index: false } };
   // The root layout's title template appends "· Pricekeel".
   return {
     title: post.title,
     description: post.excerpt,
     alternates: { canonical: `/blog/${post.slug}` },
+    // PK-116 (F17): posts are unlinked and noindexed.
+    robots: { index: false },
     openGraph: {
       type: "article",
       url: `/blog/${post.slug}`,
@@ -61,25 +65,11 @@ export default async function PostPage({
       />
 
       <section className="mt-12 rounded-2xl border border-teal/40 bg-surface px-6 py-8 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">
-          See it on real numbers
-        </p>
-        <h2 className="mt-2 text-xl font-bold text-fg">
-          This is the same math the diagnostic runs on your own book.
+        <h2 className="text-xl font-bold text-fg">
+          Twenty minutes on how you price per unit.
         </h2>
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/sample"
-            className="rounded-lg bg-teal px-5 py-3 font-semibold text-bg transition hover:-translate-y-0.5 hover:bg-teal/90"
-          >
-            Explore a live sample
-          </Link>
-          <Link
-            href="/contact"
-            className="rounded-lg border border-mist bg-surface-2 px-5 py-3 font-medium text-fg transition hover:border-teal"
-          >
-            Bring one real discount exception
-          </Link>
+        <div className="mt-5 flex justify-center">
+          <Button href={BOOKING_URL}>{BOOKING_LABEL}</Button>
         </div>
       </section>
     </main>

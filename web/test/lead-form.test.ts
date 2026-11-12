@@ -48,7 +48,7 @@ describe("LeadForm", () => {
     render(createElement(LeadForm));
     fillRequiredFields();
 
-    const button = screen.getByRole("button", { name: /unlock the full diagnostic/i });
+    const button = screen.getByRole("button", { name: /see the full sample diagnostic/i });
     fireEvent.click(button);
 
     // router.replace was called optimistically...
@@ -57,14 +57,14 @@ describe("LeadForm", () => {
     // bounced back and Next.js did not remount us), so the busy state must
     // eventually clear on its own instead of spinning forever. getByText
     // throws if the spinner label is not present, which is assertion enough.
-    screen.getByText(/unlocking/i);
+    screen.getByText(/opening/i);
 
     await waitFor(
-      () => screen.getByText(/that did not unlock/i),
+      () => screen.getByText(/that did not open/i),
       { timeout: UNLOCK_TIMEOUT_MS + 1500 },
     );
 
-    const buttonAfter = screen.getByRole("button", { name: /unlock the full diagnostic/i });
+    const buttonAfter = screen.getByRole("button", { name: /see the full sample diagnostic/i });
     expect((buttonAfter as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -77,7 +77,7 @@ describe("LeadForm", () => {
 
     const { unmount } = render(createElement(LeadForm));
     fillRequiredFields();
-    fireEvent.click(screen.getByRole("button", { name: /unlock the full diagnostic/i }));
+    fireEvent.click(screen.getByRole("button", { name: /see the full sample diagnostic/i }));
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/diagnostic"));
 

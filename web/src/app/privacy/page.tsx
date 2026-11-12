@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LEGAL_ENTITY, LEGAL_JURISDICTION, ENTITY_FILLED } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
+export const metadata: Metadata = { title: "Privacy Policy" };
 
 // NOTE TO FOUNDER: this is an accurate description of what the app does today
 // AND covers the 11 substantive gaps the 2026-05-30 legal audit identified
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Privacy Policy · Pricekeel" };
 // It is NOT legal advice. Fill the [bracketed] entity/jurisdiction fields and
 // have a lawyer review before relying on it.
 
-const EFFECTIVE = "9 November 2026";
+const EFFECTIVE = "11 November 2026";
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "adhithya@pricekeel.com";
 
 // Until incorporation completes, name Pricekeel plainly instead of rendering
@@ -64,60 +64,26 @@ export default function PrivacyPage() {
           (Art. 6(1)(a)) via the consent checkbox on the lead form.
         </p>
         <p>
-          <span className="font-medium text-fg">Salesforce connection and live CRM data.</span>{" "}
-          When an authorized customer connects Salesforce, we store the org and
-          user identifiers, instance URL, field mapping, sync health, and OAuth
-          access/refresh tokens. Tokens are encrypted by Pricekeel before they
-          are written to Neon and are never returned to browser JavaScript. Live
-          Opportunity rows are fetched server-to-server, analyzed in memory by
-          the protected pricing service, and not persisted in the Pricekeel
-          database or sent to a cloud LLM.
+          <span className="font-medium text-fg">Files you send for an audit.</span>{" "}
+          After a mutual NDA and data addendum are signed, you send billing and cost
+          exports with customers replaced by codes. We do not ask for API keys, system
+          connections or end-user personal data. We use the files only to deliver your
+          audit, and we delete them within 30 days of the engagement ending and confirm
+          it in writing.
           <br />
-          <span className="text-fg">Legal basis (GDPR):</span> performance of
-          the engagement (Art. 6(1)(b)) and our legitimate interest in securing
-          the integration (Art. 6(1)(f)).
-        </p>
-        <p>
-          <span className="font-medium text-fg">Data you upload for analysis.</span>{" "}
-          When you run the diagnostic on your own CSV or upload documents to
-          the copilot, those files are processed in memory to compute your
-          results and are then deleted. We do not store your uploaded deal
-          data and do not use it to train any model.
-          <br />
-          <span className="text-fg">Legal basis (GDPR):</span> performance of
-          the engagement we have with you (Art. 6(1)(b)) for paying
-          customers, or your explicit consent (Art. 6(1)(a)) for ad-hoc use.
-        </p>
-        <p>
-          <span className="font-medium text-fg">Decision records.</span>{" "}
-          When you log an approval or an exception request through the
-          governance loop, we retain that record: the deal identifier, the
-          requested and recommended discount, the policy floor, the figures
-          shown with the verdict, the justification, and the name of the
-          person who logged it. Retaining this is the product: the decision
-          log is your audit trail, kept until it is deleted. There is no
-          automatic purge today: we delete it manually, by customer
-          reference, on request or at the end of the engagement. This does
-          not change how we handle uploaded files: row-level CSV deal data
-          is still processed in memory and never stored.
-          <br />
-          <span className="text-fg">Legal basis (GDPR):</span> performance of
-          the engagement we have with you (Art. 6(1)(b)).
+          <span className="text-fg">Legal basis (GDPR):</span> performance of the
+          engagement we have with you (Art. 6(1)(b)).
         </p>
         <p>
           <span className="font-medium text-fg">Access codes.</span> If you
-          are issued an access code, we record it and when it is used.
+          are issued an access code for a customer workspace, we record it and when it
+          is used. The workspace is available only by direct invitation and is not part
+          of the audit. Before you connect anything to it, we tell you in writing what
+          it stores.
           <br />
           <span className="text-fg">Legal basis (GDPR):</span> our legitimate
           interest in controlling access to non-public functionality (Art.
           6(1)(f)).
-        </p>
-        <p>
-          <span className="font-medium text-fg">Pricing URLs you submit.</span>{" "}
-          For the Competitor Watch feature, we fetch and analyze the
-          competitor pricing URLs you enter. We honor robots.txt on the
-          target site, maintain a kill-switch for any host that asks us to
-          stop, and cache fetched content for no more than one hour.
         </p>
         <p>
           <span className="font-medium text-fg">Basic technical logs.</span>{" "}
@@ -130,62 +96,35 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section id="ai" title="AI processing and transparency">
+      <Section id="ai" title="AI tools">
         <p>
-          To generate the written summary, the copilot answers, the
-          column-mapping suggestions, and the competitor-plan extractions,
-          we send <span className="font-medium text-fg">aggregate analysis
-          figures, column header names, document chunks you uploaded, your
-          question text, and (for Competitor Watch) the public pricing-page
-          text</span> to our cloud LLM provider, Anthropic. See our{" "}
-          <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>{" "}
-          for its data-processing addendum link. Deal rows from CSV
-          uploads are never sent. Documents you upload to the copilot for
-          Q&amp;A are sent in chunks, so do not upload deal exports as
-          documents. Anthropic&rsquo;s Commercial Terms state that it may
-          not train models on customer content, and we do not authorize it
-          to.
-        </p>
-        <p>
-          Every recommendation surfaced by the Pricekeel copilot is
-          generated by deterministic Python from the customer&rsquo;s own
-          analysis. The cloud LLM only narrates the structured opportunities;
-          it never computes a figure, and it is forbidden in its system prompt from inventing numbers,
-          companies, or plans. Each surfaced opportunity is logged with its
-          supporting math so a CFO can audit it back to the source signal.
-        </p>
-        <p>
-          This is an AI-assisted system within the meaning of the EU AI
-          Act. We treat it as &ldquo;limited risk&rdquo; (informational,
-          human-in-the-loop) and disclose AI involvement wherever it
-          appears in the product.
+          We may use AI tools in our work. Files you send for an audit are used only to
+          deliver your audit. They are not used to improve models that benefit other
+          customers without your written consent. The data addendum names the vendors
+          that may process your files.
         </p>
       </Section>
 
       <Section id="how-we-use" title="How we use it">
         <p>
-          To provide the diagnostic and guidance, to deliver copilot
-          answers grounded in your own analysis and documents, to extract
-          and compare competitor plan structures you submit URLs for, to
-          follow up with you about your results and the product, and to
-          administer access. We do not sell or share personal information
-          for third-party advertising, and we do not use uploaded deal or
-          document data to train any model.
+          To deliver your audit, to reply to you and follow up about it, and to
+          administer access. We do not sell or share personal information for
+          third-party advertising, and we do not use files you send to improve models
+          that benefit other customers without your written consent.
         </p>
       </Section>
 
       <Section id="who-we-share" title="Who we share it with">
         <p>
-          We use a small set of subprocessors (hosting, database, LLM
-          provider, web search, email, DNS). The full current list with regions
+          We use a small set of subprocessors (hosting, database, email, DNS). The full current list with regions
           and DPA links is on our{" "}
           <a className="text-teal underline" href="/subprocessors">Subprocessors page</a>.
           They process data only on our instructions and only to provide
           their service to us.
         </p>
         <p>
-          For uploaded deal data shared during an engagement, a mutual
-          non-disclosure agreement also governs handling. A Data Processing
+          For files shared during an engagement, a mutual
+          non-disclosure agreement and a data addendum also govern handling. A Data Processing
           Addendum is available on request for business customers; email{" "}
           <a className="text-teal underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.
         </p>
@@ -193,21 +132,18 @@ export default function PrivacyPage() {
 
       <Section id="transfers" title="International data transfers">
         <p>
-          All subprocessors are headquartered in the United States. Where
-          personal data of individuals located in the EU/EEA, UK, or
-          Switzerland is transferred to the United States, the transfer
-          relies on the European Commission&rsquo;s Standard Contractual
-          Clauses (SCCs) referenced in the relevant subprocessor DPA, and on
-          the EU-U.S. Data Privacy Framework where the recipient is
-          certified. A transfer impact assessment is available on request.
+          Our hosting and database vendors are headquartered in the United States, and
+          data is stored there. If you are in the EU/EEA, the UK or Switzerland, we
+          agree the transfer mechanism with you in the data addendum before you send
+          any files. Ask us for the current position at any time.
         </p>
       </Section>
 
       <Section id="cookies" title="Cookies">
         <p>
           We use two functional cookies, both strictly necessary to operate
-          the Service: <code>pk_lead</code> (remembers that you have
-          unlocked the sample diagnostic) and <code>pk_access</code>{" "}
+          the Service: <code>pk_lead</code> (remembers that you
+          submitted the lead form for the sample) and <code>pk_access</code>{" "}
           (remembers that you have entered a valid access code for your own
           data). We do not use advertising, retargeting, or cross-site
           tracking cookies. When enabled, our analytics set no cookies at all.
@@ -232,48 +168,23 @@ export default function PrivacyPage() {
             revoked or 12 months after last use, whichever is sooner.
           </li>
           <li>
-            <span className="font-medium text-fg">Salesforce OAuth tokens and connection metadata:</span>{" "}
-            until you disconnect the org or the engagement ends. Disconnect
-            triggers best-effort revocation at Salesforce and removes the local
-            connection and encrypted tokens.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Live Salesforce Opportunity rows:</span>{" "}
-            not persisted in the Pricekeel database. They exist only for the
-            duration of the server-to-server analysis request.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Uploaded CSV / document files:</span>{" "}
-            zero. Files are processed in memory and not persisted after the
-            analysis completes.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Cached competitor pricing-page content:</span>{" "}
-            one hour maximum, in memory only.
+            <span className="font-medium text-fg">Files sent for an audit:</span>{" "}
+            deleted within 30 days of the engagement ending, with written
+            confirmation.
           </li>
           <li>
             <span className="font-medium text-fg">Server logs:</span> 30 days.
-          </li>
-          <li>
-            <span className="font-medium text-fg">Decision log (copilot recommendations, approvals, exception requests):</span>{" "}
-            kept until deleted. No automatic purge exists; we delete it
-            manually, by customer reference, on request or at the end of
-            the engagement.
           </li>
         </ul>
       </Section>
 
       <Section id="security" title="Security measures (GDPR Art. 32)">
         <p>
-          Encryption in transit (TLS 1.2+) on all endpoints. Encryption at
-          rest on the database (AES-256 via Neon). Secrets stored in
-          encrypted environment-variable stores. Server-side connection-string
-          access only to the database; no database credential in the browser.
-          Salesforce OAuth tokens receive an additional application-level
-          AES-256-GCM encryption layer before database storage.
-          Multi-factor authentication enforced on every admin account.
-          Change management via GitHub pull requests with CI. Point-in-time
-          database restore history. The full security posture is on our{" "}
+          Encryption in transit (TLS 1.2+) on all endpoints. Encryption at rest on the
+          database (AES-256 via Neon). Secrets stored in encrypted environment-variable
+          stores. Database access from the server only; no database credential in the
+          browser. Multi-factor authentication on every admin account. We are not SOC 2
+          certified. See the{" "}
           <a className="text-teal underline" href="/trust">Trust page</a>.
         </p>
       </Section>

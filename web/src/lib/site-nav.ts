@@ -3,62 +3,31 @@
 
 export type NavLink = { href: string; label: string };
 
+// PK-116 (F17): one offer, one call to action. The header is the logo, two
+// links and the booking button. Every page's primary button reads from
+// BOOKING_LABEL and BOOKING_URL, so the founder swaps in a calendar link in
+// one place. Until a calendar link exists the button opens a pre-filled email.
+export const BOOKING_LABEL = "Book a 20-minute call";
+export const BOOKING_URL = "mailto:adhithya@pricekeel.com?subject=20%20minutes%20on%20pricing";
+
 export const PRIMARY_NAV: readonly NavLink[] = [
   { href: "/audit", label: "Audit" },
-  { href: "/#workflow", label: "Product" },
-  { href: "/sample", label: "Sample" },
-  { href: "/calculator", label: "Discount leakage calculator" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/trust", label: "Trust" },
+  { href: "/contact", label: "Contact" },
 ];
 
-// Links to /crm on purpose: the proxy sends an unauthenticated visitor to
-// /login?next=/crm, and a signed-in customer lands in the workspace. The
-// /login route itself is matched for aria-current separately (CUSTOMER_LOGIN_ALSO).
-// The link is marked aria-current on /crm itself, deliberately: the visitor is
-// on the page it points to, and that is what aria-current="page" means.
-export const CUSTOMER_LOGIN: NavLink = { href: "/crm", label: "Customer login" };
-export const CUSTOMER_LOGIN_ALSO = "/login";
-export const PRIMARY_CTA: NavLink = { href: "/contact", label: "Talk to us" };
+export const PRIMARY_CTA: NavLink = { href: BOOKING_URL, label: BOOKING_LABEL };
 
 export type FooterColumn = { title: string; links: readonly NavLink[] };
 
+// Three links, one column. Subprocessors is linked from the text of /trust and
+// /privacy; the unlinked pages stay reachable by direct URL only.
 export const FOOTER_COLUMNS: readonly FooterColumn[] = [
-  {
-    title: "Product",
-    links: [
-      { href: "/audit", label: "Audit" },
-      { href: "/sample", label: "Sample" },
-      { href: "/calculator", label: "Discount leakage calculator" },
-      { href: "/pricing", label: "Pricing" },
-      { href: "/methodology", label: "Methodology" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { href: "/contact", label: "Contact" },
-      { href: "/blog", label: "Blog" },
-      { href: "/brand", label: "Brand" },
-    ],
-  },
   {
     title: "Trust and legal",
     links: [
       { href: "/trust", label: "Trust" },
       { href: "/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
-      { href: "/subprocessors", label: "Subprocessors" },
-      { href: "/licenses", label: "Licenses" },
-    ],
-  },
-  {
-    title: "Customers",
-    links: [
-      // One row for /crm: a separate "Login" row had the same destination, which
-      // is a redundant link for screen-reader users and a duplicate React key.
-      { href: "/crm", label: "CRM workspace login" },
-      { href: "/upload", label: "Run it on your data" },
     ],
   },
 ];
@@ -67,12 +36,21 @@ export const GLOBAL_DISCLOSURE =
   "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data.";
 
 /**
- * Routes where the global disclosure is hidden: they can show a customer's own
- * data (uploads, the Salesforce workspace) or public competitor pages, so
- * "None is customer data" would not hold. /diagnostic and /guidance show the
- * synthetic sample and carry the line. (Lead decision, PR 87 review.)
+ * The global disclosure is shown only on the unlinked routes that still carry
+ * synthetic or illustrative figures. No linked page carries one.
  */
-export const APP_ROUTES: readonly string[] = ["/crm", "/upload", "/competitor-watch"];
+export const DISCLOSURE_ROUTES: readonly string[] = [
+  "/sample",
+  "/calculator",
+  "/diagnostic",
+  "/guidance",
+  "/methodology",
+  "/blog",
+];
+
+export function showsDisclosure(pathname: string): boolean {
+  return DISCLOSURE_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
 
 /** Routes with no decorative chrome at all (static legal pages). */
 export const NO_CHROME_ROUTES: readonly string[] = ["/privacy", "/terms", "/licenses", "/subprocessors"];
@@ -80,10 +58,6 @@ export const NO_CHROME_ROUTES: readonly string[] = ["/privacy", "/terms", "/lice
 /** Long-form routes that get the CSS scroll-progress bar. */
 export function showsScrollProgress(pathname: string): boolean {
   return pathname.startsWith("/blog/") || pathname === "/methodology" || pathname === "/trust";
-}
-
-export function isAppRoute(pathname: string): boolean {
-  return APP_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
 /**
@@ -95,9 +69,4 @@ export function isCurrent(pathname: string, href: string): boolean {
   if (href.includes("#")) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-/** aria-current for the Customer login link: it points at /crm but /login counts too. */
-export function isCustomerLoginCurrent(pathname: string): boolean {
-  return isCurrent(pathname, CUSTOMER_LOGIN.href) || isCurrent(pathname, CUSTOMER_LOGIN_ALSO);
 }

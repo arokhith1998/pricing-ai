@@ -4,8 +4,10 @@ import LeakageCalculator from "@/components/LeakageCalculator";
 
 export const dynamic = "force-static";
 
+// PK-116 (F17): unlinked and noindexed. The route stays for old links.
 export const metadata: Metadata = {
-  title: "Discount leakage calculator · Pricekeel",
+  title: "Discount leakage calculator",
+  robots: { index: false },
   description:
     "Estimate the discount you give back every year, and the slice past a 15% deal-desk line. No signup. The math is shown, and it is the same logic our diagnostic runs on your CSV.",
 };

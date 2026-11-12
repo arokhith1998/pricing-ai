@@ -8,7 +8,7 @@ export default function Footer() {
     <footer className="mt-16 border-t border-border">
       <div className="mx-auto max-w-page px-gutter py-10 sm:px-gutter-lg">
         <FooterDisclosure />
-        <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8">
           {FOOTER_COLUMNS.map((col) => (
             <nav key={col.title} aria-label={col.title}>
               <h2 className="pk-eyebrow text-muted">{col.title}</h2>

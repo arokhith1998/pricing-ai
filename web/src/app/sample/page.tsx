@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -13,6 +14,8 @@ import CountUp from "@/components/CountUp";
 import PageGuide from "@/components/PageGuide";
 
 export const dynamic = "force-dynamic";
+// PK-116 (F17): unlinked and noindexed. The route stays for old links.
+export const metadata: Metadata = { title: "Sample diagnostic", robots: { index: false } };
 
 function MetricCard({
   label,
@@ -102,7 +105,7 @@ function UnlockBanner({ unlock }: { unlock: string }) {
             <span className="text-teal">{label}</span> is gated behind one form
           </div>
           <p className="mt-0.5 text-muted">
-            Fill the unlock form below (company email, ~20 seconds). We will
+            Fill the form below (company email, ~20 seconds). We will
             open <span className="font-medium text-ink">{UNLOCK_TARGETS[unlock]}</span>{" "}
             automatically the moment you submit.
           </p>
@@ -143,7 +146,7 @@ function LeadGate({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <h2 className="text-lg font-semibold text-fg">
-            Unlock the full diagnostic
+            See the full sample diagnostic
           </h2>
           <p className="mt-1 text-sm text-slate">
             That is{" "}

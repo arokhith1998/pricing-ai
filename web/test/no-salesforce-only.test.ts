@@ -12,7 +12,7 @@ const FILES = [
   "src/components/HeroHeadline.tsx",
   "src/components/landing/Bottlenecks.tsx",
   "src/app/contact/page.tsx",
-  "src/app/pricing/page.tsx",
+  "src/app/audit/page.tsx",
 ];
 
 describe("positioning is not Salesforce-only", () => {
@@ -37,7 +37,7 @@ describe("positioning is not Salesforce-only", () => {
   it("no navigation label names Salesforce", () => {
     const nav = readFileSync("src/lib/site-nav.ts", "utf8");
     const labels = [...nav.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1]);
-    expect(labels.length).toBeGreaterThan(10);
+    expect(labels.length).toBeGreaterThanOrEqual(5);
     for (const l of labels) expect(l).not.toMatch(/Salesforce/);
   });
 });

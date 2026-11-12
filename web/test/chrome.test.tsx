@@ -12,12 +12,14 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ChromeEffects from "@/components/ChromeEffects";
 import {
-  APP_ROUTES,
+  BOOKING_LABEL,
+  BOOKING_URL,
+  DISCLOSURE_ROUTES,
   FOOTER_COLUMNS,
   GLOBAL_DISCLOSURE,
   PRIMARY_NAV,
   isCurrent,
-  isCustomerLoginCurrent,
+  showsDisclosure,
   showsScrollProgress,
 } from "@/lib/site-nav";
 
@@ -35,30 +37,36 @@ function currents(container: HTMLElement) {
 }
 
 describe("Nav", () => {
-  it("lists Audit, Product, Sample, Discount leakage calculator, Pricing, Trust, a login and the primary CTA, and drops Blog and Live sample", () => {
+  it("is the logo, Audit, Contact and the booking button, and nothing else", () => {
     const c = nav("/");
     const desktop = c.querySelector('nav[aria-label="Primary"]')!;
-    expect([...desktop.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
-      "Audit",
-      "Product",
-      "Sample",
-      "Discount leakage calculator",
-      "Pricing",
-      "Trust",
+    expect([...desktop.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Audit", "/audit"],
+      ["Contact", "/contact"],
     ]);
+    expect(PRIMARY_NAV).toHaveLength(2);
+    const logo = c.querySelector('a[aria-label="Pricekeel home"]')!;
+    expect(logo.getAttribute("href")).toBe("/");
+    // Every link in the header, desktop and mobile: logo, 2 links, button, each of those twice minus the logo.
+    const all = [...c.querySelectorAll("a")].map((a) => a.textContent);
+    expect(all.filter((t) => t === "Audit")).toHaveLength(2);
+    expect(all.filter((t) => t === "Contact")).toHaveLength(2);
+    expect(all.filter((t) => t === BOOKING_LABEL)).toHaveLength(2);
+    expect(all).toHaveLength(7);
     const text = c.textContent ?? "";
-    expect(text).toContain("Customer login");
-    expect(text).toContain("Talk to us");
-    expect(text).not.toContain("Live sample");
-    expect(text).not.toContain("Blog");
-    const cta = [...c.querySelectorAll("a")].find((a) => a.textContent === "Talk to us")!;
-    expect(cta.getAttribute("href")).toBe("/contact");
+    for (const gone of ["Customer login", "Talk to us", "Sample", "Calculator", "Product", "Blog", "Trust"]) {
+      expect(text, gone).not.toContain(gone);
+    }
+  });
+
+  it("the primary button is the one booking label and constant", () => {
+    const c = nav("/");
+    const cta = [...c.querySelectorAll("a")].find((a) => a.textContent === "Book a 20-minute call")!;
+    expect(BOOKING_LABEL).toBe("Book a 20-minute call");
+    expect(BOOKING_URL).toBe("mailto:adhithya@pricekeel.com?subject=20%20minutes%20on%20pricing");
+    expect(cta.getAttribute("href")).toBe(BOOKING_URL);
     expect(cta.className).toContain("bg-teal");
     expect(cta.className).toContain("text-bg");
-    const login = [...c.querySelectorAll("a")].find((a) => a.textContent === "Customer login")!;
-    // Points at /crm: the proxy sends visitors without a session to /login?next=/crm.
-    expect(login.getAttribute("href")).toBe("/crm");
-    expect(login.className).not.toContain("bg-teal");
   });
 
   it("mobile menu is a native details element with 48px rows, no JS needed", () => {
@@ -67,81 +75,61 @@ describe("Nav", () => {
     expect(details).not.toBeNull();
     expect(details.querySelector("summary")).not.toBeNull();
     const mobileLinks = [...details.querySelectorAll("nav a")];
-    expect(mobileLinks.length).toBe(PRIMARY_NAV.length + 2);
+    expect(mobileLinks.length).toBe(PRIMARY_NAV.length + 1);
     for (const a of mobileLinks) expect(a.className).toContain("min-h-12");
-    // Server-rendered markup (no hydration) already contains the menu and links.
     mockPath = "/";
     const html = renderToStaticMarkup(<Nav />);
     expect(html).toContain("<details");
-    expect(html).toContain("Talk to us");
+    expect(html).toContain("Book a 20-minute call");
   });
 
   it.each([
     ["/", ["/"]],
-    ["/sample", ["/sample"]],
-    ["/calculator", ["/calculator"]],
-    ["/pricing", ["/pricing"]],
-    ["/trust", ["/trust"]],
-    ["/login", ["/crm"]],
-    ["/crm", ["/crm"]],
+    ["/audit", ["/audit"]],
     ["/contact", ["/contact"]],
-    ["/blog", []],
+    ["/trust", []],
+    ["/sample", []],
     ["/blog/some-post", []],
-    ["/methodology", []],
   ])("aria-current on %s", (path, expected) => {
     const c = nav(path);
-    // Each link renders in both the desktop bar and the mobile sheet.
     const found = new Set(currents(c));
     expect([...found].sort()).toEqual([...expected].sort());
   });
 
-  it("Customer login is current on both /crm and /login, and not on look-alikes", () => {
-    expect(isCustomerLoginCurrent("/crm")).toBe(true);
-    expect(isCustomerLoginCurrent("/login")).toBe(true);
-    expect(isCustomerLoginCurrent("/crmx")).toBe(false);
-    expect(isCustomerLoginCurrent("/loginx")).toBe(false);
-    expect(isCustomerLoginCurrent("/pricing")).toBe(false);
-  });
-
-  it("never marks the Product hash link as the current page", () => {
+  it("never marks a hash link as the current page", () => {
     expect(isCurrent("/", "/#workflow")).toBe(false);
   });
 
   it("a nested path keeps its parent current", () => {
-    expect(isCurrent("/sample/full", "/sample")).toBe(true);
-    expect(isCurrent("/samples", "/sample")).toBe(false);
+    expect(isCurrent("/audit/x", "/audit")).toBe(true);
+    expect(isCurrent("/auditx", "/audit")).toBe(false);
   });
 });
 
 describe("Footer", () => {
-  it("renders without React key or other console errors, with no duplicate hrefs in a column", () => {
+  it("renders without React key or other console errors", () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     mockPath = "/";
     render(<Footer />);
     expect(err).not.toHaveBeenCalled();
-    for (const col of FOOTER_COLUMNS) {
-      const hrefs = col.links.map((l) => l.href);
-      expect(new Set(hrefs).size, col.title).toBe(hrefs.length);
-    }
+    err.mockRestore();
   });
 
-  it("renders four labelled columns built from site-nav", () => {
+  it("has exactly three links: Trust, Privacy, Terms", () => {
     mockPath = "/";
     const { container } = render(<Footer />);
-    const titles = [...container.querySelectorAll("h2")].map((h) => h.textContent);
-    expect(titles).toEqual(["Product", "Company", "Trust and legal", "Customers"]);
-    expect(FOOTER_COLUMNS.map((c) => c.title)).toEqual(titles);
-  });
-
-  it("keeps every link the old footer had, including Blog", () => {
-    mockPath = "/";
-    const { container } = render(<Footer />);
+    expect([...container.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Trust", "/trust"],
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+    ]);
+    expect(FOOTER_COLUMNS.flatMap((c) => c.links)).toHaveLength(3);
     const hrefs = new Set([...container.querySelectorAll("a")].map((a) => a.getAttribute("href")));
     for (const h of [
       "/sample", "/crm", "/calculator", "/pricing", "/contact", "/blog", "/brand",
-      "/trust", "/privacy", "/terms", "/subprocessors", "/licenses", "/upload",
+      "/subprocessors", "/licenses", "/upload", "/methodology",
     ]) {
-      expect(hrefs.has(h), h).toBe(true);
+      expect(hrefs.has(h), h).toBe(false);
     }
   });
 
@@ -151,40 +139,36 @@ describe("Footer", () => {
     for (const a of container.querySelectorAll("a")) expect(a.className).toContain("min-h-11");
   });
 
-  it("shows the one global disclosure on public routes", () => {
-    mockPath = "/pricing";
-    const { container } = render(<Footer />);
-    const LINE =
-      "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data.";
-    expect(container.textContent).toContain(LINE);
-    expect(GLOBAL_DISCLOSURE).toBe(LINE);
-    expect((container.textContent!.match(/synthetic 2,000-deal sample/g) ?? []).length).toBe(1);
-  });
-
-  it("the hide list is exactly /crm, /upload and /competitor-watch", () => {
-    expect([...APP_ROUTES].sort()).toEqual(["/competitor-watch", "/crm", "/upload"]);
-  });
-
-  it.each(["/diagnostic", "/guidance", "/", "/calculator", "/blog", "/login"])(
-    "shows the disclosure on %s",
-    (route) => {
+  it("shows no synthetic-figures disclosure on any linked page", () => {
+    for (const route of ["/", "/audit", "/contact", "/trust", "/privacy", "/terms"]) {
       mockPath = route;
       const { container } = render(<Footer />);
-      expect(container.textContent).toContain("None is customer data.");
-    },
-  );
+      expect(container.textContent, route).not.toContain("synthetic");
+      expect(showsDisclosure(route)).toBe(false);
+      cleanup();
+    }
+  });
 
-  it.each(APP_ROUTES)("hides the disclosure on app route %s", (route) => {
-    mockPath = route;
-    const { container } = render(<Footer />);
-    expect(container.textContent).not.toContain("None is customer data");
+  it("shows the one global disclosure only on the unlinked routes that carry figures", () => {
+    const LINE =
+      "Figures on this site come from a synthetic 2,000-deal sample or are illustrative. None is customer data.";
+    expect(GLOBAL_DISCLOSURE).toBe(LINE);
+    expect([...DISCLOSURE_ROUTES].sort()).toEqual(
+      ["/blog", "/calculator", "/diagnostic", "/guidance", "/methodology", "/sample"],
+    );
+    for (const route of DISCLOSURE_ROUTES) {
+      mockPath = route;
+      const { container } = render(<Footer />);
+      expect((container.textContent!.match(/synthetic 2,000-deal sample/g) ?? []).length, route).toBe(1);
+      cleanup();
+    }
   });
 });
 
 describe("ChromeEffects", () => {
   it("renders the scroll bar only on /blog/*, /methodology and /trust", () => {
     const withBar = ["/blog/a-post", "/methodology", "/trust"];
-    const without = ["/", "/pricing", "/calculator", "/sample", "/login", "/blog", "/contact"];
+    const without = ["/", "/audit", "/calculator", "/sample", "/login", "/blog", "/contact"];
     for (const p of withBar) {
       mockPath = p;
       const { container } = render(<ChromeEffects />);
@@ -223,7 +207,7 @@ describe("ChromeEffects", () => {
 
   it("gives an unmigrated page's <main> the skip-link target id", () => {
     document.body.innerHTML = "<main>page</main>";
-    mockPath = "/pricing";
+    mockPath = "/audit";
     render(<ChromeEffects />);
     expect(document.querySelector("main")!.id).toBe("main");
     document.body.innerHTML = "";
