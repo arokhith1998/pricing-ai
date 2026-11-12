@@ -71,3 +71,18 @@ def test_robust_choice_picks_the_smallest_worst_case_regret():
     curves = np.array([[[0.50, 0.50, 0.50]], [[0.20, 0.45, 0.60]]])
     j, width = ex.robust_choice(curves, grid, np.ones((1, 3), bool))
     assert grid[j[0]] == 0.1 and np.isclose(width[0], 0.2)
+
+
+# --- rep assignment dials (experiment 5) --------------------------------------
+def test_assignment_dials_default_to_random_and_do_what_they_say():
+    base = make_book(4000, seed=6, rho=0.0)
+    assert base.equals(make_book(4000, seed=6, rho=0.0, assign_segment=0.0,
+                                 assign_quality=0.0))
+    terr = make_book(4000, seed=6, rho=0.0, assign_segment=1.0)
+    assert (terr.groupby("rep_id")["segment"].nunique() == 1).all()
+    assert lc.balance_p(terr) < 0.001 and lc.balance_p(base) > 0.01
+
+    sort = make_book(4000, seed=6, rho=0.0, assign_quality=0.6)
+    by_rep = sort.groupby("rep_id").agg(q=("quality", "mean"), d=("discount_pct", "mean"))
+    assert np.corrcoef(by_rep.q, by_rep.d)[0, 1] > 0.8     # strong deals, lenient reps
+    assert lc.balance_p(sort) > 0.01                       # and the book cannot see it

@@ -124,6 +124,9 @@ Appendix: proofs, reproducibility checklist, extra tables.
 **Experiments**
 - Done 2026-11-11: 30 seeds per cell, the rep-count dial, the capacity sweep.
 - Still open: 30 seeds and cohort-clipped scoring for the capacity sweep.
+- Done 2026-11-11: non-random rep assignment (experiment 5, see
+  `2026-11-11-jair-paper-assignment-experiment.md`). Sorting on hidden
+  quality breaks the correction and passes the balance test.
 - Dials not yet run: number of reps (8, 12, 25, 50); non-random assignment;
   response shape (linear, threshold); zero-discount share.
 - Capacity sweep for the tree model: is the under-reading capacity, or trees?

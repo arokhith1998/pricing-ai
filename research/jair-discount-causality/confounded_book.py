@@ -43,7 +43,9 @@ def make_book(n: int, seed: int, rho: float,
               quality_effect: float = QUALITY_EFFECT,
               skill_effect: float = 0.0,
               skill_corr: float = 1.0,
-              n_reps: int = N_REPS) -> pd.DataFrame:
+              n_reps: int = N_REPS,
+              assign_segment: float = 0.0,
+              assign_quality: float = 0.0) -> pd.DataFrame:
     """Draw `n` closed deals. Returns model features, the outcome, and the
     hidden columns (`quality`, `base_logit`) needed to compute the truth.
 
@@ -59,7 +61,14 @@ def make_book(n: int, seed: int, rho: float,
     `n_reps` is the number of reps. At the default (12) the three named
     reps of the product generator keep their offsets. At any other count
     rep biases are drawn with the same overall spread (sd 0.045) and no
-    named offsets."""
+    named offsets.
+    `assign_segment` (0 to 1) is the share of deals routed to a rep whose
+    home segment matches the deal's segment (territories). Home segments
+    are unrelated to leniency.
+    `assign_quality` (-1 to 1) routes deals on the hidden quality: the
+    correlation between a deal's quality and the leniency rank of the rep
+    it goes to. Positive sends strong deals to lenient reps. Both default
+    to 0 (random assignment) and use a separate random stream."""
     if not -1.0 < rho < 1.0:
         raise ValueError("rho must be strictly between -1 and 1")
     rng = np.random.default_rng(seed)
@@ -89,6 +98,9 @@ def make_book(n: int, seed: int, rho: float,
     rep = rng.integers(0, n_reps, size=n)
 
     quality = rng.standard_normal(n)
+    if assign_segment or assign_quality:
+        rep = _assign_reps(seed, seg, quality, rep_bias, rep, seg_names, w,
+                           assign_segment, assign_quality)
     resid = RESID_SD * (rho * quality
                         + np.sqrt(1.0 - rho**2) * rng.standard_normal(n))
     disc = np.clip(base_disc + 0.06 * competitor + 0.10 * qe_pressure
@@ -128,6 +140,50 @@ def make_book(n: int, seed: int, rho: float,
         "quality": quality,
         "base_logit": base_logit,
     })
+
+
+def _assign_reps(seed, seg, quality, rep_bias, rep, seg_names, weights,
+                 assign_segment, assign_quality):
+    """Non-random rep assignment (see make_book)."""
+    if assign_segment and assign_quality:
+        raise ValueError("set only one of assign_segment and assign_quality")
+    arng = np.random.default_rng(seed + 9)
+    n, n_reps = len(seg), len(rep_bias)
+    if assign_quality:
+        a = assign_quality
+        u = a * quality + np.sqrt(1.0 - a**2) * arng.standard_normal(n)
+        rank = np.argsort(np.argsort(u))
+        return np.argsort(rep_bias)[(rank * n_reps) // n]
+    counts = np.maximum(1, np.round(weights / weights.sum() * n_reps).astype(int))
+    while counts.sum() > n_reps:
+        counts[counts.argmax()] -= 1
+    while counts.sum() < n_reps:
+        counts[counts.argmax()] += 1
+    home = np.repeat(np.arange(len(seg_names)), counts)[arng.permutation(n_reps)]
+    out = rep.copy()
+    routed = arng.random(n) < assign_segment
+    for k, name in enumerate(seg_names):
+        pick = routed & (seg == name)
+        out[pick] = arng.choice(np.flatnonzero(home == k), size=int(pick.sum()))
+    return out
+
+
+def true_revenue_given_rep(test: pd.DataFrame, book: pd.DataFrame, grid: np.ndarray,
+                           quality_effect: float = QUALITY_EFFECT) -> np.ndarray:
+    """Expected booked ACV per dollar of list for each test deal, given
+    its covariates AND its rep: hidden quality is averaged over the
+    quality of the deals that rep actually receives. Equals true_revenue
+    when reps are assigned at random."""
+    probs = (np.arange(41) + 0.5) / 41
+    out = np.zeros((len(test), len(grid)))
+    base = test["base_logit"].to_numpy()
+    for r in np.unique(test["rep_id"]):
+        q = np.quantile(book.loc[book["rep_id"] == r, "quality"], probs)
+        rows = np.flatnonzero(test["rep_id"].to_numpy() == r)
+        idx = base[rows, None] + 1.3 * np.tanh(grid[None, :] / 0.05)
+        z = idx[:, :, None] + quality_effect * q[None, None, :]
+        out[rows] = (1.0 / (1.0 + np.exp(-z))).mean(axis=2) * (1.0 - grid[None, :])
+    return out
 
 
 def true_win_prob(base_logit: np.ndarray, grid: np.ndarray,

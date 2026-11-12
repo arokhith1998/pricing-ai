@@ -88,6 +88,28 @@ def first_stage(book: pd.DataFrame) -> FirstStage:
     return FirstStage(z, v, float(beta[-1]), float(f), int(len(np.unique(rep))))
 
 
+def balance_p(book: pd.DataFrame, fs: FirstStage | None = None) -> float:
+    """The standard examiner-design check: do reps receive different kinds of
+    deals, as far as the book records? One-way ANOVA of each quote-time
+    covariate across reps, Bonferroni-corrected; returns the adjusted smallest
+    p-value. Small means assignment is not random with respect to recorded
+    covariates. It says nothing about what the book does not record.
+
+    (Regressing leniency on covariates would not work here: leniency is built
+    from discounts already residualized on those covariates.)"""
+    from scipy.stats import f_oneway
+    X = design(book).iloc[:, 1:]
+    rep = book["rep_id"].to_numpy()
+    groups = [np.flatnonzero(rep == r) for r in np.unique(rep)]
+    ps = []
+    for col in X.columns:
+        x = X[col].to_numpy()
+        if x.std() == 0:
+            continue
+        ps.append(f_oneway(*[x[g] for g in groups]).pvalue)
+    return float(min(1.0, len(ps) * np.nanmin(ps)))
+
+
 def fit_win_model(book: pd.DataFrame, extra: dict[str, np.ndarray] | None = None,
                   constrained: bool = True):
     """The product's win model (pricing.model._PARAMS), optionally with extra
