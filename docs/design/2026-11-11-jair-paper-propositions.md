@@ -363,3 +363,12 @@ rules it out.
 - The linear case of Proposition 5 needs an additive first stage. Clipping
   discounts at zero breaks it slightly.
 - Nothing here addresses finite samples or few reps.
+
+## Full proofs (2026-11-11)
+
+Full proofs of all five propositions, the corollary and both lemmas are now in
+`research/jair-discount-causality/paper/main.tex`. The monotone-fit results no
+longer rest on a cited isotonic-regression theorem: a new lemma proves the form
+of the monotone fit of a single-peaked curve directly from the convexity of the
+log loss. The sketches above are kept as the working record. No proof has had
+an independent check.

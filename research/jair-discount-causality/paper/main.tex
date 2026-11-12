@@ -270,19 +270,86 @@ $\rho$ the bias has the sign of $\rho$.
 
 \subsection{What a monotone constraint does}
 
-Let $\tilde\pi$ be the population log-loss minimizer over functions of $d$
-that are non-decreasing, that is, the isotonic regression of $\pi$ with
-respect to the distribution of $d$ \citep{robertson1988order}.
+Let $\mu$ be the distribution of the historical discount on $[\dlo,\dhi]$,
+assumed to have a density that is positive throughout. A probabilistic
+classifier constrained to be non-decreasing in discount estimates, in the
+population, the function
+\begin{equation}
+\tilde\pi \in \arg\min_{f\ \text{non-decreasing}}\ L(f), \qquad
+L(f) = -\int \bigl\{\pi\log f + (1-\pi)\log(1-f)\bigr\}\,d\mu,
+\label{eq:monofit}
+\end{equation}
+over functions $f:[\dlo,\dhi]\to(0,1)$. We call $\tilde\pi$ the monotone fit.
+If $\pi$ is itself non-decreasing then $\tilde\pi=\pi$, since $\pi$ minimizes
+the integrand pointwise. The next lemma gives $\tilde\pi$ when $\pi$ rises and
+then falls.
+
+\begin{lemma}[Monotone fit of a single-peaked curve]
+\label{lem:pava}
+Let $\pi:[\dlo,\dhi]\to(0,1)$ be continuous, non-decreasing on $[\dlo,d_p]$
+and non-increasing on $[d_p,\dhi]$, with $d_p<\dhi$. For $t\in[\dlo,d_p]$ let
+$M(t)=\int_{(t,\dhi]}\pi\,d\mu\,/\,\mu((t,\dhi])$ be the mean of $\pi$ to the
+right of $t$.
+\begin{enumerate}
+\item[(a)] If $\pi(\dlo)\ge M(\dlo)$, then $\tilde\pi$ is the constant
+$\int\pi\,d\mu$.
+\item[(b)] Otherwise there is $t\in(\dlo,d_p]$ with $\pi(t)=M(t)$, and
+$\tilde\pi=\pi$ on $[\dlo,t]$ and $\tilde\pi=\pi(t)$ on $(t,\dhi]$.
+\end{enumerate}
+In both cases $\tilde\pi$ is unique up to $\mu$-null sets.
+\end{lemma}
+\begin{proof}
+\emph{Existence of $t$ in case (b).} The function $h(t)=\pi(t)-M(t)$ is
+continuous on $[\dlo,d_p]$, because $\mu$ has a density and
+$\mu((t,\dhi])>0$ there. By assumption $h(\dlo)<0$, and $h(d_p)\ge0$ because
+$\pi(d_p)$ is the maximum of $\pi$. Hence $h(t)=0$ for some $t\in(\dlo,d_p]$.
+
+\emph{The candidate.} Let $A=[\dlo,\dhi]$ and $c=\int\pi\,d\mu$ in case (a),
+and $A=(t,\dhi]$ and $c=\pi(t)=M(t)$ in case (b). Let $f^*=c$ on $A$ and
+$f^*=\pi$ elsewhere. Then $f^*$ is non-decreasing, takes values in a compact
+subset of $(0,1)$, and $\int_A(c-\pi)\,d\mu=0$.
+
+\emph{Sign structure.} Let $s=\sup\{x\in A:\pi(x)\ge c\}$. We claim
+$\pi\ge c$ on $A\cap[\dlo,s]$ and $\pi\le c$ on $A\cap(s,\dhi]$. The second
+holds by the definition of $s$. For the first, $\pi\ge c$ at the left end of
+$A$: in case (a) $c=\int\pi\,d\mu=M(\dlo)$, because $\mu$ has no atom at $\dlo$,
+and $\pi(\dlo)\ge M(\dlo)$ by assumption; in case (b) $\pi(t)=c$. Moreover $\pi$ is
+non-decreasing up to $d_p$ and non-increasing on $[d_p,\dhi]$, so the set where
+$\pi\ge c$ is an interval starting at the left end of $A$.
+
+\emph{Optimality.} For $\pi_0\in(0,1)$ the function
+$\ell(u)=-\pi_0\log u-(1-\pi_0)\log(1-u)$ is strictly convex on $(0,1)$ with
+$\ell'(u)=(u-\pi_0)/(u(1-u))$. So for any non-decreasing $f$ and every $x$,
+\[
+\ell_x(f(x))\ \ge\ \ell_x(f^*(x))+\frac{f^*(x)-\pi(x)}{f^*(x)(1-f^*(x))}\,
+\bigl(f(x)-f^*(x)\bigr),
+\]
+where $\ell_x$ is $\ell$ with $\pi_0=\pi(x)$. The last term vanishes off $A$,
+where $f^*=\pi$. Integrating,
+\[
+L(f)-L(f^*)\ \ge\ \frac{1}{c(1-c)}\int_A (c-\pi)(f-c)\,d\mu
+\ =\ \frac{1}{c(1-c)}\int_A (c-\pi)\,f\,d\mu,
+\]
+using $\int_A(c-\pi)\,d\mu=0$. For $x\in A$ with $x\le s$ we have
+$c-\pi(x)\le0$ and $f(x)\le f(s)$; for $x>s$ we have $c-\pi(x)\ge0$ and
+$f(x)\ge f(s)$. In both cases $(c-\pi(x))f(x)\ge(c-\pi(x))f(s)$, so
+\[
+\int_A (c-\pi)\,f\,d\mu\ \ge\ f(s)\int_A(c-\pi)\,d\mu=0 .
+\]
+Hence $L(f)\ge L(f^*)$. Uniqueness follows from the strict convexity of
+$\ell$.
+\end{proof}
 
 \begin{proposition}[Monotone fit, linear index]
 \label{prop:mono}
 Let $g(d)=\theta d$. If $b_{\mathrm{obs}}\ge 0$ then $\tilde\pi=\pi$. If
-$b_{\mathrm{obs}}<0$ then $\tilde\pi$ is the constant $\Prob(Y=1)$.
+$b_{\mathrm{obs}}<0$ then $\tilde\pi$ is the constant $\int\pi\,d\mu$, the
+overall win rate.
 \end{proposition}
 \begin{proof}
-A non-decreasing function is its own isotonic regression. The isotonic
-regression of a strictly decreasing function is its mean with respect to the
-weighting measure.
+If $b_{\mathrm{obs}}\ge0$ then $\pi$ is non-decreasing. If
+$b_{\mathrm{obs}}<0$ then $\pi$ is decreasing, so Lemma~\ref{lem:pava}
+applies with $d_p=\dlo$, and $\pi(\dlo)\ge M(\dlo)$ puts us in case (a).
 \end{proof}
 
 \begin{corollary}[Decision neutrality]
@@ -304,31 +371,51 @@ worse.
 
 \begin{proposition}[Saturating response]
 \label{prop:saturating}
-Let $g$ be increasing and concave. Then:
+Let $g$ be increasing, concave and continuous on $[\dlo,\dhi]$, and write
+$d_u$ and $d_c$ for the recommendations of the unconstrained model, which
+believes $\pi$, and of the constrained model, which believes $\tilde\pi$.
 \begin{enumerate}
-\item $\pi$ is increasing if $\rho\ge0$. If $\rho<0$ it is single-peaked: it
-increases while $g'(d)>\beta|\rho|/\sigma_d$ and decreases afterwards.
-\item If $\pi$ is single-peaked with peak at $d_p$, there is $t\le d_p$ such
-that $\tilde\pi=\pi$ on $[\dlo,t]$ and $\tilde\pi$ is constant on $(t,\dhi]$.
-\item Writing $d_u$ and $d_c$ for the unconstrained and constrained
-recommendations, $d_c\le d_u$, and $d_c\le t$ in the single-peaked case. If
-$\rho\ge0$ then $d_c=d_u$.
+\item If $\rho\ge0$, $\pi$ is increasing. If $\rho<0$ it is single-peaked:
+non-decreasing up to some $d_p$ and non-increasing afterwards. Where $g$ is
+differentiable, $\pi$ rises while $g'(d)>\beta|\rho|/\sigma_d$ and falls
+afterwards.
+\item There is $t\in[\dlo,\dhi]$, with $t\le d_p$ when $\rho<0$, such that
+$\tilde\pi=\pi$ on $[\dlo,t]$ and $\tilde\pi$ is constant on $(t,\dhi]$.
+\item $d_c\le d_u$ and $d_c\le t$. If $\rho\ge0$ then $d_c=d_u$.
 \item If $d_u\le d^*$ then $R(d^*)-R(d_c)\ge R(d^*)-R(d_u)$, strictly if
 $d_c<d_u$.
 \end{enumerate}
 \end{proposition}
-\begin{proof}[Proof sketch]
-(1) The argument of $\Phi$ in \eqref{eq:obs} has derivative proportional to
-$g'(d)+\beta\rho/\sigma_d$, and $g'$ is non-increasing. (2) This is the
-pool-adjacent-violators solution for a function that rises and then falls: the
-falling side is pooled with as much of the rising side as is needed for the
-pooled mean to equal the value of the curve at the start of the pool
-\citep{robertson1988order}. \todo{Give the argument in full, including the
-boundary case $t=\dlo$.} (3) On $(t,\dhi]$, $(1-d)\tilde\pi(d)$ is strictly
-decreasing, so $d_c\le t$. On $[\dlo,t]$ the two objectives coincide. If
-$d_u\le t$ then $d_c=d_u$; otherwise $d_c\le t<d_u$. (4) $\Phi$ is
-log-concave and $g$ is concave, so $\log R$ is concave on $[0,1)$ and $R$ is
-increasing on $[\dlo,d^*]$.
+\begin{proof}
+(1) By \eqref{eq:obs}, $\pi(d)=\Phi(k(d)/s)$ with
+$k(d)=\alpha+g(d)+\beta\rho(d-m)/\sigma_d$ and $s>0$. The function $k$ is
+concave, being the sum of a concave and an affine function, and a concave
+function on an interval is non-decreasing up to a maximizer and
+non-increasing after it. Composition with the increasing map
+$\Phi(\cdot/s)$ preserves this. If $\rho\ge0$, $k$ is increasing. Where $g$
+is differentiable, $k'(d)=g'(d)+\beta\rho/\sigma_d$.
+
+(2) If $\pi$ is non-decreasing, $\tilde\pi=\pi$ and we take $t=\dhi$.
+Otherwise $d_p<\dhi$ and Lemma~\ref{lem:pava} applies, with $t=\dlo$ in its
+case (a).
+
+(3) Write $W(d)=(1-d)\pi(d)$ and $\tilde W(d)=(1-d)\tilde\pi(d)$. If
+$\tilde\pi=\pi$ there is nothing to prove, and this covers $\rho\ge0$. In
+case (a) of the lemma $\tilde W$ is strictly decreasing on $[\dlo,\dhi]$, so
+$d_c=\dlo\le d_u$. In case (b), for $d>t$ we have
+$\tilde W(d)=(1-d)\pi(t)<(1-t)\pi(t)=\tilde W(t)$, so every maximizer of
+$\tilde W$ lies in $[\dlo,t]$, where $\tilde W=W$. Hence $d_c\le t$, and
+$d_c$ is the smallest maximizer of $W$ over $[\dlo,t]$. If $d_u\le t$, then
+$d_u$ maximizes $W$ over $[\dlo,t]$ and any other maximizer over $[\dlo,t]$
+is a global maximizer of $W$, hence not smaller than $d_u$; so $d_c=d_u$. If
+$d_u>t$ then $d_c\le t<d_u$.
+
+(4) $\log R(d)=\log(1-d)+\log\Phi\bigl((\alpha+g(d))/\sqrt{1+\beta^2}\bigr)$.
+The first term is strictly concave. The second is concave, because
+$\log\Phi$ is concave and increasing and its argument is concave. So
+$\log R$ is strictly concave, $d^*$ is unique, and $R$ is strictly
+increasing on $[\dlo,d^*]$. If $d_c\le d_u\le d^*$ then $R(d_c)\le R(d_u)$,
+with strict inequality when $d_c<d_u$.
 \end{proof}
 
 Part 4 has a condition. Lemma~\ref{lem:direction} below shows that mild rescue
@@ -370,35 +457,59 @@ is where the fit goes flat.}
 Let $g$ be increasing and concave and let a model believe
 $\hat p(d)=\Phi(\hat a+\hat b d)$.
 \begin{enumerate}
-\item $R$ is single-peaked, so regret is at most
-$\max\{R(d^*)-R(\dlo),\,R(d^*)-R(\dhi)\}$.
-\item If $d^*$ is interior, regret equals
-$\tfrac12|R''(d^*)|(\hat d-d^*)^2+o((\hat d-d^*)^2)$.
+\item Regret is at most $\max\{R(d^*)-R(\dlo),\,R(d^*)-R(\dhi)\}$.
+\item If $g$ is twice continuously differentiable and $d^*$ is interior,
+regret equals $\tfrac12|R''(d^*)|(\hat d-d^*)^2+o((\hat d-d^*)^2)$ as
+$\hat d\to d^*$.
 \item $\hat d=\dlo$ if and only if
-$(1-\dlo)\,\hat b\,r(\hat a+\hat b\,\dlo)\le1$, where $r=\phi/\Phi$. This
-holds for sufficiently small positive $\hat b$, so the recommendation reaches
-the floor before the fitted slope changes sign, and regret is then constant.
+$(1-\dlo)\,\hat b\,r(\hat a+\hat b\,\dlo)\le1$, where $r=\phi/\Phi$. For
+$\hat a$ in a bounded set this holds for all sufficiently small positive
+$\hat b$, so the recommendation reaches the floor before the fitted slope
+changes sign, and regret is then the constant $R(d^*)-R(\dlo)$.
 \end{enumerate}
 \end{proposition}
-\begin{proof}[Proof sketch]
-(1) is the log-concavity argument above. (2) is a second-order expansion at an
-interior maximum. (3) $\log\{(1-d)\Phi(\hat a+\hat b d)\}$ is concave, so the
-maximizer is $\dlo$ exactly when its derivative there is non-positive.
+\begin{proof}
+(1) By the proof of Proposition~\ref{prop:saturating}(4), $\log R$ is
+concave, so $R(\hat d)\ge\min\{R(\dlo),R(\dhi)\}$ for every
+$\hat d\in[\dlo,\dhi]$.
+
+(2) $R$ is twice continuously differentiable and $R'(d^*)=0$ at an interior
+maximum, so
+$R(\hat d)=R(d^*)+\tfrac12R''(d^*)(\hat d-d^*)^2+o((\hat d-d^*)^2)$ with
+$R''(d^*)\le0$.
+
+(3) Let $\hat W(d)=(1-d)\Phi(\hat a+\hat bd)$. Then
+$\log\hat W(d)=\log(1-d)+\log\Phi(\hat a+\hat bd)$ is strictly concave, with
+derivative $\psi(d)=-1/(1-d)+\hat b\,r(\hat a+\hat bd)$. A strictly concave
+function on $[\dlo,\dhi]$ is maximized at $\dlo$ if and only if its derivative
+there is non-positive, and $\psi(\dlo)\le0$ is the stated condition. Since
+$r$ is bounded on bounded sets, $\hat b\,r(\hat a+\hat b\,\dlo)\to0$ as
+$\hat b\downarrow0$ uniformly over bounded $\hat a$, and $1/(1-\dlo)\ge1$.
 \end{proof}
 
 \begin{lemma}[Direction of the error]
 \label{lem:direction}
-Fix the value of the believed curve at $m$ and vary its slope $\hat b$. At an
-interior optimum with $z=\hat a+\hat b\hat d$,
+Fix the value of the believed curve at $m$ and vary its slope $\hat b>0$. At
+an interior optimum with $z=\hat a+\hat b\hat d$,
 \[
 \operatorname{sign}\frac{\partial\hat d}{\partial\hat b}
 =\operatorname{sign}\bigl(1-\hat b(\hat d-m)(z+r(z))\bigr).
 \]
 \end{lemma}
 \begin{proof}
-Differentiate the first-order condition $(1-d)\hat b\,r(z)=1$ with respect to
-$\hat b$ with $z=c+\hat b(d-m)$, using $r'(z)=-r(z)(z+r(z))$; the derivative
-of the left side in $d$ is negative at a maximum.
+Write $z=c+\hat b(d-m)$ with $c$ fixed. With $\psi$ as in the proof of
+Proposition~\ref{prop:regret}, an interior optimum solves
+$F(d,\hat b):=(1-d)\psi(d)=(1-d)\,\hat b\,r(z)-1=0$. Using
+$r'(z)=-r(z)(z+r(z))$,
+\[
+\frac{\partial F}{\partial\hat b}=(1-d)\,r(z)\bigl[1-\hat b(d-m)(z+r(z))\bigr],
+\qquad
+\frac{\partial F}{\partial d}=-\psi(d)+(1-d)\psi'(d)=(1-d)\psi'(d)<0
+\]
+at the optimum, since $\psi=0$ there and $\psi$ is strictly decreasing. By
+the implicit function theorem
+$\partial\hat d/\partial\hat b=-(\partial F/\partial\hat b)/(\partial F/\partial d)$,
+which has the sign of $\partial F/\partial\hat b$, and $(1-d)r(z)>0$.
 \end{proof}
 
 When the optimum is at or below the mean historical discount, a flatter curve
@@ -799,7 +910,7 @@ If yes, please complete the list below.
     [yes]
     \item All novel claims are stated formally (e.g., in theorem statements). 
     [yes]
-    \item Proofs of all non-trivial claims are provided in sufficient detail to permit verification by readers with a reasonable degree of expertise (e.g., that expected from a PhD candidate in the same area of AI). [partially]
+    \item Proofs of all non-trivial claims are provided in sufficient detail to permit verification by readers with a reasonable degree of expertise (e.g., that expected from a PhD candidate in the same area of AI). [yes]
     \item
     Complex formalism, such as definitions or proofs, is motivated and explained clearly.
     [yes]
@@ -808,7 +919,7 @@ If yes, please complete the list below.
     [yes]
     \item 
     Appropriate citations are given for all non-trivial theoretical tools and techniques. 
-    [partially]
+    [yes]
 \end{enumerate}
 
 \subsection*{Articles reporting on computational experiments:}
@@ -899,6 +1010,6 @@ If yes, please complete the list below.
 
 \subsection*{Explanations on any of the answers above (optional):}
 
-These are draft answers for the author to confirm. Proofs: two of five propositions are given as sketches in this draft. Citations for theoretical tools: the reference for isotonic regression has not been checked against the source. Code, raw results and the benchmark generator exist in the author's repository; the public location and licence are not yet chosen. Randomness: every book is generated from a fixed integer seed and the scripts list the seeds, but the article does not yet describe this. The execution environment is not yet described. Hyperparameters: the tree model uses a production configuration and a five-point capacity sweep is reported; no other tuning was done. Statistics: paired differences with standard errors over 30 books are reported; no formal hypothesis tests. The only data are generated by the benchmark; no data sets from the literature are used.
+These are draft answers for the author to confirm. Proofs are given in full but have not yet been checked independently. Code, raw results and the benchmark generator exist in the author's repository; the public location and licence are not yet chosen. Randomness: every book is generated from a fixed integer seed and the scripts list the seeds, but the article does not yet describe this. The execution environment is not yet described. Hyperparameters: the tree model uses a production configuration and a five-point capacity sweep is reported; no other tuning was done. Statistics: paired differences with standard errors over 30 books are reported; no formal hypothesis tests. The only data are generated by the benchmark; no data sets from the literature are used.
 
 \end{document}

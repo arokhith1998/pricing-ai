@@ -109,6 +109,51 @@ def check_prop4():
           f"constrained {GRID[j_c]:.2f}")
 
 
+def log_loss(f, pi, w):
+    return float(-(w * (pi * np.log(f) + (1 - pi) * np.log(1 - f))).sum() / w.sum())
+
+
+def lemma_candidate(pi, w):
+    """The monotone fit claimed by the lemma for a single-peaked curve:
+    follow the curve up to the first t at or before the peak where pi(t)
+    equals the weighted mean of pi to the right of t, then stay flat. If
+    pi already exceeds that mean at the floor, the fit is the overall mean."""
+    peak = int(pi.argmax())
+    tail_mean = np.cumsum((w * pi)[::-1])[::-1] / np.cumsum(w[::-1])[::-1]
+    right = np.append(tail_mean[1:], pi[-1])      # mean over indices > i
+    if pi[0] >= right[0]:
+        return np.full_like(pi, (w * pi).sum() / w.sum())
+    t = next(i for i in range(peak + 1) if pi[i] >= right[i])
+    out = pi.copy()
+    out[t:] = tail_mean[t]       # on a grid, pool from t itself
+    return out
+
+
+def check_lemma(rng):
+    """The lemma's candidate matches the isotonic fit and beats random
+    non-decreasing competitors on expected log loss."""
+    w = norm.pdf(GRID, M, SD_D)
+    n_cases = 0
+    for alpha in (-1.0, -0.5, 0.0):
+        for beta in (0.55, 1.5):
+            for rho in (-0.9, -0.7, -0.5, -0.3, -0.1):
+                pi = observational_curve(rho, alpha, beta)
+                if int(pi.argmax()) == len(GRID) - 1:
+                    continue                       # already non-decreasing
+                cand = lemma_candidate(pi, w)
+                assert np.all(np.diff(cand) >= -1e-12)
+                assert np.abs(cand - monotone_fit(pi, w)).max() < 3e-3
+                base = log_loss(cand, pi, w)
+                for _ in range(40):
+                    bump = np.sort(rng.normal(0, rng.uniform(0.005, 0.1), len(GRID)))
+                    f = np.clip(np.maximum.accumulate(cand + bump - bump.mean() * rng.random()),
+                                1e-4, 1 - 1e-4)
+                    assert log_loss(f, pi, w) >= base - 1e-9
+                n_cases += 1
+    assert n_cases > 0
+    print(f"lemma candidate equals the isotonic fit and is not beaten in {n_cases} cases")
+
+
 def check_prop5(rng):
     n, n_reps = 200_000, 12
     alpha, beta, rho = -0.5, 0.55, 0.0
@@ -150,5 +195,6 @@ def check_prop5(rng):
 
 if __name__ == "__main__":
     print("== Proposition 4: saturating response"); check_prop4()
+    print("\n== Lemma: monotone fit of a single-peaked curve"); check_lemma(np.random.default_rng(11))
     print("\n== Proposition 5: undetectable rep skill"); check_prop5(np.random.default_rng(7))
     print("\nAll checks passed.")
