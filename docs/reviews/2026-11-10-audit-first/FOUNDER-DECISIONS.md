@@ -103,3 +103,6 @@ Founder: "I still feel it's a lot on the website." Nine reviewers (VC pitch anal
 ### F18. Headline and booking link (founder, 2026-11-11)
 Headline becomes "See which customers cost more to serve than they pay." It replaces "We stop AI companies from losing money on heavy users" everywhere on the site (hero, page description, social card). The site's call to action links to https://calendly.com/adhithya-pricekeel/30min. Task PK-117.
 
+### F19. Privacy page wording confirmed (founder, 2026-11-11)
+The founder confirmed the three privacy-page statements shipped in PR 100: (1) invitees to a customer workspace are told in writing what the workspace stores before they connect anything; (2) "we may use AI tools", with the vendors named in the data addendum; (3) "US entity formation in progress". These are commitments; any change to them is a founder decision.
+
